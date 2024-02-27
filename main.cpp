@@ -24,7 +24,7 @@
 //#include
 //#include "SDL_events_c.h" sdl dans la lib du prog
 //#include <SDL_events>
-//./resources./resources/assets/ forr compiler v2304
+//./resources./resources/./resources/assets/ forr compiler v2304
 //#include <boost/thread/thread.hpp>
 #include <ctime>
 
@@ -709,7 +709,7 @@ void threadfps(double fps2)
     //__________sounds
     //extern SDL_Window* win;
 
-//Mix_Music *music = loadMusic("assets/sounds/music.ogg");
+//Mix_Music *music = loadMusic("./resources/assets/sounds/music.ogg");
 
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
 	{
@@ -744,27 +744,27 @@ void threadfps(double fps2)
     Mix_Volume(10, son); // Mets le son a 100% en volume pour le premier cannaux
     
 	Mix_Chunk *explo2;
-	explo2= Mix_LoadWAV("assets/sounds/explo2.ogg");
+	explo2= Mix_LoadWAV("./resources/assets/sounds/explo2.ogg");
 	
 	Mix_Chunk *explo1;
-	explo1= Mix_LoadWAV("assets/sounds/explo1.ogg");
+	explo1= Mix_LoadWAV("./resources/assets/sounds/explo1.ogg");
 	
 	
 	Mix_Chunk *tir2;
-		tir2= Mix_LoadWAV("assets/sounds/laser2.ogg");
+		tir2= Mix_LoadWAV("./resources/assets/sounds/laser2.ogg");
 	
 	Mix_Chunk *tir1;
-	tir1= Mix_LoadWAV("assets/sounds/laser.ogg");
+	tir1= Mix_LoadWAV("./resources/assets/sounds/laser.ogg");
 	//Mix_PlayChannel(2, tir, 0);
-	Mix_Chunk *entre= Mix_LoadWAV("assets/sounds/entre.wav");
+	Mix_Chunk *entre= Mix_LoadWAV("./resources/assets/sounds/entre.wav");
 	
 	Mix_Music *music;
-	music = Mix_LoadMUS("assets/sounds/music.ogg");
+	music = Mix_LoadMUS("./resources/assets/sounds/music.ogg");
 	
 	Mix_Chunk *sndmiss ;
-	sndmiss= Mix_LoadWAV("assets/sounds/miss2.mp3");
+	sndmiss= Mix_LoadWAV("./resources/assets/sounds/miss2.mp3");
 
-	//Mix_Music *music = loadMusic("assets/sounds/music.ogg");
+	//Mix_Music *music = loadMusic("./resources/assets/sounds/music.ogg");
 	//Mix_Music *music = loadMusic("music.ogg");
 	if (music == NULL)
 	{
