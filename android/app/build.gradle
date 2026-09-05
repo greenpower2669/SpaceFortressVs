@@ -1,4 +1,5 @@
 import java.util.Base64
+import java.security.MessageDigest
 
 plugins {
     id 'com.android.application'
@@ -62,7 +63,7 @@ android {
     }
 }
 
-// The remaster art is stored as three small base64 text chunks so the GitHub
+// The remaster art is stored as small base64 text chunks so the GitHub
 // connector can keep the generated binary art reproducible in the repository.
 // Rebuild the ZIP locally inside Gradle before syncing Android assets.
 def remasterChunks = fileTree(file("${rootProject.projectDir}/../assets")) {
@@ -77,8 +78,25 @@ def prepareRemasterPack = tasks.register('prepareRemasterPack') {
     doLast {
         def ordered = remasterChunks.files.sort { a, b -> a.name <=> b.name }
         def encoded = ordered.collect { it.getText('UTF-8').trim() }.join('')
+
+        // One transport write dropped a single base64 character from chunk .02.
+        // Repair that exact omission deterministically, then verify the ZIP hash
+        // so a damaged art pack can never silently reach the APK.
+        if (encoded.length() == 65163) {
+            encoded = encoded.substring(0, 33411) + 'r' + encoded.substring(33411)
+        }
+        if (encoded.length() != 65164) {
+            throw new GradleException("Unexpected remaster base64 length: ${encoded.length()}")
+        }
+
+        def decoded = Base64.decoder.decode(encoded)
+        def sha256 = MessageDigest.getInstance('SHA-256').digest(decoded).encodeHex().toString()
+        if (sha256 != 'c0b9fd4f96b56cf7f5dcace9ff6d4f46327a06486bc9729308668009d278a185') {
+            throw new GradleException("Remaster pack checksum mismatch: ${sha256}")
+        }
+
         remasterZip.parentFile.mkdirs()
-        remasterZip.bytes = Base64.decoder.decode(encoded)
+        remasterZip.bytes = decoded
     }
 }
 
