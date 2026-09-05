@@ -35,6 +35,10 @@ void th2()
 
 	
 
+// Android compatibility shim for the historical ./resources/assets/... paths.
+// It only changes the Android loading boundary; desktop/source paths stay intact.
+#include <android_asset_compat.hpp>
+
 // 2026 UI shim: procedural start/help screens and input interception.
 // Included here (after t.hpp in main.cpp) so SDL and sprite are already defined.
 #include <start_ui.hpp>
