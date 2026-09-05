@@ -15,6 +15,7 @@ extern bool sdlstarted;
 
 
 
+
  
 	int w, h; // texture width & height
 	int pw, ph; // transporteur xy sur event
@@ -29,7 +30,6 @@ void th2()
     
     std::cout << "  -2-  ";//<< std::endl;
   
-	
     
  }
 
@@ -42,3 +42,7 @@ void th2()
 // 2026 UI shim: procedural start/help screens and input interception.
 // Included here (after t.hpp in main.cpp) so SDL and sprite are already defined.
 #include <start_ui.hpp>
+
+// 2026 remaster runtime: robust gear gesture, legacy-normalized IA lead,
+// animated cannon/core VFX and occasional shooting stars.
+#include <remaster_runtime.hpp>

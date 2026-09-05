@@ -7,15 +7,36 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
 #include <android/log.h>
+#include <cstring>
 
-// The historical game uses paths such as "./resources/assets/pict/so.png".
-// Android APK assets are rooted at assets/, and SDL's Android RWops fallback
-// expects an asset-relative path. Keep the old source untouched and normalize
-// only at the Android boundary.
+// Historical code keeps using "./resources/assets/...". Android normalizes the
+// prefix here and, for the remaster, redirects only selected visual files.
 static const char *SpaceFortress_AssetPath(const char *path)
 {
     if (!path) return path;
+
     while (path[0] == '.' && path[1] == '/') path += 2;
+
+    // Preserve team identity: player 1 is the warm/red side, player 2 blue.
+    if (std::strcmp(path, "resources/assets/pict/so.png") == 0)
+        return "resources/assets/pict/remaster/player_orange.png";
+    if (std::strcmp(path, "resources/assets/pict/sb.png") == 0)
+        return "resources/assets/pict/remaster/player_blue.png";
+
+    if (std::strcmp(path, "resources/assets/pict/fond4hlz.png") == 0)
+        return "resources/assets/pict/remaster/background.jpg";
+
+    // The new portrait background already contains sun / galaxy / planet.
+    // Disable only those legacy decorative layers to avoid a double image.
+    if (std::strcmp(path, "resources/assets/pict/suno.png") == 0 ||
+        std::strcmp(path, "resources/assets/pict/sunrcc.png") == 0 ||
+        std::strcmp(path, "resources/assets/pict/marssoeur3.png") == 0 ||
+        std::strcmp(path, "resources/assets/pict/jupsoeur4.png") == 0)
+        return "resources/assets/pict/remaster/transparent.png";
+
+    if (std::strcmp(path, "resources/assets/pict/rouage.png") == 0)
+        return "resources/assets/pict/remaster/gear.png";
+
     return path;
 }
 
@@ -76,7 +97,6 @@ static Mix_Music *SpaceFortress_Mix_LoadMUS(const char *path)
     return music;
 }
 
-// Mix_LoadWAV is a convenience macro in SDL_mixer, so replace it explicitly.
 #ifdef Mix_LoadWAV
 #undef Mix_LoadWAV
 #endif

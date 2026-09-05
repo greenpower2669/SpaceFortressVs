@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     id 'com.android.application'
 }
@@ -50,7 +52,7 @@ android {
     }
 
     androidResources {
-        noCompress += ['png', 'tif', 'ogg', 'mp3', 'wav']
+        noCompress += ['png', 'jpg', 'jpeg', 'tif', 'ogg', 'mp3', 'wav']
     }
 
     packaging {
@@ -60,8 +62,37 @@ android {
     }
 }
 
+// The remaster art is stored as three small base64 text chunks so the GitHub
+// connector can keep the generated binary art reproducible in the repository.
+// Rebuild the ZIP locally inside Gradle before syncing Android assets.
+def remasterChunks = fileTree(file("${rootProject.projectDir}/../assets")) {
+    include 'remaster_pack.b64.*'
+}
+def remasterZip = file("${buildDir}/generated/remaster/remaster_pack.zip")
+
+def prepareRemasterPack = tasks.register('prepareRemasterPack') {
+    inputs.files(remasterChunks)
+    outputs.file(remasterZip)
+
+    doLast {
+        def ordered = remasterChunks.files.sort { a, b -> a.name <=> b.name }
+        def encoded = ordered.collect { it.getText('UTF-8').trim() }.join('')
+        remasterZip.parentFile.mkdirs()
+        remasterZip.bytes = Base64.decoder.decode(encoded)
+    }
+}
+
 def syncGameAssets = tasks.register('syncGameAssets', Sync) {
-    from(file("${rootProject.projectDir}/../assets"))
+    dependsOn(prepareRemasterPack)
+
+    // Historical assets keep their original layout.
+    from(file("${rootProject.projectDir}/../assets")) {
+        exclude 'remaster_pack.b64.*'
+    }
+
+    // ZIP paths start at pict/remaster/.
+    from({ zipTree(remasterZip) })
+
     into(file("${buildDir}/generated/gameAssets/resources/assets"))
 }
 
