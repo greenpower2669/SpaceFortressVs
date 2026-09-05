@@ -10,12 +10,17 @@
 #include <cstring>
 
 // Historical code keeps using "./resources/assets/...". Android normalizes the
-// prefix here and, for the remaster, redirects only selected visual files.
+// prefix here and redirects only compatibility/remaster assets at the boundary.
 static const char *SpaceFortress_AssetPath(const char *path)
 {
     if (!path) return path;
 
     while (path[0] == '.' && path[1] == '/') path += 2;
+
+    // Android assets are case-sensitive. The historical source asks for
+    // laser.ogg, while the repository contains Laser.ogg.
+    if (std::strcmp(path, "resources/assets/sounds/laser.ogg") == 0)
+        return "resources/assets/sounds/Laser.ogg";
 
     // Preserve team identity: player 1 is the warm/red side, player 2 blue.
     if (std::strcmp(path, "resources/assets/pict/so.png") == 0)
@@ -23,12 +28,11 @@ static const char *SpaceFortress_AssetPath(const char *path)
     if (std::strcmp(path, "resources/assets/pict/sb.png") == 0)
         return "resources/assets/pict/remaster/player_blue.png";
 
-    if (std::strcmp(path, "resources/assets/pict/fond4hlz.png") == 0)
-        return "resources/assets/pict/remaster/background.jpg";
-
-    // The new portrait background already contains sun / galaxy / planet.
-    // Disable only those legacy decorative layers to avoid a double image.
-    if (std::strcmp(path, "resources/assets/pict/suno.png") == 0 ||
+    // The gameplay background is now rendered live by remaster_runtime.hpp.
+    // Keep all former static scenic layers transparent so no painted sun,
+    // planet or shooting-star motif can cover the animated space field.
+    if (std::strcmp(path, "resources/assets/pict/fond4hlz.png") == 0 ||
+        std::strcmp(path, "resources/assets/pict/suno.png") == 0 ||
         std::strcmp(path, "resources/assets/pict/sunrcc.png") == 0 ||
         std::strcmp(path, "resources/assets/pict/marssoeur3.png") == 0 ||
         std::strcmp(path, "resources/assets/pict/jupsoeur4.png") == 0)
