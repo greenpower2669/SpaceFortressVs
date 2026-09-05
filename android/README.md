@@ -21,11 +21,13 @@ The original `assets/` directory is copied at build time to the APK asset path
 
 ## GitHub Actions
 
-`.github/workflows/android-build.yml` builds:
+`.github/workflows/android-build.yml` builds and publishes as workflow artifacts:
 
 - a debug APK, directly installable on Android;
 - a debug AAB for build validation;
 - an unsigned release AAB.
+
+The Android CI build is currently validated successfully on GitHub Actions.
 
 A stable Play Store release will need the final application id/version and an upload
 keystore. Those signing values should be added later as GitHub Actions secrets rather
