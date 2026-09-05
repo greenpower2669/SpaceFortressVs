@@ -53,10 +53,28 @@ jobs:
       - name: Build installable APK and app bundles
         shell: bash
         run: |
+          set +e
           gradle -p android --stacktrace \
             :app:assembleDebug \
             :app:bundleDebug \
-            :app:bundleRelease
+            :app:bundleRelease 2>&1 | tee android-build.log
+          code=${PIPESTATUS[0]}
+          echo "$code" > android-build.exit
+          exit 0
+
+      - name: Android build diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpaceFortressVs-android-build-log
+          path: |
+            android-build.log
+            android-build.exit
+          if-no-files-found: error
+
+      - name: Check Android build result
+        shell: bash
+        run: exit "$(cat android-build.exit)"
 
       - name: APK artifact
         uses: actions/upload-artifact@v4
