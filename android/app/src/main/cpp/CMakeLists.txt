@@ -49,14 +49,15 @@ set(SDL2MIXER_MP3 ON CACHE BOOL "" FORCE)
 set(SDL2MIXER_OGG ON CACHE BOOL "" FORCE)
 add_subdirectory("${THIRD_PARTY}/SDL_mixer" "${CMAKE_BINARY_DIR}/SDL_mixer" EXCLUDE_FROM_ALL)
 
-# The original code uses <SDL2/SDL.h>, while the SDL source tree exposes headers
-# directly as <SDL.h>. Build a compatibility include tree without modifying the old code.
+# The historical source includes <SDL2/...>. The upstream SDL2 family exposes
+# its headers from include/, so build the expected SDL2/ compatibility directory
+# without touching the old game source.
 set(SDL2_COMPAT "${CMAKE_BINARY_DIR}/compat/SDL2")
 file(MAKE_DIRECTORY "${SDL2_COMPAT}")
 file(GLOB SDL2_HEADERS "${THIRD_PARTY}/SDL/include/*.h")
 file(COPY ${SDL2_HEADERS} DESTINATION "${SDL2_COMPAT}")
-file(COPY "${THIRD_PARTY}/SDL_image/SDL_image.h" DESTINATION "${SDL2_COMPAT}")
-file(COPY "${THIRD_PARTY}/SDL_mixer/SDL_mixer.h" DESTINATION "${SDL2_COMPAT}")
+file(COPY "${THIRD_PARTY}/SDL_image/include/SDL_image.h" DESTINATION "${SDL2_COMPAT}")
+file(COPY "${THIRD_PARTY}/SDL_mixer/include/SDL_mixer.h" DESTINATION "${SDL2_COMPAT}")
 
 add_library(main SHARED
     "${REPO_ROOT}/src/main.cpp"
@@ -66,8 +67,8 @@ target_include_directories(main PRIVATE
     "${REPO_ROOT}/src"
     "${CMAKE_BINARY_DIR}/compat"
     "${THIRD_PARTY}/SDL/include"
-    "${THIRD_PARTY}/SDL_image"
-    "${THIRD_PARTY}/SDL_mixer"
+    "${THIRD_PARTY}/SDL_image/include"
+    "${THIRD_PARTY}/SDL_mixer/include"
 )
 
 target_compile_definitions(main PRIVATE GL_GLEXT_PROTOTYPES)
