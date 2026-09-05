@@ -20,6 +20,6 @@ public class SpaceFortressActivity extends SDLActivity {
 
     @Override
     protected String getMainFunction() {
-        return "SDL_main";
+        return "SpaceFortressMain";
     }
 }
