@@ -28,15 +28,42 @@ static const char *SpaceFortress_AssetPath(const char *path)
     if (std::strcmp(path, "resources/assets/pict/sb.png") == 0)
         return "resources/assets/pict/remaster/player_blue.png";
 
-    // The gameplay background is now rendered live by remaster_runtime.hpp.
-    // Keep all former static scenic layers transparent so no painted sun,
-    // planet or shooting-star motif can cover the animated space field.
-    if (std::strcmp(path, "resources/assets/pict/fond4hlz.png") == 0 ||
-        std::strcmp(path, "resources/assets/pict/suno.png") == 0 ||
-        std::strcmp(path, "resources/assets/pict/sunrcc.png") == 0 ||
-        std::strcmp(path, "resources/assets/pict/marssoeur3.png") == 0 ||
-        std::strcmp(path, "resources/assets/pict/jupsoeur4.png") == 0)
+    // Restore the historical rich galaxy background (fond4hlz.png) unchanged.
+    // Scenic bodies remain separate, exactly like the old engine expected,
+    // but now use the remastered art. The historical vib()/up360() calls keep
+    // them gently alive without baking them into the backdrop.
+    if (std::strcmp(path, "resources/assets/pict/suno.png") == 0)
+        return "resources/assets/pict/remaster/sun.png";
+    if (std::strcmp(path, "resources/assets/pict/sunrcc.png") == 0)
         return "resources/assets/pict/remaster/transparent.png";
+    if (std::strcmp(path, "resources/assets/pict/marssoeur3.png") == 0)
+        return "resources/assets/pict/remaster/transparent.png";
+    if (std::strcmp(path, "resources/assets/pict/jupsoeur4.png") == 0)
+        return "resources/assets/pict/remaster/planet.png";
+
+    // These are the asteroids that are actually drawn for gameplay entities
+    // named a1..a4. This was the missing remap in the first remaster pass.
+    if (std::strcmp(path, "resources/assets/pict/aa1.png") == 0)
+        return "resources/assets/pict/remaster/asteroid1.png";
+    if (std::strcmp(path, "resources/assets/pict/aa2.png") == 0)
+        return "resources/assets/pict/remaster/asteroid2.png";
+    if (std::strcmp(path, "resources/assets/pict/aa3.png") == 0)
+        return "resources/assets/pict/remaster/asteroid3.png";
+    if (std::strcmp(path, "resources/assets/pict/aa4.png") == 0)
+        return "resources/assets/pict/remaster/asteroid4.png";
+
+    // Also modernize the dormant background-asteroid slots in case the old
+    // commented render layer is re-enabled later.
+    if (std::strcmp(path, "resources/assets/pict/ast.png") == 0)
+        return "resources/assets/pict/remaster/asteroid1.png";
+    if (std::strcmp(path, "resources/assets/pict/ast2.png") == 0)
+        return "resources/assets/pict/remaster/asteroid2.png";
+    if (std::strcmp(path, "resources/assets/pict/ast3.png") == 0)
+        return "resources/assets/pict/remaster/asteroid3.png";
+    if (std::strcmp(path, "resources/assets/pict/ast4.png") == 0)
+        return "resources/assets/pict/remaster/asteroid4.png";
+    if (std::strcmp(path, "resources/assets/pict/ast5.png") == 0)
+        return "resources/assets/pict/remaster/asteroid2.png";
 
     if (std::strcmp(path, "resources/assets/pict/rouage.png") == 0)
         return "resources/assets/pict/remaster/gear.png";
