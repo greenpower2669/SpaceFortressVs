@@ -34,3 +34,7 @@ void th2()
  }
 
 	
+
+// 2026 UI shim: procedural start/help screens and input interception.
+// Included here (after t.hpp in main.cpp) so SDL and sprite are already defined.
+#include <start_ui.hpp>
