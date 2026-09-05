@@ -61,6 +61,7 @@ file(COPY "${THIRD_PARTY}/SDL_mixer/include/SDL_mixer.h" DESTINATION "${SDL2_COM
 
 add_library(main SHARED
     "${REPO_ROOT}/src/main.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/sdl_entry.cpp"
 )
 
 target_include_directories(main PRIVATE
