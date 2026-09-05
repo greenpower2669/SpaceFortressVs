@@ -46,3 +46,7 @@ void th2()
 // 2026 remaster runtime: robust gear gesture, legacy-normalized IA lead,
 // animated cannon/core VFX and occasional shooting stars.
 #include <remaster_runtime.hpp>
+
+// Restore the historical rich galaxy rendering while keeping the remaster VFX.
+// This is deliberately last so it can remove only the temporary RenderClear hook.
+#include <remaster_visual_restore.hpp>
