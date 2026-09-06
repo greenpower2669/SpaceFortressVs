@@ -9,6 +9,12 @@
 #include <android/log.h>
 #include <cstring>
 
+// Texture identities used by the final visual layer. Keeping these at the
+// Android loading boundary lets us add aura/scale treatment without touching
+// the historical renderer or main.cpp.
+static SDL_Texture *SpaceFortressSunTexture = NULL;
+static SDL_Texture *SpaceFortressPlanetTexture = NULL;
+
 // Historical code keeps using "./resources/assets/...". Android normalizes the
 // prefix here and redirects only compatibility/remaster assets at the boundary.
 static const char *SpaceFortress_AssetPath(const char *path)
@@ -28,10 +34,8 @@ static const char *SpaceFortress_AssetPath(const char *path)
     if (std::strcmp(path, "resources/assets/pict/sb.png") == 0)
         return "resources/assets/pict/remaster/player_blue.png";
 
-    // Restore the historical rich galaxy background (fond4hlz.png) unchanged.
-    // Scenic bodies remain separate, exactly like the old engine expected,
-    // but now use the remastered art. The historical vib()/up360() calls keep
-    // them gently alive without baking them into the backdrop.
+    // Restore the historical rich galaxy background unchanged. Scenic bodies
+    // stay separate and use the modern round assets.
     if (std::strcmp(path, "resources/assets/pict/suno.png") == 0)
         return "resources/assets/pict/remaster/sun.png";
     if (std::strcmp(path, "resources/assets/pict/sunrcc.png") == 0)
@@ -41,8 +45,7 @@ static const char *SpaceFortress_AssetPath(const char *path)
     if (std::strcmp(path, "resources/assets/pict/jupsoeur4.png") == 0)
         return "resources/assets/pict/remaster/planet.png";
 
-    // These are the asteroids that are actually drawn for gameplay entities
-    // named a1..a4. This was the missing remap in the first remaster pass.
+    // Active gameplay asteroids are aa1..aa4.
     if (std::strcmp(path, "resources/assets/pict/aa1.png") == 0)
         return "resources/assets/pict/remaster/asteroid1.png";
     if (std::strcmp(path, "resources/assets/pict/aa2.png") == 0)
@@ -52,8 +55,7 @@ static const char *SpaceFortress_AssetPath(const char *path)
     if (std::strcmp(path, "resources/assets/pict/aa4.png") == 0)
         return "resources/assets/pict/remaster/asteroid4.png";
 
-    // Also modernize the dormant background-asteroid slots in case the old
-    // commented render layer is re-enabled later.
+    // Dormant background-asteroid slots, kept modern if re-enabled later.
     if (std::strcmp(path, "resources/assets/pict/ast.png") == 0)
         return "resources/assets/pict/remaster/asteroid1.png";
     if (std::strcmp(path, "resources/assets/pict/ast2.png") == 0)
@@ -88,6 +90,7 @@ static SDL_RWops *SpaceFortress_OpenAsset(const char *path)
 static SDL_Texture *SpaceFortress_IMG_LoadTexture(SDL_Renderer *renderer,
                                                    const char *path)
 {
+    const char *normalized = SpaceFortress_AssetPath(path);
     SDL_RWops *rw = SpaceFortress_OpenAsset(path);
     if (!rw) return NULL;
 
@@ -95,8 +98,17 @@ static SDL_Texture *SpaceFortress_IMG_LoadTexture(SDL_Renderer *renderer,
     if (!texture) {
         __android_log_print(ANDROID_LOG_ERROR, "SpaceFortress",
                             "Texture decode failed: %s : %s",
-                            SpaceFortress_AssetPath(path), IMG_GetError());
+                            normalized ? normalized : "(null)", IMG_GetError());
+        return NULL;
     }
+
+    if (normalized && std::strcmp(normalized,
+            "resources/assets/pict/remaster/sun.png") == 0)
+        SpaceFortressSunTexture = texture;
+    if (normalized && std::strcmp(normalized,
+            "resources/assets/pict/remaster/planet.png") == 0)
+        SpaceFortressPlanetTexture = texture;
+
     return texture;
 }
 
