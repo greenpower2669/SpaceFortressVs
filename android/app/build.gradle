@@ -1,0 +1,119 @@
+import java.util.Base64
+import java.security.MessageDigest
+
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.greenpower2669.spacefortressvs'
+    compileSdk 36
+    ndkVersion '28.2.13676358'
+
+    defaultConfig {
+        applicationId 'com.greenpower2669.spacefortressvs'
+        minSdk 23
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0-modern'
+
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+
+        externalNativeBuild {
+            cmake {
+                cppFlags '-std=c++17 -O2'
+                arguments '-DANDROID_STL=c++_shared'
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            version '3.22.1'
+        }
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs += [file("${rootProject.projectDir}/../third_party/SDL/android-project/app/src/main/java")]
+            assets.srcDirs = [file("${buildDir}/generated/gameAssets")]
+        }
+    }
+
+    androidResources {
+        noCompress += ['png', 'jpg', 'jpeg', 'tif', 'ogg', 'mp3', 'wav']
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+}
+
+// The remaster art is stored as small base64 text chunks so the GitHub
+// connector can keep the generated binary art reproducible in the repository.
+// Rebuild the ZIP locally inside Gradle before syncing Android assets.
+def remasterChunks = fileTree(file("${rootProject.projectDir}/../assets")) {
+    include 'remaster_pack.b64.*'
+}
+def remasterZip = file("${buildDir}/generated/remaster/remaster_pack.zip")
+
+def prepareRemasterPack = tasks.register('prepareRemasterPack') {
+    inputs.files(remasterChunks)
+    outputs.file(remasterZip)
+
+    doLast {
+        def ordered = remasterChunks.files.sort { a, b -> a.name <=> b.name }
+        def encoded = ordered.collect { it.getText('UTF-8').trim() }.join('')
+
+        // One transport write dropped a single base64 character from chunk .02.
+        // Repair that exact omission deterministically, then verify the ZIP hash
+        // so a damaged art pack can never silently reach the APK.
+        if (encoded.length() == 65163) {
+            encoded = encoded.substring(0, 33411) + 'r' + encoded.substring(33411)
+        }
+        if (encoded.length() != 65164) {
+            throw new GradleException("Unexpected remaster base64 length: ${encoded.length()}")
+        }
+
+        def decoded = Base64.decoder.decode(encoded)
+        def sha256 = MessageDigest.getInstance('SHA-256').digest(decoded).encodeHex().toString()
+        if (sha256 != 'c0b9fd4f96b56cf7f5dcace9ff6d4f46327a06486bc9729308668009d278a185') {
+            throw new GradleException("Remaster pack checksum mismatch: ${sha256}")
+        }
+
+        remasterZip.parentFile.mkdirs()
+        remasterZip.bytes = decoded
+    }
+}
+
+def syncGameAssets = tasks.register('syncGameAssets', Sync) {
+    dependsOn(prepareRemasterPack)
+
+    // Historical assets keep their original layout.
+    from(file("${rootProject.projectDir}/../assets")) {
+        exclude 'remaster_pack.b64.*'
+    }
+
+    // ZIP paths start at pict/remaster/.
+    from({ zipTree(remasterZip) })
+
+    into(file("${buildDir}/generated/gameAssets/resources/assets"))
+}
+
+tasks.named('preBuild').configure {
+    dependsOn(syncGameAssets)
+}
