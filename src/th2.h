@@ -43,10 +43,13 @@ void th2()
 // Included here (after t.hpp in main.cpp) so SDL and sprite are already defined.
 #include <start_ui.hpp>
 
-// 2026 remaster runtime: robust gear gesture, legacy-normalized IA lead,
-// animated cannon/core VFX and occasional shooting stars.
+// 2026 remaster runtime: gear gesture, VFX and occasional shooting stars.
 #include <remaster_runtime.hpp>
 
 // Restore the historical rich galaxy rendering while keeping the remaster VFX.
-// This is deliberately last so it can remove only the temporary RenderClear hook.
 #include <remaster_visual_restore.hpp>
+
+// Final Android bridge: remove the remaster velocity override, serialize menu
+// -> game IA state changes on the render thread and reset the historical IA
+// cascade at every new match.
+#include <remaster_ai_fix.hpp>
