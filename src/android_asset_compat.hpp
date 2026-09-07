@@ -10,10 +10,13 @@
 #include <cstring>
 
 // Texture identities used by the final visual layer. Keeping these at the
-// Android loading boundary lets us add aura/scale treatment without touching
-// the historical renderer or main.cpp.
+// Android loading boundary lets us add aura/scale/team treatment without
+// touching the historical renderer or collision code.
 static SDL_Texture *SpaceFortressSunTexture = NULL;
 static SDL_Texture *SpaceFortressPlanetTexture = NULL;
+static SDL_Texture *SpaceFortressGearBlueTexture = NULL;
+static SDL_Texture *SpaceFortressPlayerOrangeTexture = NULL;
+static SDL_Texture *SpaceFortressPlayerBlueTexture = NULL;
 
 // Historical code keeps using "./resources/assets/...". Android normalizes the
 // prefix here and redirects only compatibility/remaster assets at the boundary.
@@ -28,14 +31,13 @@ static const char *SpaceFortress_AssetPath(const char *path)
     if (std::strcmp(path, "resources/assets/sounds/laser.ogg") == 0)
         return "resources/assets/sounds/Laser.ogg";
 
-    // Preserve team identity: player 1 is the warm/red side, player 2 blue.
+    // Preserve team identity: player 1 is the warm/orange side, player 2 blue.
     if (std::strcmp(path, "resources/assets/pict/so.png") == 0)
         return "resources/assets/pict/remaster/player_orange.png";
     if (std::strcmp(path, "resources/assets/pict/sb.png") == 0)
         return "resources/assets/pict/remaster/player_blue.png";
 
-    // Restore the historical rich galaxy background unchanged. Scenic bodies
-    // stay separate and use the modern round assets.
+    // Historical rich galaxy stays unchanged. Scenic bodies stay separate.
     if (std::strcmp(path, "resources/assets/pict/suno.png") == 0)
         return "resources/assets/pict/remaster/sun.png";
     if (std::strcmp(path, "resources/assets/pict/sunrcc.png") == 0)
@@ -67,8 +69,25 @@ static const char *SpaceFortress_AssetPath(const char *path)
     if (std::strcmp(path, "resources/assets/pict/ast5.png") == 0)
         return "resources/assets/pict/remaster/asteroid2.png";
 
+    // UI / power assets from the remaster sheet. The old source contains both
+    // a case mismatch (Sbl.png vs sbl.png) and inverted variable names, so map
+    // by historical filename at the Android boundary rather than rewriting it.
     if (std::strcmp(path, "resources/assets/pict/rouage.png") == 0)
-        return "resources/assets/pict/remaster/gear.png";
+        return "resources/assets/pict/remaster/gear_blue.png";
+    if (std::strcmp(path, "resources/assets/pict/sbl.png") == 0 ||
+        std::strcmp(path, "resources/assets/pict/Sbl.png") == 0)
+        return "resources/assets/pict/remaster/shield_blue.png";
+    if (std::strcmp(path, "resources/assets/pict/srl.png") == 0)
+        return "resources/assets/pict/remaster/shield_red.png";
+    if (std::strcmp(path, "resources/assets/pict/ecl.png") == 0)
+        return "resources/assets/pict/remaster/energy_ice.png";
+
+    // These become active as soon as the corresponding loose .b64 assets are
+    // present. Keeping the mapping here makes future art additions data-only.
+    if (std::strcmp(path, "resources/assets/pict/coeurbl.png") == 0)
+        return "resources/assets/pict/remaster/heart_blue.png";
+    if (std::strcmp(path, "resources/assets/pict/pouscccc.png") == 0)
+        return "resources/assets/pict/remaster/burst.png";
 
     return path;
 }
@@ -108,6 +127,15 @@ static SDL_Texture *SpaceFortress_IMG_LoadTexture(SDL_Renderer *renderer,
     if (normalized && std::strcmp(normalized,
             "resources/assets/pict/remaster/planet.png") == 0)
         SpaceFortressPlanetTexture = texture;
+    if (normalized && std::strcmp(normalized,
+            "resources/assets/pict/remaster/gear_blue.png") == 0)
+        SpaceFortressGearBlueTexture = texture;
+    if (normalized && std::strcmp(normalized,
+            "resources/assets/pict/remaster/player_orange.png") == 0)
+        SpaceFortressPlayerOrangeTexture = texture;
+    if (normalized && std::strcmp(normalized,
+            "resources/assets/pict/remaster/player_blue.png") == 0)
+        SpaceFortressPlayerBlueTexture = texture;
 
     return texture;
 }
