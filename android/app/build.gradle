@@ -63,9 +63,7 @@ android {
     }
 }
 
-// The remaster art is stored as small base64 text chunks so the GitHub
-// connector can keep the generated binary art reproducible in the repository.
-// Rebuild the ZIP locally inside Gradle before syncing Android assets.
+// Historical remaster ZIP transport kept for the first batch of art.
 def remasterChunks = fileTree(file("${rootProject.projectDir}/../assets")) {
     include 'remaster_pack.b64.*'
 }
@@ -79,9 +77,7 @@ def prepareRemasterPack = tasks.register('prepareRemasterPack') {
         def ordered = remasterChunks.files.sort { a, b -> a.name <=> b.name }
         def encoded = ordered.collect { it.getText('UTF-8').trim() }.join('')
 
-        // One transport write dropped a single base64 character from chunk .02.
-        // Repair that exact omission deterministically, then verify the ZIP hash
-        // so a damaged art pack can never silently reach the APK.
+        // One historical transport write dropped one base64 character.
         if (encoded.length() == 65163) {
             encoded = encoded.substring(0, 33411) + 'r' + encoded.substring(33411)
         }
@@ -100,16 +96,50 @@ def prepareRemasterPack = tasks.register('prepareRemasterPack') {
     }
 }
 
+// New remaster assets are intentionally stored one-per-file as .b64 text.
+// Decode them deterministically at build time into real PNGs. This removes the
+// previous situation where assets existed in Git but never reached the APK.
+def looseRemasterB64 = fileTree(file("${rootProject.projectDir}/../assets/pict/remaster")) {
+    include '*.b64'
+}
+def looseRemasterDir = file("${buildDir}/generated/remaster/loose")
+
+def prepareLooseRemasterAssets = tasks.register('prepareLooseRemasterAssets') {
+    inputs.files(looseRemasterB64)
+    outputs.dir(looseRemasterDir)
+
+    doLast {
+        delete(looseRemasterDir)
+        looseRemasterDir.mkdirs()
+
+        looseRemasterB64.files.each { source ->
+            def encoded = source.getText('UTF-8').replaceAll('\\s+', '')
+            def decoded = Base64.decoder.decode(encoded)
+            def pngName = source.name.substring(0, source.name.length() - 4) + '.png'
+            def target = new File(looseRemasterDir, "pict/remaster/${pngName}")
+            target.parentFile.mkdirs()
+            target.bytes = decoded
+        }
+    }
+}
+
 def syncGameAssets = tasks.register('syncGameAssets', Sync) {
     dependsOn(prepareRemasterPack)
+    dependsOn(prepareLooseRemasterAssets)
 
-    // Historical assets keep their original layout.
+    // Historical assets keep their original layout, but text transport files
+    // themselves are not copied into the APK.
     from(file("${rootProject.projectDir}/../assets")) {
         exclude 'remaster_pack.b64.*'
+        exclude 'pict/remaster/*.b64'
     }
 
     // ZIP paths start at pict/remaster/.
     from({ zipTree(remasterZip) })
+
+    // Loose decoded PNGs are applied last and therefore override old remaster
+    // names cleanly when both generations contain a file with the same name.
+    from(looseRemasterDir)
 
     into(file("${buildDir}/generated/gameAssets/resources/assets"))
 }
