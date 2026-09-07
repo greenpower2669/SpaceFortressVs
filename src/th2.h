@@ -53,3 +53,7 @@ void th2()
 // -> game IA state changes on the render thread and reset the historical IA
 // cascade at every new match.
 #include <remaster_ai_fix.hpp>
+
+// Final framing/render pass: complete round sun/planet, no dark aura fringe,
+// orange+blue gear art and no visually truncated ring fortresses.
+#include <remaster_frame_fix.hpp>
