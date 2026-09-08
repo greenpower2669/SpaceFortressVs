@@ -12,11 +12,17 @@
 
 #include <SDL2/SDL.h>
 #include <atomic>
+#include <cstdlib>
+#include <ctime>
+#include <cstdint>
+#include <list>
 
 extern enti *iago1;
 extern enti *iacalc;
 extern enti *iatake;
 extern sprite *Suiveur;
+extern std::list<sprite*> sa1;
+extern int incra1;
 
 // The generated Android copy of main.cpp aliases its old local
 // `suiveurmajaf` variable to this C++17 inline variable. A new match can then
@@ -27,6 +33,7 @@ inline bool SpaceFortressLegacySuiveurMajaf = true;
 static std::atomic<int>  sfFixRequestedScreen(SF_UI_HOME);
 static std::atomic<bool> sfFixRequestedIa(false);
 static std::atomic<bool> sfFixLaunchPending(false);
+static std::atomic<uint32_t> sfFixMatchSerial(0u);
 
 static bool sfFixConsumeFinger = false;
 static SDL_FingerID sfFixConsumedFinger = 0;
@@ -65,8 +72,39 @@ static void sfFixResetSpriteHistory(sprite *s)
     s->id = 100;
 }
 
+static void sfFixReseedLegacyRandom()
+{
+    // The old source never calls srand(), so a fresh process starts with the
+    // same asteroid/IA random sequence every time. Mix wall time, SDL uptime
+    // and a per-match serial to keep retries from reproducing the same casino
+    // layout/decision sequence while preserving the original rand()-based code.
+    const uint64_t ticks = static_cast<uint64_t>(SDL_GetTicks64());
+    const uint64_t wall = static_cast<uint64_t>(std::time(NULL));
+    const uint64_t serial = static_cast<uint64_t>(sfFixMatchSerial.fetch_add(1u) + 1u);
+    uint64_t mixed = ticks ^ (wall << 21) ^ (serial * 0x9E3779B97F4A7C15ull);
+    mixed ^= mixed >> 33;
+    mixed *= 0xff51afd7ed558ccdull;
+    mixed ^= mixed >> 33;
+    std::srand(static_cast<unsigned int>(mixed ^ (mixed >> 32)));
+}
+
+static void sfFixResetAsteroidField()
+{
+    // A HOME -> new match happens without restarting the process. The legacy
+    // asteroid list and incra1 therefore survived between attempts, which can
+    // reproduce the same trap/state. At end-of-frame this list is not being
+    // iterated, so it is safe to release it and let the historical
+    // `if (incra1 < 8) setasts(2)` path repopulate it naturally next frame.
+    for (sprite *asteroid : sa1) delete asteroid;
+    sa1.clear();
+    incra1 = 0;
+}
+
 static void sfFixResetMatchState()
 {
+    sfFixReseedLegacyRandom();
+    sfFixResetAsteroidField();
+
     if (Spritej1) {
         Spritej1->x = WIDTH * 0.25f;
         Spritej1->y = HEIGHT * 0.15f;
