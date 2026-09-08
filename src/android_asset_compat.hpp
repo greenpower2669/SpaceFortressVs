@@ -8,15 +8,69 @@
 #include <SDL2/SDL_mixer.h>
 #include <android/log.h>
 #include <cstring>
+#include <vector>
+#include <algorithm>
 
-// Texture identities used by the final visual layer. Keeping these at the
-// Android loading boundary lets us add aura/scale/team treatment without
-// touching the historical renderer or collision code.
+// Texture identities used by the final visual layer. The old game reloads a
+// number of textures more than once during its lifetime, so keeping only the
+// most recently loaded pointer is not reliable. Keep the historical single
+// pointers for compatibility, but also register every remaster instance.
 static SDL_Texture *SpaceFortressSunTexture = NULL;
 static SDL_Texture *SpaceFortressPlanetTexture = NULL;
 static SDL_Texture *SpaceFortressGearBlueTexture = NULL;
 static SDL_Texture *SpaceFortressPlayerOrangeTexture = NULL;
 static SDL_Texture *SpaceFortressPlayerBlueTexture = NULL;
+
+static std::vector<SDL_Texture*> SpaceFortressSunTextures;
+static std::vector<SDL_Texture*> SpaceFortressPlanetTextures;
+static std::vector<SDL_Texture*> SpaceFortressGearBlueTextures;
+static std::vector<SDL_Texture*> SpaceFortressPlayerOrangeTextures;
+static std::vector<SDL_Texture*> SpaceFortressPlayerBlueTextures;
+
+static void SpaceFortress_TrackTexture(std::vector<SDL_Texture*> &bucket,
+                                       SDL_Texture *texture)
+{
+    if (!texture) return;
+    if (std::find(bucket.begin(), bucket.end(), texture) == bucket.end())
+        bucket.push_back(texture);
+}
+
+static bool SpaceFortress_TextureIn(const std::vector<SDL_Texture*> &bucket,
+                                    SDL_Texture *texture)
+{
+    if (!texture) return false;
+    return std::find(bucket.begin(), bucket.end(), texture) != bucket.end();
+}
+
+static bool SpaceFortress_IsSunTexture(SDL_Texture *texture)
+{
+    return texture == SpaceFortressSunTexture ||
+           SpaceFortress_TextureIn(SpaceFortressSunTextures, texture);
+}
+
+static bool SpaceFortress_IsPlanetTexture(SDL_Texture *texture)
+{
+    return texture == SpaceFortressPlanetTexture ||
+           SpaceFortress_TextureIn(SpaceFortressPlanetTextures, texture);
+}
+
+static bool SpaceFortress_IsGearBlueTexture(SDL_Texture *texture)
+{
+    return texture == SpaceFortressGearBlueTexture ||
+           SpaceFortress_TextureIn(SpaceFortressGearBlueTextures, texture);
+}
+
+static bool SpaceFortress_IsPlayerOrangeTexture(SDL_Texture *texture)
+{
+    return texture == SpaceFortressPlayerOrangeTexture ||
+           SpaceFortress_TextureIn(SpaceFortressPlayerOrangeTextures, texture);
+}
+
+static bool SpaceFortress_IsPlayerBlueTexture(SDL_Texture *texture)
+{
+    return texture == SpaceFortressPlayerBlueTexture ||
+           SpaceFortress_TextureIn(SpaceFortressPlayerBlueTextures, texture);
+}
 
 // Historical code keeps using "./resources/assets/...". Android normalizes the
 // prefix here and redirects only compatibility/remaster assets at the boundary.
@@ -82,8 +136,6 @@ static const char *SpaceFortress_AssetPath(const char *path)
     if (std::strcmp(path, "resources/assets/pict/ecl.png") == 0)
         return "resources/assets/pict/remaster/energy_ice.png";
 
-    // These become active as soon as the corresponding loose .b64 assets are
-    // present. Keeping the mapping here makes future art additions data-only.
     if (std::strcmp(path, "resources/assets/pict/coeurbl.png") == 0)
         return "resources/assets/pict/remaster/heart_blue.png";
     if (std::strcmp(path, "resources/assets/pict/pouscccc.png") == 0)
@@ -122,20 +174,30 @@ static SDL_Texture *SpaceFortress_IMG_LoadTexture(SDL_Renderer *renderer,
     }
 
     if (normalized && std::strcmp(normalized,
-            "resources/assets/pict/remaster/sun.png") == 0)
+            "resources/assets/pict/remaster/sun.png") == 0) {
         SpaceFortressSunTexture = texture;
+        SpaceFortress_TrackTexture(SpaceFortressSunTextures, texture);
+    }
     if (normalized && std::strcmp(normalized,
-            "resources/assets/pict/remaster/planet.png") == 0)
+            "resources/assets/pict/remaster/planet.png") == 0) {
         SpaceFortressPlanetTexture = texture;
+        SpaceFortress_TrackTexture(SpaceFortressPlanetTextures, texture);
+    }
     if (normalized && std::strcmp(normalized,
-            "resources/assets/pict/remaster/gear_blue.png") == 0)
+            "resources/assets/pict/remaster/gear_blue.png") == 0) {
         SpaceFortressGearBlueTexture = texture;
+        SpaceFortress_TrackTexture(SpaceFortressGearBlueTextures, texture);
+    }
     if (normalized && std::strcmp(normalized,
-            "resources/assets/pict/remaster/player_orange.png") == 0)
+            "resources/assets/pict/remaster/player_orange.png") == 0) {
         SpaceFortressPlayerOrangeTexture = texture;
+        SpaceFortress_TrackTexture(SpaceFortressPlayerOrangeTextures, texture);
+    }
     if (normalized && std::strcmp(normalized,
-            "resources/assets/pict/remaster/player_blue.png") == 0)
+            "resources/assets/pict/remaster/player_blue.png") == 0) {
         SpaceFortressPlayerBlueTexture = texture;
+        SpaceFortress_TrackTexture(SpaceFortressPlayerBlueTextures, texture);
+    }
 
     return texture;
 }
