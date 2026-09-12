@@ -50,6 +50,13 @@ jobs:
         shell: bash
         run: bash scripts/fetch-sdl.sh
 
+      - name: Validate assets and runtime regressions
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
+          bash scripts/test-regressions.sh
+
       - name: Build installable APK and app bundles
         shell: bash
         run: |

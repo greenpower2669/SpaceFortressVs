@@ -12,6 +12,7 @@
 #include <cmath>
 
 static SDL_Texture *sfFinalGearOrangeTexture = NULL;
+static SDL_Renderer *sfFinalGearOrangeRenderer = NULL;
 
 static SDL_Rect sfFinalClampRect(SDL_Rect rect, int boundW, int boundH, int margin)
 {
@@ -176,9 +177,11 @@ static int SpaceFortressFinal_RenderCopy(SDL_Renderer *renderer,
                 sfFinalGearOrangeTexture = SpaceFortress_IMG_LoadTexture(
                     renderer,
                     "resources/assets/pict/remaster/gear_orange.png");
-                if (sfFinalGearOrangeTexture)
+                if (sfFinalGearOrangeTexture) {
+                    sfFinalGearOrangeRenderer = renderer;
                     SDL_SetTextureBlendMode(sfFinalGearOrangeTexture,
                                             SDL_BLENDMODE_BLEND);
+                }
             }
             if (sfFinalGearOrangeTexture) gearTexture = sfFinalGearOrangeTexture;
         }

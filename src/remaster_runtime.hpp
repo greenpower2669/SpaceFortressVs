@@ -38,6 +38,7 @@ static Uint64 sfRmJ2LastTick = 0;
 static int sfRmPreviousUiScreen = SF_UI_HOME;
 
 static SDL_Texture *sfRmMuzzleStrip = NULL;
+static SDL_Renderer *sfRmMuzzleRenderer = NULL;
 static int sfRmMuzzleW = 0;
 static int sfRmMuzzleH = 0;
 static int sfRmLastTirJ1 = 0;
@@ -372,6 +373,7 @@ static void sfRmEnsureTextures(SDL_Renderer *renderer)
     sfRmMuzzleStrip = IMG_LoadTexture(renderer,
         "./resources/assets/pict/remaster/muzzle_strip.png");
     if (sfRmMuzzleStrip) {
+        sfRmMuzzleRenderer = renderer;
         SDL_QueryTexture(sfRmMuzzleStrip, NULL, NULL, &sfRmMuzzleW, &sfRmMuzzleH);
         SDL_SetTextureBlendMode(sfRmMuzzleStrip, SDL_BLENDMODE_BLEND);
     }

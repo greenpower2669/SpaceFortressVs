@@ -59,40 +59,7 @@ file(COPY ${SDL2_HEADERS} DESTINATION "${SDL2_COMPAT}")
 file(COPY "${THIRD_PARTY}/SDL_image/include/SDL_image.h" DESTINATION "${SDL2_COMPAT}")
 file(COPY "${THIRD_PARTY}/SDL_mixer/include/SDL_mixer.h" DESTINATION "${SDL2_COMPAT}")
 
-# Android compatibility patch for two historical IA bugs. Keep src/main.cpp
-# byte-for-byte intact and compile a generated Android-only copy instead.
-set(LEGACY_MAIN "${REPO_ROOT}/src/main.cpp")
-set(ANDROID_MAIN "${CMAKE_BINARY_DIR}/generated/main_android_compat.cpp")
-file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated")
-file(READ "${LEGACY_MAIN}" GAME_MAIN)
-
-set(SUIVEUR_OLD "bool suiveur(){\n\tif (Suiveur->pv==0) return true;\n\t}")
-set(SUIVEUR_NEW "bool suiveur(){\n\tif (Suiveur->pv==0) return true;\n\treturn false;\n\t}")
-string(FIND "${GAME_MAIN}" "${SUIVEUR_OLD}" SUIVEUR_POS)
-if(SUIVEUR_POS EQUAL -1)
-    message(FATAL_ERROR "Historical suiveur() pattern not found; refusing silent IA patch drift")
-endif()
-string(REPLACE "${SUIVEUR_OLD}" "${SUIVEUR_NEW}" GAME_MAIN "${GAME_MAIN}")
-
-set(IACALC_OLD "iacalc->v.vx=lockast.vx;iacalc->v.setvi();")
-set(IACALC_NEW "iacalc->v.vy=lockast.vy;iacalc->v.setvi();")
-string(FIND "${GAME_MAIN}" "${IACALC_OLD}" IACALC_POS)
-if(IACALC_POS EQUAL -1)
-    message(FATAL_ERROR "Historical IA vx/vy pattern not found; refusing silent IA patch drift")
-endif()
-string(REPLACE "${IACALC_OLD}" "${IACALC_NEW}" GAME_MAIN "${GAME_MAIN}")
-
-# Expose the old per-loop follower gate to the Android compatibility layer so a
-# new match can truly start from the same IA state every time.
-set(SUIVEUR_MAJ_OLD "bool suiveurmajaf=true;")
-set(SUIVEUR_MAJ_NEW "bool &suiveurmajaf=SpaceFortressLegacySuiveurMajaf;")
-string(FIND "${GAME_MAIN}" "${SUIVEUR_MAJ_OLD}" SUIVEUR_MAJ_POS)
-if(SUIVEUR_MAJ_POS EQUAL -1)
-    message(FATAL_ERROR "Historical suiveurmajaf pattern not found; refusing silent IA patch drift")
-endif()
-string(REPLACE "${SUIVEUR_MAJ_OLD}" "${SUIVEUR_MAJ_NEW}" GAME_MAIN "${GAME_MAIN}")
-
-file(WRITE "${ANDROID_MAIN}" "${GAME_MAIN}")
+include("${REPO_ROOT}/scripts/prepare-legacy-source.cmake")
 
 add_library(main SHARED
     "${ANDROID_MAIN}"

@@ -57,3 +57,6 @@ void th2()
 // Final framing/render pass: complete round sun/planet, no dark aura fringe,
 // orange+blue gear art and no visually truncated ring fortresses.
 #include <remaster_frame_fix.hpp>
+
+// Invalidate remaster texture references when the legacy renderer is recreated.
+#include <remaster_lifecycle_fix.hpp>

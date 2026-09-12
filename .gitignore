@@ -39,3 +39,6 @@ android/build/
 android/app/.cxx/
 android/app/build/
 local.properties
+# Python validation caches
+__pycache__/
+*.pyc

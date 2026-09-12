@@ -16,6 +16,7 @@
 #include <ctime>
 #include <cstdint>
 #include <list>
+#include <set>
 
 extern enti *iago1;
 extern enti *iacalc;
@@ -33,10 +34,10 @@ inline bool SpaceFortressLegacySuiveurMajaf = true;
 static std::atomic<int>  sfFixRequestedScreen(SF_UI_HOME);
 static std::atomic<bool> sfFixRequestedIa(false);
 static std::atomic<bool> sfFixLaunchPending(false);
+static std::atomic<bool> sfFixResetControlsPending(false);
 static std::atomic<uint32_t> sfFixMatchSerial(0u);
 
-static bool sfFixConsumeFinger = false;
-static SDL_FingerID sfFixConsumedFinger = 0;
+static std::set<SDL_FingerID> sfFixConsumedFingers;
 
 static bool sfFixGear1Down = false;
 static bool sfFixGear2Down = false;
@@ -158,6 +159,11 @@ static void sfFixApplyUiRequests()
     // mutated from SDL_WaitEvent's thread.
     sfRmTrackJ2 = false;
 
+    if (sfFixResetControlsPending.exchange(false)) {
+        sfFixResetSpriteHistory(Spritej1);
+        sfFixResetSpriteHistory(Spritej2);
+    }
+
     if (sfFixLaunchPending.exchange(false)) {
         setia = sfFixRequestedIa.load();
         sfFixResetMatchState();
@@ -172,6 +178,8 @@ static void sfFixApplyUiRequests()
         // also makes the home screen's mode label render correctly.
         setia = sfFixRequestedIa.load();
         setgui = true;
+        if (Spritej1) { Spritej1->ctrl = false; Spritej1->id = 100; }
+        if (Spritej2) { Spritej2->ctrl = false; Spritej2->id = 100; }
     }
     sfUiScreen = requested;
 }
@@ -190,26 +198,36 @@ static void sfFixResetGearGesture()
 #undef SDL_WaitEvent
 #endif
 
-static int SpaceFortressFinal_WaitEvent(SDL_Event *event)
+static void sfFixHandleEvent(SDL_Event *event)
 {
-    const int result = SDL_WaitEvent(event);
-    if (!result || !event) return result;
+    if (!event) return;
+
+    // Android may cancel touches without delivering FINGERUP while pausing.
+    if (event->type == SDL_APP_DIDENTERBACKGROUND) {
+        sfFixConsumedFingers.clear();
+        sfFixResetGearGesture();
+        sfFixResetControlsPending.store(true);
+        return;
+    }
 
     // Consume the remainder of a touch that started on HOME/HELP.
-    if (sfFixConsumeFinger &&
-        (event->type == SDL_FINGERMOTION || event->type == SDL_FINGERUP) &&
-        event->tfinger.fingerId == sfFixConsumedFinger) {
-        if (event->type == SDL_FINGERUP) sfFixConsumeFinger = false;
+    if ((event->type == SDL_FINGERMOTION || event->type == SDL_FINGERUP) &&
+        sfFixConsumedFingers.count(event->tfinger.fingerId)) {
+        if (event->type == SDL_FINGERUP) {
+            const SDL_FingerID fid = event->tfinger.fingerId;
+            sfFixConsumedFingers.erase(fid);
+            if (sfFixGear1Down && sfFixGear1Finger == fid) sfFixGear1Down = false;
+            if (sfFixGear2Down && sfFixGear2Finger == fid) sfFixGear2Down = false;
+        }
         event->type = SDL_USEREVENT;
-        return result;
+        return;
     }
 
     const int requestedScreen = sfFixRequestedScreen.load();
 
     if (requestedScreen != SF_UI_GAME) {
         if (event->type == SDL_FINGERDOWN) {
-            sfFixConsumedFinger = event->tfinger.fingerId;
-            sfFixConsumeFinger = true;
+            sfFixConsumedFingers.insert(event->tfinger.fingerId);
             const float y = event->tfinger.y;
 
             if (requestedScreen == SF_UI_HOME) {
@@ -228,15 +246,14 @@ static int SpaceFortressFinal_WaitEvent(SDL_Event *event)
                    event->type == SDL_FINGERUP) {
             event->type = SDL_USEREVENT;
         } else if (event->type == SDL_KEYDOWN &&
-                   (event->key.keysym.sym == SDLK_ESCAPE
-#ifdef SDLK_AC_BACK
-                    || event->key.keysym.sym == SDLK_AC_BACK
-#endif
-                   )) {
+                   (event->key.keysym.sym == SDLK_ESCAPE ||
+                    event->key.keysym.sym == SDLK_AC_BACK)) {
+            sfFixLaunchPending.store(false);
             sfFixRequestedScreen.store(SF_UI_HOME);
+            sfFixResetGearGesture();
             event->type = SDL_USEREVENT;
         }
-        return result;
+        return;
     }
 
     // Gameplay: preserve the historical event stream, intercepting only the
@@ -247,11 +264,13 @@ static int SpaceFortressFinal_WaitEvent(SDL_Event *event)
         const bool hit2 = sfRmHitGear(event->tfinger, rouage2);
 
         if (hit1) {
+            sfFixConsumedFingers.insert(fid);
             sfFixGear1Down = true;
             sfFixGear1Finger = fid;
             event->type = SDL_USEREVENT;
         }
         if (hit2) {
+            sfFixConsumedFingers.insert(fid);
             sfFixGear2Down = true;
             sfFixGear2Finger = fid;
             event->type = SDL_USEREVENT;
@@ -259,11 +278,10 @@ static int SpaceFortressFinal_WaitEvent(SDL_Event *event)
 
         if (sfFixGear1Down && sfFixGear2Down &&
             sfFixGear1Finger != sfFixGear2Finger) {
-            sfFixRequestedIa.store(setia);
             sfFixRequestedScreen.store(SF_UI_HOME);
             sfFixResetGearGesture();
             event->type = SDL_USEREVENT;
-            return result;
+            return;
         }
     } else if (event->type == SDL_FINGERUP) {
         const SDL_FingerID fid = event->tfinger.fingerId;
@@ -276,16 +294,19 @@ static int SpaceFortressFinal_WaitEvent(SDL_Event *event)
             sfFixGear2Finger = 0;
         }
     } else if (event->type == SDL_KEYDOWN &&
-               (event->key.keysym.sym == SDLK_ESCAPE
-#ifdef SDLK_AC_BACK
-                || event->key.keysym.sym == SDLK_AC_BACK
-#endif
-               )) {
-        sfFixRequestedIa.store(setia);
+               (event->key.keysym.sym == SDLK_ESCAPE ||
+                event->key.keysym.sym == SDLK_AC_BACK)) {
+        sfFixLaunchPending.store(false);
         sfFixRequestedScreen.store(SF_UI_HOME);
+        sfFixResetGearGesture();
         event->type = SDL_USEREVENT;
     }
+}
 
+static int SpaceFortressFinal_WaitEvent(SDL_Event *event)
+{
+    const int result = SDL_WaitEvent(event);
+    if (result && event) sfFixHandleEvent(event);
     return result;
 }
 

@@ -21,25 +21,55 @@ static SDL_Texture *SpaceFortressGearBlueTexture = NULL;
 static SDL_Texture *SpaceFortressPlayerOrangeTexture = NULL;
 static SDL_Texture *SpaceFortressPlayerBlueTexture = NULL;
 
-static std::vector<SDL_Texture*> SpaceFortressSunTextures;
-static std::vector<SDL_Texture*> SpaceFortressPlanetTextures;
-static std::vector<SDL_Texture*> SpaceFortressGearBlueTextures;
-static std::vector<SDL_Texture*> SpaceFortressPlayerOrangeTextures;
-static std::vector<SDL_Texture*> SpaceFortressPlayerBlueTextures;
+struct SpaceFortressTextureInstance {
+    SDL_Renderer *renderer;
+    SDL_Texture *texture;
+};
+using SpaceFortressTextureBucket = std::vector<SpaceFortressTextureInstance>;
+static SpaceFortressTextureBucket SpaceFortressSunTextures;
+static SpaceFortressTextureBucket SpaceFortressPlanetTextures;
+static SpaceFortressTextureBucket SpaceFortressGearBlueTextures;
+static SpaceFortressTextureBucket SpaceFortressPlayerOrangeTextures;
+static SpaceFortressTextureBucket SpaceFortressPlayerBlueTextures;
 
-static void SpaceFortress_TrackTexture(std::vector<SDL_Texture*> &bucket,
+static void SpaceFortress_TrackTexture(SpaceFortressTextureBucket &bucket,
+                                       SDL_Renderer *renderer,
                                        SDL_Texture *texture)
 {
     if (!texture) return;
-    if (std::find(bucket.begin(), bucket.end(), texture) == bucket.end())
-        bucket.push_back(texture);
+    for (const auto &instance : bucket)
+        if (instance.texture == texture) return;
+    bucket.push_back({renderer, texture});
 }
 
-static bool SpaceFortress_TextureIn(const std::vector<SDL_Texture*> &bucket,
+static bool SpaceFortress_TextureIn(const SpaceFortressTextureBucket &bucket,
                                     SDL_Texture *texture)
 {
     if (!texture) return false;
-    return std::find(bucket.begin(), bucket.end(), texture) != bucket.end();
+    for (const auto &instance : bucket)
+        if (instance.texture == texture) return true;
+    return false;
+}
+
+static void SpaceFortress_ForgetTextureOwner(SpaceFortressTextureBucket &bucket,
+                                             SDL_Texture *&last,
+                                             SDL_Renderer *renderer)
+{
+    bucket.erase(std::remove_if(bucket.begin(), bucket.end(),
+        [renderer, &last](const SpaceFortressTextureInstance &instance) {
+            if (instance.renderer != renderer) return false;
+            if (last == instance.texture) last = NULL;
+            return true;
+        }), bucket.end());
+}
+
+static void SpaceFortress_ForgetRendererTextures(SDL_Renderer *renderer)
+{
+    SpaceFortress_ForgetTextureOwner(SpaceFortressSunTextures, SpaceFortressSunTexture, renderer);
+    SpaceFortress_ForgetTextureOwner(SpaceFortressPlanetTextures, SpaceFortressPlanetTexture, renderer);
+    SpaceFortress_ForgetTextureOwner(SpaceFortressGearBlueTextures, SpaceFortressGearBlueTexture, renderer);
+    SpaceFortress_ForgetTextureOwner(SpaceFortressPlayerOrangeTextures, SpaceFortressPlayerOrangeTexture, renderer);
+    SpaceFortress_ForgetTextureOwner(SpaceFortressPlayerBlueTextures, SpaceFortressPlayerBlueTexture, renderer);
 }
 
 static bool SpaceFortress_IsSunTexture(SDL_Texture *texture)
@@ -163,40 +193,54 @@ static SDL_Texture *SpaceFortress_IMG_LoadTexture(SDL_Renderer *renderer,
 {
     const char *normalized = SpaceFortress_AssetPath(path);
     SDL_RWops *rw = SpaceFortress_OpenAsset(path);
-    if (!rw) return NULL;
-
-    SDL_Texture *texture = IMG_LoadTexture_RW(renderer, rw, 1);
+    SDL_Texture *texture = rw ? IMG_LoadTexture_RW(renderer, rw, 1) : NULL;
     if (!texture) {
         __android_log_print(ANDROID_LOG_ERROR, "SpaceFortress",
                             "Texture decode failed: %s : %s",
                             normalized ? normalized : "(null)", IMG_GetError());
-        return NULL;
+        // A missing or corrupt remaster must not make the historical sprite
+        // disappear. Load its original path directly, without remapping again.
+        const char *original = path;
+        if (original) {
+            while (original[0] == '.' && original[1] == '/') original += 2;
+            if (std::strcmp(original, "resources/assets/pict/sbl.png") == 0)
+                original = "resources/assets/pict/Sbl.png";
+        }
+        if (!original || !normalized || std::strcmp(original, normalized) == 0)
+            return NULL;
+        rw = SDL_RWFromFile(original, "rb");
+        texture = rw ? IMG_LoadTexture_RW(renderer, rw, 1) : NULL;
+        __android_log_print(texture ? ANDROID_LOG_WARN : ANDROID_LOG_ERROR,
+                            "SpaceFortress", "Original texture fallback %s: %s",
+                            texture ? "loaded" : "failed", original);
+        // Original textures must not enter the remaster framing registry.
+        return texture;
     }
 
     if (normalized && std::strcmp(normalized,
             "resources/assets/pict/remaster/sun.png") == 0) {
         SpaceFortressSunTexture = texture;
-        SpaceFortress_TrackTexture(SpaceFortressSunTextures, texture);
+        SpaceFortress_TrackTexture(SpaceFortressSunTextures, renderer, texture);
     }
     if (normalized && std::strcmp(normalized,
             "resources/assets/pict/remaster/planet.png") == 0) {
         SpaceFortressPlanetTexture = texture;
-        SpaceFortress_TrackTexture(SpaceFortressPlanetTextures, texture);
+        SpaceFortress_TrackTexture(SpaceFortressPlanetTextures, renderer, texture);
     }
     if (normalized && std::strcmp(normalized,
             "resources/assets/pict/remaster/gear_blue.png") == 0) {
         SpaceFortressGearBlueTexture = texture;
-        SpaceFortress_TrackTexture(SpaceFortressGearBlueTextures, texture);
+        SpaceFortress_TrackTexture(SpaceFortressGearBlueTextures, renderer, texture);
     }
     if (normalized && std::strcmp(normalized,
             "resources/assets/pict/remaster/player_orange.png") == 0) {
         SpaceFortressPlayerOrangeTexture = texture;
-        SpaceFortress_TrackTexture(SpaceFortressPlayerOrangeTextures, texture);
+        SpaceFortress_TrackTexture(SpaceFortressPlayerOrangeTextures, renderer, texture);
     }
     if (normalized && std::strcmp(normalized,
             "resources/assets/pict/remaster/player_blue.png") == 0) {
         SpaceFortressPlayerBlueTexture = texture;
-        SpaceFortress_TrackTexture(SpaceFortressPlayerBlueTextures, texture);
+        SpaceFortress_TrackTexture(SpaceFortressPlayerBlueTextures, renderer, texture);
     }
 
     return texture;

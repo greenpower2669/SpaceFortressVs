@@ -1,6 +1,3 @@
-import java.util.Base64
-import java.security.MessageDigest
-
 plugins {
     id 'com.android.application'
 }
@@ -14,8 +11,8 @@ android {
         applicationId 'com.greenpower2669.spacefortressvs'
         minSdk 23
         targetSdk 36
-        versionCode 1
-        versionName '1.0.0-modern'
+        versionCode 2
+        versionName '1.0.1-stability'
 
         ndk {
             abiFilters 'arm64-v8a'
@@ -63,85 +60,19 @@ android {
     }
 }
 
-// Historical remaster ZIP transport kept for the first batch of art.
-def remasterChunks = fileTree(file("${rootProject.projectDir}/../assets")) {
-    include 'remaster_pack.b64.*'
-}
-def remasterZip = file("${buildDir}/generated/remaster/remaster_pack.zip")
-
-def prepareRemasterPack = tasks.register('prepareRemasterPack') {
-    inputs.files(remasterChunks)
-    outputs.file(remasterZip)
-
-    doLast {
-        def ordered = remasterChunks.files.sort { a, b -> a.name <=> b.name }
-        def encoded = ordered.collect { it.getText('UTF-8').trim() }.join('')
-
-        // One historical transport write dropped one base64 character.
-        if (encoded.length() == 65163) {
-            encoded = encoded.substring(0, 33411) + 'r' + encoded.substring(33411)
-        }
-        if (encoded.length() != 65164) {
-            throw new GradleException("Unexpected remaster base64 length: ${encoded.length()}")
-        }
-
-        def decoded = Base64.decoder.decode(encoded)
-        def sha256 = MessageDigest.getInstance('SHA-256').digest(decoded).encodeHex().toString()
-        if (sha256 != 'c0b9fd4f96b56cf7f5dcace9ff6d4f46327a06486bc9729308668009d278a185') {
-            throw new GradleException("Remaster pack checksum mismatch: ${sha256}")
-        }
-
-        remasterZip.parentFile.mkdirs()
-        remasterZip.bytes = decoded
+// Prepare and validate actual PNG bytes, not just their base64 transport.
+// Exact known-broken art uses a verified original; new corruption fails CI.
+def generatedGameAssets = file("${buildDir}/generated/gameAssets")
+def assetScript = file("${rootProject.projectDir}/../scripts/prepare-assets.py")
+def syncGameAssets = tasks.register('syncGameAssets', Exec) {
+    inputs.dir(file("${rootProject.projectDir}/../assets"))
+    inputs.file(assetScript)
+    outputs.dir(generatedGameAssets)
+    doFirst {
+        delete(generatedGameAssets)
     }
-}
-
-// New remaster assets are intentionally stored one-per-file as .b64 text.
-// Decode them deterministically at build time into real PNGs. This removes the
-// previous situation where assets existed in Git but never reached the APK.
-def looseRemasterB64 = fileTree(file("${rootProject.projectDir}/../assets/pict/remaster")) {
-    include '*.b64'
-}
-def looseRemasterDir = file("${buildDir}/generated/remaster/loose")
-
-def prepareLooseRemasterAssets = tasks.register('prepareLooseRemasterAssets') {
-    inputs.files(looseRemasterB64)
-    outputs.dir(looseRemasterDir)
-
-    doLast {
-        delete(looseRemasterDir)
-        looseRemasterDir.mkdirs()
-
-        looseRemasterB64.files.each { source ->
-            def encoded = source.getText('UTF-8').replaceAll('\\s+', '')
-            def decoded = Base64.decoder.decode(encoded)
-            def pngName = source.name.substring(0, source.name.length() - 4) + '.png'
-            def target = new File(looseRemasterDir, "pict/remaster/${pngName}")
-            target.parentFile.mkdirs()
-            target.bytes = decoded
-        }
-    }
-}
-
-def syncGameAssets = tasks.register('syncGameAssets', Sync) {
-    dependsOn(prepareRemasterPack)
-    dependsOn(prepareLooseRemasterAssets)
-
-    // Historical assets keep their original layout, but text transport files
-    // themselves are not copied into the APK.
-    from(file("${rootProject.projectDir}/../assets")) {
-        exclude 'remaster_pack.b64.*'
-        exclude 'pict/remaster/*.b64'
-    }
-
-    // ZIP paths start at pict/remaster/.
-    from({ zipTree(remasterZip) })
-
-    // Loose decoded PNGs are applied last and therefore override old remaster
-    // names cleanly when both generations contain a file with the same name.
-    from(looseRemasterDir)
-
-    into(file("${buildDir}/generated/gameAssets/resources/assets"))
+    commandLine 'python3', assetScript.absolutePath, '--output',
+        new File(generatedGameAssets, 'resources/assets').absolutePath
 }
 
 tasks.named('preBuild').configure {

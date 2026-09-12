@@ -6,6 +6,7 @@
 #include <list>
 #include <iostream> 
 #include <cmath>
+#include <bitset>
 #define PI 3.141592653589793238462643383
  //3.14159265
 #include <SDL2/SDL.h>
@@ -771,4 +772,4 @@ int uSDL_RenderCopyEx(SDL_Renderer * renderer,
 
 
 
-#endif 
+#endif
