@@ -8,7 +8,7 @@ python3 "$sf_repo/scripts/prepare-assets.py" --output "$sf_test_dir/resources/as
 python3 "$sf_repo/tests/test_assets.py"
 read -r -a sf_sdl_cflags <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
 read -r -a sf_sdl_libs <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
-g++ -std=c++17 -O1 -g -fsanitize=undefined -fno-sanitize-recover=all \
+g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all \
     -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "$sf_repo/tests/include" \
     "${sf_sdl_cflags[@]}" "$sf_repo/tests/regressions.cpp" \
     -Wl,--gc-sections "${sf_sdl_libs[@]}" -pthread -o "$sf_test_dir/regressions"

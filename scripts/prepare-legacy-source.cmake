@@ -53,4 +53,29 @@ endif()
 string(REPLACE "${GEAR_OLD}" "${GEAR_NEW}" GAME_MAIN "${GAME_MAIN}")
 string(REPLACE "}//main" "return 0;\n}//main" GAME_MAIN "${GAME_MAIN}")
 
+# Additional crash guards verified against the real runtime helpers.
+macro(sf_patch_once label before after)
+    string(FIND "${GAME_MAIN}" "${before}" sf_patch_position)
+    if(sf_patch_position EQUAL -1)
+        message(FATAL_ERROR "Historical ${label} pattern not found")
+    endif()
+    string(REPLACE "${before}" "${after}" GAME_MAIN "${GAME_MAIN}")
+endmacro()
+
+sf_patch_once("zero-energy aligned IA shot"
+    "rand()%(50*int(Spritej1->nrj\n      ))"
+    "SpaceFortressRandomBelow(50*int(Spritej1->nrj))")
+
+sf_patch_once("zero-energy asteroid IA shot"
+    "rand()%(10*int(Spritej1->nrj))"
+    "SpaceFortressRandomBelow(10*int(Spritej1->nrj))")
+
+sf_patch_once("safe particulesr erase"
+    "for(auto i=particulesr.begin();i!=particulesr.end();){\n          parts *e=*i;\n          \n      if (particulesr.size()>1000/k0) e->pv=0;    \n      if (e->pv==0) {\n          particulesr.erase(i);delete e; \n       }\n      i++;\n    }"
+    "SpaceFortressPruneParticles(particulesr, 1000/k0);")
+
+sf_patch_once("safe particules erase"
+    "for(auto i=particules.begin();i!=particules.end();){\n          parts *e=*i;\n         if (particules.size()>1000/k0) e->pv=0;      \n      if (e->pv==0) {\n          particules.erase(i);delete e; \n       }\n      i++;\n    }"
+    "SpaceFortressPruneParticles(particules, 1000/k0);")
+
 file(WRITE "${ANDROID_MAIN}" "${GAME_MAIN}")

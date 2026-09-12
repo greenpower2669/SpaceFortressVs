@@ -12,7 +12,7 @@ s'appliquent à la branche du remaster Android et conservent `src/main.cpp`.
 | `0ad717d` | Transport du bouclier rouge corrigé ; cœur bleu et explosion encore corrompus. |
 | `cf2466c` | Réinitialisation des astéroïdes et suivi des textures ajoutés ; références conservées après destruction du renderer. |
 
-## Corrections 1.0.1-stability
+## Corrections 1.0.2-stability
 
 - **Images corrompues** : le cœur bleu a un IDAT invalide ; l'explosion a une
   longueur de chunk incohérente. Leurs empreintes exactes déclenchent l'emploi
@@ -33,6 +33,10 @@ s'appliquent à la branche du remaster Android et conservent `src/main.cpp`.
   engrenage sont suivis jusqu'au relâchement. Les gestes interrompus par
   l'arrière-plan sont annulés, ainsi que les contrôles actifs. Un Retour juste
   après Jouer annule aussi le lancement différé.
+- **Crashs de jeu** : les deux décisions de tir de l’IA pouvaient calculer
+  un modulo zéro avec une énergie inférieure à 1. Les deux listes de particules
+  incrémentaient un itérateur après sa suppression. Les diviseurs sont maintenant
+  bornés et les parcours récupèrent l’itérateur retourné par `erase`.
 - **Calculs** : vecteur nul traité sans division par zéro, entrées de la
   trigonométrie bornées pour les arrondis, composante Y du constructeur réparée.
 - **Source Android générée** : initialisation de tous les seuils de particules,
@@ -43,9 +47,10 @@ s'appliquent à la branche du remaster Android et conservent `src/main.cpp`.
 ## Vérification et limites
 
 Les tests hôtes utilisent SDL2 et SDL2_image réels, un renderer logiciel, les
-en-têtes du jeu et UBSan. Ils couvrent douze recréations du renderer, deux
+en-têtes du jeu, UBSan et les itérateurs contrôlés de libstdc++. Ils couvrent douze recréations du renderer, deux
 renderers distincts, le chargement de secours, les vecteurs et les événements
-de menu/Retour/multitouch. La source Android générée passe une vérification de
+de menu/Retour/multitouch, les tirs à énergie nulle et la suppression des
+particules en tête, au milieu et en fin de liste. La source Android générée passe une vérification de
 syntaxe avec les retours manquants traités comme erreurs.
 
 Ces tests ne remplacent pas une partie sur un appareil Android. Restent à

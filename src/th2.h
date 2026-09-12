@@ -60,3 +60,6 @@ void th2()
 
 // Invalidate remaster texture references when the legacy renderer is recreated.
 #include <remaster_lifecycle_fix.hpp>
+
+// Guarded Android source patches use these gameplay safety helpers.
+#include <legacy_game_safety.hpp>

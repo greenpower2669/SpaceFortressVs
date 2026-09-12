@@ -14,6 +14,7 @@
 #include "th2.h"
 
 bool setgui = true, setia = false, sdlstarted = true;
+float k0 = 1;
 float tw = 780, th = 1680;
 int tirj1 = 0, tirj2 = 0, incra1 = 0;
 std::list<sprite*> sa1;
@@ -45,6 +46,32 @@ static void testVectors()
     assert(std::isfinite(conv360(1.0000001f, 0)));
     assert(std::isfinite(conv360(0, -1.0000001f)));
     std::puts("PASS: stationary, moving and rounded vector inputs stay finite");
+}
+
+static void testLegacyCrashes()
+{
+    for (int bound : {0, -1, 1, 10, 50, 500}) {
+        for (int attempt = 0; attempt < 128; ++attempt) {
+            const int choice = SpaceFortressRandomBelow(bound);
+            assert(choice >= 0 && choice < (bound > 0 ? bound : 1));
+        }
+    }
+    std::list<parts*> particles;
+    for (int index = 0; index < 6; ++index) {
+        auto *particle = new parts(0, 0);
+        particle->pv = (index == 0 || index == 2 || index == 5) ? 0 : 100;
+        particles.push_back(particle);
+    }
+    SpaceFortressPruneParticles(particles, 1000);
+    assert(particles.size() == 3);
+    for (auto *particle : particles) assert(particle->pv == 100);
+    SpaceFortressPruneParticles(particles, 2);
+    assert(particles.size() == 2);
+    for (auto *particle : particles) particle->pv = 0;
+    SpaceFortressPruneParticles(particles, 2);
+    assert(particles.empty());
+    SpaceFortressPruneParticles(particles, 2);
+    std::puts("PASS: zero-energy IA shots and removal of first/middle/last/all particles");
 }
 
 static void testInput()
@@ -140,7 +167,7 @@ static void testTextures()
 int main()
 {
     assert(SDL_Init(SDL_INIT_TIMER) == 0);
-    testVectors(); testInput(); testTextures();
+    testVectors(); testLegacyCrashes(); testInput(); testTextures();
     delete Spritej1; delete Spritej2; delete loosej1; delete loosej2;
     delete rouage1; delete rouage2; delete Suiveur;
     delete iago; delete iago1; delete iacalc; delete iatake;
