@@ -227,6 +227,11 @@ static SDL_Texture *SpaceFortress_IMG_LoadTexture(SDL_Renderer *renderer,
         SpaceFortressPlanetTexture = texture;
         SpaceFortress_TrackTexture(SpaceFortressPlanetTextures, renderer, texture);
     }
+    if (SpaceFortress_TextureIn(SpaceFortressSunTextures, texture) ||
+        SpaceFortress_TextureIn(SpaceFortressPlanetTextures, texture)) {
+        SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureScaleMode(texture, SDL_ScaleModeLinear);
+    }
     if (normalized && std::strcmp(normalized,
             "resources/assets/pict/remaster/gear_blue.png") == 0) {
         SpaceFortressGearBlueTexture = texture;

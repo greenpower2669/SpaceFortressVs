@@ -39,94 +39,37 @@ static SDL_Rect sfFinalClampRect(SDL_Rect rect, int boundW, int boundH, int marg
     return rect;
 }
 
-static SDL_Rect sfFinalRoundBody(const SDL_Rect &legacy, bool sun)
+static SDL_Rect sfFinalRoundBody(SDL_Renderer *renderer,
+                                 const SDL_Rect &legacy, bool sun)
 {
     const int cx = legacy.x + legacy.w / 2;
     const int cy = legacy.y + legacy.h / 2;
-    const int viewportW = WIDTH > 0 ? WIDTH : 780;
-    const int viewportH = HEIGHT > 0 ? HEIGHT : 1680;
+    // WIDTH/HEIGHT describe the historical world, enlarged by about 10% in
+    // main.cpp. They are not the visible screen. SDL reports this viewport in
+    // rendering coordinates, including any logical size / scale adjustment.
+    SDL_Rect viewport = {};
+    SDL_RenderGetViewport(renderer, &viewport);
+    const int viewportW = std::max(1, viewport.w);
+    const int viewportH = std::max(1, viewport.h);
 
     const int legacyDiameter = std::max(1, std::min(legacy.w, legacy.h));
-    const float fraction = sun ? 0.46f : 0.42f;
-    const int cap = std::max(48, static_cast<int>(viewportW * fraction));
+    const float fraction = sun ? 0.56f : 0.47f;
+    const int cap = std::max(1, static_cast<int>(
+        std::min(viewportW, viewportH) * fraction));
 
     const double seconds = static_cast<double>(SDL_GetTicks64()) * 0.001;
     const float pulse = 1.0f + (sun ? 0.010f : 0.006f) *
         static_cast<float>(std::sin(seconds * (sun ? 1.0 : 0.45)));
-    const int diameter = std::max(32,
+    const int diameter = std::max(1,
         static_cast<int>(std::min(legacyDiameter, cap) * pulse));
 
     SDL_Rect body = {cx - diameter / 2, cy - diameter / 2,
                      diameter, diameter};
 
-    // Keep the full disc plus aura inside the logical game viewport. This is
-    // visual-only: gameplay coordinates and collisions stay untouched.
-    const int auraMargin = std::max(8, static_cast<int>(diameter * 0.12f));
-    return sfFinalClampRect(body, viewportW, viewportH, auraMargin);
-}
-
-static SDL_Rect sfFinalCleanRoundSource(SDL_Texture *texture,
-                                        const SDL_Rect *requested,
-                                        bool sun)
-{
-    SDL_Rect src = {0, 0, 1, 1};
-    if (requested) {
-        src = *requested;
-    } else {
-        int w = 0, h = 0;
-        if (SDL_QueryTexture(texture, NULL, NULL, &w, &h) == 0 && w > 0 && h > 0) {
-            src.w = w;
-            src.h = h;
-        }
-    }
-
-    // The first generated scenic PNGs have a hard dark edge where the artwork
-    // touched the image canvas. Trim only that outer transport/canvas fringe;
-    // the rendered body remains circular and the halo is procedural.
-    const float insetFraction = sun ? 0.055f : 0.025f;
-    const int insetX = std::max(1, static_cast<int>(src.w * insetFraction));
-    const int insetY = std::max(1, static_cast<int>(src.h * insetFraction));
-    if (src.w > insetX * 2 + 4 && src.h > insetY * 2 + 4) {
-        src.x += insetX;
-        src.y += insetY;
-        src.w -= insetX * 2;
-        src.h -= insetY * 2;
-    }
-    return src;
-}
-
-static void sfFinalDrawSoftwareAura(SDL_Renderer *renderer,
-                                    const SDL_Rect &body,
-                                    bool sun)
-{
-    if (!renderer) return;
-    const int cx = body.x + body.w / 2;
-    const int cy = body.y + body.h / 2;
-    const int radius = std::max(1, body.w / 2);
-
-    SDL_BlendMode oldMode = SDL_BLENDMODE_NONE;
-    SDL_GetRenderDrawBlendMode(renderer, &oldMode);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
-    if (sun) {
-        // Procedural halo: never enlarge the PNG itself, therefore a dark edge
-        // in the source image can no longer turn into a giant black rectangle.
-        sfRmFilledCircle(renderer, cx, cy, static_cast<int>(radius * 1.20f),
-                         255, 88, 12, 10);
-        sfRmFilledCircle(renderer, cx, cy, static_cast<int>(radius * 1.12f),
-                         255, 135, 25, 18);
-        sfRmFilledCircle(renderer, cx, cy, static_cast<int>(radius * 1.055f),
-                         255, 205, 85, 30);
-    } else {
-        sfRmFilledCircle(renderer, cx, cy, static_cast<int>(radius * 1.16f),
-                         25, 120, 255, 9);
-        sfRmFilledCircle(renderer, cx, cy, static_cast<int>(radius * 1.09f),
-                         45, 185, 255, 17);
-        sfRmFilledCircle(renderer, cx, cy, static_cast<int>(radius * 1.035f),
-                         120, 225, 255, 25);
-    }
-
-    SDL_SetRenderDrawBlendMode(renderer, oldMode);
+    // Both PNGs now contain the full disc and a soft alpha halo. Keep the whole
+    // canvas; cropping an already truncated image never made it round.
+    const int margin = std::max(2, std::min(viewportW, viewportH) / 50);
+    return sfFinalClampRect(body, viewportW, viewportH, margin);
 }
 
 static bool sfFinalIsGear1(const SDL_Rect &rect)
@@ -161,10 +104,8 @@ static int SpaceFortressFinal_RenderCopy(SDL_Renderer *renderer,
         (SpaceFortress_IsSunTexture(texture) ||
          SpaceFortress_IsPlanetTexture(texture))) {
         const bool sun = SpaceFortress_IsSunTexture(texture);
-        SDL_Rect body = sfFinalRoundBody(*dstRect, sun);
-        SDL_Rect cleanSrc = sfFinalCleanRoundSource(texture, srcRect, sun);
-        sfFinalDrawSoftwareAura(renderer, body, sun);
-        return SDL_RenderCopy(renderer, texture, &cleanSrc, &body);
+        SDL_Rect body = sfFinalRoundBody(renderer, *dstRect, sun);
+        return SDL_RenderCopy(renderer, texture, srcRect, &body);
     }
 
     // Small gear icons: gear 1 belongs to the warm/orange player, gear 2 to

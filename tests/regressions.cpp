@@ -135,6 +135,8 @@ static void testTextures()
     for (int cycle = 0; cycle < 12; ++cycle) {
         auto *sun = IMG_LoadTexture(renderer, "./resources/assets/pict/suno.png");
         assert(sun && SpaceFortress_IsSunTexture(sun));
+        auto *jupiter = IMG_LoadTexture(renderer, "./resources/assets/pict/jupsoeur4.png");
+        assert(jupiter && SpaceFortress_IsPlanetTexture(jupiter));
         auto *gear = IMG_LoadTexture(renderer, "resources/assets/pict/rouage.png");
         assert(gear);
         sfUiScreen = SF_UI_GAME;
@@ -145,6 +147,7 @@ static void testTextures()
         assert(sfFinalGearOrangeTexture && sfRmMuzzleStrip);
         SDL_DestroyRenderer(renderer);
         assert(!SpaceFortress_TextureIn(SpaceFortressSunTextures, sun));
+        assert(!SpaceFortress_TextureIn(SpaceFortressPlanetTextures, jupiter));
         assert(!sfFinalGearOrangeTexture && !sfRmMuzzleStrip);
         assert(SpaceFortress_IsSunTexture(otherSun));
         renderer = SDL_CreateSoftwareRenderer(surface); assert(renderer);
@@ -161,13 +164,99 @@ static void testTextures()
     SDL_DestroyRenderer(renderer); SDL_DestroyRenderer(otherRenderer);
     SDL_FreeSurface(surface); SDL_FreeSurface(otherSurface);
     assert(SpaceFortressSunTextures.empty());
+    assert(SpaceFortressPlanetTextures.empty());
     std::puts("PASS: 12 renderer recreations, isolated texture ownership and corrupt-image fallback");
+}
+
+static void testScenicRendering()
+{
+    const int oldW = WIDTH, oldH = HEIGHT;
+    const char *paths[] = {"resources/assets/pict/suno.png",
+                          "resources/assets/pict/jupsoeur4.png"};
+    const SDL_Point screens[] = {{720, 1560}, {1080, 2340}, {640, 360}};
+    sfUiScreen = SF_UI_GAME;
+    for (const auto &screen : screens) {
+        auto *surface = SDL_CreateRGBSurfaceWithFormat(0, screen.x, screen.y, 32,
+                                                       SDL_PIXELFORMAT_RGBA32);
+        auto *renderer = SDL_CreateSoftwareRenderer(surface);
+        assert(surface && renderer);
+        // Reproduce the mismatch from main.cpp: world bounds exceed display.
+        WIDTH = screen.x * 11 / 10; HEIGHT = screen.y * 11 / 10;
+        for (int index = 0; index < 2; ++index) {
+            auto *texture = IMG_LoadTexture(renderer, paths[index]);
+            assert(texture);
+            int w = 0, h = 0;
+            SDL_QueryTexture(texture, nullptr, nullptr, &w, &h);
+            assert(w == 768 && h == 768); // Reject the old cropped thumbnails.
+            SDL_ScaleMode scale{}; SDL_BlendMode blend{};
+            assert(SDL_GetTextureScaleMode(texture, &scale) == 0);
+            assert(SDL_GetTextureBlendMode(texture, &blend) == 0);
+            assert(scale == SDL_ScaleModeLinear && blend == SDL_BLENDMODE_BLEND);
+            const SDL_Rect positions[] = {
+                {-HEIGHT, -HEIGHT, HEIGHT, HEIGHT},
+                {HEIGHT / 2, HEIGHT / 2, HEIGHT, HEIGHT}};
+            for (const auto &position : positions) {
+                SDL_SetRenderDrawColor(renderer, 11, 19, 31, 255);
+                SDL_RenderClear(renderer);
+                assert(SDL_RenderCopy(renderer, texture, nullptr, &position) == 0);
+                std::vector<Uint8> pixels(screen.x * screen.y * 4);
+                assert(SDL_RenderReadPixels(renderer, nullptr, SDL_PIXELFORMAT_RGBA32,
+                    pixels.data(), screen.x * 4) == 0);
+                int minX = screen.x, minY = screen.y, maxX = -1, maxY = -1, count = 0;
+                for (int y = 0; y < screen.y; ++y) {
+                    for (int x = 0; x < screen.x; ++x) {
+                        const auto *p = &pixels[(y * screen.x + x) * 4];
+                        if (std::abs(int(p[0]) - 11) + std::abs(int(p[1]) - 19) +
+                            std::abs(int(p[2]) - 31) <= 24) continue;
+                        minX = std::min(minX, x); maxX = std::max(maxX, x);
+                        minY = std::min(minY, y); maxY = std::max(maxY, y); ++count;
+                    }
+                }
+                assert(count > 1000);
+                // Test rendered pixels, not only the helper's rectangle: a
+                // clipped planet or a square source cannot pass these checks.
+                assert(minX > 2 && minY > 2 && maxX < screen.x - 3 && maxY < screen.y - 3);
+                const int bw = maxX - minX + 1, bh = maxY - minY + 1;
+                assert(std::abs(bw - bh) < std::max(bw, bh) / 10);
+                const float coverage = float(count) / (bw * bh);
+                assert(coverage > .60f && coverage < .87f);
+            }
+        }
+        SDL_DestroyRenderer(renderer); SDL_FreeSurface(surface);
+    }
+    WIDTH = oldW; HEIGHT = oldH;
+    std::puts("PASS: full round Sun/Jupiter pixels inside portrait and landscape screens");
+}
+
+static void writeScenicPreview(const char *path)
+{
+    if (!path) return;
+    const int width = 709, height = 1536;
+    auto *surface = SDL_CreateRGBSurfaceWithFormat(0, width, height, 32, SDL_PIXELFORMAT_RGBA32);
+    auto *renderer = SDL_CreateSoftwareRenderer(surface);
+    assert(surface && renderer);
+    sfUiScreen = SF_UI_GAME;
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    auto *galaxy = IMG_LoadTexture(renderer, "resources/assets/pict/fond4hlz.png");
+    auto *sun = IMG_LoadTexture(renderer, "resources/assets/pict/suno.png");
+    auto *jupiter = IMG_LoadTexture(renderer, "resources/assets/pict/jupsoeur4.png");
+    assert(galaxy && sun && jupiter);
+    SDL_Rect background{0, 0, width * 11 / 10, height * 11 / 10};
+    SDL_Rect solar{-330, -145, 840, 840}, jovian{840, 840, 1680, 1680};
+    assert(SDL_RenderCopy(renderer, galaxy, nullptr, &background) == 0);
+    assert(SDL_RenderCopy(renderer, sun, nullptr, &solar) == 0);
+    assert(SDL_RenderCopy(renderer, jupiter, nullptr, &jovian) == 0);
+    SDL_RenderFlush(renderer);
+    assert(IMG_SavePNG(surface, path) == 0);
+    SDL_DestroyRenderer(renderer); SDL_FreeSurface(surface);
 }
 
 int main()
 {
     assert(SDL_Init(SDL_INIT_TIMER) == 0);
-    testVectors(); testLegacyCrashes(); testInput(); testTextures();
+    testVectors(); testLegacyCrashes(); testInput(); testTextures(); testScenicRendering();
+    writeScenicPreview(std::getenv("SPACEFORTRESS_SCENIC_PREVIEW"));
     delete Spritej1; delete Spritej2; delete loosej1; delete loosej2;
     delete rouage1; delete rouage2; delete Suiveur;
     delete iago; delete iago1; delete iacalc; delete iatake;

@@ -109,6 +109,11 @@ def assemble(source, output):
             data = (source / 'pict' / known[1]).read_bytes()
             print(f'{name}: using verified original {known[1]} (known corrupt transport)')
         (output / 'pict/remaster' / (name + '.png')).write_bytes(data)
+    # The full-disc Sun/Jupiter are canonical PNGs. Keep the old transport ZIP
+    # from silently replacing this repair with a cropped low-resolution sprite.
+    for name in ('sun.png', 'planet.png'):
+        shutil.copy2(source / 'pict/remaster' / name,
+                     output / 'pict/remaster' / name)
     images = sorted((output / 'pict/remaster').glob('*.png'))
     for path in images:
         validate_png(path.read_bytes(), path.name)
