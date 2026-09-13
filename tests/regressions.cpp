@@ -263,6 +263,7 @@ int main()
     assert(SDL_Init(SDL_INIT_TIMER) == 0);
     testVectors(); testLegacyCrashes(); testInput(); testTextures(); testScenicRendering();
     testTacticalPilot(); testTacticalTurrets(); testJupiterMotion();
+    testRaidsAndDefence();
     writeScenicPreview(std::getenv("SPACEFORTRESS_SCENIC_PREVIEW"));
     writeTurretPreview(std::getenv("SPACEFORTRESS_TURRET_PREVIEW"));
     sfTacticsReset(); sfFixResetAsteroidField();

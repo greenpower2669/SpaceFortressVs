@@ -89,12 +89,12 @@ static void testTacticalTurrets()
         auto &shots=owner==0 ? entitiesj2 : entitiesj1;
         enemy->y=sfArenaH*(owner==0 ? .52f : .48f);
         for (int frame=0;frame<90;++frame) sfUpdateTurrets(sfFrameDt);
-        assert(sfTurrets[owner*3].deploy>.98f && shots.empty());
+        assert(sfTurrets[owner*SF_TURRETS_PER_TEAM].deploy>.98f && shots.empty());
         enemy->y=sfArenaH*(owner==0 ? .43f : .57f);
         for (int frame=0;frame<120 && shots.empty();++frame) sfUpdateTurrets(sfFrameDt);
         assert(!shots.empty() && sfRmFlashJ1Start==0 && sfRmFlashJ2Start==0);
         bool found=false;
-        for (int i=owner*3;i<owner*3+3;++i) if (sfTurrets[i].flash>=.159f) {
+        for (int i=owner*SF_TURRETS_PER_TEAM;i<(owner+1)*SF_TURRETS_PER_TEAM;++i) if (sfTurrets[i].flash>=.159f) {
             const tupl muzzle=sfTurretMuzzle(i);
             for (const auto *shot : shots) {
                 if (vlong(shot->x-muzzle.x,shot->y-muzzle.y)<.1f) {
@@ -110,7 +110,7 @@ static void testTacticalTurrets()
         assert(shots.size()==count);
         enemy->y=sfArenaH*(owner==0 ? .80f : .20f);
         for (int frame=0;frame<90;++frame) sfUpdateTurrets(sfFrameDt);
-        for (int i=owner*3;i<owner*3+3;++i) assert(sfTurrets[i].deploy==0);
+        for (int i=owner*SF_TURRETS_PER_TEAM;i<(owner+1)*SF_TURRETS_PER_TEAM;++i) assert(sfTurrets[i].deploy==0);
     }
     sfFixResetMatchState();
     assert(entitiesj1.empty() && entitiesj2.empty() && sfSceneSeconds==0);
@@ -136,6 +136,84 @@ static void testJupiterMotion()
     std::puts("PASS: continuous Jupiter drift, fixed apparent size and portrait/landscape containment");
 }
 
+static void testRaidsAndDefence()
+{
+    // One moving resource is tracked through a real crossing, then abandoned.
+    for (int fps : {30,60}) {
+        setupTactics(); sfFrameDt=1.0f/fps;
+        Spritej1->y=450; Spritej1->nrj=5;
+        sfPilot.aggressiveFor=8; sfPilot.nextAggression=100;
+        auto *rock=new sprite; rock->setxywh(390,700,100,100);
+        rock->pv=100; rock->vx=0; rock->vy=60*sfFrameDt; sa1.push_back(rock);
+        sfUpdatePilot(sfFrameDt);
+        assert(sfPilot.mode==SfAiMode::RaidMine && sfPilot.asteroidId!=0);
+        const Uint64 targetId=sfPilot.asteroidId;
+        bool entered=false, retreated=false, returned=false;
+        for (int frame=0;frame<fps*16;++frame) {
+            rock->y+=rock->vy;
+            sfUpdatePilot(sfFrameDt);
+            entered=entered || Spritej1->y>sfArenaH*.5f;
+            if (sfPilot.mode==SfAiMode::RaidMine) assert(sfPilot.asteroidId==targetId);
+            if (sfPilot.mode==SfAiMode::Retreat) { retreated=true; assert(sfPilot.asteroidId==0); }
+            if (retreated && Spritej1->y<sfArenaH*.34f) { returned=true; break; }
+        }
+        assert(entered && retreated && returned);
+        assert(sfPilot.raidCooldown>0);
+    }
+
+    setupTactics(); Spritej1->nrj=5; sfPilot.aggressiveFor=4; sfPilot.nextAggression=100;
+    sfThinkPilot(); const float pushY=sfPilot.goal.y;
+    Spritej1->nrj=38; sfUpdatePilot(sfFrameDt);
+    assert(sfPilot.aggressiveFor==0 && sfPilot.goal.y<=pushY);
+
+    // Incoming defence fire overrides mining immediately; no stale pointer is
+    // dereferenced when the asteroid is then destroyed by the world simulation.
+    setupTactics(); Spritej1->y=890; Spritej1->nrj=10;
+    sfPilot.mode=SfAiMode::RaidMine; sfPilot.asteroidId=++sfNextAsteroidId;
+    auto *rock=new sprite; rock->setxywh(390,1050,100,100);
+    rock->tacticalId=sfPilot.asteroidId; rock->vy=1; sa1.push_back(rock);
+    auto *bullet=sfMakeShot(1,true); assert(bullet);
+    bullet->setxywh(390,1290,16,16); bullet->shotVelocityX=0; bullet->shotVelocityY=-1170;
+    sfUpdatePilot(sfFrameDt);
+    assert(sfPilot.mode==SfAiMode::Retreat && sfPilot.asteroidId==0);
+    sfFixResetAsteroidField(); sfThinkPilot(); assert(sfPilot.mode==SfAiMode::Retreat);
+    float nearest=10000, maxOffset=0;
+    for (int i=0;i<60;++i) {
+        sfAdvanceProjectile(bullet); sfUpdatePilot(sfFrameDt);
+        nearest=std::min(nearest,vlong(Spritej1->x-bullet->x,Spritej1->y-bullet->y));
+        maxOffset=std::max(maxOffset,std::abs(Spritej1->x-390));
+    }
+    assert(nearest>51 && maxOffset>40);
+
+    // Defence owns its ammunition and cannot spend the vessel's energy or
+    // block its gun merely by filling the shared legacy rendering list.
+    setupTactics(); setia=false; Spritej2->y=sfArenaH*.43f;
+    for (int i=0;i<50;++i) assert(sfMakeShot(0));
+    assert(!sfMakeShot(0));
+    sfObserved[1].velocity.set(150,0);
+    const float energy1=Spritej1->nrj, energy2=Spritej2->nrj;
+    for (int frame=0;frame<120;++frame) sfUpdateTurrets(sfFrameDt);
+    int defences=0;
+    for (auto *shot : entitiesj2) if (shot->defensiveShot) {
+        ++defences;
+        assert(vlong(shot->shotVelocityX,shot->shotVelocityY)>sfArenaW*1.4f);
+    }
+    assert(defences>=10 && Spritej1->nrj==energy1 && Spritej2->nrj==energy2);
+    for (int i=0;i<SF_TURRETS_PER_TEAM;++i) assert(sfTurrets[i].virtualTarget.x>Spritej2->x);
+
+    // A fast projectile crosses the target between frames and still hits.
+    setupTactics();
+    bullet=sfMakeShot(1,true); bullet->setxywh(390,1000,16,16);
+    bullet->shotVelocityX=0; bullet->shotVelocityY=-1170;
+    sfFrameDt=.1f; sfAdvanceProjectile(bullet);
+    Spritej1->setxywh(390,940,24,24);
+    assert(std::abs(bullet->y-Spritej1->y)>35 && sfDefensiveShotCrosses(Spritej1,bullet));
+    const float hitHeat=sfShotHeat(bullet), from=bullet->y;
+    sfFrameDt=1.0f/60; sfAdvanceProjectile(bullet);
+    assert(std::abs((from-bullet->y)-19.5f)<.01f && sfShotHeat(bullet)==hitHeat);
+    std::puts("PASS: mining raids and return at 30/60fps, retreat under fire, projectile evasion, virtual turret targets and vessel-only energy");
+}
+
 static void writeTurretPreview(const char *path)
 {
     if (!path) return;
@@ -151,7 +229,7 @@ static void writeTurretPreview(const char *path)
     SDL_RenderCopy(renderer,galaxy,nullptr,&background);
     SDL_RenderCopy(renderer,sun,nullptr,&solar); SDL_RenderCopy(renderer,planet,nullptr,&jovian);
     for (int frame=0;frame<120;++frame) sfUpdateTurrets(sfFrameDt);
-    for (int i=0;i<3;++i) sfTurrets[i].flash=.16f;
+    for (int i=0;i<SF_TURRETS_PER_TEAM;++i) sfTurrets[i].flash=.16f;
     sfDrawTacticalEffects(renderer);
     SDL_RenderFlush(renderer); assert(IMG_SavePNG(surface,path)==0);
     SDL_DestroyRenderer(renderer); SDL_FreeSurface(surface);

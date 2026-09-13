@@ -2,6 +2,9 @@ plugins {
     id 'com.android.application'
 }
 
+def gameVersion = new Properties()
+file("${rootProject.projectDir}/version.properties").withInputStream { gameVersion.load(it) }
+
 android {
     namespace 'com.greenpower2669.spacefortressvs'
     compileSdk 36
@@ -11,8 +14,8 @@ android {
         applicationId 'com.greenpower2669.spacefortressvs'
         minSdk 23
         targetSdk 36
-        versionCode 5
-        versionName '1.1.0-tactics'
+        versionCode gameVersion.getProperty('VERSION_CODE').toInteger()
+        versionName gameVersion.getProperty('VERSION_NAME')
 
         ndk {
             abiFilters 'arm64-v8a'
