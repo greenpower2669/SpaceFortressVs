@@ -104,10 +104,31 @@ sf_replace_region("old IA force cascade" "if ((not setgui) and setia){\n\n    if
 sf_replace_region("dust collection" "for (auto ps:particules) {" "    //parts\n    rnd1=" "sfCollectDust();\n\n")
 sf_patch_once("mining only live objects" "if (colee(p,e))" "if (p->pv>0 && e->pv>0 && colee(p,e))")
 sf_patch_once("elapsed-time defence projectiles" "e->updatetir();" "sfAdvanceProjectile(e);")
-sf_patch_once("swept orange ship impacts" "if (colee(Spritej1,e))" "if (e->pv>0 && (colee(Spritej1,e) || sfDefensiveShotCrosses(Spritej1,e)))")
-sf_patch_once("swept blue ship impacts" "if (colee(Spritej2,e))" "if (e->pv>0 && (colee(Spritej2,e) || sfDefensiveShotCrosses(Spritej2,e)))")
-sf_patch_once("swept asteroid impacts" "e->pv>0 && colee(p,e)" "e->pv>0 && (colee(p,e) || sfDefensiveShotCrosses(e,p))")
+sf_patch_once("swept orange ship impacts" "if (colee(Spritej1,e))" "if (e->pv>0 && (colee(Spritej1,e) || sfShotCrosses(Spritej1,e)))")
+sf_patch_once("swept blue ship impacts" "if (colee(Spritej2,e))" "if (e->pv>0 && (colee(Spritej2,e) || sfShotCrosses(Spritej2,e)))")
+sf_patch_once("swept asteroid impacts" "e->pv>0 && colee(p,e)" "e->pv>0 && (colee(p,e) || sfShotCrosses(e,p))")
 sf_replace_region("defence impact heat independent of frame rate" "float nrjminus(sprite *e){" "float vectoriser(" "float nrjminus(sprite *e){ return sfShotHeat(e); }\n\n")
+sf_replace_region("bounded missile impact heat" "float missnrjminus(sprite *e){" "float misspvminus(" "float missnrjminus(sprite *e){ return sfShotHeat(e); }\n\n")
+# Every impact uses the same finite reserve range, before subsequent damage
+# calculations can square the victim's heat. Full-energy markers stay at their
+# historical shield anchor; exhausted markers stop at the corresponding gun.
+foreach(sf_ship Spritej1 Spritej2)
+    sf_patch_once("${sf_ship} missile heat" "${sf_ship}->nrj+=missnrjminus(e);" "sfAddShipHeat(${sf_ship},missnrjminus(e));")
+    sf_patch_once("${sf_ship} shot heat" "${sf_ship}->nrj+=nrjminus(e);" "sfAddShipHeat(${sf_ship},nrjminus(e));")
+    sf_patch_once("${sf_ship} asteroid heat" "${sf_ship}->nrj+=e->w*e->h*0.0001;" "sfAddShipHeat(${sf_ship},e->w*e->h*0.0001);")
+endforeach()
+sf_replace_region("bounded energy HUD" "\ttexreclr.x = WIDTH*0.05;" "\trouage1->updatetir();" [=[
+    texreclr=sfEnergyMarkerRect(Spritej1->nrj,
+        SDL_Rect{int(WIDTH*.05),int(HEIGHT/2.2),int(Spriteeclr->w),int(Spriteeclr->h)},texrgunrl);
+    texreclb=sfEnergyMarkerRect(Spritej2->nrj,
+        SDL_Rect{int(WIDTH*.75),int(HEIGHT/2.1),int(Spriteeclb->w),int(Spriteeclb->h)},texrgunbl);
+
+]=])
+sf_replace_region("projectile rendering without physics mutations" "for(auto e:texrtj1)" "   for(auto e:texra1)" [=[
+    sfDrawProjectiles(renderer,entitiesj1,imgtj1,imgmiss);
+    sfDrawProjectiles(renderer,entitiesj2,imgtj2,imgmiss);
+
+]=])
 sf_patch_once("orange shot count" "tirj1-=1;" "tirj1=std::max(0,tirj1-1);")
 sf_patch_once("blue shot count" "tirj2-=1;" "tirj2=std::max(0,tirj2-1);")
 sf_patch_once("single IA movement" "\tSpritej1->unctrl();" "\tif (!setia) Spritej1->unctrl();")

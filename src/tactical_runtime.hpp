@@ -2,6 +2,7 @@
 #include <array>
 #include <vector>
 #include <limits>
+#include "ship_energy.hpp"
 
 extern std::list<sprite*> entitiesj1, entitiesj2, burnsj1, burnsj2;
 extern std::list<parts*> particules, particulesr;
@@ -77,7 +78,8 @@ static float sfAsteroidRisk(tupl position, tuplv velocity, float radius)
 
 static tuplv sfProjectileVelocity(const sprite *shot)
 {
-    if (shot->defensiveShot) return tuplv(shot->shotVelocityX,shot->shotVelocityY);
+    if (shot->defensiveShot || (shot->shotOwner>=0 && shot->name=="miss"))
+        return tuplv(shot->shotVelocityX,shot->shotVelocityY);
     return tuplv(shot->vx*k0/sfFrameDt,shot->vy*k0/sfFrameDt);
 }
 
@@ -166,6 +168,7 @@ static sprite *sfMakeShot(int owner, bool defence=false)
     (owner==0 ? tirj1 : tirj2)=int(shots.size());
     shot->idx=int(shots.size());
     shot->defensiveShot=defence;
+    shot->shotOwner=owner;
     return shot;
 }
 
@@ -174,38 +177,65 @@ static bool sfFireMain(int owner)
     sprite *ship=owner==0 ? Spritej1 : Spritej2;
     sprite *shot=sfMakeShot(owner);
     if (!shot) return false;
-    ship->nrj=std::clamp(ship->nrj+1,0.0f,50.0f);
+    sfAddShipHeat(ship,1);
     shot->x=ship->x; shot->y=ship->y;
     shot->vx=.5f*(rand()%3-1);
     shot->vy=(60-ship->nrj)*(owner==0 ? .4f : -.4f);
     if (ship->nrj<1.5f) {
-        shot->name="miss"; ship->nrj+=10;
-        shot->vy*=.01f; shot->h*=2; shot->vx=0; tirjz=true;
+        shot->name="miss"; sfAddShipHeat(ship,10);
+        shot->shotVelocityY=(owner==0 ? 1 : -1)*sfArenaW*.65f;
+        shot->vy=shot->shotVelocityY*sfFrameDt/std::max(.05f,k0);
+        shot->w=shot->sw*.5f; shot->vx=0; tirjz=true;
     } else (owner==0 ? tirj1z : tirj2z)=true;
     (owner==0 ? sfRmFlashJ1Start : sfRmFlashJ2Start)=std::max<Uint64>(1,SDL_GetTicks64());
     shot->startup();
+    shot->shotFromX=shot->x; shot->shotFromY=shot->y;
     return true;
 }
 
 static void sfAdvanceProjectile(sprite *shot)
 {
+    if (shot->pv<=0) return;
     shot->shotFromX=shot->x; shot->shotFromY=shot->y;
-    if (shot->defensiveShot) {
+    const bool missile=shot->shotOwner>=0 && shot->name=="miss";
+    if (missile) {
+        const float forward=shot->shotOwner==0 ? 1.0f : -1.0f;
+        const sprite *target=shot->shotOwner==0 ? Spritej2 : Spritej1;
+        // Bounded acceleration and lateral guidance in simulation time. The
+        // old renderer multiplied vy every draw and also moved y a second time.
+        const float speed=sfArenaW*std::min(1.5f,.65f+1.8f*(shot->shotAge+sfFrameDt*.5f));
+        if (target && target->pv>0 && (target->y-shot->y)*forward>0) {
+            const float wanted=std::clamp((target->x-shot->x)*3,-sfArenaW*.35f,sfArenaW*.35f);
+            shot->shotVelocityX+=std::clamp(wanted-shot->shotVelocityX,
+                                          -sfArenaW*1.4f*sfFrameDt,sfArenaW*1.4f*sfFrameDt);
+        }
+        shot->shotVelocityY=forward*std::sqrt(std::max(0.0f,speed*speed-
+                                                     shot->shotVelocityX*shot->shotVelocityX));
+    }
+    if (shot->defensiveShot || missile) {
+        shot->shotAge+=sfFrameDt;
         shot->vx=shot->shotVelocityX*sfFrameDt/std::max(.05f,k0);
         shot->vy=shot->shotVelocityY*sfFrameDt/std::max(.05f,k0);
     }
     shot->updatetir();
+    // Legacy updatetir() computes its render bounds before movement. A fast
+    // shot otherwise hits at a different position from the one being drawn.
+    shot->startup();
+    if ((shot->defensiveShot || missile) && shot->shotAge>4) shot->pv=0;
 }
 
 static float sfShotHeat(const sprite *shot)
 {
-    const float vy=shot->defensiveShot ? shot->shotVelocityY/(60*std::max(.05f,k0)) : shot->vy;
-    return vy*vy*.005f;
+    // Weapon impact strength is independent of defence angle, display size,
+    // missile acceleration and frame duration. Only the victim pays this cost.
+    if (shot->defensiveShot) return 2.0f;
+    if (shot->name=="miss") return 8.0f;
+    return std::clamp(shot->vy*shot->vy*.005f,0.0f,3.0f);
 }
 
-static bool sfDefensiveShotCrosses(const sprite *target,const sprite *shot)
+static bool sfShotCrosses(const sprite *target,const sprite *shot)
 {
-    if (!shot->defensiveShot || shot->pv<=0 || target->pv<=0) return false;
+    if (shot->shotOwner<0 || shot->pv<=0 || target->pv<=0) return false;
     const float dx=shot->x-shot->shotFromX, dy=shot->y-shot->shotFromY;
     const float length2=dx*dx+dy*dy;
     const float time=length2>.001f ? std::clamp(((target->x-shot->shotFromX)*dx+
@@ -213,6 +243,46 @@ static bool sfDefensiveShotCrosses(const sprite *target,const sprite *shot)
     // Same radius convention as legacy colee(), swept over the last movement.
     const float radius=(target->sh+shot->sh)/(1.7f*std::sqrt(1.7f));
     return vlong(shot->shotFromX+dx*time-target->x,shot->shotFromY+dy*time-target->y)<radius;
+}
+
+static SDL_Rect sfProjectileRect(const sprite *shot)
+{
+    const bool missile=shot->name=="miss";
+    const int width=std::max(1,int(shot->w*(missile ? .5f : 1.0f)));
+    const int height=std::max(1,int(shot->h*(missile ? 2.0f : 1.0f)));
+    return SDL_Rect{int(std::lround(shot->x-width*.5f)),int(std::lround(shot->y-height*.5f)),width,height};
+}
+
+static double sfProjectileAngle(const sprite *shot)
+{
+    const auto velocity=sfProjectileVelocity(shot);
+    return std::atan2(velocity.vy,velocity.vx)*180/PI+90;
+}
+
+static void sfDrawProjectiles(SDL_Renderer *renderer,const std::list<sprite*> &shots,
+                              SDL_Texture *orb,SDL_Texture *missile)
+{
+    SDL_BlendMode blend;
+    Uint8 red,green,blue,alpha;
+    SDL_GetRenderDrawBlendMode(renderer,&blend);
+    SDL_GetRenderDrawColor(renderer,&red,&green,&blue,&alpha);
+    for (const auto *shot : shots) {
+        if (shot->pv<=0) continue;
+        const SDL_Rect rect=sfProjectileRect(shot);
+        if (shot->name=="miss") {
+            const auto velocity=sfProjectileVelocity(shot);
+            const float speed=std::max(1.0f,vlong(velocity.vx,velocity.vy));
+            const SDL_Point tail{int(shot->x-velocity.vx/speed*rect.h*.48f),
+                                 int(shot->y-velocity.vy/speed*rect.h*.48f)};
+            SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer,255,180,65,210);
+            SDL_RenderDrawLine(renderer,tail.x,tail.y,
+                int(tail.x-velocity.vx/speed*rect.h*.25f),int(tail.y-velocity.vy/speed*rect.h*.25f));
+            SDL_RenderCopyEx(renderer,missile,nullptr,&rect,sfProjectileAngle(shot),nullptr,SDL_FLIP_NONE);
+        } else SDL_RenderCopy(renderer,orb,nullptr,&rect);
+    }
+    SDL_SetRenderDrawBlendMode(renderer,blend);
+    SDL_SetRenderDrawColor(renderer,red,green,blue,alpha);
 }
 
 static void sfBeginRetreat()
@@ -382,7 +452,7 @@ static void sfCollectDust()
         if (winner) {
             const float value=std::clamp(dust->pv*k0/600,0.0f,1.0f);
             // nrj is depletion/heat: a lower value means MORE available energy.
-            winner->nrj=std::max(0.0f,winner->nrj*.98f-.10f*value);
+            winner->nrj=sfShipHeat(sfShipHeat(winner->nrj)*.98f-.10f*value);
             winner->pv=std::min(1000.0f,winner->pv+.30f*value);
             dust->pv=0; sfPickupGlow[owner]=.65f;
         }
@@ -482,6 +552,7 @@ static void sfTacticsReset()
 static void sfTacticsBeginFrame(SDL_Renderer *renderer)
 {
     sfFixApplyUiRequests();
+    sfAddShipHeat(Spritej1,0); sfAddShipHeat(Spritej2,0);
     SDL_Rect viewport{}; SDL_RenderGetViewport(renderer,&viewport);
     sfArenaW=std::max(1,viewport.w); sfArenaH=std::max(1,viewport.h);
     const Uint64 now=SDL_GetTicks64();

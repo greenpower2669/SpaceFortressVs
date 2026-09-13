@@ -207,7 +207,7 @@ static void testRaidsAndDefence()
     bullet->shotVelocityX=0; bullet->shotVelocityY=-1170;
     sfFrameDt=.1f; sfAdvanceProjectile(bullet);
     Spritej1->setxywh(390,940,24,24);
-    assert(std::abs(bullet->y-Spritej1->y)>35 && sfDefensiveShotCrosses(Spritej1,bullet));
+    assert(std::abs(bullet->y-Spritej1->y)>35 && sfShotCrosses(Spritej1,bullet));
     const float hitHeat=sfShotHeat(bullet), from=bullet->y;
     sfFrameDt=1.0f/60; sfAdvanceProjectile(bullet);
     assert(std::abs((from-bullet->y)-19.5f)<.01f && sfShotHeat(bullet)==hitHeat);

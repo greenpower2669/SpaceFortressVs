@@ -28,6 +28,7 @@ sprite *rouage1 = new sprite, *rouage2 = new sprite, *Suiveur = new sprite;
 enti *iago = new enti, *iago1 = new enti, *iacalc = new enti, *iatake = new enti;
 
 #include "tactics_regressions.hpp"
+#include "feedback_regressions.hpp"
 
 static SDL_Event finger(Uint32 type, SDL_FingerID id, float x, float y)
 {
@@ -264,8 +265,10 @@ int main()
     testVectors(); testLegacyCrashes(); testInput(); testTextures(); testScenicRendering();
     testTacticalPilot(); testTacticalTurrets(); testJupiterMotion();
     testRaidsAndDefence();
+    testEnergyFeedback(); testProjectileFeedback();
     writeScenicPreview(std::getenv("SPACEFORTRESS_SCENIC_PREVIEW"));
     writeTurretPreview(std::getenv("SPACEFORTRESS_TURRET_PREVIEW"));
+    writeFeedbackPreview(std::getenv("SPACEFORTRESS_HUD_PREVIEW"));
     sfTacticsReset(); sfFixResetAsteroidField();
     delete Spritej1; delete Spritej2; delete loosej1; delete loosej2;
     delete rouage1; delete rouage2; delete Suiveur;

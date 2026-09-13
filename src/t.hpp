@@ -87,6 +87,8 @@ class sprite
    // Tactical metadata: stable asteroid identity and independent defence shots.
    Uint64 tacticalId=0;
    bool defensiveShot=false;
+   int shotOwner=-1;
+   float shotAge=0;
    float shotVelocityX=0, shotVelocityY=0, shotFromX=0, shotFromY=0;
    int frame,frames,ir1,ir2,ir3,ir4;
   float x,y,x0,y0,x00,y00,speed;
