@@ -339,7 +339,7 @@ static void sfUiDrawHelp(SDL_Renderer *renderer)
                  "AVEC UN AUTRE DOIGT", "TAPOTEZ POUR TIRER", base);
     y += step;
     sfUiHelpLine(renderer, width, y, "4",
-                 "LE MODE SE CHOISIT", "DEPUIS L ACCUEIL", base);
+                 "MINEZ LES ASTEROIDES", "POUSSIERES = ENERGIE", base);
     y += step;
     sfUiHelpLine(renderer, width, y, "5",
                  "DEUX ENGRENAGES", "RAMENENT A L ACCUEIL", base);

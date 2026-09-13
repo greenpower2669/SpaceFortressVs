@@ -441,8 +441,8 @@ static void SpaceFortressRemaster_RenderPresent(SDL_Renderer *renderer)
         sfRmApplyLegacyLeadVelocity();
         sfRmEnsureTextures(renderer);
         const Uint64 now = SDL_GetTicks64();
-        if (tirj1 > sfRmLastTirJ1) sfRmFlashJ1Start = now;
-        if (tirj2 > sfRmLastTirJ2) sfRmFlashJ2Start = now;
+        // Main-weapon flashes are now triggered by sfFireMain. Border guns
+        // share projectile lists but must not flash at the fortress itself.
         sfRmLastTirJ1 = tirj1;
         sfRmLastTirJ2 = tirj2;
 

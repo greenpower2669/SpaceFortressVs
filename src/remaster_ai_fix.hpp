@@ -103,6 +103,7 @@ static void sfFixResetAsteroidField()
 
 static void sfFixResetMatchState()
 {
+    sfTacticsReset();
     sfFixReseedLegacyRandom();
     sfFixResetAsteroidField();
 
@@ -306,6 +307,7 @@ static void sfFixHandleEvent(SDL_Event *event)
 static int SpaceFortressFinal_WaitEvent(SDL_Event *event)
 {
     const int result = SDL_WaitEvent(event);
+    std::lock_guard<std::recursive_mutex> lock(sfGameMutex);
     if (result && event) sfFixHandleEvent(event);
     return result;
 }

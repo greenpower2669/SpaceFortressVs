@@ -57,9 +57,8 @@ static SDL_Rect sfFinalRoundBody(SDL_Renderer *renderer,
     const int cap = std::max(1, static_cast<int>(
         std::min(viewportW, viewportH) * fraction));
 
-    const double seconds = static_cast<double>(SDL_GetTicks64()) * 0.001;
-    const float pulse = 1.0f + (sun ? 0.010f : 0.006f) *
-        static_cast<float>(std::sin(seconds * (sun ? 1.0 : 0.45)));
+    const double seconds = sfSceneSeconds;
+    const float pulse = sun ? 1.0f + .010f * static_cast<float>(std::sin(seconds)) : 1.0f;
     const int diameter = std::max(1,
         static_cast<int>(std::min(legacyDiameter, cap) * pulse));
 
@@ -69,6 +68,14 @@ static SDL_Rect sfFinalRoundBody(SDL_Renderer *renderer,
     // Both PNGs now contain the full disc and a soft alpha halo. Keep the whole
     // canvas; cropping an already truncated image never made it round.
     const int margin = std::max(2, std::min(viewportW, viewportH) / 50);
+    if (!sun) {
+        // Slow continuous drift within the actual available travel rectangle.
+        // No edge clamping plateaus and no change of apparent planet size.
+        body.x = margin + static_cast<int>(std::max(0, viewportW-diameter-2*margin) *
+            (.78 + .15 * std::sin(seconds*.065)));
+        body.y = margin + static_cast<int>(std::max(0, viewportH-diameter-2*margin) *
+            (.72 + .13 * std::sin(seconds*.041 + .35)));
+    }
     return sfFinalClampRect(body, viewportW, viewportH, margin);
 }
 

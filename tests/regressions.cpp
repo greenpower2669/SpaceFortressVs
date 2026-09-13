@@ -18,10 +18,16 @@ float k0 = 1;
 float tw = 780, th = 1680;
 int tirj1 = 0, tirj2 = 0, incra1 = 0;
 std::list<sprite*> sa1;
+std::list<sprite*> entitiesj1, entitiesj2, burnsj1, burnsj2;
+std::list<parts*> particules, particulesr;
+std::list<eexpl*> explos;
+bool tirjz=false, tirj1z=false, tirj2z=false;
 sprite *Spritej1 = new sprite, *Spritej2 = new sprite;
 sprite *loosej1 = new sprite, *loosej2 = new sprite;
 sprite *rouage1 = new sprite, *rouage2 = new sprite, *Suiveur = new sprite;
 enti *iago = new enti, *iago1 = new enti, *iacalc = new enti, *iatake = new enti;
+
+#include "tactics_regressions.hpp"
 
 static SDL_Event finger(Uint32 type, SDL_FingerID id, float x, float y)
 {
@@ -256,7 +262,10 @@ int main()
 {
     assert(SDL_Init(SDL_INIT_TIMER) == 0);
     testVectors(); testLegacyCrashes(); testInput(); testTextures(); testScenicRendering();
+    testTacticalPilot(); testTacticalTurrets(); testJupiterMotion();
     writeScenicPreview(std::getenv("SPACEFORTRESS_SCENIC_PREVIEW"));
+    writeTurretPreview(std::getenv("SPACEFORTRESS_TURRET_PREVIEW"));
+    sfTacticsReset(); sfFixResetAsteroidField();
     delete Spritej1; delete Spritej2; delete loosej1; delete loosej2;
     delete rouage1; delete rouage2; delete Suiveur;
     delete iago; delete iago1; delete iacalc; delete iatake;
