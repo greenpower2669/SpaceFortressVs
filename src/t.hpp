@@ -6,6 +6,7 @@
 #include <list>
 #include <iostream> 
 #include <cmath>
+#include <bitset>
 #define PI 3.141592653589793238462643383
  //3.14159265
 #include <SDL2/SDL.h>
@@ -83,6 +84,12 @@ class sprite
    bool animated=false;
    bool ctrl,outx,outy;
    bool minage=false;
+   // Tactical metadata: stable asteroid identity and independent defence shots.
+   Uint64 tacticalId=0;
+   bool defensiveShot=false;
+   int shotOwner=-1;
+   float shotAge=0;
+   float shotVelocityX=0, shotVelocityY=0, shotFromX=0, shotFromY=0;
    int frame,frames,ir1,ir2,ir3,ir4;
   float x,y,x0,y0,x00,y00,speed;
    float xm,ym,w,h,x000,y000;
@@ -771,4 +778,4 @@ int uSDL_RenderCopyEx(SDL_Renderer * renderer,
 
 
 
-#endif 
+#endif

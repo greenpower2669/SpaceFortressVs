@@ -1,0 +1,1 @@
+Remaster direct assets are intentionally mapped at the Android loading boundary. Historical main.cpp remains unchanged.
