@@ -59,6 +59,21 @@ static tupl sfPredictIntercept(tupl origin, tupl target, tuplv velocity, float s
     return tupl(target.x+velocity.vx*time,target.y+velocity.vy*time);
 }
 
+struct SfVelocityGhost {
+    tupl position;
+    tuplv velocity;
+    tupl intercept(tupl origin,float speed,float horizon=.9f) const {
+        return sfPredictIntercept(origin,position,velocity,speed,horizon);
+    }
+};
+static SfVelocityGhost sfShipGhost(int owner) {
+    const auto *ship=owner==0 ? Spritej1 : Spritej2;
+    return {tupl(ship->x,ship->y),sfObserved[owner].velocity};
+}
+static float sfMainShotSpeed(float heat) {
+    return (60-sfShipHeat(heat+1))*.4f*60*sfArenaW/780;
+}
+
 static float sfAsteroidRisk(tupl position, tuplv velocity, float radius)
 {
     float risk = 0;
@@ -78,7 +93,7 @@ static float sfAsteroidRisk(tupl position, tuplv velocity, float radius)
 
 static tuplv sfProjectileVelocity(const sprite *shot)
 {
-    if (shot->defensiveShot || (shot->shotOwner>=0 && shot->name=="miss"))
+    if (shot->defensiveShot || shot->shotOwner>=0)
         return tuplv(shot->shotVelocityX,shot->shotVelocityY);
     return tuplv(shot->vx*k0/sfFrameDt,shot->vy*k0/sfFrameDt);
 }
@@ -172,7 +187,7 @@ static sprite *sfMakeShot(int owner, bool defence=false)
     return shot;
 }
 
-static bool sfFireMain(int owner)
+static bool sfFireMain(int owner,const tupl *target=nullptr)
 {
     sprite *ship=owner==0 ? Spritej1 : Spritej2;
     sprite *shot=sfMakeShot(owner);
@@ -181,12 +196,23 @@ static bool sfFireMain(int owner)
     shot->x=ship->x; shot->y=ship->y;
     shot->vx=.5f*(rand()%3-1);
     shot->vy=(60-ship->nrj)*(owner==0 ? .4f : -.4f);
+    shot->shotImpactHeat=std::clamp(shot->vy*shot->vy*.005f,0.0f,3.0f);
+    shot->shotVelocityX=shot->vx*60*sfArenaW/780;
+    shot->shotVelocityY=shot->vy*60*sfArenaW/780;
+    if (target) {
+        const float speed=std::abs(shot->shotVelocityY);
+        const float angle=std::atan2(target->y-shot->y,target->x-shot->x);
+        shot->shotVelocityX=std::cos(angle)*speed;shot->shotVelocityY=std::sin(angle)*speed;
+    }
     if (ship->nrj<1.5f) {
         shot->name="miss"; sfAddShipHeat(ship,10);
+        shot->shotVelocityX=0;
         shot->shotVelocityY=(owner==0 ? 1 : -1)*sfArenaW*.65f;
         shot->vy=shot->shotVelocityY*sfFrameDt/std::max(.05f,k0);
         shot->w=shot->sw*.5f; shot->vx=0; tirjz=true;
     } else (owner==0 ? tirj1z : tirj2z)=true;
+    shot->vx=shot->shotVelocityX*sfFrameDt/std::max(.05f,k0);
+    shot->vy=shot->shotVelocityY*sfFrameDt/std::max(.05f,k0);
     (owner==0 ? sfRmFlashJ1Start : sfRmFlashJ2Start)=std::max<Uint64>(1,SDL_GetTicks64());
     shot->startup();
     shot->shotFromX=shot->x; shot->shotFromY=shot->y;
@@ -205,14 +231,15 @@ static void sfAdvanceProjectile(sprite *shot)
         // old renderer multiplied vy every draw and also moved y a second time.
         const float speed=sfArenaW*std::min(1.5f,.65f+1.8f*(shot->shotAge+sfFrameDt*.5f));
         if (target && target->pv>0 && (target->y-shot->y)*forward>0) {
-            const float wanted=std::clamp((target->x-shot->x)*3,-sfArenaW*.35f,sfArenaW*.35f);
+            const auto future=sfShipGhost(1-shot->shotOwner).intercept(tupl(shot->x,shot->y),speed,.6f);
+            const float wanted=std::clamp((future.x-shot->x)*3,-sfArenaW*.35f,sfArenaW*.35f);
             shot->shotVelocityX+=std::clamp(wanted-shot->shotVelocityX,
                                           -sfArenaW*1.4f*sfFrameDt,sfArenaW*1.4f*sfFrameDt);
         }
         shot->shotVelocityY=forward*std::sqrt(std::max(0.0f,speed*speed-
                                                      shot->shotVelocityX*shot->shotVelocityX));
     }
-    if (shot->defensiveShot || missile) {
+    if (shot->defensiveShot || shot->shotOwner>=0) {
         shot->shotAge+=sfFrameDt;
         shot->vx=shot->shotVelocityX*sfFrameDt/std::max(.05f,k0);
         shot->vy=shot->shotVelocityY*sfFrameDt/std::max(.05f,k0);
@@ -221,7 +248,7 @@ static void sfAdvanceProjectile(sprite *shot)
     // Legacy updatetir() computes its render bounds before movement. A fast
     // shot otherwise hits at a different position from the one being drawn.
     shot->startup();
-    if ((shot->defensiveShot || missile) && shot->shotAge>4) shot->pv=0;
+    if (shot->shotOwner>=0 && shot->shotAge>(shot->defensiveShot || missile ? 4 : 10)) shot->pv=0;
 }
 
 static float sfShotHeat(const sprite *shot)
@@ -230,6 +257,7 @@ static float sfShotHeat(const sprite *shot)
     // missile acceleration and frame duration. Only the victim pays this cost.
     if (shot->defensiveShot) return 2.0f;
     if (shot->name=="miss") return 8.0f;
+    if (shot->shotOwner>=0) return shot->shotImpactHeat;
     return std::clamp(shot->vy*shot->vy*.005f,0.0f,3.0f);
 }
 
@@ -312,8 +340,7 @@ static void sfThinkPilot()
 {
     const tupl position(Spritej1->x,Spritej1->y);
     const float radius=std::max(Spritej1->w,Spritej1->h)*.43f;
-    const float speed=(60-std::clamp(Spritej1->nrj+1,0.0f,50.0f))*.4f*
-        std::max(.05f,k0)/sfFrameDt;
+    const float speed=sfMainShotSpeed(Spritej1->nrj);
     if (sfPilot.mode==SfAiMode::RaidMine) {
         sprite *rock=sfFindRaidAsteroid();
         if (!rock || rock->vy<=0 || sfPilot.raidAge>10 || sfPilot.enemyTime>1.0f ||
@@ -351,9 +378,9 @@ static void sfThinkPilot()
             sfPilot.raidAge=sfPilot.enemyTime=0; sfRaidGoal(chosen,radius,speed); return;
         }
     }
-    sfPilot.aim=sfPredictIntercept(position,tupl(Spritej2->x,Spritej2->y),sfObserved[1].velocity,speed);
+    sfPilot.aim=sfShipGhost(1).intercept(position,speed);
     sfPilot.goal=tupl(sfPilot.aim.x,std::min(sfArenaH*(sfPilot.aggressiveFor>0 ? .36f : .29f),
-                                            Spritej2->y-sfArenaH*.28f));
+                                            sfPilot.aim.y-sfArenaH*.28f));
     sfPilot.mode=SfAiMode::Attack;
     float bestDust=std::numeric_limits<float>::max();
     if (Spritej1->nrj>12 && (sfPilot.aggressiveFor<=0 || Spritej1->nrj>25)) {
@@ -432,7 +459,7 @@ static void sfUpdatePilot(float dt)
     if (sfPilot.mode!=SfAiMode::Collect && sfPilot.mode!=SfAiMode::Retreat &&
         sfPilot.aligned>=(aggressive ? .10f : .16f) && sfPilot.cooldown<=0 &&
         Spritej1->nrj<43 && mainShots<12) {
-        if (sfFireMain(0)) sfPilot.cooldown=aggressive ? .16f+Spritej1->nrj*.003f : .30f+Spritej1->nrj*.007f;
+        if (sfFireMain(0,&sfPilot.aim)) sfPilot.cooldown=aggressive ? .16f+Spritej1->nrj*.003f : .30f+Spritej1->nrj*.007f;
         sfPilot.aligned=0;
     }
 }
@@ -505,8 +532,7 @@ static void sfUpdateTurrets(float dt)
         if (t.deploy<=0) continue;
         const tupl base=sfTurretBase(i);
         const tupl origin=sfTurretMuzzle(i);
-        t.virtualTarget=sfPredictIntercept(origin,tupl(enemy->x,enemy->y),sfObserved[1-owner].velocity,
-                                          sfArenaW*1.5f,.9f);
+        t.virtualTarget=sfShipGhost(1-owner).intercept(origin,sfArenaW*1.5f,.9f);
         const float desired=std::atan2(t.virtualTarget.y-base.y,t.virtualTarget.x-base.x);
         const float difference=std::remainder(desired-t.angle,2*float(PI));
         t.angle+=std::clamp(difference,-dt*5,dt*5);
@@ -563,10 +589,12 @@ static void sfTacticsBeginFrame(SDL_Renderer *renderer)
         sfObserved={}; sfPilot.velocity.set(0,0); sfPilot.aligned=0; sfPilot.rethink=0;
     }
     if (sfUiScreen==SF_UI_GAME) sfSceneSeconds+=sfFrameDt;
-    sfObserved[0].observe(tupl(Spritej1->x,Spritej1->y),sfFrameDt);
-    sfObserved[1].observe(tupl(Spritej2->x,Spritej2->y),sfFrameDt);
+    if (!sfIsCoop()) {
+        sfObserved[0].observe(tupl(Spritej1->x,Spritej1->y),sfFrameDt);
+        sfObserved[1].observe(tupl(Spritej2->x,Spritej2->y),sfFrameDt);
+    }
     for (auto &glow : sfPickupGlow) glow=std::max(0.0f,glow-sfFrameDt);
-    sfUpdatePilot(sfFrameDt); sfUpdateTurrets(sfFrameDt);
+    if (!sfIsCoop()) {sfUpdatePilot(sfFrameDt);sfUpdateTurrets(sfFrameDt);}
 }
 
 static void sfTacticalRing(SDL_Renderer *renderer,tupl center,float radius,SDL_Color color)

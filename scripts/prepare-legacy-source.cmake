@@ -150,4 +150,19 @@ sf_patch_once("input mutation guard" "while ( SDL_WaitEvent ( &e )) {" "while ( 
 sf_patch_once("foreground wait releases guard" "if (apap){while (apap){usleep(intlatence*5);}" "if (apap){sfFrameLock.unlock(); while (apap){usleep(intlatence*5);} sfFrameLock.lock();")
 sf_replace_region("continue resets complete match" "iago->xy.setxy(W*025,H*0.25);" "loosej2->pv=0;}}" "sfFixResetMatchState();\n            taux2b=0;\n            ")
 
+# Cooperative simulation owns movement and collisions during allied fights.
+string(REPLACE "if (!sfGameReady || apap || setgui) continue;"
+               "if (!sfGameReady || apap || setgui || sfIsCoop()) continue;" GAME_MAIN "${GAME_MAIN}")
+# Recover the renderer before the cooperative early return on Android resume.
+string(FIND "${GAME_MAIN}" "if (apap){sfFrameLock.unlock();" SF_RELOAD_BEGIN)
+string(FIND "${GAME_MAIN}" " sfDrawTacticalEffects(renderer);" SF_RELOAD_END)
+if(SF_RELOAD_BEGIN LESS 0 OR SF_RELOAD_END LESS SF_RELOAD_BEGIN)
+    message(FATAL_ERROR "Cannot relocate the Android foreground recovery")
+endif()
+math(EXPR SF_RELOAD_LENGTH "${SF_RELOAD_END}-${SF_RELOAD_BEGIN}")
+string(SUBSTRING "${GAME_MAIN}" ${SF_RELOAD_BEGIN} ${SF_RELOAD_LENGTH} SF_RELOAD_BLOCK)
+string(REPLACE "${SF_RELOAD_BLOCK}" "" GAME_MAIN "${GAME_MAIN}")
+sf_patch_once("cooperative arena" "sfTacticsBeginFrame(renderer);"
+    "${SF_RELOAD_BLOCK}\nsfTacticsBeginFrame(renderer);\nif (sfCampaignFrame(renderer)) {\n    sfCoopPlaySounds(tir1,tir2,explo1,explo2);\n    SDL_RenderPresent(renderer);\n    continue;\n}")
+
 file(WRITE "${ANDROID_MAIN}" "${GAME_MAIN}")

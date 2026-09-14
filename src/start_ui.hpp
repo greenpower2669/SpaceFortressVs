@@ -27,7 +27,9 @@ extern sprite *loosej2;
 enum SpaceFortressUiScreen {
     SF_UI_HOME = 0,
     SF_UI_HELP = 1,
-    SF_UI_GAME = 2
+    SF_UI_GAME = 2,
+    SF_UI_HALL = 3,
+    SF_UI_CAMPAIGN = 4
 };
 
 static int sfUiScreen = SF_UI_HOME;
@@ -86,7 +88,11 @@ static const uint8_t *sfUiGlyph(char c)
     static const uint8_t MINUS[7] = {0,0,0,31,0,0,0};
     static const uint8_t DOT[7] = {0,0,0,0,0,6,6};
 
+    static const uint8_t SLASH[7]={1,2,2,4,8,8,16};
+    static const uint8_t PERCENT[7]={25,26,2,4,8,11,19};
     switch (c) {
+        case '/': return SLASH;
+        case '%': return PERCENT;
         case 'A': return A; case 'B': return B; case 'C': return C;
         case 'D': return D; case 'E': return E; case 'F': return F;
         case 'G': return G; case 'H': return H; case 'I': return I;
@@ -268,7 +274,8 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
     sfUiPanel(renderer, mode, 7, 18, 42,
               setia ? 225 : 70, setia ? 105 : 200, setia ? 215 : 245);
 
-    const char *modeText = setia ? "MODE : 1 JOUEUR + IA" : "MODE : 2 JOUEURS";
+    const char *modes[]={"DUEL : 2 JOUEURS","DUEL : JOUEUR + IA","COOP : 2 JOUEURS","COOP : JOUEUR + IA"};
+    const char *modeText=modes[sfSelectedMode];
     sfUiCenteredText(renderer, width,
                      mode.y + (mode.h - 7 * buttonScale) / 2,
                      modeText, buttonScale, 238, 248, 255);
@@ -283,13 +290,17 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
                      "LANCER LA PARTIE", buttonScale, 240, 255, 250);
 
     SDL_Rect help = {
-        static_cast<int>(width * 0.27f), static_cast<int>(height * 0.735f),
-        static_cast<int>(width * 0.46f), static_cast<int>(height * 0.09f)
+        static_cast<int>(width * 0.08f), static_cast<int>(height * 0.735f),
+        static_cast<int>(width * 0.38f), static_cast<int>(height * 0.09f)
     };
     sfUiPanel(renderer, help, 14, 18, 46, 185, 195, 240);
-    sfUiCenteredText(renderer, width,
-                     help.y + (help.h - 7 * buttonScale) / 2,
-                     "?  AIDE", buttonScale, 240, 245, 255);
+    sfUiText(renderer,help.x+(help.w-sfUiTextWidth("? AIDE",buttonScale))/2,
+             help.y+(help.h-7*buttonScale)/2,"? AIDE",buttonScale,240,245,255);
+    SDL_Rect hall{int(width*.54f),help.y,int(width*.38f),help.h};
+    sfUiPanel(renderer,hall,20,22,40,235,190,100);
+    const int hs=std::max(1,std::min(buttonScale,hall.w/75));
+    sfUiText(renderer,hall.x+(hall.w-sfUiTextWidth("HALL OF FAME",hs))/2,
+             hall.y+(hall.h-7*hs)/2,"HALL OF FAME",hs,255,225,155);
 
     const int gy = static_cast<int>(height * 0.90f);
     sfUiGear(renderer, static_cast<int>(width * 0.31f), gy, width / 28);
@@ -297,7 +308,7 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.858f),
                      "EN PARTIE", base, 125, 185, 225);
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.947f),
-                     "DEUX ENGRENAGES = ACCUEIL", base, 205, 225, 240);
+                     sfSelectedMode>=SF_COOP_LOCAL ? "COOP : PAUSE PUIS ACCUEIL" : "DEUX ENGRENAGES = ACCUEIL", base, 205, 225, 240);
 }
 
 static void sfUiHelpLine(SDL_Renderer *renderer, int width, int y,
@@ -336,13 +347,15 @@ static void sfUiDrawHelp(SDL_Renderer *renderer)
                  "GLISSEZ POUR DEPLACER", "VOTRE VAISSEAU", base);
     y += step;
     sfUiHelpLine(renderer, width, y, "3",
-                 "AVEC UN AUTRE DOIGT", "TAPOTEZ POUR TIRER", base);
+                 sfSelectedMode>=SF_COOP_LOCAL ? "TIRS AUTOMATIQUES SUR LE BOSS" : "AVEC UN AUTRE DOIGT",
+                 sfSelectedMode>=SF_COOP_LOCAL ? "CHANGEZ DE CAP POUR ESQUIVER" : "TAPOTEZ POUR TIRER", base);
     y += step;
     sfUiHelpLine(renderer, width, y, "4",
                  "MINEZ LES ASTEROIDES", "POUSSIERES = ENERGIE", base);
     y += step;
     sfUiHelpLine(renderer, width, y, "5",
-                 "DEUX ENGRENAGES", "RAMENENT A L ACCUEIL", base);
+                 sfSelectedMode>=SF_COOP_LOCAL ? "ALLIE A TERRE : APPROCHEZ" : "DEUX ENGRENAGES",
+                 sfSelectedMode>=SF_COOP_LOCAL ? "DEUX SECONDES POUR SECOURIR" : "RAMENENT A L ACCUEIL", base);
 
     const int gy = static_cast<int>(height * 0.77f);
     sfUiGear(renderer, static_cast<int>(width * 0.33f), gy, width / 25);
@@ -473,7 +486,8 @@ static void SpaceFortressUi_RenderPresent(SDL_Renderer *renderer)
         sfUiDrawHome(renderer);
     } else if (sfUiScreen == SF_UI_HELP) {
         sfUiDrawHelp(renderer);
-    }
+    } else if (sfUiScreen==SF_UI_HALL) sfCampaignDrawHall(renderer);
+    else if (sfUiScreen==SF_UI_CAMPAIGN) sfCampaignDrawSelect(renderer);
 
     SDL_RenderPresent(renderer);
 }

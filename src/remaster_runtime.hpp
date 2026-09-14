@@ -437,7 +437,7 @@ static void sfRmApplyLegacyLeadVelocity()
 
 static void SpaceFortressRemaster_RenderPresent(SDL_Renderer *renderer)
 {
-    if (renderer && sfUiScreen == SF_UI_GAME) {
+    if (renderer && sfUiScreen == SF_UI_GAME && !sfIsCoop()) {
         sfRmApplyLegacyLeadVelocity();
         sfRmEnsureTextures(renderer);
         const Uint64 now = SDL_GetTicks64();

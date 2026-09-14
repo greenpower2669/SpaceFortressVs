@@ -167,7 +167,10 @@ static void sfFixApplyUiRequests()
 
     if (sfFixLaunchPending.exchange(false)) {
         setia = sfFixRequestedIa.load();
+        sfActiveMode=sfSelectedMode;
+        if (!sfIsCoop()) sfCampaignRestoreDuelShips();
         sfFixResetMatchState();
+        if (sfIsCoop()) sfCampaignStart();
         sfUiScreen = SF_UI_GAME;
         sfFixRequestedScreen.store(SF_UI_GAME);
         return;
@@ -205,6 +208,7 @@ static void sfFixHandleEvent(SDL_Event *event)
 
     // Android may cancel touches without delivering FINGERUP while pausing.
     if (event->type == SDL_APP_DIDENTERBACKGROUND) {
+        if (sfIsCoop()) sfCampaignSuspend();
         sfFixConsumedFingers.clear();
         sfFixResetGearGesture();
         sfFixResetControlsPending.store(true);
@@ -224,6 +228,7 @@ static void sfFixHandleEvent(SDL_Event *event)
         return;
     }
 
+    if (sfCampaignHandleEvent(event)) return;
     const int requestedScreen = sfFixRequestedScreen.load();
 
     if (requestedScreen != SF_UI_GAME) {
@@ -233,7 +238,8 @@ static void sfFixHandleEvent(SDL_Event *event)
 
             if (requestedScreen == SF_UI_HOME) {
                 if (y >= 0.39f && y <= 0.52f) {
-                    sfFixRequestedIa.store(!sfFixRequestedIa.load());
+                    sfSelectedMode=(sfSelectedMode+1)%4;
+                    sfFixRequestedIa.store(sfModeHasAi(sfSelectedMode));
                 } else if (y >= 0.545f && y <= 0.69f) {
                     sfFixLaunchPending.store(true);
                 } else if (y >= 0.71f && y <= 0.85f) {

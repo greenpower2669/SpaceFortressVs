@@ -39,6 +39,7 @@ void th2()
 // It only changes the Android loading boundary; desktop/source paths stay intact.
 #include <android_asset_compat.hpp>
 #include <runtime_sync.hpp>
+#include <game_mode.hpp>
 
 // 2026 UI shim: procedural start/help screens and input interception.
 // Included here (after t.hpp in main.cpp) so SDL and sprite are already defined.
@@ -65,3 +66,4 @@ void th2()
 // Guarded Android source patches use these gameplay safety helpers.
 #include <legacy_game_safety.hpp>
 #include <tactical_runtime.hpp>
+#include <campaign_runtime.hpp>
