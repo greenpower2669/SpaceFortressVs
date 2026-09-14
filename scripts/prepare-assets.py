@@ -114,6 +114,10 @@ def assemble(source, output):
     for name in ('sun.png', 'planet.png'):
         shutil.copy2(source / 'pict/remaster' / name,
                      output / 'pict/remaster' / name)
+    campaign = output / 'pict/campaign/bosses.png'
+    validate_png(campaign.read_bytes(), 'campaign/bosses.png')
+    if hashlib.sha256(campaign.read_bytes()).hexdigest() != '7578025e0035e0fab352fa52157f12fc83f94d3a02b489c76aaba8753d9d98c6':
+        raise ValueError('Campaign monster atlas checksum mismatch')
     images = sorted((output / 'pict/remaster').glob('*.png'))
     for path in images:
         validate_png(path.read_bytes(), path.name)
