@@ -267,7 +267,10 @@ int main()
     testTacticalPilot(); testTacticalTurrets(); testJupiterMotion();
     testRaidsAndDefence();
     testEnergyFeedback(); testProjectileFeedback();
-    testCampaign();
+    char campaignDirectory[]="/tmp/spacefortress-campaign-XXXXXX";
+    assert(mkdtemp(campaignDirectory));
+    testVelocityGhosts();testCampaignPersistence(campaignDirectory);testCoopGameplay();testCoopArenaBounds();testCoopCollisionMinerals();testCampaignEntryAndFights();testCampaignProgression();
+    testCampaignRendering(std::getenv("SPACEFORTRESS_CAMPAIGN_PREVIEW"));
     writeScenicPreview(std::getenv("SPACEFORTRESS_SCENIC_PREVIEW"));
     writeTurretPreview(std::getenv("SPACEFORTRESS_TURRET_PREVIEW"));
     writeFeedbackPreview(std::getenv("SPACEFORTRESS_HUD_PREVIEW"));

@@ -48,10 +48,12 @@ def package():
             for asset in ('sun.png', 'planet.png'):
                 if asset_prefix + 'resources/assets/pict/remaster/' + asset not in files:
                     raise ValueError(f'Missing scenic asset: {asset}')
-            atlas = archive.read(asset_prefix + 'resources/assets/pict/campaign/bosses.png')
-            expected = (ROOT / 'assets/pict/campaign/bosses.png').read_bytes()
-            if hashlib.sha256(atlas).digest() != hashlib.sha256(expected).digest():
-                raise ValueError('Campaign atlas differs from tested source')
+            for asset in ('bosses.png', 'planets.png', 'nebulae.png'):
+                path = 'resources/assets/pict/campaign/' + asset
+                packaged = archive.read(asset_prefix + path)
+                expected = (ROOT / 'assets/pict/campaign' / asset).read_bytes()
+                if hashlib.sha256(packaged).digest() != hashlib.sha256(expected).digest():
+                    raise ValueError(f'Campaign atlas differs from tested source: {asset}')
             if archive.testzip() is not None:
                 raise ValueError(f'Corrupt Android archive: {source.name}')
     output = ROOT / 'dist/release'

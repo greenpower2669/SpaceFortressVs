@@ -2,6 +2,9 @@ name: Android APK + AAB
 
 on:
   push:
+    paths-ignore:
+      - todo.md
+      - docs/delivery.md
     branches:
       - main
       - ui/start-screen-v1

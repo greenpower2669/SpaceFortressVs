@@ -1,10 +1,12 @@
 #pragma once
 #include <array>
+
 struct SfBossProfile {
     const char *name;
-    int index,family,tier,planet,backdrop;
-    float health,interval,shotSpeed,damage;
+    int index, family, tier, planet, backdrop;
+    float health, interval, shotSpeed, damage;
 };
+
 inline constexpr std::array<const char*,50> sfBossNames{{
     "IRIS DE QUARTZ","SCARABEE CENDRE","MEDUSE DU VIDE","GUEULE DE BRAISE","ETOILE DE GIVRE",
     "MANTA D ACIER","REINE DES SPORES","HYDRE PLASMA","SCORPION OBSIDIEN","VEILLEUR ANCIEN",
@@ -18,18 +20,25 @@ inline constexpr std::array<const char*,50> sfBossNames{{
     "ANGE DE L ANTIMATIERE","REINE DU DERNIER MONDE","HYDRE DES CINQUANTE SOLEILS","SCORPION APOCALYPSE","LE DERNIER COSMOS"
 }};
 inline constexpr std::array<const char*,10> sfBossHints{{
-    "SALVES : CHANGEZ DE CAP","SPIRALES : CHANGEZ DE COULOIR","ANNEAUX : CHERCHEZ L OUVERTURE",
+    "SALVES SUR VOTRE POSITION FUTURE","SPIRALES : CHANGEZ DE COULOIR","ANNEAUX : CHERCHEZ L OUVERTURE",
     "RAYON : BOUGEZ APRES LE SIGNAL","MINES : GARDEZ VOS DISTANCES","CROIX TOURNANTES : DECALEZ VOUS",
-    "SPORES GUIDEES : CHANGEZ DE CAP","VAGUES : CHERCHEZ UN PASSAGE","ONDE : SORTEZ DU CERCLE",
+    "SPORES GUIDEES : CHANGEZ DE CAP","VAGUES : TRAVERSEZ LES INTERVALLES","ONDE : SORTEZ DU CERCLE",
     "SATELLITES : SURVEILLEZ LES FLANCS"
 }};
+
 static const std::array<SfBossProfile,50> &sfBossCatalog()
 {
-    static const auto catalog=[] {
+    static const auto profiles=[] {
         std::array<SfBossProfile,50> out{};
-        for (int i=0;i<50;++i) out[i]={sfBossNames[i],i,i%10,i/10,i,(i%10+i/10)%6,
-            900.0f+72*i+2*i*i,1.75f-.021f*i,.24f+.004f*i,12.0f+.6f*i};
+        // The planet atlas contains 55 worlds (11x5). Exclude five ringed
+        // cells whose rings touch neighbours; each encounter uses a unique disc.
+        int planet=0;
+        for (int i=0;i<50;++i) {
+            while (planet==4 || planet==21 || planet==33 || planet==46 || planet==54) ++planet;
+            out[i]={sfBossNames[i],i,i%10,i/10,planet++,(i%10+i/10)%6,
+                900.0f+72*i+2*i*i,1.75f-.021f*i,.24f+.004f*i,12.0f+.6f*i};
+        }
         return out;
     }();
-    return catalog;
+    return profiles;
 }

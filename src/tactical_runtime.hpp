@@ -59,6 +59,9 @@ static tupl sfPredictIntercept(tupl origin, tupl target, tuplv velocity, float s
     return tupl(target.x+velocity.vx*time,target.y+velocity.vy*time);
 }
 
+// A velocity ghost is a mathematical target only: never rendered, collected
+// or inserted into the collision lists. Every gun solves its own travel time
+// against the same observed position and velocity.
 struct SfVelocityGhost {
     tupl position;
     tuplv velocity;
@@ -66,12 +69,15 @@ struct SfVelocityGhost {
         return sfPredictIntercept(origin,position,velocity,speed,horizon);
     }
 };
-static SfVelocityGhost sfShipGhost(int owner) {
-    const auto *ship=owner==0 ? Spritej1 : Spritej2;
+static SfVelocityGhost sfShipGhost(int owner)
+{
+    const sprite *ship=owner==0 ? Spritej1 : Spritej2;
     return {tupl(ship->x,ship->y),sfObserved[owner].velocity};
 }
-static float sfMainShotSpeed(float heat) {
-    return (60-sfShipHeat(heat+1))*.4f*60*sfArenaW/780;
+
+static float sfMainShotSpeed(float heat)
+{
+    return (60-sfShipHeat(heat+1))*.4f*60*sfArenaW/780.0f;
 }
 
 static float sfAsteroidRisk(tupl position, tuplv velocity, float radius)
@@ -93,7 +99,7 @@ static float sfAsteroidRisk(tupl position, tuplv velocity, float radius)
 
 static tuplv sfProjectileVelocity(const sprite *shot)
 {
-    if (shot->defensiveShot || shot->shotOwner>=0)
+    if (shot->shotOwner>=0)
         return tuplv(shot->shotVelocityX,shot->shotVelocityY);
     return tuplv(shot->vx*k0/sfFrameDt,shot->vy*k0/sfFrameDt);
 }
@@ -200,9 +206,10 @@ static bool sfFireMain(int owner,const tupl *target=nullptr)
     shot->shotVelocityX=shot->vx*60*sfArenaW/780;
     shot->shotVelocityY=shot->vy*60*sfArenaW/780;
     if (target) {
+        const float distance=std::max(1.0f,vlong(target->x-ship->x,target->y-ship->y));
         const float speed=std::abs(shot->shotVelocityY);
-        const float angle=std::atan2(target->y-shot->y,target->x-shot->x);
-        shot->shotVelocityX=std::cos(angle)*speed;shot->shotVelocityY=std::sin(angle)*speed;
+        shot->shotVelocityX=(target->x-ship->x)/distance*speed;
+        shot->shotVelocityY=(target->y-ship->y)/distance*speed;
     }
     if (ship->nrj<1.5f) {
         shot->name="miss"; sfAddShipHeat(ship,10);
@@ -231,7 +238,7 @@ static void sfAdvanceProjectile(sprite *shot)
         // old renderer multiplied vy every draw and also moved y a second time.
         const float speed=sfArenaW*std::min(1.5f,.65f+1.8f*(shot->shotAge+sfFrameDt*.5f));
         if (target && target->pv>0 && (target->y-shot->y)*forward>0) {
-            const auto future=sfShipGhost(1-shot->shotOwner).intercept(tupl(shot->x,shot->y),speed,.6f);
+            const auto future=sfShipGhost(1-shot->shotOwner).intercept(tupl(shot->x,shot->y),speed,.7f);
             const float wanted=std::clamp((future.x-shot->x)*3,-sfArenaW*.35f,sfArenaW*.35f);
             shot->shotVelocityX+=std::clamp(wanted-shot->shotVelocityX,
                                           -sfArenaW*1.4f*sfFrameDt,sfArenaW*1.4f*sfFrameDt);
@@ -239,7 +246,7 @@ static void sfAdvanceProjectile(sprite *shot)
         shot->shotVelocityY=forward*std::sqrt(std::max(0.0f,speed*speed-
                                                      shot->shotVelocityX*shot->shotVelocityX));
     }
-    if (shot->defensiveShot || shot->shotOwner>=0) {
+    if (shot->shotOwner>=0) {
         shot->shotAge+=sfFrameDt;
         shot->vx=shot->shotVelocityX*sfFrameDt/std::max(.05f,k0);
         shot->vy=shot->shotVelocityY*sfFrameDt/std::max(.05f,k0);
@@ -248,7 +255,8 @@ static void sfAdvanceProjectile(sprite *shot)
     // Legacy updatetir() computes its render bounds before movement. A fast
     // shot otherwise hits at a different position from the one being drawn.
     shot->startup();
-    if (shot->shotOwner>=0 && shot->shotAge>(shot->defensiveShot || missile ? 4 : 10)) shot->pv=0;
+    if ((shot->defensiveShot || missile) && shot->shotAge>4) shot->pv=0;
+    if (shot->shotOwner>=0 && shot->shotAge>10) shot->pv=0;
 }
 
 static float sfShotHeat(const sprite *shot)
@@ -257,8 +265,7 @@ static float sfShotHeat(const sprite *shot)
     // missile acceleration and frame duration. Only the victim pays this cost.
     if (shot->defensiveShot) return 2.0f;
     if (shot->name=="miss") return 8.0f;
-    if (shot->shotOwner>=0) return shot->shotImpactHeat;
-    return std::clamp(shot->vy*shot->vy*.005f,0.0f,3.0f);
+    return shot->shotOwner>=0 ? shot->shotImpactHeat : std::clamp(shot->vy*shot->vy*.005f,0.0f,3.0f);
 }
 
 static bool sfShotCrosses(const sprite *target,const sprite *shot)
@@ -589,12 +596,14 @@ static void sfTacticsBeginFrame(SDL_Renderer *renderer)
         sfObserved={}; sfPilot.velocity.set(0,0); sfPilot.aligned=0; sfPilot.rethink=0;
     }
     if (sfUiScreen==SF_UI_GAME) sfSceneSeconds+=sfFrameDt;
+    // Cooperative simulation samples after each movement substep; observing
+    // the same position again here would incorrectly damp the velocity ghost.
     if (!sfIsCoop()) {
         sfObserved[0].observe(tupl(Spritej1->x,Spritej1->y),sfFrameDt);
         sfObserved[1].observe(tupl(Spritej2->x,Spritej2->y),sfFrameDt);
     }
     for (auto &glow : sfPickupGlow) glow=std::max(0.0f,glow-sfFrameDt);
-    if (!sfIsCoop()) {sfUpdatePilot(sfFrameDt);sfUpdateTurrets(sfFrameDt);}
+    if (!sfIsCoop()) { sfUpdatePilot(sfFrameDt); sfUpdateTurrets(sfFrameDt); }
 }
 
 static void sfTacticalRing(SDL_Renderer *renderer,tupl center,float radius,SDL_Color color)

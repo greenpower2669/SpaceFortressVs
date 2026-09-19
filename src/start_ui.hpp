@@ -87,12 +87,10 @@ static const uint8_t *sfUiGlyph(char c)
     static const uint8_t PLUS[7] = {0,4,4,31,4,4,0};
     static const uint8_t MINUS[7] = {0,0,0,31,0,0,0};
     static const uint8_t DOT[7] = {0,0,0,0,0,6,6};
+    static const uint8_t SLASH[7] = {1,1,2,4,8,16,16};
+    static const uint8_t PERCENT[7] = {25,26,2,4,8,11,19};
 
-    static const uint8_t SLASH[7]={1,2,2,4,8,8,16};
-    static const uint8_t PERCENT[7]={25,26,2,4,8,11,19};
     switch (c) {
-        case '/': return SLASH;
-        case '%': return PERCENT;
         case 'A': return A; case 'B': return B; case 'C': return C;
         case 'D': return D; case 'E': return E; case 'F': return F;
         case 'G': return G; case 'H': return H; case 'I': return I;
@@ -111,6 +109,8 @@ static const uint8_t *sfUiGlyph(char c)
         case '+': return PLUS;
         case '-': return MINUS;
         case '.': return DOT;
+        case '/': return SLASH;
+        case '%': return PERCENT;
         default: return BLANK;
     }
 }
@@ -261,7 +261,7 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.055f),
                      "SPACE FORTRESS", titleScale, 235, 250, 255);
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.115f),
-                     "DUEL ORBITAL", base, 105, 200, 240);
+                     "DUEL + CAMPAGNE COOP", base, 105, 200, 240);
 
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.355f),
                      "TOUCHEZ LE MODE POUR LE CHANGER", base,
@@ -274,8 +274,8 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
     sfUiPanel(renderer, mode, 7, 18, 42,
               setia ? 225 : 70, setia ? 105 : 200, setia ? 215 : 245);
 
-    const char *modes[]={"DUEL : 2 JOUEURS","DUEL : JOUEUR + IA","COOP : 2 JOUEURS","COOP : JOUEUR + IA"};
-    const char *modeText=modes[sfSelectedMode];
+    const char *modes[] = {"DUEL : 2 JOUEURS","DUEL : JOUEUR + IA","COOP : 2 JOUEURS","COOP : JOUEUR + IA"};
+    const char *modeText = modes[sfSelectedMode];
     sfUiCenteredText(renderer, width,
                      mode.y + (mode.h - 7 * buttonScale) / 2,
                      modeText, buttonScale, 238, 248, 255);
@@ -296,11 +296,11 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
     sfUiPanel(renderer, help, 14, 18, 46, 185, 195, 240);
     sfUiText(renderer,help.x+(help.w-sfUiTextWidth("? AIDE",buttonScale))/2,
              help.y+(help.h-7*buttonScale)/2,"? AIDE",buttonScale,240,245,255);
-    SDL_Rect hall{int(width*.54f),help.y,int(width*.38f),help.h};
+    SDL_Rect hall={int(width*.54f),help.y,int(width*.38f),help.h};
     sfUiPanel(renderer,hall,20,22,40,235,190,100);
-    const int hs=std::max(1,std::min(buttonScale,hall.w/75));
-    sfUiText(renderer,hall.x+(hall.w-sfUiTextWidth("HALL OF FAME",hs))/2,
-             hall.y+(hall.h-7*hs)/2,"HALL OF FAME",hs,255,225,155);
+    const int hallScale=std::max(1,std::min(buttonScale,hall.w/75));
+    sfUiText(renderer,hall.x+(hall.w-sfUiTextWidth("HALL OF FAME",hallScale))/2,
+             hall.y+(hall.h-7*hallScale)/2,"HALL OF FAME",hallScale,255,225,155);
 
     const int gy = static_cast<int>(height * 0.90f);
     sfUiGear(renderer, static_cast<int>(width * 0.31f), gy, width / 28);
@@ -334,6 +334,7 @@ static void sfUiDrawHelp(SDL_Renderer *renderer)
 
     const int base = (width / 300) > 2 ? (width / 300) : 2;
     const int titleScale = base * 2;
+    const bool coop = sfSelectedMode>=SF_COOP_LOCAL;
 
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.055f),
                      "COMMENT JOUER", titleScale, 235, 250, 255);
@@ -341,27 +342,25 @@ static void sfUiDrawHelp(SDL_Renderer *renderer)
     int y = static_cast<int>(height * 0.17f);
     const int step = static_cast<int>(height * 0.115f);
     sfUiHelpLine(renderer, width, y, "1",
-                 "CHAQUE JOUEUR CONTROLE", "SA MOITIE DE L ECRAN", base);
+                 coop ? "DEUX ALLIES CONTRE LE BOSS" : "CHAQUE JOUEUR CONTROLE", "SA MOITIE DE L ECRAN", base);
     y += step;
     sfUiHelpLine(renderer, width, y, "2",
                  "GLISSEZ POUR DEPLACER", "VOTRE VAISSEAU", base);
     y += step;
     sfUiHelpLine(renderer, width, y, "3",
-                 sfSelectedMode>=SF_COOP_LOCAL ? "TIRS AUTOMATIQUES SUR LE BOSS" : "AVEC UN AUTRE DOIGT",
-                 sfSelectedMode>=SF_COOP_LOCAL ? "CHANGEZ DE CAP POUR ESQUIVER" : "TAPOTEZ POUR TIRER", base);
+                 coop ? "LES TIRS SONT AUTOMATIQUES" : "AVEC UN AUTRE DOIGT", coop ? "ESQUIVEZ LES SIGNAUX ROSES" : "TAPOTEZ POUR TIRER", base);
     y += step;
     sfUiHelpLine(renderer, width, y, "4",
                  "MINEZ LES ASTEROIDES", "POUSSIERES = ENERGIE", base);
     y += step;
     sfUiHelpLine(renderer, width, y, "5",
-                 sfSelectedMode>=SF_COOP_LOCAL ? "ALLIE A TERRE : APPROCHEZ" : "DEUX ENGRENAGES",
-                 sfSelectedMode>=SF_COOP_LOCAL ? "DEUX SECONDES POUR SECOURIR" : "RAMENENT A L ACCUEIL", base);
+                 coop ? "RESTEZ PRES D UN ALLIE" : "DEUX ENGRENAGES", coop ? "A TERRE : SECOURS EN 2 S" : "RAMENENT A L ACCUEIL", base);
 
     const int gy = static_cast<int>(height * 0.77f);
     sfUiGear(renderer, static_cast<int>(width * 0.33f), gy, width / 25);
     sfUiGear(renderer, static_cast<int>(width * 0.67f), gy, width / 25);
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.82f),
-                     "GESTE DISCRET POUR GARDER L IMMERSION",
+                     coop ? "PAUSE : REPRENDRE OU ACCUEIL" : "GESTE DISCRET POUR GARDER L IMMERSION",
                      base, 165, 205, 230);
 
     SDL_Rect back = {
@@ -486,8 +485,11 @@ static void SpaceFortressUi_RenderPresent(SDL_Renderer *renderer)
         sfUiDrawHome(renderer);
     } else if (sfUiScreen == SF_UI_HELP) {
         sfUiDrawHelp(renderer);
-    } else if (sfUiScreen==SF_UI_HALL) sfCampaignDrawHall(renderer);
-    else if (sfUiScreen==SF_UI_CAMPAIGN) sfCampaignDrawSelect(renderer);
+    } else if (sfUiScreen == SF_UI_HALL) {
+        sfCampaignDrawHall(renderer);
+    } else if (sfUiScreen == SF_UI_CAMPAIGN) {
+        sfCampaignDrawSelect(renderer);
+    }
 
     SDL_RenderPresent(renderer);
 }
