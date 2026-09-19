@@ -6,4 +6,6 @@ La reconstruction 1.3.0 repart du commit publié 55b9a6a (1.2.1). Après récup�
 
 Les tests natifs ont été réexécutés sur les fichiers récupérés. Deux défauts supplémentaires ont été reproduits puis corrigés : dimensions des corps en paysage et minerais absents après destruction d'un astéroïde par collision. Les contrôles SDL/UBSan, six tests Python, source Android générée et rendus portrait/paysage passent localement. L'icône de lancement Android est un dessin vectoriel natif original.
 
+Les deux ZIP ont ensuite été extraits sur main par GitHub Actions (run 35469747467, commit 9ab4179). Les 12 PNG qui n'existaient auparavant qu'en sources encodées sont maintenant intégrés à la branche 1.3.0, sans nouveau transfert d'images et sans modification du traitement Base64. Les ZIP sont conservés sur main pour que Fab les supprime lui-même. Le blocage du premier build 1.3.0 (run 35451931168) est corrigé dans le workflow : setup-android installe platform-tools sans demander le paquet tools introuvable. La compilation et la publication restent à confirmer par le prochain build.
+
 Conserver les noms de fichiers SpaceFortressVs-VERSION.apk et SpaceFortressVs-VERSION-unsigned.aab. Conserver le source historique src/main.cpp intact. Consigner les travaux restant à faire dans todo.md et ne pas confondre simulations et essais physiques sur téléphone.
