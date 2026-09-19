@@ -1,0 +1,188 @@
+name: Restore SpaceFortressVs 1.3.0 PNG assets
+
+# Install once on main; later runs can be requested manually.
+# Asset commits and deleting the retained ZIPs do not match this filter.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/restore-assets-1.3.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: restore-spacefortress-assets-1.3-main
+  cancel-in-progress: false
+
+jobs:
+  restore:
+    if: github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout destination branch
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Validate both archives and restore exact resource paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet
+          git diff --cached --quiet
+          python3 - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path, PurePosixPath
+          import stat
+          import xml.etree.ElementTree as ET
+          import zipfile
+
+          root = Path.cwd().resolve()
+          missing = {
+              f"assets/pict/remaster/{name}.png" for name in (
+                  "burst", "energy_ice", "gear", "gear_blue", "gear_orange",
+                  "heart_blue", "muzzle_strip", "player_blue", "player_orange",
+                  "shield_blue", "shield_red", "transparent",
+              )
+          }
+          icons = {
+              "android/app/src/main/res/drawable/ic_fortress_background.xml",
+              "android/app/src/main/res/drawable/ic_fortress_foreground.xml",
+              "android/app/src/main/res/mipmap-anydpi/ic_launcher.xml",
+              "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+          }
+          expected = missing | icons | {
+              f"assets/pict/remaster/{name}.png" for name in (
+                  "asteroid1", "asteroid2", "asteroid3", "asteroid4", "sun", "planet",
+              )
+          } | {
+              f"assets/pict/campaign/{name}.png"
+              for name in ("bosses", "nebulae", "planets")
+          }
+          archives = (
+              ("SpaceFortressVs-1.3.0-12-PNG-absents-du-depot.zip",
+               "ef1e279b677b75318636c67e4011021340ffc8fb2436e136bb9e6e956af69f16",
+               missing),
+              ("SpaceFortressVs-1.3.0-assets-PNG.zip",
+               "ffd4207095b937e4040ba3f5e18ecc4f3e9900fd742dc3e378d755dbbc0d5dbb",
+               expected),
+          )
+          metadata = {"LIRE-MOI-AUDIT.txt", "inventaire.csv", "SHA256SUMS"}
+
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit(message)
+
+          def digest(data):
+              return hashlib.sha256(data).hexdigest()
+
+          def check_path(name):
+              path = PurePosixPath(name)
+              require(not path.is_absolute() and ".." not in path.parts
+                      and "\\" not in name and ":" not in name
+                      and str(path) == name, f"Unsafe archive path: {name}")
+
+          resources = {}
+          duplicates = 0
+          for filename, archive_hash, allowed in archives:
+              archive = root / filename
+              require(archive.is_file() and not archive.is_symlink(),
+                      f"Missing ZIP: {filename}")
+              require(digest(archive.read_bytes()) == archive_hash,
+                      f"Unexpected ZIP checksum: {filename}")
+              with zipfile.ZipFile(archive) as zipped:
+                  entries = zipped.infolist()
+                  names = [entry.filename for entry in entries]
+                  require(len(names) == len(set(names)), f"Duplicate ZIP entries: {filename}")
+                  for entry in entries:
+                      check_path(entry.filename)
+                      kind = stat.S_IFMT(entry.external_attr >> 16)
+                      require(kind in (0, stat.S_IFREG) and not entry.is_dir(),
+                              f"Non-file ZIP entry: {entry.filename}")
+                  require(set(names) == allowed | metadata,
+                          f"Unexpected archive layout: {filename}")
+                  checksums = {}
+                  for line in zipped.read("SHA256SUMS").decode("utf-8").splitlines():
+                      checksum, name = line.split("  ", 1)
+                      require(name not in checksums, f"Duplicate checksum: {name}")
+                      checksums[name] = checksum
+                  require(set(checksums) == allowed, f"Incomplete manifest: {filename}")
+                  for name in sorted(allowed):
+                      data = zipped.read(name)
+                      require(digest(data) == checksums[name], f"Checksum mismatch: {name}")
+                      if name.endswith(".png"):
+                          require(data.startswith(b"\x89PNG\r\n\x1a\n"), f"Invalid PNG: {name}")
+                      else:
+                          ET.fromstring(data)
+                      if name in resources:
+                          require(resources[name] == data, f"Conflicting archives: {name}")
+                          duplicates += 1
+                      resources[name] = data
+              print(f"Verified archive: {filename}")
+
+          require(set(resources) == expected, "Missing expected resources")
+          require(duplicates == 12, "Unexpected number of shared images")
+          # Check every destination before writing anything. Paths are relative
+          # to the repository root, never to assets/ (no assets/assets nesting).
+          for name, data in resources.items():
+              target = root / name
+              require(target.resolve().is_relative_to(root), f"Escaping path: {name}")
+              require(not any(p.is_symlink() for p in (target, *target.parents)),
+                      f"Symlink destination: {name}")
+              require(all(not p.exists() or p.is_dir() for p in target.parents),
+                      f"Non-directory parent: {name}")
+              require(not target.exists() or (target.is_file() and target.read_bytes() == data),
+                      f"Existing resource differs; refusing to overwrite: {name}")
+
+          created = 0
+          for name, data in sorted(resources.items()):
+              target = root / name
+              if not target.exists():
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_bytes(data)
+                  created += 1
+              require(target.read_bytes() == data, f"Extraction mismatch: {name}")
+              print(f"Verified resource: {name}")
+          for filename, checksum, _ in archives:
+              require(digest((root / filename).read_bytes()) == checksum,
+                      f"ZIP was modified: {filename}")
+
+          paths_file = Path(os.environ["RUNNER_TEMP"]) / "spacefortress-assets-paths.txt"
+          paths_file.write_text("\n".join(sorted(resources)) + "\n", encoding="utf-8")
+          print(f"Verified: 21 PNGs, 4 icon XMLs; {created} files restored; "
+                "12 shared PNGs deduplicated; both ZIPs retained.")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("## Asset extraction verified\n\n"
+                            "- 21 PNGs, including all 12 previously missing images.\n"
+                            "- 4 Android icon XML resources.\n"
+                            "- 12 identical shared entries written only once.\n"
+                            "- Both ZIPs retained unchanged.\n"
+                            "- No game code, Base64 processing or Android build changed.\n")
+          PY
+
+      - name: Commit and push only the verified resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t asset_paths < "$RUNNER_TEMP/spacefortress-assets-paths.txt"
+          git add -- "${asset_paths[@]}"
+          if git diff --cached --quiet; then
+            echo "All resources are already tracked with the expected contents."
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m "assets: restore 1.3.0 PNGs and Android icon [skip ci]"
+            # The checkout GITHUB_TOKEN, [skip ci], and the path filter prevent
+            # recursive extraction and any push-triggered Android compilation.
+            git push origin HEAD:refs/heads/main
+          fi
+          commit=$(git rev-parse HEAD)
+          remote_commit=$(git ls-remote --exit-code origin refs/heads/main | cut -f1)
+          test "$commit" = "$remote_commit"
+          echo "Confirmed on origin/main: $commit"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit on main: [$commit]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$commit)" >> "$GITHUB_STEP_SUMMARY"
