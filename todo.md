@@ -13,10 +13,13 @@
   Base64. Les 21 PNG et les quatre ressources de l'icône ont été comparés.
 - [x] Corriger le blocage SDK : demander platform-tools sans le paquet tools
   introuvable ; ne pas masquer un échec précoce par un journal de build absent.
-- [ ] Vérifier la compilation APK/AAB et la publication GitHub de v1.3.0.
+- [x] Vérifier la compilation APK/AAB et la publication GitHub de v1.3.0.
+  Build et publication réussis : run 35470197812, commit 7ce2c94.
+  Les tests de régression natifs et Python, la signature APK et les empreintes
+  des fichiers publiés ont été vérifiés. Le build de la PR a également réussi.
 - [ ] Essai sur téléphone : toucher simultané, clavier, son, reprise Android,
   performances et équilibrage avec deux joueurs humains.
 
-Livraison attendue : https://github.com/greenpower2669/SpaceFortressVs/releases/tag/v1.3.0
+Livraison publiée : https://github.com/greenpower2669/SpaceFortressVs/releases/tag/v1.3.0
 APK signé avec la clé de test Android ; AAB non signé. Le Hall of Fame reste
 local au téléphone. Ne pas effacer les données de l'application pour le conserver.
