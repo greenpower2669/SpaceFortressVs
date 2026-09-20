@@ -19,3 +19,9 @@ g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recove
 g++ -std=c++17 -D__ANDROID__ -Werror=return-type -fsyntax-only -I "$sf_repo/src" \
     -I "$sf_repo/tests/include" "${sf_sdl_cflags[@]}" \
     "$sf_test_dir/generated/main_android_compat.cpp"
+python3 "$sf_repo/tests/extract_legacy_mining.py" "$sf_test_dir/generated/main_android_compat.cpp"
+g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all \
+    -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "$sf_repo/tests/include" \
+    -I "$sf_test_dir/generated" "${sf_sdl_cflags[@]}" "$sf_repo/tests/legacy_field_regressions.cpp" \
+    -Wl,--gc-sections "${sf_sdl_libs[@]}" -pthread -o "$sf_test_dir/legacy-field-regressions"
+(cd "$sf_test_dir" && ./legacy-field-regressions)

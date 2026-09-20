@@ -1,4 +1,36 @@
-# SpaceFortressVs 1.3.0
+# SpaceFortressVs 1.3.1 — lot correctif
+
+- [x] Restaurer l'état complet des vaisseaux après la coop ; respiration
+  discrète à taille nominale, sans croissance cumulative ni changement de collision.
+- [x] Séparer tirs humains rectilignes et visée prédictive d'Orion en coop.
+- [x] Protéger les sauvegardes inconnues avec secours valide, les changements
+  après chargement et les octets corrompus ; écritures primaire/secours atomiques.
+- [x] Corriger la largeur de visibilité des astéroïdes et le minage en paysage
+  dans le source généré, sans modifier le main.cpp historique.
+- [x] Observer le champ historique à 30/60/120 Hz : 20 graines × 5 minutes,
+  deux orientations. Répartition équilibrée pour les trajectoires seules.
+- [x] Intégrer les deux PNG originaux de main (74c94c1), sans transformation.
+  Tourelle.png anime uniquement l'accueil ; le bonus est présent mais inactif.
+- [x] Borner les textes de l'accueil aussi par la hauteur en paysage.
+- [x] Vérifier les régressions natives/UBSan, les six tests Python et le
+  source Android généré. Contrôler le rendu de l'accueil et ses textures.
+- [x] Préparer version 1.3.1/code 9, noms APK/AAB, icône inchangée et vérification
+  octet pour octet des nouveaux PNG dans les deux paquets.
+- [ ] Confirmer le build APK/AAB 1.3.1 et sa livraison GitHub.
+- [ ] Comparer le certificat APK à la 1.3.0 et assurer la continuité de signature.
+  Le workflow debug actuel ne conserve pas sa clé. Ne pas désinstaller ni effacer
+  les données Android pour contourner une signature incompatible.
+- [ ] Essais téléphone : champ complet avec collisions/minage/fragmentation,
+  animation, clavier, multitouch, son, reprise, performances, équilibre humain.
+- [ ] Suite : 200 rencontres (50 identités × 4 difficultés), migration v2,
+  mobilité/tactiques des boss et bonus temporaire. Valider l'ordre des difficultés.
+- [ ] Bonus_de_tourelles.png est RGB avec damier intégré : convenir du détourage
+  avant son activation en jeu ; original conservé.
+
+Plan et preuves : docs/maintenance-1.3.1.md. Dernière release publiée :
+https://github.com/greenpower2669/SpaceFortressVs/releases/tag/v1.3.0
+
+## Historique 1.3.0
 
 - [x] Récupérer la campagne complète et les trois atlas originaux.
 - [x] Vérifier les cibles futures des IA/tourelles et la poursuite à 30/60/120 fps.

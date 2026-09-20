@@ -346,7 +346,7 @@ static void sfRaidGoal(sprite *rock,float radius,float shotSpeed)
 static void sfThinkPilot()
 {
     const tupl position(Spritej1->x,Spritej1->y);
-    const float radius=std::max(Spritej1->w,Spritej1->h)*.43f;
+    const float radius=std::max(Spritej1->sw,Spritej1->sh)*.43f;
     const float speed=sfMainShotSpeed(Spritej1->nrj);
     if (sfPilot.mode==SfAiMode::RaidMine) {
         sprite *rock=sfFindRaidAsteroid();
@@ -440,13 +440,13 @@ static void sfUpdatePilot(float dt)
     if (sfPilot.mode==SfAiMode::RaidMine) {
         sfPilot.raidAge+=dt;
         if (Spritej1->y>sfArenaH*.5f) sfPilot.enemyTime+=dt;
-        const float radius=std::max(Spritej1->w,Spritej1->h)*.43f;
+        const float radius=std::max(Spritej1->sw,Spritej1->sh)*.43f;
         if (sfEnemyShotRisk(tupl(Spritej1->x,Spritej1->y),sfPilot.velocity,radius)>.5f) {
             sfBeginRetreat(); sfPilot.rethink=0;
         }
     }
     if (sfPilot.rethink<=0) { sfThinkPilot(); sfPilot.rethink=.10f; }
-    const float radius=std::max(Spritej1->w,Spritej1->h)*.43f;
+    const float radius=std::max(Spritej1->sw,Spritej1->sh)*.43f;
     const tupl position(Spritej1->x,Spritej1->y);
     const bool excursion=sfPilot.mode==SfAiMode::RaidMine || sfPilot.mode==SfAiMode::Retreat;
     const float maxY=sfArenaH*(excursion ? .60f : .47f);
@@ -458,7 +458,7 @@ static void sfUpdatePilot(float dt)
     Spritej1->vx=Spritej1->vy=0; Spritej1->startup();
     const bool danger=sfAsteroidRisk(position,sfPilot.velocity,radius)>.6f ||
                       sfEnemyShotRisk(position,sfPilot.velocity,radius)>.6f;
-    const bool aligned=std::abs(sfPilot.aim.x-Spritej1->x)<std::max(sfArenaW*.028f,Spritej2->w*.20f) &&
+    const bool aligned=std::abs(sfPilot.aim.x-Spritej1->x)<std::max(sfArenaW*.028f,Spritej2->sw*.20f) &&
                        sfPilot.aim.y>Spritej1->y+radius;
     sfPilot.aligned=aligned && !danger ? sfPilot.aligned+dt : 0;
     const bool aggressive=sfPilot.aggressiveFor>0 || sfPilot.mode==SfAiMode::RaidMine;
@@ -481,7 +481,7 @@ static void sfCollectDust()
         for (int i=0;i<2;++i) {
             sprite *ship=i==0 ? Spritej1 : Spritej2;
             const float distance=vlong(dust->x-ship->x,dust->y-ship->y);
-            if (distance<ship->h*.5f && distance<nearest) { nearest=distance; winner=ship; owner=i; }
+            if (distance<ship->sh*.5f && distance<nearest) { nearest=distance; winner=ship; owner=i; }
         }
         if (winner) {
             const float value=std::clamp(dust->pv*k0/600,0.0f,1.0f);
@@ -530,7 +530,7 @@ static void sfUpdateTurrets(float dt)
         const int owner=i/SF_TURRETS_PER_TEAM;
         const sprite *enemy=owner==0 ? Spritej2 : Spritej1;
         const float depth=owner==0 ? .5f-enemy->y/sfArenaH : enemy->y/sfArenaH-.5f;
-        const float hullMargin=std::max(enemy->w,enemy->h)*.4f/sfArenaH;
+        const float hullMargin=std::max(enemy->sw,enemy->sh)*.4f/sfArenaH;
         if (!active) t.alert=false;
         else if (depth>-.035f-hullMargin) t.alert=true;
         else if (depth<-.08f-hullMargin) t.alert=false;
@@ -599,6 +599,8 @@ static void sfTacticsBeginFrame(SDL_Renderer *renderer)
     // Cooperative simulation samples after each movement substep; observing
     // the same position again here would incorrectly damp the velocity ghost.
     if (!sfIsCoop()) {
+        for (auto *ship : {Spritej1,Spritej2}) if (ship->boundedBreathing)
+            ship->vib(sfSceneSeconds);
         sfObserved[0].observe(tupl(Spritej1->x,Spritej1->y),sfFrameDt);
         sfObserved[1].observe(tupl(Spritej2->x,Spritej2->y),sfFrameDt);
     }

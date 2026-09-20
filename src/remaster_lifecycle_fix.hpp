@@ -8,6 +8,7 @@
 static void SpaceFortressFinal_DestroyRenderer(SDL_Renderer *renderer)
 {
     if (renderer) {
+        sfUiForgetRenderer(renderer);
         sfCampaignForgetRenderer(renderer);
         SpaceFortress_ForgetRendererTextures(renderer);
         if (sfRmMuzzleRenderer == renderer) {

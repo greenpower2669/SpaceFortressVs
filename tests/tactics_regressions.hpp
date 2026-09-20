@@ -7,6 +7,9 @@ static void setupTactics()
     sfUiScreen=SF_UI_GAME; sfFixRequestedScreen.store(SF_UI_GAME);
     setgui=false; setia=true;
     Spritej1->setxywh(390,300,100,100); Spritej2->setxywh(390,1200,100,100);
+    for (auto *ship : {Spritej1,Spritej2}) {
+        ship->sw=ship->sh=100;ship->boundedBreathing=false;
+    }
     Spritej1->pv=Spritej2->pv=1000; Spritej1->nrj=Spritej2->nrj=20;
     loosej1->pv=loosej2->pv=0;
 }

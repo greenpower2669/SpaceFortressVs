@@ -107,6 +107,11 @@ static void sfFixResetMatchState()
     sfFixReseedLegacyRandom();
     sfFixResetAsteroidField();
 
+    for (auto *ship : {Spritej1,Spritej2}) if (ship) {
+        ship->boundedBreathing=true;
+        ship->vib(0);
+    }
+
     if (Spritej1) {
         Spritej1->x = WIDTH * 0.25f;
         Spritej1->y = HEIGHT * 0.15f;

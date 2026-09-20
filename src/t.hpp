@@ -82,6 +82,9 @@ class sprite
    float pv;
    int idx;
    bool animated=false;
+   // Player hulls breathe from their nominal size on the simulation clock.
+   // Other historical sprites retain their frame-driven animation.
+   bool boundedBreathing=false;
    bool ctrl,outx,outy;
    bool minage=false;
    // Tactical metadata: stable asteroid identity and independent defence shots.
@@ -251,7 +254,7 @@ void setcycles(){
       //radstep=360/frames/PI;
       nrj*=0.997;
       
-     if (animated){
+     if (animated && !boundedBreathing){
      frame += speed*k0;
      
      int n = frames/k0;
@@ -267,6 +270,16 @@ void setcycles(){
      }
    }
 
+
+// The historical vib() below already anchors dimensions on sw/sh. This
+// player variant keeps that anchor, but never resets the moving x/y centre.
+void vib(float seconds)
+{
+    const float phase=std::fmod(std::max(0.0f,seconds),3.0f);
+    const float scale=1.0f+.01f*std::sin(2*float(PI)*phase/3.0f);
+    w=sw*scale;h=sh*scale;
+    startup();
+}
 
 void vib()
    {

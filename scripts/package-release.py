@@ -38,7 +38,12 @@ def package():
     badging = subprocess.check_output([str(build_tools / 'aapt'), 'dump', 'badging', str(apk)], text=True)
     if f"versionName='{name}'" not in badging or f"versionCode='{code}'" not in badging:
         raise ValueError('APK manifest version does not match version.properties')
-    subprocess.run([str(build_tools / 'apksigner'), 'verify', str(apk)], check=True)
+    signing = subprocess.check_output(
+        [str(build_tools / 'apksigner'), 'verify', '--print-certs', str(apk)], text=True)
+    certificates = re.findall(r'Signer #\d+ certificate SHA-256 digest: ([0-9a-fA-F]{64})', signing)
+    if len(certificates) != 1:
+        raise ValueError('Expected one APK signing certificate')
+    print(signing)
     for source, manifest, asset_prefix in [(apk, 'AndroidManifest.xml', 'assets/'),
                                            (aab, 'base/manifest/AndroidManifest.xml', 'base/assets/')]:
         with zipfile.ZipFile(source) as archive:
@@ -54,6 +59,10 @@ def package():
                 expected = (ROOT / 'assets/pict/campaign' / asset).read_bytes()
                 if hashlib.sha256(packaged).digest() != hashlib.sha256(expected).digest():
                     raise ValueError(f'Campaign atlas differs from tested source: {asset}')
+            for asset in ('Tourelle.png', 'Bonus_de_tourelles.png'):
+                packaged = archive.read(asset_prefix + 'resources/assets/pict/' + asset)
+                if packaged != (ROOT / 'assets/pict' / asset).read_bytes():
+                    raise ValueError(f'Original PNG differs from repository: {asset}')
             if archive.testzip() is not None:
                 raise ValueError(f'Corrupt Android archive: {source.name}')
     output = ROOT / 'dist/release'
@@ -68,6 +77,7 @@ def package():
     metadata = {
         'game': 'SpaceFortressVs', 'version': name, 'versionCode': code, 'commit': commit,
         'apk': 'installable ARM64, debug signing', 'aab': 'release bundle, unsigned',
+        'apkCertificateSha256': certificates[0].lower(),
         'files': {p.name: {'sha256': digest(p), 'size': p.stat().st_size} for p in destinations},
     }
     build = output / (prefix + '-build.json')
