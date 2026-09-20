@@ -16,10 +16,13 @@
   source Android généré. Contrôler le rendu de l'accueil et ses textures.
 - [x] Préparer version 1.3.1/code 9, noms APK/AAB, icône inchangée et vérification
   octet pour octet des nouveaux PNG dans les deux paquets.
-- [ ] Confirmer le build APK/AAB 1.3.1 et sa livraison GitHub.
-- [ ] Comparer le certificat APK à la 1.3.0 et assurer la continuité de signature.
-  Le workflow debug actuel ne conserve pas sa clé. Ne pas désinstaller ni effacer
-  les données Android pour contourner une signature incompatible.
+- [x] Confirmer le build APK/AAB 1.3.1 et sa livraison GitHub : run 35503643572,
+  commit dcf80af, release v1.3.1 publiée avec empreintes vérifiées.
+- [x] Comparer les certificats APK : celui de la 1.3.1 publiée diffère de la 1.3.0.
+  Une mise à jour directe sur l'installation existante est impossible avec cet APK.
+- [ ] Retrouver la clé de signature de l'installation 1.3.0 et configurer une
+  signature pérenne pour les mises à jour. Le workflow debug ne conserve pas sa
+  clé. Ne pas désinstaller ni effacer les données Android pour contourner le refus.
 - [ ] Essais téléphone : champ complet avec collisions/minage/fragmentation,
   animation, clavier, multitouch, son, reprise, performances, équilibre humain.
 - [ ] Suite : 200 rencontres (50 identités × 4 difficultés), migration v2,
@@ -27,8 +30,8 @@
 - [ ] Bonus_de_tourelles.png est RGB avec damier intégré : convenir du détourage
   avant son activation en jeu ; original conservé.
 
-Plan et preuves : docs/maintenance-1.3.1.md. Dernière release publiée :
-https://github.com/greenpower2669/SpaceFortressVs/releases/tag/v1.3.0
+Plan et preuves : docs/maintenance-1.3.1.md et docs/delivery.md. Release publiée :
+https://github.com/greenpower2669/SpaceFortressVs/releases/tag/v1.3.1
 
 ## Historique 1.3.0
 
