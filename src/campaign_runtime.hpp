@@ -44,7 +44,11 @@ struct SfCampaignTextures {
     SDL_Texture *orange=nullptr,*blue=nullptr,*rock=nullptr;
 };
 inline std::vector<SfCampaignTextures> sfCampaignTextures;
-struct SfDuelShipStyle { float w,h,sw,sh; bool animated; };
+struct SfDuelShipStyle {
+    float w,h,sw,sh,speed;
+    int frames,frame;
+    bool animated,boundedBreathing;
+};
 inline std::array<SfDuelShipStyle,2> sfDuelShipStyles{};
 inline bool sfDuelShipStylesSaved=false;
 
@@ -196,6 +200,7 @@ static void sfCoopMovePlayers(float dt)
     const float radius=sfCoopShipRadius();
     for (int owner=0;owner<2;++owner) {
         auto *ship=sfCoopShip(owner); auto &control=sfCoop.controls[owner];
+        ship->vib(sfCoop.time);
         sfCoop.invulnerable[owner]=std::max(0.0f,sfCoop.invulnerable[owner]-dt);
         if (ship->pv<=0) continue;
         const tupl previous(ship->x,ship->y);
@@ -219,8 +224,13 @@ static void sfCoopMovePlayers(float dt)
         sfCoop.cooldown[owner]-=dt;
         if (sfCoop.cooldown[owner]<=0) {
             const float speed=sfArenaW*(1.5f-ship->nrj*.014f);
-            const tupl aim=sfBossGhost().intercept(tupl(ship->x,ship->y),speed,.9f);
-            const float angle=std::atan2(aim.y-ship->y,aim.x-ship->x);
+            // Humans keep the historical camp axis. Only Orion aims at the
+            // velocity ghost; kind 0 still flies straight after emission.
+            float angle=(owner==0 ? 1 : -1)*float(PI)*.5f;
+            if (owner==0 && sfActiveMode==SF_COOP_AI) {
+                const tupl aim=sfBossGhost().intercept(tupl(ship->x,ship->y),speed,.9f);
+                angle=std::atan2(aim.y-ship->y,aim.x-ship->x);
+            }
             const tupl muzzle(ship->x+std::cos(angle)*radius,ship->y+std::sin(angle)*radius);
             sfCoopEmit(muzzle,angle,speed,owner,12);
             sfAddShipHeat(ship,1.8f);
@@ -434,7 +444,8 @@ static void sfCampaignStart()
     sfLoadCampaign();sfCoop=SfCoopState{};
     if (!sfDuelShipStylesSaved) {
         for (int owner=0;owner<2;++owner) {
-            const auto *s=sfCoopShip(owner);sfDuelShipStyles[owner]={s->w,s->h,s->sw,s->sh,s->animated};
+            const auto *s=sfCoopShip(owner);
+            sfDuelShipStyles[owner]={s->w,s->h,s->sw,s->sh,s->speed,s->frames,s->frame,s->animated,s->boundedBreathing};
         }
         sfDuelShipStylesSaved=true;
     }
@@ -445,6 +456,7 @@ static void sfCampaignStart()
         auto *ship=sfCoopShip(owner);
         const float size=std::min(sfArenaW,sfArenaH)*.15f;
         ship->setxywh(sfArenaW*(owner==0 ? .35f : .65f),sfArenaH*(owner==0 ? .23f : .77f),size,size);
+        ship->sw=ship->sh=size;ship->boundedBreathing=true;
         ship->pv=1000;ship->nrj=0;ship->animated=false;
         sfFixResetSpriteHistory(ship);
         sfCoop.controls[owner].target=tupl(ship->x,ship->y);
@@ -461,7 +473,9 @@ static void sfCampaignRestoreDuelShips()
     if (!sfDuelShipStylesSaved) return;
     for (int owner=0;owner<2;++owner) {
         auto *ship=sfCoopShip(owner);const auto &style=sfDuelShipStyles[owner];
-        ship->w=style.w;ship->h=style.h;ship->sw=style.sw;ship->sh=style.sh;ship->animated=style.animated;ship->startup();
+        ship->w=style.w;ship->h=style.h;ship->sw=style.sw;ship->sh=style.sh;
+        ship->speed=style.speed;ship->frames=style.frames;ship->frame=style.frame;
+        ship->animated=style.animated;ship->boundedBreathing=style.boundedBreathing;ship->startup();
     }
     sfDuelShipStylesSaved=false;
 }
@@ -712,7 +726,7 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
     for (int owner=0;owner<2;++owner) {
         const auto *ship=sfCoopShip(owner);SDL_Texture *texture=owner==0 ? textures.orange : textures.blue;
         const int size=int(std::min(sfArenaW,sfArenaH)*.15f);
-        SDL_Rect rect{int(ship->x-size*.5f),int(ship->y-size*.5f),size,size};
+        SDL_Rect rect{int(ship->x-ship->w*.5f),int(ship->y-ship->h*.5f),int(ship->w),int(ship->h)};
         if (texture) {
             SDL_SetTextureColorMod(texture,ship->pv>0 ? 255 : 95,ship->pv>0 ? 255 : 95,ship->pv>0 ? 255 : 95);
             SDL_SetTextureAlphaMod(texture,sfCoop.invulnerable[owner]>0 && int(sfCoop.time*12)%2 ? 140 : 255);

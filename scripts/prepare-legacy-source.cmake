@@ -62,6 +62,13 @@ macro(sf_patch_once label before after)
     string(REPLACE "${before}" "${after}" GAME_MAIN "${GAME_MAIN}")
 endmacro()
 
+sf_patch_once("arena-width visibility bounds"
+    "a->x>0-w*0.2 and a->x<W*1.2"
+    "a->x>0-W*0.2 and a->x<W*1.2")
+sf_patch_once("fractional mining in landscape"
+    "float cm=HEIGHT/1000;"
+    "float cm=HEIGHT/1000.0f;")
+
 sf_patch_once("zero-energy aligned IA shot"
     "rand()%(50*int(Spritej1->nrj\n      ))"
     "SpaceFortressRandomBelow(50*int(Spritej1->nrj))")

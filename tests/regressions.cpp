@@ -30,6 +30,7 @@ enti *iago = new enti, *iago1 = new enti, *iacalc = new enti, *iatake = new enti
 #include "tactics_regressions.hpp"
 #include "feedback_regressions.hpp"
 #include "campaign_regressions.hpp"
+#include "maintenance_regressions.hpp"
 
 static SDL_Event finger(Uint32 type, SDL_FingerID id, float x, float y)
 {
@@ -153,7 +154,10 @@ static void testTextures()
         assert(SDL_RenderCopy(renderer, gear, nullptr, &dst) == 0);
         sfRmEnsureTextures(renderer);
         assert(sfFinalGearOrangeTexture && sfRmMuzzleStrip);
+        sfUiDrawHomeDecorations(renderer,256,256,float(cycle));
+        assert(sfUiHomeTextures.size()==1 && sfUiHomeTextures.front().turret);
         SDL_DestroyRenderer(renderer);
+        assert(sfUiHomeTextures.empty());
         assert(!SpaceFortress_TextureIn(SpaceFortressSunTextures, sun));
         assert(!SpaceFortress_TextureIn(SpaceFortressPlanetTextures, jupiter));
         assert(!sfFinalGearOrangeTexture && !sfRmMuzzleStrip);
@@ -260,9 +264,22 @@ static void writeScenicPreview(const char *path)
     SDL_DestroyRenderer(renderer); SDL_FreeSurface(surface);
 }
 
-int main()
+int main(int argc,char **argv)
 {
     assert(SDL_Init(SDL_INIT_TIMER) == 0);
+    if (argc==2) {
+        const std::string test=argv[1];
+        if (test=="--ship-style") {testDuelStyleRoundTrip();return 0;}
+        if (test=="--ship-breathing") {testShipBreathing();return 0;}
+        if (test=="--coop-aim") {testCoopHumanAim();return 0;}
+        if (test=="--save-protection" || test=="--save-recovery") {
+            char directory[]="/tmp/spacefortress-protection-XXXXXX";assert(mkdtemp(directory));
+            if (test=="--save-protection") testUnknownSaveWithBackup(directory);
+            else testSaveRecoveryPreservation(directory);
+            return 0;
+        }
+        return 2;
+    }
     testVectors(); testLegacyCrashes(); testInput(); testTextures(); testScenicRendering();
     testTacticalPilot(); testTacticalTurrets(); testJupiterMotion();
     testRaidsAndDefence();
@@ -271,6 +288,8 @@ int main()
     assert(mkdtemp(campaignDirectory));
     testVelocityGhosts();testCampaignPersistence(campaignDirectory);testCoopGameplay();testCoopArenaBounds();testCoopCollisionMinerals();testCampaignEntryAndFights();testCampaignProgression();
     testCampaignRendering(std::getenv("SPACEFORTRESS_CAMPAIGN_PREVIEW"));
+    testDuelStyleRoundTrip();testShipBreathing();testCoopHumanAim();testUnknownSaveWithBackup(campaignDirectory);
+    testSaveRecoveryPreservation(campaignDirectory);
     writeScenicPreview(std::getenv("SPACEFORTRESS_SCENIC_PREVIEW"));
     writeTurretPreview(std::getenv("SPACEFORTRESS_TURRET_PREVIEW"));
     writeFeedbackPreview(std::getenv("SPACEFORTRESS_HUD_PREVIEW"));
@@ -279,4 +298,5 @@ int main()
     delete rouage1; delete rouage2; delete Suiveur;
     delete iago; delete iago1; delete iacalc; delete iatake;
     SDL_Quit();
+    return 0;
 }

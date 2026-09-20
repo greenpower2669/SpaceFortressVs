@@ -4,14 +4,17 @@
 // Lightweight start/help UI for SpaceFortressVs.
 //
 // Goal: add a modern entry screen without touching the historical gameplay
-// loop or adding SDL_ttf / new image assets. The UI is drawn procedurally with
-// SDL2 and hooks only SDL_WaitEvent + SDL_RenderPresent.
+// loop or adding SDL_ttf. SDL2 draws the UI, with the original Tourelle.png
+// used only for home decoration; no gameplay entities are created here.
 //
 // The existing "two gears" gesture is intentionally left unchanged.
 // The old code still toggles setgui; this shim converts that toggle into a
 // return to the new home screen at presentation time.
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <vector>
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <cstdint>
@@ -231,7 +234,7 @@ static void sfUiBackground(SDL_Renderer *renderer, int width, int height)
     // A simple orbital motif.
     const int pcx = width / 2;
     const int pcy = static_cast<int>(height * 0.19f);
-    const int pr = width / 10;
+    const int pr = std::min(width / 10,int(height*.06f));
     sfUiCircle(renderer, pcx, pcy, pr, 80, 185, 235);
     sfUiCircle(renderer, pcx, pcy, pr - 1, 80, 185, 235);
 
@@ -246,6 +249,59 @@ static void sfUiBackground(SDL_Renderer *renderer, int width, int height)
     sfUiCircle(renderer, moonX, moonY, width / 45, 220, 115, 220);
 }
 
+struct SfUiHomeTexture {
+    SDL_Renderer *renderer;
+    SDL_Texture *turret;
+};
+static std::vector<SfUiHomeTexture> sfUiHomeTextures;
+
+static void sfUiForgetRenderer(SDL_Renderer *renderer)
+{
+    // SDL_DestroyRenderer releases its textures; discard only our references.
+    sfUiHomeTextures.erase(std::remove_if(sfUiHomeTextures.begin(),sfUiHomeTextures.end(),
+        [renderer](const SfUiHomeTexture &entry){return entry.renderer==renderer;}),sfUiHomeTextures.end());
+}
+
+static void sfUiDrawHomeDecorations(SDL_Renderer *renderer,int width,int height,float seconds)
+{
+    auto entry=std::find_if(sfUiHomeTextures.begin(),sfUiHomeTextures.end(),
+        [renderer](const SfUiHomeTexture &item){return item.renderer==renderer;});
+    if (entry==sfUiHomeTextures.end()) {
+        auto *texture=IMG_LoadTexture(renderer,"./resources/assets/pict/Tourelle.png");
+        if (texture) SDL_SetTextureBlendMode(texture,SDL_BLENDMODE_BLEND);
+        sfUiHomeTextures.push_back({renderer,texture});entry=sfUiHomeTextures.end()-1;
+    }
+    if (!entry->turret) return;
+    const float size=std::min(width*.20f,height*.17f);
+    SDL_Rect previousClip{};const bool clipped=SDL_RenderIsClipEnabled(renderer);
+    SDL_RenderGetClipRect(renderer,&previousClip);
+    SDL_Rect area{0,int(height*.16f),width,int(height*.18f)};
+    if (clipped) SDL_IntersectRect(&area,&previousClip,&area);
+    SDL_RenderSetClipRect(renderer,&area);
+    SDL_BlendMode previousBlend;SDL_GetRenderDrawBlendMode(renderer,&previousBlend);
+    SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+    for (int side=0;side<2;++side) {
+        const float time=seconds+side*.9f,phase=std::fmod(time,2.8f);
+        const float recoil=phase<.18f ? (1-phase/.18f)*size*.025f : 0;
+        const float cx=width*(side==0 ? .24f : .76f);
+        const float cy=height*.25f+std::sin(time*1.2f)*size*.018f+recoil;
+        SDL_FRect rect{cx-size*.5f,cy-size*.5f,size,size};
+        const float angle=std::sin(time*.8f)*3;
+        SDL_RenderCopyExF(renderer,entry->turret,nullptr,&rect,angle,nullptr,SDL_FLIP_NONE);
+        // Short flashes/tracers are render primitives, never weapons or hits.
+        if (phase<.25f) for (int barrel : {-1,1}) {
+            const float radians=angle*float(PI)/180;
+            const float lx=barrel*size*(.36f+phase*.20f),ly=-size*(.07f+phase*.25f);
+            const float x=cx+lx*std::cos(radians)-ly*std::sin(radians);
+            const float y=cy+lx*std::sin(radians)+ly*std::cos(radians);
+            SDL_SetRenderDrawColor(renderer,135,225,255,Uint8(230*(1-phase/.25f)));
+            SDL_FRect light{x-1.5f,y-size*.05f,3,size*.09f};SDL_RenderFillRectF(renderer,&light);
+        }
+    }
+    SDL_SetRenderDrawBlendMode(renderer,previousBlend);
+    SDL_RenderSetClipRect(renderer,clipped ? &previousClip : nullptr);
+}
+
 static void sfUiDrawHome(SDL_Renderer *renderer)
 {
     int width = 0, height = 0;
@@ -253,9 +309,10 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
     if (width <= 0 || height <= 0) return;
 
     sfUiBackground(renderer, width, height);
+    sfUiDrawHomeDecorations(renderer,width,height,float(SDL_GetTicks64()%280000)*.001f);
 
-    const int base = (width / 260) > 2 ? (width / 260) : 2;
-    const int titleScale = base * 2;
+    const int base = std::max(2,std::min(width/260,height/250));
+    const int titleScale = std::min(base*2,std::max(2,height/140));
     const int buttonScale = base + 1;
 
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.055f),
