@@ -6,6 +6,7 @@
 #include <list>
 #include <iostream> 
 #include <cmath>
+#include <bitset>
 #define PI 3.141592653589793238462643383
  //3.14159265
 #include <SDL2/SDL.h>
@@ -81,8 +82,18 @@ class sprite
    float pv;
    int idx;
    bool animated=false;
+   // Player hulls breathe from their nominal size on the simulation clock.
+   // Other historical sprites retain their frame-driven animation.
+   bool boundedBreathing=false;
    bool ctrl,outx,outy;
    bool minage=false;
+   // Tactical metadata: stable asteroid identity and independent defence shots.
+   Uint64 tacticalId=0;
+   bool defensiveShot=false;
+   int shotOwner=-1;
+   float shotAge=0;
+   float shotImpactHeat=2;
+   float shotVelocityX=0, shotVelocityY=0, shotFromX=0, shotFromY=0;
    int frame,frames,ir1,ir2,ir3,ir4;
   float x,y,x0,y0,x00,y00,speed;
    float xm,ym,w,h,x000,y000;
@@ -243,7 +254,7 @@ void setcycles(){
       //radstep=360/frames/PI;
       nrj*=0.997;
       
-     if (animated){
+     if (animated && !boundedBreathing){
      frame += speed*k0;
      
      int n = frames/k0;
@@ -259,6 +270,16 @@ void setcycles(){
      }
    }
 
+
+// The historical vib() below already anchors dimensions on sw/sh. This
+// player variant keeps that anchor, but never resets the moving x/y centre.
+void vib(float seconds)
+{
+    const float phase=std::fmod(std::max(0.0f,seconds),3.0f);
+    const float scale=1.0f+.01f*std::sin(2*float(PI)*phase/3.0f);
+    w=sw*scale;h=sh*scale;
+    startup();
+}
 
 void vib()
    {
@@ -771,4 +792,4 @@ int uSDL_RenderCopyEx(SDL_Renderer * renderer,
 
 
 
-#endif 
+#endif
