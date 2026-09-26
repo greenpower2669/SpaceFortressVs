@@ -104,3 +104,52 @@ APK : `2045bc64083b624e14ecec034df350b03eaa0eeac269d145d171506d5b4f3b81`, 873721
 AAB : `a30870bece5759ddd4feb2ee4d1cf84a0e06822798afbea1e7624438d727939c`, 84880594 octets.
 
 Les validations physiques sur téléphone restent hors de portée des tests CI et doivent être faites par Fab.
+
+
+## Retour physique APK 1.4.0 — anomalies observées par Fab — 26 septembre 2026
+
+Le workflow 36246639403 était vert, mais l'essai téléphone révèle des défauts que les tests automatisés n'attrapaient pas. Cela devient un cas de référence : **présence logique/simulation ≠ rendu ou sensation correcte sur appareil**.
+
+### D-140-01 — classique — astéroïdes non rendus
+Observation : poussières/effets visibles, sprites/rectangles des astéroïdes absents.
+Statut : reproduit visuellement par Fab, cause racine non auditée.
+Risque : une suite qui vérifie seulement la population/physique du champ peut passer tout en laissant le champ invisible.
+
+### D-140-02 — coop — missile avec apparence plasma
+Observation : logique de lancement missile présente, représentation visuelle non distincte.
+Statut : reproduit sur téléphone, cause non auditée.
+
+### D-140-03 — coop — dégâts faibles / récupération dominante
+Observation : les dégâts reçus semblent faibles face au bénéfice des poussières d'astéroïdes.
+Statut : à mesurer ; déterminer si l'effet passe par PV, énergie ou bouclier avant correction.
+
+### D-140-04 — coop — HUD PV absent
+Observation : aucune barre de vie visible pour les pilotes.
+Statut : reproduit sur téléphone.
+
+### D-140-05 — coop — boss trop fragiles sous tourelles
+Observation : activation des tourelles peut quasi one-shot le boss.
+Statut : reproduit sur téléphone ; mesurer DPS tourelles et courbe PV/résistance par difficulté.
+
+### D-140-06 — coop — contact boss insuffisamment destructeur
+Attendu : contact direct continu avec le boss fait chuter très vite l'énergie puis les PV.
+Statut : comportement attendu non atteint selon le test téléphone.
+
+### D-140-07 — coop — tirs IA alliée tous chasseurs
+Observation : les tirs de l'allié IA corrigent leur trajectoire comme des projectiles guidés.
+Attendu : prédiction au moment du tir possible, mais projectile ordinaire ensuite rectiligne ; guidage réservé aux types prévus.
+
+### D-140-08 — coop — énergie sans pénalité cadence/précision suffisante
+Attendu : moins d'énergie → cadence plus basse + dispersion/précision moins bonne ; pleine énergie → performance maximale.
+Statut : exigence gameplay à restaurer/auditer contre moteur historique.
+
+### D-140-09 — coop — collisions astéroïdes trop peu dommageables
+Attendu : impact astéroïde plus punitif sur les PV, idéalement selon grandeurs historiques disponibles plutôt qu'une constante arbitraire.
+Statut : anomalie de sensation confirmée sur téléphone, quantification à faire.
+
+### Points positifs du test
+- combat boss 1 fonctionnel ;
+- tir au tap du pilote bas fonctionnel ;
+- pilote haut et quatre doigts réels encore à confirmer avec un second joueur.
+
+Aucune correction de code n'a été faite dans cette intervention documentaire.

@@ -1,48 +1,31 @@
-# SpaceFortressVs 1.4.0 — relais Sol vérifié, essais téléphone en attente
+# SpaceFortressVs 1.4.x — retour téléphone à auditer par Astra
 
-## Référence et FAB Copilot
-- [x] Sauvegarde Astra préservée : `9b8cae378f66d461dd8a29f9504972f648b2c40c`, arbre `92cf3b03b2aeaf30da6d57b85f126f89cf37caf4`.
-- [x] Quatre mémoires FAB Copilot reconstruites/synchronisées sans prétendre qu'elles existaient chez Astra.
-- [x] SHA de code testé par Sol : `2ca6aa46e732e9d9e86e9889ad2d215117c1f16e`.
-- [x] Aucun ajout fonctionnel ni refonte ; aucun blocage frais n'a nécessité de correction.
+## Nouvelle priorité — 26 septembre 2026
+- [ ] D-140-01 CLASSIQUE : astéroïdes physiquement présents/effets visibles mais sprites non rendus. Auditer rendu avant toute modification physique.
+- [ ] D-140-02 COOP : missile lancé avec apparence plasma ; restaurer visuel missile distinct.
+- [ ] D-140-03 COOP : dégâts reçus trop faibles par rapport à la récupération liée aux poussières ; mesurer PV/énergie/bouclier avant réglage.
+- [ ] D-140-04 COOP : afficher des barres de vie lisibles pour les deux pilotes.
+- [ ] D-140-05 COOP : boss trop fragiles quand les tourelles sortent ; mesurer DPS tourelles vs PV/résistance des quatre difficultés.
+- [ ] D-140-06 COOP : contact direct boss-vaisseau doit faire fondre rapidement énergie puis PV pendant le contact.
+- [ ] D-140-07 COOP : tirs IA alliée tous chasseurs ; conserver prédiction initiale mais pas de guidage en vol pour les tirs ordinaires.
+- [ ] D-140-08 COOP : énergie basse doit réduire cadence et précision de tir progressivement.
+- [ ] D-140-09 COOP : impacts d'astéroïdes doivent retirer davantage de PV, en réutilisant les grandeurs historiques pertinentes si disponibles.
 
-## Vérification fraîche
-- [x] `scripts/test-regressions.sh` exécuté par GitHub Actions sur le SHA testé.
-- [x] 9 tests Python réussis.
-- [x] 32 groupes natifs SDL/UBSan réussis.
-- [x] 21 groupes du champ historique généré Android réussis.
-- [x] Sélecteur : portrait/paysage, onglets et lancement de l'affrontement 200 réussis.
-- [x] 200 rendus : niveau 1 historique, auras/reflets et 0/4/8/20 tentacules réussis.
-- [x] 200 ouvertures de combat automatisées réussies.
-- [x] 200 coups finaux / victoires durables / Hall après reload réussis.
+## Regroupement d'audit
+- [ ] Auditer ensemble D-140-03, D-140-06, D-140-08 et D-140-09 comme chaîne **impact → énergie/bouclier → PV → récupération → cadence/précision** avant de toucher aux constantes.
+- [ ] Garder D-140-01 isolé en régression de rendu classique tant que la simulation reste active.
 
-## Android
-- [x] Build Gradle APK/AAB réussi.
-- [x] `SpaceFortressVs-1.4.0.apk` produit : 87372144 octets, SHA-256 `2045bc64083b624e14ecec034df350b03eaa0eeac269d145d171506d5b4f3b81`.
-- [x] `SpaceFortressVs-1.4.0-unsigned.aab` produit : 84880594 octets, SHA-256 `a30870bece5759ddd4feb2ee4d1cf84a0e06822798afbea1e7624438d727939c`.
-- [x] PNG, chemins, bibliothèque ARM64, ZIP et packaging vérifiés.
-- [x] Artefact GitHub Actions : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36246639403/artifacts/10907503442
+## Validation physique déjà observée
+- [x] Premier boss lancé et jouable.
+- [x] Tir au tap du joueur du bas fonctionnel.
+- [ ] Joueur du haut et quatre doigts réels à tester avec un second joueur.
 
-## Signature
-- [x] Certificat APK 1.4.0 : `9817ba2bdf29226c72529ec161f8124f11cbee89b2748ca440b1e38148e01781`.
-- [x] Certificat publié 1.3.1 : `8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868`.
-- [x] Certificats différents : la 1.4.0 est un APK de test et n'est pas une mise à jour directe compatible.
-- [x] Ne jamais demander de désinstaller l'installation existante ni d'effacer ses données.
+## Discipline FAB Copilot pour la prochaine phase
+- [ ] Astra commence par un audit et écrit l'ordre de mission ; ne pas coder avant d'avoir isolé les causes.
+- [ ] Toute correction future doit synchroniser `brain.md`, `brainmap.md`, `debughistorical.md` et `todo.md` dans le même commit.
+- [ ] Aucun merge `main` ni release sans accord explicite de Fab.
+- [ ] Préserver moteur historique, sauvegardes, 50 portraits, écran de fin stable, icône/assets et absence de transfert massif Base64.
 
-## Essais téléphone réservés à Fab
-- [ ] quatre doigts simultanés ;
-- [ ] veille/reprise puis toucher ;
-- [ ] champ historique vivant, collisions/minage/fragmentation ;
-- [ ] énergie, missile, bonus et tourelles ;
-- [ ] son et performances ;
-- [ ] équilibre des quatre difficultés ;
-- [ ] rendu réel sélection/combat.
-
-## Fin de relais
-- [x] Aucun merge dans `main`.
-- [x] Aucune release publiée.
-- [x] Workflow vérifié : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36246639403
-- [ ] Publication d'une release uniquement après nouvel accord explicite de Fab.
 
 ## Historique précédent
 

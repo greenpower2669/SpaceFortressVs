@@ -130,3 +130,35 @@ dans le même cycle/commit.
 → mise à jour directe Android incompatible.
 
 Le HEAD documentaire post-vérification peut être supérieur à `2ca6aa46e732e9d9e86e9889ad2d215117c1f16e` car la synchronisation finale des quatre mémoires utilise `[skip ci]`. Le SHA de code effectivement testé reste `2ca6aa46e732e9d9e86e9889ad2d215117c1f16e`.
+
+
+## Carte d'audit téléphone — 26 septembre 2026
+
+### Régression classique
+Champ astéroïdes présent physiquement/effets visibles
+→ **rendu des sprites astéroïdes absent**
+→ auditer la chaîne de dessin classique séparément de la simulation.
+
+### Coop
+`sfCoopEmit / rendu projectiles`
+→ missile déclenché mais apparence plasma.
+
+`sfCoopDrawArena / HUD pilotes`
+→ PV pilotes non visibles.
+
+`sfCoopDefences + profils boss`
+→ DPS tourelles vs PV/résistance boss trop élevé.
+
+`collision boss-vaisseau`
+→ contact continu doit consumer rapidement énergie puis PV.
+
+`visée IA + mouvement projectiles`
+→ prédiction autorisée au départ ; poursuite en vol réservée aux tirs explicitement guidés.
+
+`ship_energy + dégâts + collecte poussières/minerais`
+→ chaîne à auditer ensemble : impact → bouclier/énergie → PV → récupération → cadence/précision.
+
+`collision astéroïde-vaisseau`
+→ dégâts PV actuels jugés trop faibles sur téléphone.
+
+Ne pas déduire une cause racine à partir de cette carte : elle localise les sous-systèmes à inspecter et les interactions à mesurer.

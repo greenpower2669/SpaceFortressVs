@@ -106,3 +106,29 @@ Signature :
 - résultat : différents. L'APK 1.4.0 est un APK de test et n'est pas une mise à jour directe compatible avec l'installation 1.3.1.
 
 Essais téléphone encore requis : quatre doigts réels, veille/reprise, son, performances, champ vivant, énergie/bonus/tourelles et équilibre des quatre difficultés.
+
+
+## Retour téléphone Fab — 26 septembre 2026 — 1 régression classique + 8 anomalies coop
+
+Ce retour provient d'un essai physique de l'APK 1.4.0. Il prime sur les simulations automatisées pour les défauts visuels et de sensations de jeu. Ne pas transformer ces observations en causes techniques avant audit.
+
+### Mode classique — régression 1
+1. **Astéroïdes invisibles à l'écran alors que le champ existe.** Les poussières/effets issus des astéroïdes sont visibles, ce qui indique que la simulation ou au moins une partie des interactions continue. Le sprite/rectangle de rendu des astéroïdes n'apparaît pas. Première consigne d'audit : isoler rendu vs simulation et ne pas toucher au moteur physique tant que la cause visuelle n'est pas prouvée.
+
+### Coop — anomalies 2 à 9
+2. **Missile visuellement faux.** Le missile se déclenche bien mais son apparence est celle d'un plasma/tir ordinaire. Restaurer une apparence missile distincte sans changer sa logique si celle-ci est correcte.
+3. **Rapport dégâts/récupération trop favorable.** Les dégâts reçus paraissent faibles alors que les poussières d'astéroïdes rendent énormément de survie. Auditer précisément ce qui est restauré en pratique (PV, énergie ou effet indirect de bouclier) avant équilibrage.
+4. **Barres de vie pilotes absentes.** Les PV des deux pilotes doivent être lisibles en jeu, distincts de l'énergie.
+5. **Boss trop fragiles face aux tourelles.** Dès que les tourelles sont actives, un boss peut être détruit presque instantanément. Auditer PV/résistance des boss et DPS réel des tourelles, sans casser les quatre niveaux de difficulté.
+6. **Contact direct avec le boss trop peu punitif.** Un vaisseau qui reste au contact du boss doit voir fondre très rapidement son énergie puis ses PV tant que le contact persiste.
+7. **Tirs de l'IA alliée tous chasseurs.** Les projectiles ordinaires de l'allié IA ne doivent pas tous corriger leur trajectoire en vol. La visée peut être prédictive au départ, mais seuls les projectiles explicitement guidés doivent poursuivre une cible.
+8. **Énergie insuffisamment couplée au tir.** Quand la réserve baisse, la cadence de tir et la précision doivent se dégrader progressivement ; pleine énergie = cadence/précision maximales.
+9. **Impacts d'astéroïdes trop peu dangereux.** Une collision réelle avec un astéroïde doit retirer davantage de PV ; si le moteur historique prévoit taille/vitesse/énergie d'impact, réutiliser ces grandeurs plutôt qu'une constante arbitraire.
+
+### Observations positives du même essai
+- Le premier boss a pu être lancé et joué.
+- Le tir au tap du joueur du bas fonctionne sur téléphone.
+- Le joueur du haut et les scénarios réellement simultanés restent à vérifier avec un deuxième joueur.
+
+### Discipline d'audit
+Les anomalies 3, 6, 8 et 9 sont liées par la chaîne survie/énergie/dégâts. Les auditer ensemble avant de choisir des constantes : **impact → énergie/bouclier → PV → récupération → cadence/précision**. Le bug 1 doit au contraire être isolé comme régression de rendu classique jusqu'à preuve du contraire.
