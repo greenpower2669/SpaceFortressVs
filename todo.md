@@ -1,51 +1,48 @@
-# SpaceFortressVs 1.4.0 — relais Sol, vérification fraîche en cours
+# SpaceFortressVs 1.4.0 — relais Sol vérifié, essais téléphone en attente
 
-## Référence préservée
-- [x] Branche distante récupérée : `fix/gameplay-campaign-200`.
-- [x] Commit de sauvegarde Astra confirmé : `9b8cae378f66d461dd8a29f9504972f648b2c40c`.
-- [x] Arbre Git confirmé par Sol : `92cf3b03b2aeaf30da6d57b85f126f89cf37caf4`.
-- [x] Aucun développement recommencé de mémoire ; le travail récupéré est conservé.
-- [x] Version préparée confirmée : 1.4.0 / code 10.
+## Référence et FAB Copilot
+- [x] Sauvegarde Astra préservée : `9b8cae378f66d461dd8a29f9504972f648b2c40c`, arbre `92cf3b03b2aeaf30da6d57b85f126f89cf37caf4`.
+- [x] Quatre mémoires FAB Copilot reconstruites/synchronisées sans prétendre qu'elles existaient chez Astra.
+- [x] SHA de code testé par Sol : `2ca6aa46e732e9d9e86e9889ad2d215117c1f16e`.
+- [x] Aucun ajout fonctionnel ni refonte ; aucun blocage frais n'a nécessité de correction.
 
-## FAB Copilot
-- [x] Conserver intégralement l'historique de `todo.md`.
-- [x] Reconstruire `brain.md`, `brainmap.md` et `debughistorical.md` à partir du code, du plan, des notes de release et des tests présents.
-- [x] Distinguer explicitement les résultats rapportés par Astra des vérifications exécutées par Sol.
-- [ ] Après le workflow frais, mettre à jour les quatre mémoires ensemble avec le SHA réellement testé, les résultats et les éventuels blocages.
+## Vérification fraîche
+- [x] `scripts/test-regressions.sh` exécuté par GitHub Actions sur le SHA testé.
+- [x] 9 tests Python réussis.
+- [x] 32 groupes natifs SDL/UBSan réussis.
+- [x] 21 groupes du champ historique généré Android réussis.
+- [x] Sélecteur : portrait/paysage, onglets et lancement de l'affrontement 200 réussis.
+- [x] 200 rendus : niveau 1 historique, auras/reflets et 0/4/8/20 tentacules réussis.
+- [x] 200 ouvertures de combat automatisées réussies.
+- [x] 200 coups finaux / victoires durables / Hall après reload réussis.
 
-## Vérification Sol
-- [x] Vérifier la branche, le commit et l'arbre distants.
-- [x] Vérifier par lecture du code : campagne 200, mapping 50×4, rendu partagé sélection/combat, 0/4/8/20 tentacules, commandes multitouch, énergie historique, bonus tourelles, champ partagé et migration v1/v2.
-- [x] Vérifier que le sélecteur utilise des tailles de texte bornées par la hauteur et dispose de tests portrait/paysage et de lancement du combat 200.
-- [ ] Exécuter fraîchement `scripts/test-regressions.sh` via le workflow Android sur le HEAD de reprise.
-- [ ] Si un blocage est reproduit, corriger uniquement sa cause avec test de régression et synchroniser les quatre mémoires dans le même commit.
-
-## Build Android
-- [ ] Compiler `SpaceFortressVs-1.4.0.apk`.
-- [ ] Compiler `SpaceFortressVs-1.4.0-unsigned.aab`.
-- [ ] Vérifier PNG, chemins, bibliothèque ARM64, ZIP et empreintes.
-- [ ] Récupérer les artefacts du workflow réellement réussi.
+## Android
+- [x] Build Gradle APK/AAB réussi.
+- [x] `SpaceFortressVs-1.4.0.apk` produit : 87372144 octets, SHA-256 `2045bc64083b624e14ecec034df350b03eaa0eeac269d145d171506d5b4f3b81`.
+- [x] `SpaceFortressVs-1.4.0-unsigned.aab` produit : 84880594 octets, SHA-256 `a30870bece5759ddd4feb2ee4d1cf84a0e06822798afbea1e7624438d727939c`.
+- [x] PNG, chemins, bibliothèque ARM64, ZIP et packaging vérifiés.
+- [x] Artefact GitHub Actions : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36246639403/artifacts/10907503442
 
 ## Signature
-- [ ] Comparer le certificat du nouvel APK au certificat publié v1.3.1 `8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868`.
-- [ ] Si différent : marquer explicitement l'APK incompatible avec une mise à jour directe et ne demander aucune désinstallation/suppression de données.
+- [x] Certificat APK 1.4.0 : `9817ba2bdf29226c72529ec161f8124f11cbee89b2748ca440b1e38148e01781`.
+- [x] Certificat publié 1.3.1 : `8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868`.
+- [x] Certificats différents : la 1.4.0 est un APK de test et n'est pas une mise à jour directe compatible.
+- [x] Ne jamais demander de désinstaller l'installation existante ni d'effacer ses données.
 
-## Validation téléphone réservée à Fab
+## Essais téléphone réservés à Fab
 - [ ] quatre doigts simultanés ;
-- [ ] toucher après veille/reprise ;
-- [ ] champ historique vivant avec collisions/minage/fragmentation ;
+- [ ] veille/reprise puis toucher ;
+- [ ] champ historique vivant, collisions/minage/fragmentation ;
 - [ ] énergie, missile, bonus et tourelles ;
 - [ ] son et performances ;
 - [ ] équilibre des quatre difficultés ;
 - [ ] rendu réel sélection/combat.
 
-## Interdictions de cette mission
-- Aucun merge dans `main`.
-- Aucune publication de release sans nouvel accord de Fab.
-- Aucun ajout fonctionnel ni refonte.
-- Préserver `src/main.cpp`, les sauvegardes, les 50 portraits, l'écran de fin stable, l'icône et les assets.
-- Aucun transfert massif Base64.
-
+## Fin de relais
+- [x] Aucun merge dans `main`.
+- [x] Aucune release publiée.
+- [x] Workflow vérifié : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36246639403
+- [ ] Publication d'une release uniquement après nouvel accord explicite de Fab.
 
 ## Historique précédent
 

@@ -75,3 +75,32 @@ Le premier commit FAB Copilot de reprise doit déclencher le workflow Android su
 
 ## Règle de correction
 Si un test frais échoue : reproduire, déterminer la cause, corriger uniquement cette cause avec test de régression, puis mettre à jour les quatre mémoires dans le même commit. Aucun ajout de fonctionnalité ni refonte opportuniste.
+
+
+## Vérification fraîche Sol terminée — 26 septembre 2026
+Workflow : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36246639403
+SHA testé : `2ca6aa46e732e9d9e86e9889ad2d215117c1f16e`.
+
+Résultats frais :
+- 9 tests Python réussis ;
+- 32 groupes natifs SDL/UBSan réussis ;
+- 21 groupes du champ historique réussis ;
+- sélecteur portrait/paysage et lancement combat 200 réussis ;
+- 200 rendus et signature visuelle 0/4/8/20 réussis ;
+- 200 ouvertures de combat automatisées réussies ;
+- 200 coups finaux / victoires durables / Hall après reload réussis ;
+- build APK/AAB réussi ;
+- packaging, assets, bibliothèque ARM64 et intégrité ZIP réussis.
+
+Aucun blocage logiciel reproduit pendant cette relance : aucune correction de code n'a donc été ajoutée.
+
+Signature Android réellement observée :
+- 1.4.0 : `9817ba2bdf29226c72529ec161f8124f11cbee89b2748ca440b1e38148e01781`;
+- 1.3.1 publiée : `8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868`.
+Cause de l'incompatibilité de mise à jour : certificats différents. Ne pas contourner par désinstallation ni suppression des données.
+
+Artefact vérifié : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36246639403/artifacts/10907503442
+APK : `2045bc64083b624e14ecec034df350b03eaa0eeac269d145d171506d5b4f3b81`, 87372144 octets.
+AAB : `a30870bece5759ddd4feb2ee4d1cf84a0e06822798afbea1e7624438d727939c`, 84880594 octets.
+
+Les validations physiques sur téléphone restent hors de portée des tests CI et doivent être faites par Fab.

@@ -77,3 +77,32 @@ Astra rapporte avant sauvegarde : 32 groupes SDL/UBSan réussis, 21 groupes du c
 - Intégrité des PNG, bibliothèques et archives.
 - Comparaison réelle du certificat 1.4.0 à celui de la v1.3.1.
 - Essais physiques sur téléphone : quatre doigts, reprise après veille, champ vivant, énergie, bonus/tourelles, son, performances et équilibrage des quatre difficultés.
+
+
+## Vérification fraîche Sol — workflow 36246639403
+Exécutée sur le commit testé `2ca6aa46e732e9d9e86e9889ad2d215117c1f16e`.
+
+- Workflow : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36246639403
+- `scripts/test-regressions.sh` : succès.
+- Python : 3 tests + 6 tests = 9 tests réussis.
+- Suite native SDL/UBSan : 32 groupes PASS.
+- Champ historique généré Android : 21 groupes PASS.
+- Fixture campagne : v1 réelle + round-trip v2 jusqu'à l'affrontement 200.
+- Sélecteur : PASS portrait/paysage, onglets de difficulté et lancement de l'affrontement 200 avec le portrait du boss 50.
+- Rendu : PASS sur 200 rendus, niveau 1 historique inchangé, 0/4/8/20 tentacules, aura visible et reflets localisés.
+- Combat : PASS sur 200 ouvertures avec boss mobiles, attaques hostiles, champ vivant et absence d'auto-tir humain.
+- Progression : PASS sur 200 coups finaux, 200 victoires nommées durables, frontière finale et Hall complet après rechargement.
+- Build Gradle : succès.
+- Packaging : versionCode 10, signature APK, intégrité ZIP, bibliothèque ARM64 et assets vérifiés.
+- Artefact release : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36246639403/artifacts/10907503442
+
+Fichiers produits :
+- `SpaceFortressVs-1.4.0.apk` — 87372144 octets — SHA-256 `2045bc64083b624e14ecec034df350b03eaa0eeac269d145d171506d5b4f3b81`.
+- `SpaceFortressVs-1.4.0-unsigned.aab` — 84880594 octets — SHA-256 `a30870bece5759ddd4feb2ee4d1cf84a0e06822798afbea1e7624438d727939c`.
+
+Signature :
+- certificat 1.4.0 : `9817ba2bdf29226c72529ec161f8124f11cbee89b2748ca440b1e38148e01781`;
+- certificat publié 1.3.1 : `8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868`;
+- résultat : différents. L'APK 1.4.0 est un APK de test et n'est pas une mise à jour directe compatible avec l'installation 1.3.1.
+
+Essais téléphone encore requis : quatre doigts réels, veille/reprise, son, performances, champ vivant, énergie/bonus/tourelles et équilibre des quatre difficultés.

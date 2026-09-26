@@ -115,3 +115,18 @@ Tout changement futur de code ou d'état vérifié doit mettre à jour ensemble 
 - `debughistorical.md`
 - `todo.md`
 dans le même cycle/commit.
+
+
+## État de livraison vérifié par Sol
+`2ca6aa46e732e9d9e86e9889ad2d215117c1f16e`
+→ workflow 36246639403
+→ tests 9 Python + 32 groupes natifs + 21 groupes champ : PASS
+→ Gradle : PASS
+→ packaging : PASS
+→ artefact `SpaceFortressVs-1.4.0-release-files`
+→ APK + AAB produits
+→ certificat 1.4.0 `9817ba2bdf29226c72529ec161f8124f11cbee89b2748ca440b1e38148e01781`
+≠ certificat 1.3.1 `8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868`
+→ mise à jour directe Android incompatible.
+
+Le HEAD documentaire post-vérification peut être supérieur à `2ca6aa46e732e9d9e86e9889ad2d215117c1f16e` car la synchronisation finale des quatre mémoires utilise `[skip ci]`. Le SHA de code effectivement testé reste `2ca6aa46e732e9d9e86e9889ad2d215117c1f16e`.
