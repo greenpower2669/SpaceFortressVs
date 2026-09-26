@@ -198,3 +198,7 @@ Vie boss
 → rendu classique réel
 → missile/HUD
 → chaîne difficulté/énergie/contact.
+
+
+## Preuve CI du lot
+`fbb1ff92907821217ff94d847d9f2bbf4683636d` → run 36266178070 → 57 PASS → Gradle PASS → packaging PASS → artefact 10914467015. Test téléphone Fab reste requis pour le ressenti réel et le placement HUD.

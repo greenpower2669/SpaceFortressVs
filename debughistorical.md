@@ -173,3 +173,20 @@ Aucune correction de code n'a été faite dans cette intervention documentaire.
 - D-140-05 : tirs tourelles distingués pour diagnostic ; aucune hausse arbitraire des PV boss. « Quasi one-shot » est compris comme destruction beaucoup trop rapide.
 - D-140-07 : aucun guidage général ajouté/retiré ; test renforcé sur trajectoire ordinaire.
 Statut de preuve : code et tests préparés ; CI fraîche requise sur le nouveau SHA avant de déclarer le lot vérifié.
+
+
+## Preuve après correction — workflow 36266178070
+SHA de code testé : `fbb1ff92907821217ff94d847d9f2bbf4683636d`.
+- Workflow : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36266178070
+- 57 lignes PASS dans les suites de régression.
+- Nouveau rendu classique : W/H valides, astéroïde admis par `inxy()` et pixels réels de texture rendus : PASS.
+- Cadence/précision selon énergie, contact boss continu, impacts astéroïdes hors i-frame projectile et minerai ne réinitialisant plus le bouclier : PASS.
+- HUD haut miroir/180°, vie boss dupliquée avec gradient et texture missile historique + recréation renderer : PASS.
+- Tir ordinaire : dispersion initiale bornée, puis aucune correction de trajectoire en vol : PASS.
+- Suites historiques, 200 ouvertures, 200 rendus, migration/sauvegardes, champ duel/coop 30/60/120 Hz : PASS.
+- Build Android : `BUILD SUCCESSFUL in 2m 28s`.
+- Packaging 1.4.0/versionCode 10, bibliothèque et assets : PASS.
+- Artefact release : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36266178070/artifacts/10914467015
+- Digest ZIP artefact : `sha256:6cdc725a398e47cd3854ab3f2b4bb4bf6751206ebec4dbb5660fbad5f8f49aec`.
+- Certificat APK debug de ce build : `19e25032f58c41ea692554dd7b2849dad4b9589e78fac6a1f1988a8e384295f5`.
+Ce certificat diffère de la v1.3.1 publiée (`8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868`) : APK de test, pas une mise à jour directe compatible. Ne pas désinstaller ni effacer les données.

@@ -12,14 +12,14 @@
 - [x] D-140-07 : préserver prédiction initiale et trajectoire rectiligne des tirs ordinaires.
 
 ## Vérifications à obtenir
-- [ ] CI complète fraîche sur le nouveau SHA.
-- [ ] Régression rendu réel astéroïde classique.
-- [ ] Missile/HUD + recréation renderer.
-- [ ] Cadence/dispersion, tir refusé sans coût, trajectoire rectiligne.
-- [ ] Contact boss à 30/60/120 Hz.
-- [ ] Collision astéroïde et récupération minerai.
-- [ ] Build APK/AAB + packaging/signature.
-- [ ] Essai téléphone Fab après livraison.
+- [x] CI complète fraîche sur `fbb1ff92907821217ff94d847d9f2bbf4683636d` : workflow 36266178070.
+- [x] Régression rendu réel astéroïde classique : PASS.
+- [x] Missile/HUD + recréation renderer : PASS.
+- [x] Cadence/dispersion, tir refusé sans coût, trajectoire rectiligne : PASS.
+- [x] Contact boss à 30/60/120 Hz : PASS.
+- [x] Collision astéroïde et récupération minerai : PASS.
+- [x] Build APK/AAB + packaging : PASS. Certificat debug `19e25032...` différent de la v1.3.1 publiée.
+- [ ] Essai téléphone Fab après livraison : vérifier astéroïdes visibles, missile, HUD miroir et nouvel équilibre.
 
 ## Validation physique connue
 - [x] Joueur bas : tir au tap RAS.
