@@ -297,6 +297,7 @@ int main(int argc,char **argv)
     testDuelStyleRoundTrip();testShipBreathing();testCoopHumanAim();testUnknownSaveWithBackup(campaignDirectory);
     testSaveRecoveryPreservation(campaignDirectory);
     testNoHumanAutofire();testPassiveCoopTurrets();testCollectedBonusAndShield();testRealCoopField();
+    testCoopDifficultyChain();testCoopHudAndMissile();
     testDurableV1Migration(campaignDirectory);testDifficultySelection();testDifficultyGameplay();
     testDifficultyRendering(std::getenv("SPACEFORTRESS_DIFFICULTY_PREVIEW"));
     sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();

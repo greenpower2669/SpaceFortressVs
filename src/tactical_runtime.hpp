@@ -490,7 +490,7 @@ static void sfCollectDust()
         if (winner) {
             const float value=std::clamp(dust->pv*k0/600,0.0f,1.0f);
             // nrj is depletion/heat: a lower value means MORE available energy.
-            winner->nrj=sfShipHeat(sfShipHeat(winner->nrj)*.98f-.10f*value);
+            winner->nrj=sfShipHeat(sfShipHeat(winner->nrj)*.998f-.02f*value);
             winner->pv=std::min(1000.0f,winner->pv+.30f*value);
             dust->pv=0; sfPickupGlow[owner]=.65f;
         }

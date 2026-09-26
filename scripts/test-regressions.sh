@@ -19,6 +19,7 @@ g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recove
 (cd "$sf_test_dir" && ./regressions)
 # Compile exactly the generated compatibility source used by Android.
 (cd "$sf_test_dir" && cmake -DREPO_ROOT="$sf_repo" -P "$sf_repo/scripts/prepare-legacy-source.cmake")
+grep -Fq "::setw(static_cast<float>(DM.w));seth(DM.h);" "$sf_test_dir/generated/main_android_compat.cpp"
 g++ -std=c++17 -D__ANDROID__ -Werror=return-type -fsyntax-only -I "$sf_repo/src" \
     -I "$sf_repo/tests/include" "${sf_sdl_cflags[@]}" \
     "$sf_test_dir/generated/main_android_compat.cpp"

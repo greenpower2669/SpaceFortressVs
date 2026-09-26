@@ -160,3 +160,16 @@ Aucune correction de code n'a été faite dans cette intervention documentaire.
 - Nouveau défaut d'ergonomie : les informations du joueur du haut doivent être tournées à 180° pour être lisibles par le joueur placé de l'autre côté de l'écran.
 - Exigence HUD boss ajoutée : barre de vie sans valeur numérique obligatoire, disposition inversée côté joueur rouge/haut, code couleur vert pleine vie → rouge vie vide.
 - Statut : exigences de rendu à auditer ; aucune correction de code effectuée.
+
+
+## Corrections engagées après validation Fab — 26 septembre 2026
+- D-140-01 : cause statique acceptée ; correctif généré `::setw(static_cast<float>(DM.w))`, main.cpp non modifié.
+- D-140-02 : défaut de rendu corrigé par texture missile historique dans le renderer coop.
+- D-140-03 : le soin PV direct reste faible ; la recharge de bouclier via minerai est atténuée afin qu’un nuage ne réinitialise plus la réserve.
+- D-140-06 : le contact boss n’utilise plus l’i-frame projectile et devient une exposition continue dépendante du temps.
+- D-140-08 : cooldown commun au point de tir + petite dispersion initiale progressive ; trajectoire ordinaire ensuite rectiligne ; refus de tir sans coût.
+- D-140-09 : impact astéroïde coop distinct de `sfCoopHurt`, sans disparition silencieuse sous i-frame, chaleur proportionnelle à la surface restaurée.
+- D-140-04 : HUD miroir/180° et vie boss dédoublée vert→rouge.
+- D-140-05 : tirs tourelles distingués pour diagnostic ; aucune hausse arbitraire des PV boss. « Quasi one-shot » est compris comme destruction beaucoup trop rapide.
+- D-140-07 : aucun guidage général ajouté/retiré ; test renforcé sur trajectoire ordinaire.
+Statut de preuve : code et tests préparés ; CI fraîche requise sur le nouveau SHA avant de déclarer le lot vérifié.

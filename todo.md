@@ -1,35 +1,30 @@
-# SpaceFortressVs 1.4.x — retour téléphone à auditer par Astra
+# SpaceFortressVs 1.4.x — lot correctif validé et en vérification
 
-## Nouvelle priorité — 26 septembre 2026
-- [ ] D-140-01 CLASSIQUE : astéroïdes physiquement présents/effets visibles mais sprites non rendus. Auditer rendu avant toute modification physique.
-- [ ] D-140-02 COOP : missile lancé avec apparence plasma ; restaurer visuel missile distinct.
-- [ ] D-140-03 COOP : dégâts reçus trop faibles par rapport à la récupération liée aux poussières ; mesurer PV/énergie/bouclier avant réglage.
-- [ ] D-140-04 COOP : afficher des barres de vie lisibles pour les deux pilotes.
-- [ ] D-140-05 COOP : boss trop fragiles quand les tourelles sortent ; mesurer DPS tourelles vs PV/résistance des quatre difficultés.
-- [ ] D-140-06 COOP : contact direct boss-vaisseau doit faire fondre rapidement énergie puis PV pendant le contact.
-- [ ] D-140-07 COOP : tirs IA alliée tous chasseurs ; conserver prédiction initiale mais pas de guidage en vol pour les tirs ordinaires.
-- [ ] D-140-08 COOP : énergie basse doit réduire cadence et précision de tir progressivement.
-- [ ] D-140-09 COOP : impacts d'astéroïdes doivent retirer davantage de PV, en réutilisant les grandeurs historiques pertinentes si disponibles.
+## Lot autorisé par Fab
+- [x] D-140-01 : corriger l’initialisation W dans la copie Android générée sans modifier main.cpp.
+- [x] D-140-02 : rendu missile historique distinct du plasma.
+- [x] D-140-04 : HUD boss dédoublé, vert→rouge ; PV/énergie pilotes sur leurs côtés ; joueur haut à 180°.
+- [x] D-140-03 : réduire la recharge de bouclier excessive via minerai.
+- [x] D-140-06 : contact boss continu, énergie puis PV.
+- [x] D-140-08 : cadence + précision initiale liées à l’énergie, sans auto-tir ni guidage ordinaire.
+- [x] D-140-09 : impacts astéroïdes successifs non masqués par i-frame projectile, chaleur de surface historique.
+- [x] D-140-05 : attribution séparée des tirs tourelles ; aucun buff PV boss arbitraire.
+- [x] D-140-07 : préserver prédiction initiale et trajectoire rectiligne des tirs ordinaires.
 
-## Regroupement d'audit
-- [ ] Auditer ensemble D-140-03, D-140-06, D-140-08 et D-140-09 comme chaîne **impact → énergie/bouclier → PV → récupération → cadence/précision** avant de toucher aux constantes.
-- [ ] Garder D-140-01 isolé en régression de rendu classique tant que la simulation reste active.
+## Vérifications à obtenir
+- [ ] CI complète fraîche sur le nouveau SHA.
+- [ ] Régression rendu réel astéroïde classique.
+- [ ] Missile/HUD + recréation renderer.
+- [ ] Cadence/dispersion, tir refusé sans coût, trajectoire rectiligne.
+- [ ] Contact boss à 30/60/120 Hz.
+- [ ] Collision astéroïde et récupération minerai.
+- [ ] Build APK/AAB + packaging/signature.
+- [ ] Essai téléphone Fab après livraison.
 
-## Validation physique déjà observée
-- [x] Joueur du haut testé physiquement en coop : RAS sur contrôle/tir.
-- [ ] HUD du joueur du haut : afficher ses informations à 180° pour lecture depuis l'autre côté de l'écran.
-- [ ] Ajouter une barre de vie du boss sans valeur numérique imposée.
-- [ ] Barre boss : présentation inversée côté joueur rouge/haut et code couleur vert pleine vie → rouge vie vide.
-- [x] Premier boss lancé et jouable.
-- [x] Tir au tap du joueur du bas fonctionnel.
-- [ ] Joueur du haut et quatre doigts réels à tester avec un second joueur.
-
-## Discipline FAB Copilot pour la prochaine phase
-- [ ] Astra commence par un audit et écrit l'ordre de mission ; ne pas coder avant d'avoir isolé les causes.
-- [ ] Toute correction future doit synchroniser `brain.md`, `brainmap.md`, `debughistorical.md` et `todo.md` dans le même commit.
-- [ ] Aucun merge `main` ni release sans accord explicite de Fab.
-- [ ] Préserver moteur historique, sauvegardes, 50 portraits, écran de fin stable, icône/assets et absence de transfert massif Base64.
-
+## Validation physique connue
+- [x] Joueur bas : tir au tap RAS.
+- [x] Joueur haut : contrôle/tir RAS.
+- [ ] Quatre doigts réellement simultanés à confirmer à deux joueurs.
 
 ## Historique précédent
 

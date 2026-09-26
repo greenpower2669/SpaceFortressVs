@@ -32,6 +32,25 @@ static void visibility()
     std::puts("PASS: legacy visibility is symmetric and independent of the last loaded texture");
 }
 
+static void classicRendering()
+{
+    W=0;H=0;::setw(320);seth(640);WIDTH=int(W);HEIGHT=int(H);
+    assert(W==320 && H==640);
+    auto *surface=SDL_CreateRGBSurfaceWithFormat(0,320,640,32,SDL_PIXELFORMAT_RGBA32);
+    auto *renderer=SDL_CreateSoftwareRenderer(surface);assert(surface && renderer);
+    auto *texture=IMG_LoadTexture(renderer,IMG_PATHa1);assert(texture);
+    sprite rock;rock.setv(160,320,90,90,0,0,1);rock.name="a1";rock.pv=1;rock.startup();
+    assert(inxy(&rock));
+    SDL_SetRenderDrawColor(renderer,0,0,0,255);SDL_RenderClear(renderer);
+    SDL_Rect dest{int(rock.x-rock.w*.5f),int(rock.y-rock.h*.5f),int(rock.w),int(rock.h)};
+    assert(SDL_RenderCopyEx(renderer,texture,nullptr,&dest,0,nullptr,SDL_FLIP_NONE)==0);
+    std::vector<Uint32> pixels(320*640);assert(SDL_RenderReadPixels(renderer,nullptr,SDL_PIXELFORMAT_RGBA32,pixels.data(),320*4)==0);
+    const Uint32 black=SDL_MapRGBA(surface->format,0,0,0,255);
+    assert(std::count_if(pixels.begin(),pixels.end(),[black](Uint32 p){return p!=black;})>500);
+    SDL_DestroyTexture(texture);SDL_DestroyRenderer(renderer);SDL_FreeSurface(surface);
+    std::puts("PASS: generated classic path has valid W/H, admits an asteroid and renders real asteroid pixels");
+}
+
 static void mining()
 {
     for (int height : {360,709,780,1536,1680}) {
@@ -155,6 +174,7 @@ static void fullField()
 int main(int argc,char **argv)
 {
     if (argc==1 || std::string(argv[1])=="visibility") visibility();
+    if (argc==1 || std::string(argv[1])=="classic-render") classicRendering();
     if (argc==1 || std::string(argv[1])=="mining") mining();
     if (argc==1 || std::string(argv[1])=="trajectories") trajectories();
     if (argc==1 || std::string(argv[1])=="interactions") interactions();

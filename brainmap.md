@@ -176,3 +176,25 @@ Vie boss
 → barre visuelle sans valeur numérique requise
 → lecture miroir/inversée côté joueur rouge/haut
 → code couleur vert plein → rouge vide.
+
+
+## Lot correctif 1.4.x validé
+`prepare-legacy-source.cmake`
+→ désambiguïsation W Android
+→ rendu astéroïdes classique conservant main.cpp intact.
+
+`campaign_runtime.hpp`
+→ missile historique
+→ cooldown + dispersion initiale selon énergie
+→ contact boss continu
+→ callback impact astéroïde
+→ HUD miroir/180°
+→ tag tourelles séparé.
+
+`tactical_runtime.hpp`
+→ récupération minerai atténuée.
+
+`tests/*`
+→ rendu classique réel
+→ missile/HUD
+→ chaîne difficulté/énergie/contact.

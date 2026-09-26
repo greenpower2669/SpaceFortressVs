@@ -68,7 +68,7 @@ static void testCoopHumanAim()
             assert(shot.kind==0);
             if (ai && shot.owner==0) assert(shot.velocity.vx>100);
             else {
-                assert(std::abs(shot.velocity.vx)<.001f);
+                assert(std::abs(shot.velocity.vx)<30);
                 assert(shot.owner==0 ? shot.velocity.vy>0 : shot.velocity.vy<0);
             }
         }
@@ -82,7 +82,7 @@ static void testCoopHumanAim()
         }
     }
     sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
-    std::puts("PASS: human cooperative shots keep their camp axis; Orion anticipates; ordinary shots never steer in flight");
+    std::puts("PASS: human cooperative shots keep bounded launch dispersion; Orion anticipates; ordinary shots never steer in flight");
 }
 
 static std::string sfTestReadBytes(const std::string &path)

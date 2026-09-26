@@ -141,3 +141,15 @@ Les anomalies 3, 6, 8 et 9 sont liées par la chaîne survie/énergie/dégâts. 
 - Cette barre doit être pensée pour la lecture des deux côtés de l'écran : présentation inversée côté joueur rouge / haut.
 - Code couleur demandé pour la vie : **vert à pleine vie → rouge à vie faible/vide**.
 - Ces points sont des exigences d'affichage issues du test téléphone ; aucune implémentation n'a encore été faite.
+
+
+## Lot correctif autorisé par Fab — 26 septembre 2026
+Fab valide l’audit Astra et autorise le code.
+- D-140-01 : qualification de la fonction historique `::setw` uniquement dans la copie Android générée ; `src/main.cpp` reste inchangé.
+- D-140-02 : texture historique missile pour `kind=4`.
+- D-140-04 : HUD dédoublé pour les deux orientations : vie boss miroir vert→rouge, PV + énergie des pilotes, joueur haut à 180°.
+- D-140-03/08/09 : récupération énergétique du minerai fortement atténuée, cadence et dispersion initiale liées à `nrj`, impacts astéroïdes physiques séparés des i-frames projectile avec chaleur de surface historique.
+- D-140-06 : contact boss continu épuise rapidement l’énergie puis les PV.
+- D-140-05 : tirs tourelles distingués des tirs pilotes pour attribution ; pas de buff arbitraire de PV boss.
+- D-140-07 : tirs ordinaires restent rectilignes ; prédiction initiale conservée ; guidage réservé au missile/types explicitement guidés.
+Le joueur haut est confirmé RAS au téléphone. Fab juge aussi le jeu trop facile au niveau facile : la difficulté est donc relevée via les mécanismes identifiés, pas par une hausse aveugle des PV boss.

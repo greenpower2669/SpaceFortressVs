@@ -26,6 +26,7 @@ struct SfCoopState {
     tupl bonusPosition;
     tuplv bonusVelocity;
     std::array<float,2> cooldown{},invulnerable{},reviveProgress{};
+    std::array<unsigned,2> shotSequence{};
     std::vector<SfCoopShot> shots;
     std::vector<SfCoopBeam> beams;
     std::vector<SfCoopWave> waves;
@@ -41,7 +42,7 @@ inline int sfFamePage=0,sfCampaignPage=0;
 struct SfCampaignTextures {
     SDL_Renderer *renderer=nullptr;
     SDL_Texture *bosses=nullptr,*planets=nullptr,*backgrounds=nullptr;
-    SDL_Texture *orange=nullptr,*blue=nullptr,*bonus=nullptr,*impact=nullptr;
+    SDL_Texture *orange=nullptr,*blue=nullptr,*bonus=nullptr,*impact=nullptr,*missile=nullptr;
     std::array<SDL_Texture*,4> rocks{};
 };
 inline std::vector<SfCampaignTextures> sfCampaignTextures;
@@ -202,21 +203,55 @@ static tuplv sfCoopAiVelocity(float dt)
     return tuplv(old.vx+(chosen.vx-old.vx)*blend,old.vy+(chosen.vy-old.vy)*blend);
 }
 
+static float sfCoopFireDelay(float heat)
+{
+    return .20f+.010f*sfShipHeat(heat);
+}
+static float sfCoopShotSpread(float heat,unsigned sequence,int owner)
+{
+    const float spent=sfShipHeat(heat)/SF_MAX_SHIP_HEAT;
+    const float envelope=.10f*std::pow(spent,1.25f);
+    return std::sin(sequence*2.39996323f+owner*1.173f)*envelope;
+}
 static bool sfCoopFire(int owner)
 {
     auto *ship=sfCoopShip(owner);
-    if (sfCoop.phase!=SfCoopPhase::Combat || ship->pv<=0 || sfCoop.shots.size()>=600) return false;
-    const float speed=sfMainShotSpeed(ship->nrj);
+    if (sfCoop.phase!=SfCoopPhase::Combat || ship->pv<=0 || sfCoop.shots.size()>=600 ||
+        sfCoop.cooldown[owner]>0) return false;
+    const float heatBefore=sfShipHeat(ship->nrj);
+    const float speed=sfMainShotSpeed(heatBefore);
     const bool missile=sfSpendMainEnergy(ship);
     float angle=(owner==0 ? 1 : -1)*float(PI)*.5f;
     if (owner==0 && sfActiveMode==SF_COOP_AI) {
         const auto aim=sfBossGhost().intercept(tupl(ship->x,ship->y),speed,.9f);
         angle=std::atan2(aim.y-ship->y,aim.x-ship->x);
     }
+    const unsigned sequence=++sfCoop.shotSequence[owner];
+    if (!missile) angle+=sfCoopShotSpread(heatBefore,sequence,owner);
     const float radius=sfCoopShipRadius();
     sfCoopEmit(tupl(ship->x+std::cos(angle)*radius,ship->y+std::sin(angle)*radius),
                angle,missile ? sfArenaW*.65f : speed,owner,missile ? 60 : 12,missile ? 4 : 0);
+    sfCoop.cooldown[owner]=sfCoopFireDelay(heatBefore);
     return true;
+}
+
+static void sfCoopBossContact(int owner,float dt)
+{
+    auto *ship=sfCoopShip(owner);
+    if (ship->pv<=0 || sfCoop.phase!=SfCoopPhase::Combat || dt<=0) return;
+    sfAddShipHeat(ship,45.0f*dt);
+    const float spent=sfShipHeat(ship->nrj)/SF_MAX_SHIP_HEAT;
+    ship->pv=std::max(0.0f,ship->pv-650.0f*spent*spent*dt);
+    sfCoop.soundHit=true;
+}
+static void sfCoopAsteroidHurt(int owner,float legacyDamage)
+{
+    auto *ship=sfCoopShip(owner);
+    if (ship->pv<=0 || sfCoop.phase!=SfCoopPhase::Combat) return;
+    const float area=legacyDamage/.05f;
+    ship->pv=std::max(0.0f,ship->pv-sfShieldDamage(legacyDamage,ship->nrj));
+    sfAddShipHeat(ship,area*.0001f);
+    sfCoop.soundHit=true;
 }
 
 static void sfCoopMovePlayers(float dt)
@@ -244,12 +279,11 @@ static void sfCoopMovePlayers(float dt)
         if (distance<collision) {
             const tuplv push=sfUnitVelocity(sfCoop.position,tupl(ship->x,ship->y),collision);
             ship->x=sfCoop.position.x+push.vx; ship->y=sfCoop.position.y+push.vy;
-            sfCoopHurt(owner,30+sfCoop.boss); ship->startup();
+            sfCoopBossContact(owner,dt); ship->startup();
         }
         sfCoop.cooldown[owner]-=dt;
-        if (owner==0 && sfActiveMode==SF_COOP_AI && sfCoop.cooldown[owner]<=0) {
-            if (sfCoopFire(owner)) sfCoop.cooldown[owner]=.30f+ship->nrj*.007f;
-        }
+        if (owner==0 && sfActiveMode==SF_COOP_AI && sfCoop.cooldown[owner]<=0)
+            sfCoopFire(owner);
     }
     for (int owner=0;owner<2;++owner) if (sfCoopShip(owner)->pv<=0) {
         const auto *ally=sfCoopShip(1-owner); auto *down=sfCoopShip(owner);
@@ -280,7 +314,7 @@ static void sfCoopDefences(float dt)
         if (turret.alert && turret.energy>=12 && turret.deploy>=.99f && turret.cooldown<=0 && std::abs(delta)<.1f) {
             turret.energy-=12;
             turret.flash=.16f;
-            sfCoopEmit(sfTurretMuzzle(i),turret.angle,sfArenaW*1.25f,i/SF_TURRETS_PER_TEAM,2.5f);
+            sfCoopEmit(sfTurretMuzzle(i),turret.angle,sfArenaW*1.25f,i/SF_TURRETS_PER_TEAM,2.5f,5);
             turret.cooldown=1.6f+(i%SF_TURRETS_PER_TEAM)*.12f;
         }
     }
@@ -398,7 +432,7 @@ static void sfCoopBonus(float dt)
 
 static void sfCoopResources(float dt)
 {
-    sfLegacyFieldFrame(dt,sfCoopHurt);
+    sfLegacyFieldFrame(dt,sfCoopAsteroidHurt);
 }
 
 static void sfCoopWin()
@@ -543,6 +577,7 @@ static SfCampaignTextures &sfCoopTextures(SDL_Renderer *renderer)
     for(int i=0;i<4;++i) entry.rocks[i]=IMG_LoadTexture(renderer,(std::string("resources/assets/pict/")+paths[i]).c_str());
     entry.bonus=IMG_LoadTexture(renderer,"resources/assets/pict/Bonus_de_tourelles.png");
     entry.impact=IMG_LoadTexture(renderer,IMG_PATHpous);
+    entry.missile=IMG_LoadTexture(renderer,IMG_PATHmiss);
     sfCampaignTextures.push_back(entry);return sfCampaignTextures.back();
 }
 static void sfCampaignForgetRenderer(SDL_Renderer *renderer)
@@ -717,6 +752,61 @@ static void sfDrawCampaignSpace(SDL_Renderer *renderer,int boss,float time,int w
     }
 }
 
+static SDL_Rect sfMirrorRect180(SDL_Rect rect,int width,int height)
+{
+    rect.x=width-rect.x-rect.w;rect.y=height-rect.y-rect.h;return rect;
+}
+static SDL_Color sfHealthColor(float ratio)
+{
+    ratio=std::clamp(ratio,0.0f,1.0f);
+    return {Uint8(235*(1-ratio)+45*ratio),Uint8(45*(1-ratio)+225*ratio),70,255};
+}
+static void sfCoopText180(SDL_Renderer *renderer,int width,int height,int x,int y,
+                          const std::string &value,int maxWidth,int preferred,SDL_Color color)
+{
+    const std::string text=sfDisplayText(value);
+    int outputWidth,outputHeight;SDL_GetRendererOutputSize(renderer,&outputWidth,&outputHeight);
+    const int scale=std::max(1,std::min({preferred,maxWidth/std::max(1,int(text.size())*6),
+                                        std::max(1,outputHeight/330)}));
+    SDL_SetRenderDrawColor(renderer,color.r,color.g,color.b,color.a);
+    int cursor=x;
+    for(const char ch:text) {
+        const uint8_t *glyph=sfUiGlyph(ch);
+        for(int row=0;row<7;++row) for(int col=0;col<5;++col) if(glyph[row]&(1u<<(4-col))) {
+            SDL_Rect px{cursor+col*scale,y+row*scale,scale,scale};
+            px=sfMirrorRect180(px,width,height);SDL_RenderFillRect(renderer,&px);
+        }
+        cursor+=6*scale;
+    }
+}
+static int sfHudBarHeight(int width) {return std::max(10,width/60);}
+static SDL_Rect sfPlayerPvRect(int owner,int width,int height)
+{
+    const int margin=std::max(8,width/30),w=int(width*.43f),h=sfHudBarHeight(width);
+    SDL_Rect base{margin,int(height*.925f),w,h};
+    return owner==0 ? sfMirrorRect180(base,width,height) : base;
+}
+static SDL_Rect sfPlayerEnergyRect(int owner,int width,int height)
+{
+    const int margin=std::max(8,width/30),w=int(width*.43f),h=sfHudBarHeight(width);
+    SDL_Rect base{margin,int(height*.963f),w,h};
+    return owner==0 ? sfMirrorRect180(base,width,height) : base;
+}
+static SDL_Rect sfBossLifeRect(bool upper,int width,int height)
+{
+    const int w=int(width*.58f),h=sfHudBarHeight(width);
+    SDL_Rect lower{(width-w)/2,int(height*.858f),w,h};
+    return upper ? sfMirrorRect180(lower,width,height) : lower;
+}
+static void sfDrawRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,SDL_Color fill,bool reverse=false)
+{
+    ratio=std::clamp(ratio,0.0f,1.0f);
+    SDL_SetRenderDrawColor(renderer,24,28,40,235);SDL_RenderFillRect(renderer,&rect);
+    SDL_Rect value=rect;value.w=std::max(0,int(rect.w*ratio));
+    if(reverse) value.x=rect.x+rect.w-value.w;
+    SDL_SetRenderDrawColor(renderer,fill.r,fill.g,fill.b,fill.a);SDL_RenderFillRect(renderer,&value);
+}
+
 static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
 {
     auto &textures=sfCoopTextures(renderer);
@@ -752,8 +842,16 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
     for (const auto &shot : sfCoop.shots) {
         SDL_Color color=shot.owner==0 ? SDL_Color{255,175,75,255} : shot.owner==1 ? SDL_Color{100,220,255,255} : SDL_Color{255,70,140,255};
         if (shot.kind==2) color=shot.age<1.2f ? SDL_Color{255,200,75,190} : SDL_Color{255,70,50,255};
-        sfCoopDisc(renderer,shot.position.x,shot.position.y,shot.radius*1.7f,{color.r,color.g,color.b,65});
-        sfCoopDisc(renderer,shot.position.x,shot.position.y,shot.radius,color);
+        if (shot.kind==4 && textures.missile) {
+            const int w=std::max(8,int(shot.radius*1.55f)),h=std::max(18,int(shot.radius*4.8f));
+            SDL_Rect rect{int(shot.position.x-w*.5f),int(shot.position.y-h*.5f),w,h};
+            const double angle=std::atan2(shot.velocity.vy,shot.velocity.vx)*180.0/PI+90.0;
+            sfCoopDisc(renderer,shot.position.x,shot.position.y,shot.radius*1.65f,{color.r,color.g,color.b,70});
+            SDL_RenderCopyEx(renderer,textures.missile,nullptr,&rect,angle,nullptr,SDL_FLIP_NONE);
+        } else {
+            sfCoopDisc(renderer,shot.position.x,shot.position.y,shot.radius*1.7f,{color.r,color.g,color.b,65});
+            sfCoopDisc(renderer,shot.position.x,shot.position.y,shot.radius,color);
+        }
     }
     const float death=sfCoop.phase==SfCoopPhase::Dying ? std::clamp(sfCoop.phaseTime/1.6f,0.0f,1.0f) :
         (sfCoop.phase==SfCoopPhase::Name || sfCoop.phase==SfCoopPhase::Saved ? 1.0f : 0.0f);
@@ -792,22 +890,35 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
     }
     if (sfCoop.turretTime>0) sfCoopText(renderer,width/4,int(height*.875f),
         "TOURELLES : "+std::to_string(int(std::ceil(sfCoop.turretTime)))+" S",width/2,2,{120,255,150,255});
-    const int margin=std::max(8,width/30),barWidth=int(width*.58f),barHeight=std::max(7,width/80);
-    sfCoopText(renderer,margin,int(height*.025f),"COMBAT "+std::to_string(sfCoop.encounter+1)+" / 200 - "+sfDifficultyNames[sfDifficultyIndex(sfCoop.encounter)],width*.7f,std::max(2,width/220),{255,190,120,255});
-    sfCoopText(renderer,margin,int(height*.05f),sfCoopProfile().name,int(width*.72f),std::max(2,width/260));
-    SDL_Rect bossBar{margin,int(height*.079f),barWidth,barHeight};
-    SDL_SetRenderDrawColor(renderer,30,28,45,235);SDL_RenderFillRect(renderer,&bossBar);
-    bossBar.w=int(barWidth*std::clamp(sfCoop.health/sfCoopProfile().health,0.0f,1.0f));
-    SDL_SetRenderDrawColor(renderer,230,65,125,255);SDL_RenderFillRect(renderer,&bossBar);
-    sfCoopButton(renderer,{int(width*.81f),int(height*.02f),int(width*.16f),int(height*.062f)},"PAUSE");
+    const int margin=std::max(8,width/30);
+    sfCoopText(renderer,margin,int(height*.025f),"COMBAT "+std::to_string(sfCoop.encounter+1)+" / 200 - "+sfDifficultyNames[sfDifficultyIndex(sfCoop.encounter)],int(width*.45f),std::max(2,width/220),{255,190,120,255});
+    sfCoopText(renderer,margin,int(height*.05f),sfCoopProfile().name,int(width*.45f),std::max(2,width/260));
+    sfCoopButton(renderer,{int(width*.81f),int(height*.47f),int(width*.16f),int(height*.062f)},"PAUSE");
+
+    const float bossRatio=std::clamp(sfCoop.health/sfCoopProfile().health,0.0f,1.0f);
+    const SDL_Color bossColor=sfHealthColor(bossRatio);
+    sfDrawRatioBar(renderer,sfBossLifeRect(false,width,height),bossRatio,bossColor,false);
+    sfDrawRatioBar(renderer,sfBossLifeRect(true,width,height),bossRatio,bossColor,true);
+
     for (int owner=0;owner<2;++owner) {
-        const auto *ship=sfCoopShip(owner);const int x=owner==0 ? margin : width/2+margin/2;
-        const int w=int(width*.43f),y=int(height*.935f);
-        const SDL_Color color=owner==0 ? SDL_Color{255,180,95,255} : SDL_Color{100,210,255,255};
-        sfCoopText(renderer,x,int(height*.908f),owner==0 ? (sfActiveMode==SF_COOP_AI ? "ORION IA" : "PILOTE ORANGE") : "PILOTE BLEU",w,std::max(2,width/280),color);
-        SDL_Rect bar{x,y,w,barHeight};SDL_SetRenderDrawColor(renderer,30,40,60,220);SDL_RenderFillRect(renderer,&bar);
-        bar.w=int(w*std::clamp(ship->pv/1000,0.0f,1.0f));SDL_SetRenderDrawColor(renderer,color.r,color.g,color.b,255);SDL_RenderFillRect(renderer,&bar);
-        sfCoopText(renderer,x,y+barHeight+6,"ENERGIE "+std::to_string(int(std::lround(100*(1-sfShipHeat(ship->nrj)/50))))+"%",w,std::max(2,width/300),color);
+        const auto *ship=sfCoopShip(owner);const bool upper=owner==0;
+        const SDL_Color team=upper ? SDL_Color{255,180,95,255} : SDL_Color{100,210,255,255};
+        const float pvRatio=std::clamp(ship->pv/1000.0f,0.0f,1.0f);
+        const float energyRatio=1-sfShipHeat(ship->nrj)/SF_MAX_SHIP_HEAT;
+        sfDrawRatioBar(renderer,sfPlayerPvRect(owner,width,height),pvRatio,sfHealthColor(pvRatio),upper);
+        sfDrawRatioBar(renderer,sfPlayerEnergyRect(owner,width,height),energyRatio,team,upper);
+        const int logicalX=margin,logicalW=int(width*.43f);
+        const int nameY=int(height*.895f),pvY=int(height*.908f),energyY=int(height*.946f);
+        const std::string name=upper ? (sfActiveMode==SF_COOP_AI ? "ORION IA" : "PILOTE ORANGE") : "PILOTE BLEU";
+        if(upper) {
+            sfCoopText180(renderer,width,height,logicalX,nameY,name,logicalW,std::max(2,width/280),team);
+            sfCoopText180(renderer,width,height,logicalX,pvY,"PV",logicalW,std::max(2,width/300),sfHealthColor(pvRatio));
+            sfCoopText180(renderer,width,height,logicalX,energyY,"ENERGIE",logicalW,std::max(2,width/300),team);
+        } else {
+            sfCoopText(renderer,logicalX,nameY,name,logicalW,std::max(2,width/280),team);
+            sfCoopText(renderer,logicalX,pvY,"PV",logicalW,std::max(2,width/300),sfHealthColor(pvRatio));
+            sfCoopText(renderer,logicalX,energyY,"ENERGIE",logicalW,std::max(2,width/300),team);
+        }
     }
 }
 

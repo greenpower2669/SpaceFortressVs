@@ -62,6 +62,13 @@ macro(sf_patch_once label before after)
     string(REPLACE "${before}" "${after}" GAME_MAIN "${GAME_MAIN}")
 endmacro()
 
+# std::setw(int) from <iomanip> can win overload resolution over Fab's
+# historical ::setw(float) when DM.w is an int. Qualify only the generated
+# Android copy so src/main.cpp remains byte-for-byte historical.
+sf_patch_once("historical display width initialization"
+    "setw(DM.w);seth(DM.h);"
+    "::setw(static_cast<float>(DM.w));seth(DM.h);")
+
 sf_patch_once("arena-width visibility bounds"
     "a->x>0-w*0.2 and a->x<W*1.2"
     "a->x>0-W*0.2 and a->x<W*1.2")
