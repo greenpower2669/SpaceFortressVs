@@ -1,34 +1,51 @@
-# Restauration 1.4.0 — corrections locales vérifiées, livraison en attente
+# SpaceFortressVs 1.4.0 — relais Sol, vérification fraîche en cours
 
-- Inventaire et décisions : docs/superpowers/plans/2026-09-20-gameplay-200.md.
-- Codé : taps humains, missiles pleine réserve, bouclier dépendant de nrj,
-  bonus flottant/expiration/réserves de tourelles, champ historique partagé,
-  200 rencontres en quatre tours, format v2 avec archive v1, apparence
-  procédurale commune sélection/combat (auras, reflets, 0/4/8/20 tentacules).
-- Bases : v1.3.1 dcf80afb6eb117d405f46f03d8567d31a76b4b12 ; historique
-  7ce2c949249cd087c047744ce12ed44f892f1319 ; branche fix/gameplay-campaign-200.
-- Vérifié : 32 groupes natifs SDL/UBSan, 21 groupes du vrai champ Android
-  généré, fixture v1/v2 autonome, neuf tests Python et syntaxe Android.
-  Cinq combats complets simulés, 200 ouvertures et 200 victoires par coup final
-  enregistré/rechargé ; 200 rendus ; migration durable avec victoire en attente.
-- Vérifié visuellement : portraits conservés, mêmes auras/reflets/tentacules
-  en sélection/combat, absence d’aura au niveau 1, textes portrait/paysage.
-- Préparé : 1.4.0/code 10, noms APK/AAB, icône conservée et comparaison
-  obligatoire du certificat réel avec la 1.3.1 dans le packaging.
-- [ ] Autoriser explicitement le push vers le dépôt GitHub : le contrôle
-  automatique a rejeté l’envoi externe pour autorisation jugée insuffisante.
-  Aucun code de cette correction n’a été envoyé à ce stade.
-- [ ] Lancer et vérifier compilation Android APK/AAB, PNG et signature réels.
-  Les tests natifs et la vérification syntaxique ne remplacent pas ce build.
-- [ ] Retrouver la clé privée correspondant à la 1.3.1 installée pour permettre
-  une mise à jour ; le certificat seul ne suffit pas. Ne pas désinstaller ni
-  effacer les données pour contourner une signature différente.
-- [ ] Publier seulement les fichiers issus du build vérifié.
-- [ ] Fab : essais sur téléphone (quatre doigts, veille/reprise, champ vivant,
-  énergie, bonus/tourelles, son, performance et équilibre des quatre niveaux).
-- Dispositions portrait/paysage testées nativement ; verrouillage Android
-  portrait conservé. La rotation dynamique n’est pas validée.
-- Aucun gameplay validé sur téléphone et aucun nouvel APK déclaré prêt.
+## Référence préservée
+- [x] Branche distante récupérée : `fix/gameplay-campaign-200`.
+- [x] Commit de sauvegarde Astra confirmé : `9b8cae378f66d461dd8a29f9504972f648b2c40c`.
+- [x] Arbre Git confirmé par Sol : `92cf3b03b2aeaf30da6d57b85f126f89cf37caf4`.
+- [x] Aucun développement recommencé de mémoire ; le travail récupéré est conservé.
+- [x] Version préparée confirmée : 1.4.0 / code 10.
+
+## FAB Copilot
+- [x] Conserver intégralement l'historique de `todo.md`.
+- [x] Reconstruire `brain.md`, `brainmap.md` et `debughistorical.md` à partir du code, du plan, des notes de release et des tests présents.
+- [x] Distinguer explicitement les résultats rapportés par Astra des vérifications exécutées par Sol.
+- [ ] Après le workflow frais, mettre à jour les quatre mémoires ensemble avec le SHA réellement testé, les résultats et les éventuels blocages.
+
+## Vérification Sol
+- [x] Vérifier la branche, le commit et l'arbre distants.
+- [x] Vérifier par lecture du code : campagne 200, mapping 50×4, rendu partagé sélection/combat, 0/4/8/20 tentacules, commandes multitouch, énergie historique, bonus tourelles, champ partagé et migration v1/v2.
+- [x] Vérifier que le sélecteur utilise des tailles de texte bornées par la hauteur et dispose de tests portrait/paysage et de lancement du combat 200.
+- [ ] Exécuter fraîchement `scripts/test-regressions.sh` via le workflow Android sur le HEAD de reprise.
+- [ ] Si un blocage est reproduit, corriger uniquement sa cause avec test de régression et synchroniser les quatre mémoires dans le même commit.
+
+## Build Android
+- [ ] Compiler `SpaceFortressVs-1.4.0.apk`.
+- [ ] Compiler `SpaceFortressVs-1.4.0-unsigned.aab`.
+- [ ] Vérifier PNG, chemins, bibliothèque ARM64, ZIP et empreintes.
+- [ ] Récupérer les artefacts du workflow réellement réussi.
+
+## Signature
+- [ ] Comparer le certificat du nouvel APK au certificat publié v1.3.1 `8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868`.
+- [ ] Si différent : marquer explicitement l'APK incompatible avec une mise à jour directe et ne demander aucune désinstallation/suppression de données.
+
+## Validation téléphone réservée à Fab
+- [ ] quatre doigts simultanés ;
+- [ ] toucher après veille/reprise ;
+- [ ] champ historique vivant avec collisions/minage/fragmentation ;
+- [ ] énergie, missile, bonus et tourelles ;
+- [ ] son et performances ;
+- [ ] équilibre des quatre difficultés ;
+- [ ] rendu réel sélection/combat.
+
+## Interdictions de cette mission
+- Aucun merge dans `main`.
+- Aucune publication de release sans nouvel accord de Fab.
+- Aucun ajout fonctionnel ni refonte.
+- Préserver `src/main.cpp`, les sauvegardes, les 50 portraits, l'écran de fin stable, l'icône et les assets.
+- Aucun transfert massif Base64.
+
 
 ## Historique précédent
 
