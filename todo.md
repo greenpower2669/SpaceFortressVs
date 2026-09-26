@@ -16,6 +16,10 @@
 - [ ] Garder D-140-01 isolé en régression de rendu classique tant que la simulation reste active.
 
 ## Validation physique déjà observée
+- [x] Joueur du haut testé physiquement en coop : RAS sur contrôle/tir.
+- [ ] HUD du joueur du haut : afficher ses informations à 180° pour lecture depuis l'autre côté de l'écran.
+- [ ] Ajouter une barre de vie du boss sans valeur numérique imposée.
+- [ ] Barre boss : présentation inversée côté joueur rouge/haut et code couleur vert pleine vie → rouge vie vide.
 - [x] Premier boss lancé et jouable.
 - [x] Tir au tap du joueur du bas fonctionnel.
 - [ ] Joueur du haut et quatre doigts réels à tester avec un second joueur.

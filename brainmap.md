@@ -162,3 +162,17 @@ Champ astéroïdes présent physiquement/effets visibles
 → dégâts PV actuels jugés trop faibles sur téléphone.
 
 Ne pas déduire une cause racine à partir de cette carte : elle localise les sous-systèmes à inspecter et les interactions à mesurer.
+
+
+## Complément HUD téléphone
+Joueur haut coop validé RAS
+→ logique contrôle/tir à préserver.
+
+HUD joueur haut
+→ rotation/lecture à 180°
+→ lisible depuis le côté opposé de l'écran.
+
+Vie boss
+→ barre visuelle sans valeur numérique requise
+→ lecture miroir/inversée côté joueur rouge/haut
+→ code couleur vert plein → rouge vide.

@@ -153,3 +153,10 @@ Statut : anomalie de sensation confirmée sur téléphone, quantification à fai
 - pilote haut et quatre doigts réels encore à confirmer avec un second joueur.
 
 Aucune correction de code n'a été faite dans cette intervention documentaire.
+
+
+## Complément test physique — HUD/orientation
+- Joueur du haut testé en coop : aucun défaut fonctionnel relevé sur son contrôle/tir.
+- Nouveau défaut d'ergonomie : les informations du joueur du haut doivent être tournées à 180° pour être lisibles par le joueur placé de l'autre côté de l'écran.
+- Exigence HUD boss ajoutée : barre de vie sans valeur numérique obligatoire, disposition inversée côté joueur rouge/haut, code couleur vert pleine vie → rouge vie vide.
+- Statut : exigences de rendu à auditer ; aucune correction de code effectuée.

@@ -132,3 +132,12 @@ Ce retour provient d'un essai physique de l'APK 1.4.0. Il prime sur les simulati
 
 ### Discipline d'audit
 Les anomalies 3, 6, 8 et 9 sont liées par la chaîne survie/énergie/dégâts. Les auditer ensemble avant de choisir des constantes : **impact → énergie/bouclier → PV → récupération → cadence/précision**. Le bug 1 doit au contraire être isolé comme régression de rendu classique jusqu'à preuve du contraire.
+
+
+## Complément retour téléphone — joueur haut et HUD
+- Le joueur du haut a maintenant été testé physiquement en coop : **RAS** sur son contrôle/tir.
+- Comme ce joueur joue depuis l'autre côté de l'écran, ses informations HUD doivent être **affichées à 180°** afin d'être lisibles depuis son orientation réelle.
+- Ajouter une barre de vie du boss sans valeur numérique imposée.
+- Cette barre doit être pensée pour la lecture des deux côtés de l'écran : présentation inversée côté joueur rouge / haut.
+- Code couleur demandé pour la vie : **vert à pleine vie → rouge à vie faible/vide**.
+- Ces points sont des exigences d'affichage issues du test téléphone ; aucune implémentation n'a encore été faite.
