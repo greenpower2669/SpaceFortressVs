@@ -28,3 +28,17 @@ static SDL_Rect sfEnergyMarkerRect(float heat,SDL_Rect full,const SDL_Rect &gun)
     full.y=std::lround(full.y+(gunY-full.y)*spent);
     return full;
 }
+
+// Shared historical main-weapon cost, including the full-reserve missile.
+static bool sfSpendMainEnergy(sprite *ship)
+{
+    sfAddShipHeat(ship,1);
+    const bool missile=ship->nrj<1.5f;
+    if (missile) sfAddShipHeat(ship,10);
+    return missile;
+}
+static float sfShieldDamage(float damage,float heat)
+{
+    const float spent=sfShipHeat(heat)/SF_MAX_SHIP_HEAT;
+    return damage*spent*spent;
+}

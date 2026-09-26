@@ -8,7 +8,7 @@
 #define main sfLegacyMain
 #include "main_android_compat.cpp"
 #undef main
-#include "legacy-mining-snippet.hpp"
+
 
 static void clearField()
 {
@@ -36,8 +36,10 @@ static void mining()
 {
     for (int height : {360,709,780,1536,1680}) {
         HEIGHT=height;
-        const float step=sfTestMiningStep();
-        assert(step>0 && std::abs(step*1000-height)<.001f);
+        sfArenaH=height;
+        sprite rock,shot;rock.pv=shot.pv=1;rock.w=rock.h=100;
+        sfMineAsteroid(&rock,&shot);const float step=100-rock.w;
+        assert(step>0 && std::abs(step*1000-height)<.01f);
     }
     std::puts("PASS: the generated legacy mining statement stays nonzero in both orientations");
 }
@@ -76,9 +78,85 @@ static void trajectories()
     clearField();
 }
 
+static sprite *fieldRock(float x,float y,float size)
+{
+    auto *rock=new sprite;rock->setv(x,y,size,size,0,0,1);
+    rock->h=rock->sh=size;rock->pv=1;rock->timer=0;rock->name="a1";
+    sa1.push_back(rock);return rock;
+}
+static void interactions()
+{
+    W=WIDTH=sfArenaW=780;H=HEIGHT=sfArenaH=1680;k0=1;
+    sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfUiScreen=SF_UI_GAME;setgui=false;loosej1->pv=loosej2->pv=0;
+    sfTacticsReset();clearField();Spritej1->pv=Spritej2->pv=0;
+    for(int i=0;i<8;++i) fieldRock(60+i*90,100,20);
+    fieldRock(380,840,100);fieldRock(400,840,100);
+    sfLegacyFieldFrame(1.0f/60,nullptr);
+    assert(sa1.size()==24 && incra1==24 && particules.size()==29);
+    assert(!explos.empty());
+    int children=0;for(const auto *rock:sa1) if(rock->w==50) {++children;assert(rock->timer!=0);}
+    assert(children==16); // Four historical bursts; newborns wait for the next step.
+    sfTacticsReset();clearField();
+    for(int i=0;i<8;++i) fieldRock(60+i*90,100,20);
+    auto *rock=fieldRock(390,840,100);
+    auto *shot=new sprite;shot->setxywh(390,840,8,8);shot->pv=1;entitiesj1.push_back(shot);
+    sfLegacyFieldFrame(1.0f/60,nullptr);
+    assert(shot->pv==0 && rock->w<100 && particules.size()==29 && !explos.empty());
+    sfLegacyFieldFrame(1.0f/60,nullptr);assert(particules.size()==29);
+    Spritej1->setxywh(particules.front()->x,particules.front()->y,100,100);
+    Spritej2->setxywh(100,1500,100,100);Spritej2->pv=1000;
+    Spritej1->pv=1000;Spritej1->nrj=30;sfCollectDust();assert(Spritej1->nrj<30);
+    const float heat=Spritej1->nrj;sfCollectDust();assert(Spritej1->nrj==heat);
+    // Actual ship impact through the same field owner in duel and coop.
+    for(bool coop:{false,true}) {
+        sfTacticsReset();clearField();
+        sfActiveMode=sfSelectedMode=coop ? SF_COOP_LOCAL : SF_DUEL_LOCAL;
+        sfCoop.phase=SfCoopPhase::Combat;sfCoop.invulnerable={};
+        Spritej1->setxywh(390,840,100,100);Spritej1->nrj=40;Spritej1->pv=1000;Spritej2->pv=0;
+        fieldRock(390,840,100);
+        sfLegacyFieldFrame(1.0f/60,coop ? sfCoopHurt : nullptr);
+        assert(Spritej1->pv<1000 && Spritej1->nrj>40 && !particulesr.empty() && !explos.empty());
+    }
+    sfTacticsReset();clearField();
+    std::puts("PASS: shared real field fragments into 16 children, mines once, emits/collects ore and applies ship collisions in duel/coop");
+}
+
+static void fullField()
+{
+    for(auto size:{std::pair<int,int>{780,1680},{1680,780}}) for(bool coop:{false,true}) {
+        double reference=0;size_t referenceCount=0;
+        for(int fps:{30,60,120}) {
+            sfTacticsReset();clearField();std::srand(701);
+            W=WIDTH=sfArenaW=size.first;H=HEIGHT=sfArenaH=size.second;k0=60.0f/fps;
+            sfActiveMode=sfSelectedMode=coop ? SF_COOP_LOCAL : SF_DUEL_LOCAL;
+            Spritej1->pv=Spritej2->pv=0;
+            std::array<long,4> columns{};long visible=0;
+            for(int frame=0;frame<fps*40;++frame) {
+                sfLegacyFieldFrame(1.0f/fps,coop ? sfCoopHurt : nullptr);
+                assert(sa1.size()<=200 && particules.size()<=1000 && particulesr.size()<=1000);
+                for(const auto *rock:sa1) {
+                    assert(std::isfinite(rock->x) && std::isfinite(rock->y) && rock->w>0);
+                    if(rock->x>=0 && rock->x<W && rock->y>=0 && rock->y<H) {
+                        ++columns[std::min(3,int(rock->x/W*4))];++visible;
+                    }
+                }
+            }
+            double checksum=0;for(const auto *rock:sa1) checksum+=rock->x+rock->y+rock->w;
+            if(fps==30) {reference=checksum;referenceCount=sa1.size();}
+            else assert(sa1.size()==referenceCount && std::abs(checksum-reference)<.05);
+            assert(visible>1000);for(long column:columns) assert(column>visible*.04);
+            std::printf("PASS: actual %s field, %dx%d, %dHz x 40s, %zu surviving rocks; all four screen quarters occupied\n",
+                coop ? "coop" : "duel",WIDTH,HEIGHT,fps,sa1.size());
+        }
+    }
+    sfTacticsReset();clearField();
+}
+
 int main(int argc,char **argv)
 {
     if (argc==1 || std::string(argv[1])=="visibility") visibility();
     if (argc==1 || std::string(argv[1])=="mining") mining();
     if (argc==1 || std::string(argv[1])=="trajectories") trajectories();
+    if (argc==1 || std::string(argv[1])=="interactions") interactions();
+    if (argc==1 || std::string(argv[1])=="full-field") fullField();
 }

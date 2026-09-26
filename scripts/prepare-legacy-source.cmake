@@ -172,8 +172,21 @@ endif()
 string(SUBSTRING "${sf_foreground_tail}" 0 ${sf_foreground_length} sf_foreground_block)
 sf_replace_region("foreground relocation" "${sf_foreground_begin}" " sfDrawTacticalEffects(renderer);" "")
 sf_patch_once("cooperative frame dispatch" "sfTacticsBeginFrame(renderer);"
-    "${sf_foreground_block}\n sfTacticsBeginFrame(renderer);\n if (sfCampaignFrame(renderer)) {\n sfCoopPlaySounds(tir1,tir2,explo1,explo2);\n SDL_RenderPresent(renderer);\n continue;\n }\n")
+    "${sf_foreground_block}\n sfTacticsBeginFrame(renderer);\n if (sfCampaignFrame(renderer)) {\n sfCoopPlaySounds(tir1,tir2,explo1,explo2,entre);\n SDL_RenderPresent(renderer);\n continue;\n }\n")
 sf_patch_once("cooperative simulation ownership" "if (!sfGameReady || apap || setgui) continue;"
     "if (!sfGameReady || apap || setgui || sfIsCoop()) continue;")
+
+# Use the same historical field in duel and coop. Primitives live once in the
+# shared header; main.cpp remains the historical reference.
+sf_replace_region("shared colee" "bool colee(" "bool coleee" "")
+sf_replace_region("shared inxy" "bool inxy(" "void eclats" "")
+sf_replace_region("shared eclats" "void eclats(" "void setasts" "")
+sf_replace_region("shared setasts" "void setasts(" "void setastswall" "")
+sf_replace_region("shared setastswall" "void setastswall(" "void closesdl" "")
+sf_replace_region("shared partsforiw" "void partsforiw(" "void partsforired" "")
+sf_replace_region("shared partsforired" "void partsforired(" "//test2210 join code" "")
+sf_replace_region("shared live asteroid field"
+    "if ((incra1)<8) setasts(2);" "sfCollectDust();"
+    "sfLegacyFieldFrame(sfFrameDt,nullptr);\n if (sfFieldCollisionSound && entre) Mix_PlayChannel(5,entre,0);\n if (sfFieldMiningSound && explo2) Mix_PlayChannel(3,explo2,0);\n sfFieldCollisionSound=sfFieldMiningSound=false;\n SpaceFortressPruneParticles(particules,1000);\n SpaceFortressPruneParticles(particulesr,1000);\n")
 
 file(WRITE "${ANDROID_MAIN}" "${GAME_MAIN}")

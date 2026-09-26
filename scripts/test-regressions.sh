@@ -7,6 +7,9 @@ trap 'rm -rf "$sf_test_dir"' EXIT
 python3 "$sf_repo/scripts/prepare-assets.py" --output "$sf_test_dir/resources/assets"
 python3 "$sf_repo/tests/test_assets.py"
 python3 "$sf_repo/tests/test_release.py"
+g++ -std=c++17 -O1 -ffunction-sections -fdata-sections -I "$sf_repo/src" \
+    "$sf_repo/tests/campaign_format_regressions.cpp" -Wl,--gc-sections -o "$sf_test_dir/campaign-format"
+"$sf_test_dir/campaign-format"
 read -r -a sf_sdl_cflags <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
 read -r -a sf_sdl_libs <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
 g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all \
@@ -19,7 +22,6 @@ g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recove
 g++ -std=c++17 -D__ANDROID__ -Werror=return-type -fsyntax-only -I "$sf_repo/src" \
     -I "$sf_repo/tests/include" "${sf_sdl_cflags[@]}" \
     "$sf_test_dir/generated/main_android_compat.cpp"
-python3 "$sf_repo/tests/extract_legacy_mining.py" "$sf_test_dir/generated/main_android_compat.cpp"
 g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all \
     -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "$sf_repo/tests/include" \
     -I "$sf_test_dir/generated" "${sf_sdl_cflags[@]}" "$sf_repo/tests/legacy_field_regressions.cpp" \

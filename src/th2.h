@@ -66,4 +66,6 @@ void th2()
 // Guarded Android source patches use these gameplay safety helpers.
 #include <legacy_game_safety.hpp>
 #include <tactical_runtime.hpp>
+#include <legacy_field_primitives.hpp>
+#include <legacy_field_runtime.hpp>
 #include <campaign_runtime.hpp>

@@ -8,6 +8,7 @@ on:
     branches:
       - main
       - ui/start-screen-v1
+      - fix/gameplay-campaign-200
   pull_request:
     branches:
       - main

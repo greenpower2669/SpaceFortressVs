@@ -1,3 +1,37 @@
+# Restauration 1.4.0 — corrections locales vérifiées, livraison en attente
+
+- Inventaire et décisions : docs/superpowers/plans/2026-09-20-gameplay-200.md.
+- Codé : taps humains, missiles pleine réserve, bouclier dépendant de nrj,
+  bonus flottant/expiration/réserves de tourelles, champ historique partagé,
+  200 rencontres en quatre tours, format v2 avec archive v1, apparence
+  procédurale commune sélection/combat (auras, reflets, 0/4/8/20 tentacules).
+- Bases : v1.3.1 dcf80afb6eb117d405f46f03d8567d31a76b4b12 ; historique
+  7ce2c949249cd087c047744ce12ed44f892f1319 ; branche fix/gameplay-campaign-200.
+- Vérifié : 32 groupes natifs SDL/UBSan, 21 groupes du vrai champ Android
+  généré, fixture v1/v2 autonome, neuf tests Python et syntaxe Android.
+  Cinq combats complets simulés, 200 ouvertures et 200 victoires par coup final
+  enregistré/rechargé ; 200 rendus ; migration durable avec victoire en attente.
+- Vérifié visuellement : portraits conservés, mêmes auras/reflets/tentacules
+  en sélection/combat, absence d’aura au niveau 1, textes portrait/paysage.
+- Préparé : 1.4.0/code 10, noms APK/AAB, icône conservée et comparaison
+  obligatoire du certificat réel avec la 1.3.1 dans le packaging.
+- [ ] Autoriser explicitement le push vers le dépôt GitHub : le contrôle
+  automatique a rejeté l’envoi externe pour autorisation jugée insuffisante.
+  Aucun code de cette correction n’a été envoyé à ce stade.
+- [ ] Lancer et vérifier compilation Android APK/AAB, PNG et signature réels.
+  Les tests natifs et la vérification syntaxique ne remplacent pas ce build.
+- [ ] Retrouver la clé privée correspondant à la 1.3.1 installée pour permettre
+  une mise à jour ; le certificat seul ne suffit pas. Ne pas désinstaller ni
+  effacer les données pour contourner une signature différente.
+- [ ] Publier seulement les fichiers issus du build vérifié.
+- [ ] Fab : essais sur téléphone (quatre doigts, veille/reprise, champ vivant,
+  énergie, bonus/tourelles, son, performance et équilibre des quatre niveaux).
+- Dispositions portrait/paysage testées nativement ; verrouillage Android
+  portrait conservé. La rotation dynamique n’est pas validée.
+- Aucun gameplay validé sur téléphone et aucun nouvel APK déclaré prêt.
+
+## Historique précédent
+
 # SpaceFortressVs 1.3.1 — lot correctif
 
 - [x] Restaurer l'état complet des vaisseaux après la coop ; respiration

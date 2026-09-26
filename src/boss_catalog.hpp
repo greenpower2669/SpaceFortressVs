@@ -1,10 +1,12 @@
 #pragma once
 #include <array>
+#include <algorithm>
 
 struct SfBossProfile {
     const char *name;
     int index, family, tier, planet, backdrop;
     float health, interval, shotSpeed, damage;
+    int difficulty=0;
 };
 
 inline constexpr std::array<const char*,50> sfBossNames{{
@@ -41,4 +43,23 @@ static const std::array<SfBossProfile,50> &sfBossCatalog()
         return out;
     }();
     return profiles;
+}
+
+constexpr int SF_BOSS_COUNT=50,SF_DIFFICULTY_COUNT=4,SF_ENCOUNTER_COUNT=200;
+inline constexpr std::array<const char*,4> sfDifficultyNames{{"VIF","ENDURANT","VICIEUX","ULTIME"}};
+static int sfBossIndex(int encounter) {return std::clamp(encounter,0,199)%50;}
+static int sfDifficultyIndex(int encounter) {return std::clamp(encounter,0,199)/50;}
+static const SfBossProfile &sfEncounterProfile(int encounter)
+{
+    static const auto profiles=[] {
+        std::array<SfBossProfile,200> out{};
+        const float health[]={1,1.3f,1.6f,2.0f},cadence[]={1.05f,.92f,.84f,.72f};
+        const float speed[]={1,1.10f,1.20f,1.35f},damage[]={1,1.12f,1.25f,1.45f};
+        for(int i=0;i<200;++i) {
+            auto p=sfBossCatalog()[i%50];const int d=i/50;p.difficulty=d;
+            p.health*=health[d];p.interval*=cadence[d];p.shotSpeed*=speed[d];p.damage*=damage[d];out[i]=p;
+        }
+        return out;
+    }();
+    return profiles[std::clamp(encounter,0,199)];
 }

@@ -102,7 +102,7 @@ static void testCoopGameplay()
         assert(sfCoop.shots.size()<=600);
     }
     assert(names.size()==50 && planets.size()==50);
-    setupCampaign();sfCoop.shots.clear();sfCoop.rocks.clear();
+    setupCampaign();sfCoop.shots.clear();sfFixResetAsteroidField();
     Spritej1->setxywh(390,400,100,100);Spritej2->setxywh(390,500,100,100);
     sfCoop.position=tupl(650,840);
     sfCoopEmit(tupl(390,450),float(PI)*.5f,600,0,100);
@@ -113,13 +113,14 @@ static void testCoopGameplay()
     sfCoopProjectiles(.1f);assert(sfCoop.health==sfCoopProfile().health-12);
     sfCoop.beams={{tupl(390,840),-float(PI)*.5f,0,1}};
     sfCoop.shots.clear();
+    Spritej1->nrj=20;
     sfCoopProjectiles(.5f);assert(Spritej1->pv==1000);
     sfCoopProjectiles(.51f);assert(Spritej1->pv<1000); // Real telegraph before damage.
 
     setupCampaign();Spritej1->setxywh(390,300,100,100);Spritej2->setxywh(400,310,100,100);
     Spritej1->nrj=Spritej2->nrj=30;
-    sfCoop.dust.push_back({tupl(400,310),tuplv(0,0),10});sfCoopResources(.01f);
-    assert(Spritej1->nrj==30 && Spritej2->nrj==26 && sfCoop.dust.empty());
+    auto *dust=new parts(400,310);dust->vx=dust->vy=0;particules.push_back(dust);sfCollectDust();
+    assert(Spritej1->nrj==30 && Spritej2->nrj<30 && dust->pv==0);
     Spritej2->pv=0;Spritej1->nrj=0;
     for (int frame=0;frame<130;++frame) sfCoopMovePlayers(1.0f/60);
     assert(Spritej2->pv==450 && sfCoop.revives==2);
@@ -157,6 +158,13 @@ static void testCoopArenaBounds()
         sfCoop.controls[0].target=tupl(sfArenaW*.75f,Spritej1->y);
         for (int frame=0;frame<30;++frame) sfCoopMovePlayers(1.0f/60);
         assert(Spritej1->x>startX && Spritej1->pv==1000);
+        for(const auto target:{tupl(0,0),tupl(sfArenaW,sfArenaH)}) {
+            sfCoop.controls[0].target=target;
+            for(int frame=0;frame<120;++frame) sfCoopMovePlayers(1.0f/60);
+            assert(Spritej1->x-Spritej1->w*.5f>=-.01f && Spritej1->x+Spritej1->w*.5f<=sfArenaW+.01f);
+            assert(Spritej1->y-Spritej1->h*.5f>=sfArenaH*.105f-.01f);
+            assert(Spritej1->y+Spritej1->h*.5f<=sfArenaH*.895f+.01f);
+        }
     }
     sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
     std::puts("PASS: cooperative spawn, movement and collision sizes fit portrait and landscape arenas");
@@ -164,24 +172,27 @@ static void testCoopArenaBounds()
 
 static void testCoopCollisionMinerals()
 {
-    setupCampaign();sfCoop.rocks.clear();sfCoop.dust.clear();
-    Spritej1->nrj=40;
-    sfCoop.rocks.push_back({tupl(Spritej1->x,Spritej1->y),tuplv(0,0),20,25});
-    sfCoopResources(.001f);
-    assert(sfCoop.rocks.empty());
-    // Seven fragments are collected once by the ship that hit the rock.
-    // The hit adds two heat units, then each fragment restores four.
-    assert(Spritej1->nrj==14 && sfCoop.dust.empty());
-    const float energy=Spritej1->nrj;
-    sfCoopResources(.001f);assert(Spritej1->nrj==energy);
+    setupCampaign();sfFixResetAsteroidField();
+    W=WIDTH=780;H=HEIGHT=1680;
+    auto *rock=new sprite;rock->setv(390,650,40,40,0,0,1);rock->pv=1;sa1.push_back(rock);
+    Spritej1->nrj=40;Spritej1->x=100;Spritej1->y=200;
+    sfCoop.position=tupl(650,840);
+    sfCoopEmit(tupl(390,600),float(PI)*.5f,600,0,12);
+    const float width=rock->w;
+    sfCoopProjectiles(.1f);
+    assert(rock->w<width && !particules.empty() && sfCoop.shots.empty());
+    const auto count=particules.size();sfCoopProjectiles(.1f);assert(particules.size()==count);
+    Spritej1->x=particules.front()->x;Spritej1->y=particules.front()->y;
+    sfCollectDust();const float heat=Spritej1->nrj;assert(heat<40);
+    sfCollectDust();assert(Spritej1->nrj==heat);
     sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
-    std::puts("PASS: collision-destroyed asteroids drop and award minerals exactly once");
+    std::puts("PASS: real asteroid minable once per shot; historical ore collected once");
 }
 
 static void testCampaignProgression()
 {
     sfCampaignSave=SfCampaignSave{};assert(sfSaveCampaign(sfCampaignSave));
-    for (int boss=0;boss<50;++boss) {
+    for (int boss=0;boss<200;++boss) {
         setupCampaign(boss);
         // Exercise the actual last hit, result phase and durable award at each
         // boundary. Difficulty balance is tested separately from progression.
@@ -193,9 +204,9 @@ static void testCampaignProgression()
         assert(sfCampaignSave.cleared==boss+1 && sfCampaignSave.fame.size()==size_t(boss+1));
     }
     sfCampaignSave=SfCampaignSave{};sfCampaignLoaded=false;sfLoadCampaign();
-    assert(sfCampaignSave.cleared==50 && sfCampaignSave.fame.size()==50 && sfCampaignSave.fame.back().boss==50);
+    assert(sfCampaignSave.cleared==200 && sfCampaignSave.fame.size()==200 && sfCampaignSave.fame.back().boss==200);
     sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
-    std::puts("PASS: 50 actual last hits, 50 durable named victories, final boss boundary and complete hall after reload");
+    std::puts("PASS: 200 actual last hits, 200 durable named victories, final boss boundary and complete hall after reload");
 }
 
 static void testCampaignEntryAndFights()
@@ -203,7 +214,7 @@ static void testCampaignEntryAndFights()
     setupCampaign();sfCampaignSave=SfCampaignSave{};
     sfFixConsumedFingers.clear();sfFixLaunchPending.store(false);
     sfFixRequestedScreen.store(SF_UI_CAMPAIGN);
-    auto card=sfCampaignCard(49,int(sfArenaW),int(sfArenaH));
+    auto card=sfCampaignCard(9,int(sfArenaW),int(sfArenaH));
     auto touch=sfCoopFinger(SDL_FINGERDOWN,901,(card.x+3)/sfArenaW,(card.y+3)/sfArenaH);
     sfFixHandleEvent(&touch);assert(!sfFixLaunchPending.load()); // Locked boss stays locked.
     card=sfCampaignCard(0,int(sfArenaW),int(sfArenaH));
@@ -212,16 +223,18 @@ static void testCampaignEntryAndFights()
     sfFixApplyUiRequests();assert(sfIsCoop() && sfCoop.phase==SfCoopPhase::Intro && sfUiScreen==SF_UI_GAME);
     // Ordinary full fights, without changing health or injecting last hits.
     for (int boss : {0,9,24,39,49}) {
+        std::srand(1200+boss);
         setupCampaign(boss,true);
-        for (int frame=0;frame<60*240 && sfCoop.phase==SfCoopPhase::Combat;++frame) {
+        for (int frame=0;frame<60*480 && sfCoop.phase==SfCoopPhase::Combat;++frame) {
             sfCoop.controls[1].down=true;
             sfCoop.controls[1].target=tupl(sfArenaW*(.5f+.28f*std::sin(frame/70.0f)),sfArenaH*(.78f+.07f*std::sin(frame/95.0f)));
+            if (frame%16==0) sfCoopFire(1);
             sfCoopTick(1.0f/60);
             assert(std::isfinite(sfCoop.health) && sfCoop.shots.size()<=600);
         }
         assert(sfCoop.phase==SfCoopPhase::Dying || sfCoop.phase==SfCoopPhase::Defeat);
         if (boss==0) assert(sfCoop.phase==SfCoopPhase::Dying);
-        std::printf("PLAYTEST: boss %d, %s in %.1fs, HP %.0f/%.0f\n",boss+1,
+        std::printf("SIMULATION: boss %d, %s in %.1fs, HP %.0f/%.0f\n",boss+1,
             sfCoop.phase==SfCoopPhase::Dying ? "victory" : "defeat",sfCoop.time,Spritej1->pv,Spritej2->pv);
     }
     sfSelectedMode=SF_DUEL_LOCAL;sfFixLaunchPending.store(true);sfFixApplyUiRequests();

@@ -31,6 +31,8 @@ enti *iago = new enti, *iago1 = new enti, *iacalc = new enti, *iatake = new enti
 #include "feedback_regressions.hpp"
 #include "campaign_regressions.hpp"
 #include "maintenance_regressions.hpp"
+#include "restoration_regressions.hpp"
+#include "difficulty_regressions.hpp"
 
 static SDL_Event finger(Uint32 type, SDL_FingerID id, float x, float y)
 {
@@ -269,6 +271,10 @@ int main(int argc,char **argv)
     assert(SDL_Init(SDL_INIT_TIMER) == 0);
     if (argc==2) {
         const std::string test=argv[1];
+        if (test=="--difficulty") {testDifficultyRendering(std::getenv("SPACEFORTRESS_DIFFICULTY_PREVIEW"));return 0;}
+        if (test=="--restore-field") {testRealCoopField();return 0;}
+        if (test=="--restore-input") {testNoHumanAutofire();return 0;}
+        if (test=="--restore-turrets") {testPassiveCoopTurrets();return 0;}
         if (test=="--ship-style") {testDuelStyleRoundTrip();return 0;}
         if (test=="--ship-breathing") {testShipBreathing();return 0;}
         if (test=="--coop-aim") {testCoopHumanAim();return 0;}
@@ -290,6 +296,10 @@ int main(int argc,char **argv)
     testCampaignRendering(std::getenv("SPACEFORTRESS_CAMPAIGN_PREVIEW"));
     testDuelStyleRoundTrip();testShipBreathing();testCoopHumanAim();testUnknownSaveWithBackup(campaignDirectory);
     testSaveRecoveryPreservation(campaignDirectory);
+    testNoHumanAutofire();testPassiveCoopTurrets();testCollectedBonusAndShield();testRealCoopField();
+    testDurableV1Migration(campaignDirectory);testDifficultySelection();testDifficultyGameplay();
+    testDifficultyRendering(std::getenv("SPACEFORTRESS_DIFFICULTY_PREVIEW"));
+    sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
     writeScenicPreview(std::getenv("SPACEFORTRESS_SCENIC_PREVIEW"));
     writeTurretPreview(std::getenv("SPACEFORTRESS_TURRET_PREVIEW"));
     writeFeedbackPreview(std::getenv("SPACEFORTRESS_HUD_PREVIEW"));

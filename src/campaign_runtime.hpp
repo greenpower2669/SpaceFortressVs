@@ -13,22 +13,22 @@ struct SfCoopShot {
 };
 struct SfCoopBeam { tupl origin; float angle=0,age=0,warning=.9f; };
 struct SfCoopWave { tupl origin; float age=0,radius=0; };
-struct SfCoopRock { tupl position; tuplv velocity; float radius=20,health=25; };
-struct SfCoopDust { tupl position; tuplv velocity; float life=10; };
 struct SfCoopControl { SDL_FingerID finger=-1; tupl target; bool down=false; tuplv velocity; };
 struct SfCoopState {
     SfCoopPhase phase=SfCoopPhase::Intro;
-    int boss=0,volley=0,revives=3,phaseNumber=0;
-    float time=0,phaseTime=0,health=900,attack=1,warning=0,hit=0,rockTimer=3;
+    int boss=0,encounter=0,volley=0,revives=3,phaseNumber=0;
+    float time=0,phaseTime=0,health=900,attack=1,warning=0,hit=0;
     tupl position;
     SfMotionSample motion;
     std::array<SfCoopControl,2> controls{};
+    std::map<SDL_FingerID,int> fireFingers;
+    float turretTime=0,bonusTimer=12,bonusLife=0;
+    tupl bonusPosition;
+    tuplv bonusVelocity;
     std::array<float,2> cooldown{},invulnerable{},reviveProgress{};
     std::vector<SfCoopShot> shots;
     std::vector<SfCoopBeam> beams;
     std::vector<SfCoopWave> waves;
-    std::vector<SfCoopRock> rocks;
-    std::vector<SfCoopDust> dust;
     std::array<std::string,3> names{};
     int nameField=0;
     bool keyboard=false,pendingSaved=false;
@@ -37,11 +37,12 @@ struct SfCoopState {
     bool soundBoss=false,soundHit=false;
 };
 inline SfCoopState sfCoop;
-inline int sfFamePage=0;
+inline int sfFamePage=0,sfCampaignPage=0;
 struct SfCampaignTextures {
     SDL_Renderer *renderer=nullptr;
     SDL_Texture *bosses=nullptr,*planets=nullptr,*backgrounds=nullptr;
-    SDL_Texture *orange=nullptr,*blue=nullptr,*rock=nullptr;
+    SDL_Texture *orange=nullptr,*blue=nullptr,*bonus=nullptr,*impact=nullptr;
+    std::array<SDL_Texture*,4> rocks{};
 };
 inline std::vector<SfCampaignTextures> sfCampaignTextures;
 struct SfDuelShipStyle {
@@ -53,7 +54,7 @@ inline std::array<SfDuelShipStyle,2> sfDuelShipStyles{};
 inline bool sfDuelShipStylesSaved=false;
 
 static sprite *sfCoopShip(int owner) { return owner==0 ? Spritej1 : Spritej2; }
-static const SfBossProfile &sfCoopProfile() { return sfBossCatalog()[sfCoop.boss]; }
+static const SfBossProfile &sfCoopProfile() { return sfEncounterProfile(sfCoop.encounter); }
 static float sfCoopBossRadius() { return std::min(sfArenaW,sfArenaH)*(.11f+.00065f*sfCoop.boss); }
 static float sfCoopShipRadius() { return std::min(sfArenaW,sfArenaH)*.053f; }
 static SfVelocityGhost sfBossGhost() { return {sfCoop.position,sfCoop.motion.velocity}; }
@@ -84,10 +85,16 @@ static void sfCoopHurt(int owner,float damage)
 {
     auto *ship=sfCoopShip(owner);
     if (ship->pv<=0 || sfCoop.invulnerable[owner]>0 || sfCoop.phase!=SfCoopPhase::Combat) return;
-    ship->pv=std::max(0.0f,ship->pv-damage);
+    ship->pv=std::max(0.0f,ship->pv-sfShieldDamage(damage,ship->nrj));
     sfAddShipHeat(ship,2); sfCoop.invulnerable[owner]=.38f;
     sfCoop.soundHit=true;
-    if (ship->pv<=0) { sfCoop.controls[owner].down=false; sfCoop.controls[owner].velocity.set(0,0); }
+    if (ship->pv<=0) {
+        sfCoop.controls[owner].down=false;sfCoop.controls[owner].finger=-1;
+        sfCoop.controls[owner].velocity.set(0,0);
+        for(auto i=sfCoop.fireFingers.begin();i!=sfCoop.fireFingers.end();) {
+            if(i->second==owner) i=sfCoop.fireFingers.erase(i);else ++i;
+        }
+    }
 }
 
 static void sfCoopPattern(int pattern)
@@ -95,7 +102,7 @@ static void sfCoopPattern(int pattern)
     sfCoop.soundBoss=true;
     const auto &boss=sfCoopProfile();
     const float speed=sfArenaW*boss.shotSpeed;
-    const int tier=boss.tier,count=3+tier;
+    const int tier=boss.tier,count=3+tier+(boss.difficulty>=2 ? 1 : 0);
     const float rotation=sfCoop.volley*.37f+boss.index*.11f;
     if (pattern==3) {
         for (int owner=0;owner<2;++owner) if (sfCoopShip(owner)->pv>0) {
@@ -124,7 +131,7 @@ static void sfCoopPattern(int pattern)
         for (int owner=0;owner<2;++owner) if (sfCoopShip(owner)->pv>0) {
             tupl origin=sfCoop.position;
             if (pattern==9) origin.x+=sfCoopBossRadius()*std::sin(rotation+owner*float(PI))*1.3f;
-            const tupl aim=sfShipGhost(owner).intercept(origin,speed,.7f);
+            const tupl aim=sfShipGhost(owner).intercept(origin,speed,.45f+.12f*boss.difficulty);
             const float angle=std::atan2(aim.y-origin.y,aim.x-origin.x);
             for (int i=0;i<count;++i) sfCoopEmit(origin,angle+(i-(count-1)*.5f)*(.12f+tier*.01f),speed,
                                                   -1,boss.damage,pattern==6 ? 1 : pattern==7 ? 3 : 0);
@@ -154,10 +161,9 @@ static float sfCoopRisk(tupl position,tuplv velocity)
         const float distance=vlong(position.x+velocity.vx*.35f-wave.origin.x,position.y+velocity.vy*.35f-wave.origin.y);
         if (std::abs(distance-futureRadius)<radius+sfArenaW*.03f) risk+=3;
     }
-    for (const auto &rock : sfCoop.rocks) {
-        if (vlong(position.x+velocity.vx*.4f-rock.position.x-rock.velocity.vx*.4f,
-                  position.y+velocity.vy*.4f-rock.position.y-rock.velocity.vy*.4f)<radius+rock.radius+sfArenaW*.02f) risk+=3;
-    }
+    const float oldDt=sfFrameDt,oldK=k0;sfFrameDt=1.0f/60;k0=1;
+    risk+=sfAsteroidRisk(position,velocity,radius);
+    sfFrameDt=oldDt;k0=oldK;
     return risk;
 }
 
@@ -168,11 +174,12 @@ static tuplv sfCoopAiVelocity(float dt)
     const auto aim=sfBossGhost().intercept(position,sfArenaW*1.4f,.9f);
     tupl goal(aim.x+sfArenaW*.16f*std::sin(sfCoop.time*.38f),aim.y-sfArenaH*.26f);
     if (Spritej2->pv<=0 && sfCoop.revives>0) goal=tupl(Spritej2->x,Spritej2->y);
-    else if (ship->nrj>22 && !sfCoop.dust.empty()) {
+    else if (ship->nrj>22 && !particules.empty()) {
         float best=std::numeric_limits<float>::max();
-        for (const auto &dust : sfCoop.dust) {
-            const float distance=vlong(dust.position.x-position.x,dust.position.y-position.y);
-            if (distance<best && sfCoopRisk(dust.position,tuplv(0,0))<.1f) {best=distance;goal=dust.position;}
+        for (const auto *dust : particules) {
+            if (dust->pv<=0) continue;
+            const float distance=vlong(dust->x-position.x,dust->y-position.y);
+            if (distance<best && sfCoopRisk(tupl(dust->x,dust->y),tuplv(0,0))<.1f) {best=distance;goal=tupl(dust->x,dust->y);}
         }
     }
     const float maxSpeed=sfArenaW*.58f;
@@ -195,6 +202,23 @@ static tuplv sfCoopAiVelocity(float dt)
     return tuplv(old.vx+(chosen.vx-old.vx)*blend,old.vy+(chosen.vy-old.vy)*blend);
 }
 
+static bool sfCoopFire(int owner)
+{
+    auto *ship=sfCoopShip(owner);
+    if (sfCoop.phase!=SfCoopPhase::Combat || ship->pv<=0 || sfCoop.shots.size()>=600) return false;
+    const float speed=sfMainShotSpeed(ship->nrj);
+    const bool missile=sfSpendMainEnergy(ship);
+    float angle=(owner==0 ? 1 : -1)*float(PI)*.5f;
+    if (owner==0 && sfActiveMode==SF_COOP_AI) {
+        const auto aim=sfBossGhost().intercept(tupl(ship->x,ship->y),speed,.9f);
+        angle=std::atan2(aim.y-ship->y,aim.x-ship->x);
+    }
+    const float radius=sfCoopShipRadius();
+    sfCoopEmit(tupl(ship->x+std::cos(angle)*radius,ship->y+std::sin(angle)*radius),
+               angle,missile ? sfArenaW*.65f : speed,owner,missile ? 60 : 12,missile ? 4 : 0);
+    return true;
+}
+
 static void sfCoopMovePlayers(float dt)
 {
     const float radius=sfCoopShipRadius();
@@ -209,11 +233,12 @@ static void sfCoopMovePlayers(float dt)
             const float distance=vlong(control.target.x-ship->x,control.target.y-ship->y);
             control.velocity=sfUnitVelocity(previous,control.target,std::min(sfArenaW*1.2f,distance*11));
         } else { const float decay=std::exp(-dt*8);control.velocity.vx*=decay;control.velocity.vy*=decay; }
-        ship->x=std::clamp(ship->x+control.velocity.vx*dt,radius,sfArenaW-radius);
-        ship->y=std::clamp(ship->y+control.velocity.vy*dt,sfArenaH*.105f,sfArenaH*.895f);
+        const float halfWidth=std::max(radius,ship->w*.5f),halfHeight=ship->h*.5f;
+        ship->x=std::clamp(ship->x+control.velocity.vx*dt,halfWidth,sfArenaW-halfWidth);
+        ship->y=std::clamp(ship->y+control.velocity.vy*dt,sfArenaH*.105f+halfHeight,sfArenaH*.895f-halfHeight);
         ship->vx=ship->vy=0; ship->startup();
         sfObserved[owner].observe(tupl(ship->x,ship->y),dt);
-        sfAddShipHeat(ship,-4.5f*dt);
+        ship->nrj=sfShipHeat(ship->nrj*std::pow(.997f,60*dt));
         const float collision=sfCoopBossRadius()*.72f+radius;
         const float distance=vlong(ship->x-sfCoop.position.x,ship->y-sfCoop.position.y);
         if (distance<collision) {
@@ -222,19 +247,8 @@ static void sfCoopMovePlayers(float dt)
             sfCoopHurt(owner,30+sfCoop.boss); ship->startup();
         }
         sfCoop.cooldown[owner]-=dt;
-        if (sfCoop.cooldown[owner]<=0) {
-            const float speed=sfArenaW*(1.5f-ship->nrj*.014f);
-            // Humans keep the historical camp axis. Only Orion aims at the
-            // velocity ghost; kind 0 still flies straight after emission.
-            float angle=(owner==0 ? 1 : -1)*float(PI)*.5f;
-            if (owner==0 && sfActiveMode==SF_COOP_AI) {
-                const tupl aim=sfBossGhost().intercept(tupl(ship->x,ship->y),speed,.9f);
-                angle=std::atan2(aim.y-ship->y,aim.x-ship->x);
-            }
-            const tupl muzzle(ship->x+std::cos(angle)*radius,ship->y+std::sin(angle)*radius);
-            sfCoopEmit(muzzle,angle,speed,owner,12);
-            sfAddShipHeat(ship,1.8f);
-            sfCoop.cooldown[owner]=.19f+ship->nrj*.004f;
+        if (owner==0 && sfActiveMode==SF_COOP_AI && sfCoop.cooldown[owner]<=0) {
+            if (sfCoopFire(owner)) sfCoop.cooldown[owner]=.30f+ship->nrj*.007f;
         }
     }
     for (int owner=0;owner<2;++owner) if (sfCoopShip(owner)->pv<=0) {
@@ -251,16 +265,20 @@ static void sfCoopMovePlayers(float dt)
 
 static void sfCoopDefences(float dt)
 {
+    sfCoop.turretTime=std::max(0.0f,sfCoop.turretTime-dt);
     for (int i=0;i<SF_TURRET_COUNT;++i) {
         auto &turret=sfTurrets[i];
-        turret.deploy=std::min(1.0f,turret.deploy+dt*1.8f);
+        turret.alert=sfCoop.turretTime>0;
+        turret.energy=std::min(100.0f,turret.energy+dt*3);
+        turret.deploy=std::clamp(turret.deploy+dt*(turret.alert ? 1.8f : -2.0f),0.0f,1.0f);
         turret.cooldown-=dt; turret.flash=std::max(0.0f,turret.flash-dt);
         const tupl base=sfTurretBase(i);
         turret.virtualTarget=sfBossGhost().intercept(sfTurretMuzzle(i),sfArenaW*1.25f,.9f);
         const float desired=std::atan2(turret.virtualTarget.y-base.y,turret.virtualTarget.x-base.x);
         const float delta=std::remainder(desired-turret.angle,2*float(PI));
         turret.angle+=std::clamp(delta,-dt*5,dt*5);
-        if (turret.deploy>=.99f && turret.cooldown<=0 && std::abs(delta)<.1f) {
+        if (turret.alert && turret.energy>=12 && turret.deploy>=.99f && turret.cooldown<=0 && std::abs(delta)<.1f) {
+            turret.energy-=12;
             turret.flash=.16f;
             sfCoopEmit(sfTurretMuzzle(i),turret.angle,sfArenaW*1.25f,i/SF_TURRETS_PER_TEAM,2.5f);
             turret.cooldown=1.6f+(i%SF_TURRETS_PER_TEAM)*.12f;
@@ -273,6 +291,13 @@ static void sfCoopProjectiles(float dt)
     std::vector<SfCoopShot> bursts;
     for (auto &shot : sfCoop.shots) {
         shot.previous=shot.position; shot.age+=dt; shot.life-=dt;
+        if (shot.kind==4) {
+            const float speed=sfArenaW*std::min(1.5f,.65f+1.8f*shot.age);
+            const auto aim=sfBossGhost().intercept(shot.position,speed,.7f);
+            const float desired=std::atan2(aim.y-shot.position.y,aim.x-shot.position.x);
+            shot.phase+=std::clamp(std::remainder(desired-shot.phase,2*float(PI)),-dt*1.1f,dt*1.1f);
+            shot.velocity=tuplv(std::cos(shot.phase)*speed,std::sin(shot.phase)*speed);
+        }
         if (shot.kind==1 && shot.age<.75f) {
             const int target=Spritej1->pv<=0 ? 1 : Spritej2->pv<=0 ? 0 :
                 (vlong(shot.position.x-Spritej1->x,shot.position.y-Spritej1->y)<vlong(shot.position.x-Spritej2->x,shot.position.y-Spritej2->y) ? 0 : 1);
@@ -303,9 +328,11 @@ static void sfCoopProjectiles(float dt)
         shot.position.y+=(shot.velocity.vy+std::cos(shot.phase)*wobble)*dt;
         if (shot.life<=0) continue;
         if (shot.owner>=0) {
-            for (auto &rock : sfCoop.rocks) if (rock.health>0 &&
-                sfSegmentDistance(shot.previous,shot.position,rock.position)<rock.radius+shot.radius) {
-                rock.health-=shot.damage;shot.life=0;break;
+            for (auto *rock : sa1) if (rock->pv>0 &&
+                sfSegmentDistance(shot.previous,shot.position,tupl(rock->x,rock->y))<std::max(rock->sw,rock->sh)*.5f+shot.radius) {
+                sprite impact;impact.setxywh(shot.position.x,shot.position.y,shot.radius*2,shot.radius*2);
+                impact.vx=shot.velocity.vx/60;impact.vy=shot.velocity.vy/60;
+                sfMineAsteroid(rock,&impact);shot.life=0;break;
             }
             if (shot.life>0 && sfSegmentDistance(shot.previous,shot.position,sfCoop.position)<sfCoopBossRadius()*.75f+shot.radius) {
                 sfCoop.health=std::max(0.0f,sfCoop.health-shot.damage);shot.life=0;sfCoop.hit=.10f;
@@ -347,68 +374,69 @@ static void sfCoopProjectiles(float dt)
     sfCoop.waves.erase(std::remove_if(sfCoop.waves.begin(),sfCoop.waves.end(),[](const auto &w){return w.radius>sfArenaH*1.2f;}),sfCoop.waves.end());
 }
 
+static void sfCoopBonus(float dt)
+{
+    sfCoop.bonusTimer-=dt;
+    if (sfCoop.bonusLife<=0 && sfCoop.bonusTimer<=0) {
+        sfCoop.bonusTimer=18+rand()%15;sfCoop.bonusLife=18;
+        sfCoop.bonusPosition=tupl(sfArenaW*(.15f+(rand()%700)/1000.0f),sfArenaH*.5f);
+        sfCoop.bonusVelocity=tuplv(sfArenaW*(rand()%2 ? .055f : -.055f),sfArenaH*(rand()%2 ? .025f : -.025f));
+    }
+    if (sfCoop.bonusLife<=0) return;
+    sfCoop.bonusLife=std::max(0.0f,sfCoop.bonusLife-dt);
+    auto &p=sfCoop.bonusPosition;auto &v=sfCoop.bonusVelocity;
+    p.x+=v.vx*dt;p.y+=v.vy*dt;
+    if ((p.x<sfArenaW*.08f && v.vx<0) || (p.x>sfArenaW*.92f && v.vx>0)) v.vx=-v.vx;
+    if ((p.y<sfArenaH*.15f && v.vy<0) || (p.y>sfArenaH*.85f && v.vy>0)) v.vy=-v.vy;
+    for (int owner=0;owner<2;++owner) {
+        const auto *ship=sfCoopShip(owner);
+        if (ship->pv>0 && vlong(ship->x-p.x,ship->y-p.y)<sfCoopShipRadius()+std::min(sfArenaW,sfArenaH)*.032f) {
+            sfCoop.bonusLife=0;sfCoop.turretTime=14;break;
+        }
+    }
+}
+
 static void sfCoopResources(float dt)
 {
-    sfCoop.rockTimer-=dt;
-    if (sfCoop.rockTimer<=0 && sfCoop.rocks.size()<10) {
-        sfCoop.rockTimer=3.3f;
-        const int index=int(sfCoop.time/3.3f);
-        SfCoopRock rock;
-        rock.position=tupl(index%2 ? sfArenaW+35 : -35,sfArenaH*(.24f+.13f*(index%5)));
-        rock.velocity=tuplv((index%2 ? -1 : 1)*sfArenaW*.07f,std::sin(float(index))*sfArenaW*.025f);
-        rock.radius=sfArenaW*(.025f+.004f*(index%3));sfCoop.rocks.push_back(rock);
-    }
-    for (auto &rock : sfCoop.rocks) {
-        rock.position.x+=rock.velocity.vx*dt;rock.position.y+=rock.velocity.vy*dt;
-        if (rock.health>0) for (int owner=0;owner<2;++owner) {
-            const auto *ship=sfCoopShip(owner);
-            if (ship->pv>0 && vlong(ship->x-rock.position.x,ship->y-rock.position.y)<sfCoopShipRadius()+rock.radius) {
-                sfCoopHurt(owner,16);rock.health=0;break;
-            }
-        }
-        if (rock.health<=0) {
-            for (int i=0;i<7;++i) {
-                const float angle=i*2*float(PI)/7;
-                sfCoop.dust.push_back({rock.position,tuplv(std::cos(angle)*25,std::sin(angle)*25),10});
-            }
-        }
-    }
-    sfCoop.rocks.erase(std::remove_if(sfCoop.rocks.begin(),sfCoop.rocks.end(),[](const auto &r){return r.health<=0 || r.position.x<-100 || r.position.x>sfArenaW+100;}),sfCoop.rocks.end());
-    for (auto &dust : sfCoop.dust) {
-        dust.life-=dt;dust.position.x+=dust.velocity.vx*dt;dust.position.y+=dust.velocity.vy*dt;
-        int nearest=-1;float distance=sfArenaW*.12f;
-        for (int owner=0;owner<2;++owner) {
-            const auto *ship=sfCoopShip(owner);const float d=vlong(ship->x-dust.position.x,ship->y-dust.position.y);
-            if (ship->pv>0 && d<distance) {nearest=owner;distance=d;}
-        }
-        if (nearest>=0) {
-            auto *ship=sfCoopShip(nearest);
-            dust.position.x+=(ship->x-dust.position.x)*std::min(1.0f,dt*7);
-            dust.position.y+=(ship->y-dust.position.y)*std::min(1.0f,dt*7);
-            if (distance<sfCoopShipRadius()) {
-                sfAddShipHeat(ship,-4);ship->pv=std::min(1000.0f,ship->pv+8);dust.life=0;
-            }
-        }
-    }
-    sfCoop.dust.erase(std::remove_if(sfCoop.dust.begin(),sfCoop.dust.end(),[](const auto &d){return d.life<=0;}),sfCoop.dust.end());
+    sfLegacyFieldFrame(dt,sfCoopHurt);
 }
 
 static void sfCoopWin()
 {
     sfCoop.phase=SfCoopPhase::Dying;sfCoop.phaseTime=0;
     sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
-    auto next=sfCampaignSave;next.cleared=std::max(next.cleared,sfCoop.boss+1);
-    next.selected=std::min(49,sfCoop.boss+1);next.pending=true;
+    auto next=sfCampaignSave;next.cleared=std::max(next.cleared,sfCoop.encounter+1);
+    next.selected=std::min(199,sfCoop.encounter+1);next.pending=true;
     next.victory={};next.victory.id=(uint64_t(std::time(nullptr))<<24)^(SDL_GetPerformanceCounter()&0xffffffu);
     for (const auto &entry : next.fame) next.victory.id=std::max(next.victory.id,entry.id+1);
     if (!next.victory.id) next.victory.id=1;
-    next.victory.boss=sfCoop.boss+1;next.victory.mode=sfActiveMode;
+    next.victory.boss=sfCoop.encounter+1;next.victory.mode=sfActiveMode;
     next.victory.seconds=int(sfCoop.time);next.victory.date=std::time(nullptr);
-    next.victory.score=std::max(0,int((sfCoop.boss+1)*500+(Spritej1->pv+Spritej2->pv)*2-sfCoop.time*5));
+    next.victory.score=std::max(0,int((sfCoop.encounter+1)*500+(Spritej1->pv+Spritej2->pv)*2-sfCoop.time*5));
     sfCoop.pendingSaved=sfSaveCampaign(next);
     if (!sfCoop.pendingSaved) { sfCampaignSave=next;sfCoop.error=sfCampaignStorageError; }
     sfCoop.names=sfCampaignSave.names;
     if (sfActiveMode==SF_COOP_AI && sfCoop.names[0].empty()) sfCoop.names[0]="ORION IA";
+}
+
+static tupl sfCoopBossPosition(float time)
+{
+    const auto &b=sfCoopProfile();
+    const float t=time*(.35f+b.tier*.018f)*(1+.15f*b.difficulty)+b.index*.3f;
+    float x=std::sin(t),y=std::sin(t*.71f)*.4f;
+    switch(b.family) {
+        case 1:x=std::sin(t)*.7f;y=std::sin(t*2)*.7f;break;
+        case 2:x=std::sin(t*.8f);y=std::cos(t)*.75f;break;
+        case 3:x=std::tanh(2*std::sin(t));y=std::sin(t*.5f)*.45f;break;
+        case 4:x=std::cos(t)*.8f;y=std::sin(t)*.8f;break;
+        case 5:x=std::sin(t*1.4f);y=std::sin(t*2.8f)*.55f;break;
+        case 6:x=std::sin(t)*std::cos(t*.3f);y=std::cos(t*.7f)*.65f;break;
+        case 7:x=std::sin(t*.7f);y=std::sin(t*1.3f)*.75f;break;
+        case 8:x=std::tanh(1.5f*std::sin(t*.8f));y=std::cos(t*.8f)*.65f;break;
+        case 9:x=std::sin(t)*.7f+std::sin(t*2.3f)*.2f;y=std::cos(t*1.4f)*.6f;break;
+    }
+    const float span=.18f+.013f*b.difficulty;
+    return tupl(sfArenaW*(.5f+span*x),sfArenaH*(.5f+(.08f+.009f*b.difficulty)*y));
 }
 
 static void sfCoopTick(float dt)
@@ -416,9 +444,7 @@ static void sfCoopTick(float dt)
     if (sfCoop.phase!=SfCoopPhase::Combat) return;
     sfCoop.time+=dt;sfCoop.hit=std::max(0.0f,sfCoop.hit-dt);
     const auto &boss=sfCoopProfile();
-    const float frequency=.35f+boss.family*.023f+boss.tier*.018f;
-    sfCoop.position=tupl(sfArenaW*(.5f+.19f*std::sin(sfCoop.time*frequency+boss.index*.3f)),
-                         sfArenaH*(.5f+.055f*std::sin(sfCoop.time*frequency*.71f)));
+    sfCoop.position=sfCoopBossPosition(sfCoop.time);
     sfCoop.motion.observe(sfCoop.position,dt);
     sfCoop.phaseNumber=sfCoop.health>boss.health*.65f ? 0 : sfCoop.health>boss.health*.3f ? 1 : 2;
     sfCoopMovePlayers(dt);sfCoopDefences(dt);
@@ -426,12 +452,12 @@ static void sfCoopTick(float dt)
     sfCoop.warning=sfCoop.attack<.65f ? 1-sfCoop.attack/.65f : 0;
     if (sfCoop.attack<=0) {
         int pattern=boss.family;
-        if (sfCoop.phaseNumber>0 && sfCoop.volley%2) pattern=(boss.family+boss.tier+sfCoop.phaseNumber+1)%10;
+        if ((sfCoop.phaseNumber>0 || boss.difficulty>=2) && sfCoop.volley%2) pattern=(boss.family+boss.tier+sfCoop.phaseNumber+boss.difficulty+1)%10;
         sfCoopPattern(pattern);
         sfCoop.attack=boss.interval*(sfCoop.phaseNumber==2 ? .82f : 1.0f);
         ++sfCoop.volley;
     }
-    sfCoopProjectiles(dt);sfCoopResources(dt);
+    sfCoopProjectiles(dt);sfCoopResources(dt);sfCoopBonus(dt);
     if (sfCoop.health<=0 && (Spritej1->pv>0 || Spritej2->pv>0)) sfCoopWin();
     else if (Spritej1->pv<=0 && Spritej2->pv<=0) {
         sfCoop.phase=SfCoopPhase::Defeat;sfCoop.phaseTime=0;
@@ -442,6 +468,7 @@ static void sfCoopTick(float dt)
 static void sfCampaignStart()
 {
     sfLoadCampaign();sfCoop=SfCoopState{};
+    sfFixResetAsteroidField();sfFieldRemainder=0;
     if (!sfDuelShipStylesSaved) {
         for (int owner=0;owner<2;++owner) {
             const auto *s=sfCoopShip(owner);
@@ -449,7 +476,8 @@ static void sfCampaignStart()
         }
         sfDuelShipStylesSaved=true;
     }
-    sfCoop.boss=std::clamp(sfCampaignSave.selected,0,std::min(49,sfCampaignSave.cleared));
+    sfCoop.encounter=std::clamp(sfCampaignSave.selected,0,std::min(199,sfCampaignSave.cleared));
+    sfCoop.boss=sfBossIndex(sfCoop.encounter);sfCampaignPage=sfCoop.encounter/10;
     sfCoop.health=sfCoopProfile().health;sfCoop.attack=2.0f;
     sfCoop.position=tupl(sfArenaW*.5f,sfArenaH*.5f);
     for (int owner=0;owner<2;++owner) {
@@ -463,7 +491,7 @@ static void sfCampaignStart()
     }
     sfObserved={};
     if (sfCampaignSave.pending) {
-        sfCoop.boss=sfCampaignSave.victory.boss-1;sfCoop.phase=SfCoopPhase::Name;
+        sfCoop.encounter=sfCampaignSave.victory.boss-1;sfCoop.boss=sfBossIndex(sfCoop.encounter);sfCoop.phase=SfCoopPhase::Name;
         sfCoop.names=sfCampaignSave.names;sfCoop.pendingSaved=true;
         if (sfCampaignSave.victory.mode==SF_COOP_AI && sfCoop.names[0].empty()) sfCoop.names[0]="ORION IA";
     }
@@ -479,7 +507,7 @@ static void sfCampaignRestoreDuelShips()
     }
     sfDuelShipStylesSaved=false;
 }
-static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,Mix_Chunk *hit)
+static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,Mix_Chunk *hit,Mix_Chunk *collision)
 {
     static Uint64 last=0;const Uint64 now=SDL_GetTicks64();
     if (now-last<120) return;last=now;
@@ -488,12 +516,15 @@ static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,M
         if (sound) Mix_PlayChannel(4+owner,sound,0);sfCoop.soundShot[owner]=false;
     }
     if (sfCoop.soundBoss && boss) Mix_PlayChannel(6,boss,0);
-    if (sfCoop.soundHit && hit) Mix_PlayChannel(7,hit,0);
+    if ((sfCoop.soundHit || sfFieldMiningSound) && hit) Mix_PlayChannel(7,hit,0);
+    if (sfFieldCollisionSound && collision) Mix_PlayChannel(3,collision,0);
+    sfFieldCollisionSound=sfFieldMiningSound=false;
     sfCoop.soundBoss=sfCoop.soundHit=false;
 }
 static void sfCampaignSuspend()
 {
     for (auto &control : sfCoop.controls) {control.down=false;control.finger=-1;control.velocity.set(0,0);}
+    sfCoop.fireFingers.clear();
     sfObserved={};sfCoop.motion.valid=false;
     if (sfCoop.phase==SfCoopPhase::Combat) sfCoop.phase=SfCoopPhase::Paused;
     if (sfCoop.keyboard) {SDL_StopTextInput();sfCoop.keyboard=false;}
@@ -508,7 +539,10 @@ static SfCampaignTextures &sfCoopTextures(SDL_Renderer *renderer)
     entry.backgrounds=IMG_LoadTexture(renderer,"resources/assets/pict/campaign/nebulae.png");
     entry.orange=IMG_LoadTexture(renderer,"resources/assets/pict/remaster/player_orange.png");
     entry.blue=IMG_LoadTexture(renderer,"resources/assets/pict/remaster/player_blue.png");
-    entry.rock=IMG_LoadTexture(renderer,"resources/assets/pict/aa1.png");
+    const char *paths[]={"aa1.png","aa2.png","aa3.png","aa4.png"};
+    for(int i=0;i<4;++i) entry.rocks[i]=IMG_LoadTexture(renderer,(std::string("resources/assets/pict/")+paths[i]).c_str());
+    entry.bonus=IMG_LoadTexture(renderer,"resources/assets/pict/Bonus_de_tourelles.png");
+    entry.impact=IMG_LoadTexture(renderer,IMG_PATHpous);
     sfCampaignTextures.push_back(entry);return sfCampaignTextures.back();
 }
 static void sfCampaignForgetRenderer(SDL_Renderer *renderer)
@@ -529,6 +563,7 @@ static SDL_Rect sfBossAtlasRect(SDL_Texture *texture,int index)
     constexpr int columns[]{0,177,343,503,672,846,1025,1202,1392,1578,1774};
     constexpr int rows[]{0,156,332,511,693,887};
     int width,height;SDL_QueryTexture(texture,nullptr,nullptr,&width,&height);
+    index=sfBossIndex(index);
     const int col=index%10,row=index/10;
     const int x=(columns[col]+2)*width/1774,y=(rows[row]+2)*height/887;
     const int right=(columns[col+1]-2)*width/1774,bottom=(rows[row+1]-2)*height/887;
@@ -632,9 +667,11 @@ static void sfDrawBoss(SDL_Renderer *renderer,SDL_Texture *atlas,int boss,tupl c
     SDL_RenderGeometry(renderer,atlas,vertices.data(),int(vertices.size()),indices.data(),int(indices.size()));
 }
 
+#include "boss_difficulty_visuals.hpp"
+
 static void sfDrawCampaignSpace(SDL_Renderer *renderer,int boss,float time,int width,int height)
 {
-    auto &textures=sfCoopTextures(renderer);const auto &profile=sfBossCatalog()[boss];
+    auto &textures=sfCoopTextures(renderer);const auto &profile=sfBossCatalog()[sfBossIndex(boss)];
     SDL_SetRenderDrawColor(renderer,2,5,16,255);SDL_RenderClear(renderer);
     if (textures.backgrounds) {
         auto source=sfAtlasRect(textures.backgrounds,profile.backdrop,3,2);
@@ -698,11 +735,20 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
         const int radius=int(wave.age<.7f ? sfCoopBossRadius()+wave.age*25 : wave.radius);
         for (int i=0;i<3;++i) sfUiCircle(renderer,int(wave.origin.x),int(wave.origin.y),radius+i,230,80,190);
     }
-    for (const auto &rock : sfCoop.rocks) {
-        SDL_Rect dest{int(rock.position.x-rock.radius),int(rock.position.y-rock.radius),int(rock.radius*2),int(rock.radius*2)};
-        if (textures.rock) SDL_RenderCopyEx(renderer,textures.rock,nullptr,&dest,sfCoop.time*17,nullptr,SDL_FLIP_NONE);
+    for (const auto *rock : sa1) {
+        if (rock->pv<=0) continue;
+        SDL_Rect dest{int(rock->x-rock->w*.5f),int(rock->y-rock->h*.5f),int(rock->w),int(rock->h)};
+        const int index=rock->name.size()==2 ? std::clamp(rock->name[1]-'1',0,3) : 0;
+        if (textures.rocks[index]) SDL_RenderCopyEx(renderer,textures.rocks[index],nullptr,&dest,
+            rock->rand0+sfCoop.time*rock->as*rock->asign,nullptr,rock->flip);
     }
-    for (const auto &dust : sfCoop.dust) sfCoopDisc(renderer,dust.position.x,dust.position.y,2.5f,{125,235,255,220});
+    for (const auto *dust : particules) if (dust->pv>0) sfCoopDisc(renderer,dust->x,dust->y,2.5f,{125,235,255,220});
+    for (const auto *dust : particulesr) if (dust->pv>0) sfCoopDisc(renderer,dust->x,dust->y,2.0f,{255,130,70,200});
+    if(textures.impact) for(const auto *effect:explos) {
+        if(effect->pv<=0 || effect->w<=0 || effect->h<=0) continue;
+        SDL_Rect rect{int(effect->x-effect->w*.5f),int(effect->y-effect->h*.5f),int(effect->w),int(effect->h)};
+        SDL_RenderCopyEx(renderer,textures.impact,nullptr,&rect,sfCoop.time*effect->as*effect->asign*5,nullptr,effect->flip);
+    }
     for (const auto &shot : sfCoop.shots) {
         SDL_Color color=shot.owner==0 ? SDL_Color{255,175,75,255} : shot.owner==1 ? SDL_Color{100,220,255,255} : SDL_Color{255,70,140,255};
         if (shot.kind==2) color=shot.age<1.2f ? SDL_Color{255,200,75,190} : SDL_Color{255,70,50,255};
@@ -716,7 +762,7 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
         sfUiCircle(renderer,int(sfCoop.position.x),int(sfCoop.position.y),radius,255,120,90);
         sfUiCircle(renderer,int(sfCoop.position.x),int(sfCoop.position.y),radius+2,255,170,100);
     }
-    sfDrawBoss(renderer,textures.bosses,sfCoop.boss,sfCoop.position,sfCoopBossRadius(),
+    sfDrawEncounterBoss(renderer,textures.bosses,sfCoop.encounter,sfCoop.position,sfCoopBossRadius(),
                sfCoop.time+sfCoop.phaseTime,sfCoop.hit,death);
     if (death>0 && death<1) for (int i=0;i<40;++i) {
         const float angle=i*2.39996f,radius=sfCoopBossRadius()*(.5f+death*(1.5f+(i%4)*.4f));
@@ -739,8 +785,15 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
         }
     }
     sfDrawTacticalEffects(renderer);
+    if (sfCoop.bonusLife>0 && textures.bonus) {
+        const int side=int(std::min(sfArenaW,sfArenaH)*.085f);
+        SDL_Rect rect{int(sfCoop.bonusPosition.x-side*.5f),int(sfCoop.bonusPosition.y-side*.5f),side,side};
+        SDL_RenderCopyEx(renderer,textures.bonus,nullptr,&rect,5*std::sin(sfCoop.time*2),nullptr,SDL_FLIP_NONE);
+    }
+    if (sfCoop.turretTime>0) sfCoopText(renderer,width/4,int(height*.875f),
+        "TOURELLES : "+std::to_string(int(std::ceil(sfCoop.turretTime)))+" S",width/2,2,{120,255,150,255});
     const int margin=std::max(8,width/30),barWidth=int(width*.58f),barHeight=std::max(7,width/80);
-    sfCoopText(renderer,margin,int(height*.025f),"BOSS "+std::to_string(sfCoop.boss+1)+" / 50",width*.7f,std::max(2,width/220),{255,190,120,255});
+    sfCoopText(renderer,margin,int(height*.025f),"COMBAT "+std::to_string(sfCoop.encounter+1)+" / 200 - "+sfDifficultyNames[sfDifficultyIndex(sfCoop.encounter)],width*.7f,std::max(2,width/220),{255,190,120,255});
     sfCoopText(renderer,margin,int(height*.05f),sfCoopProfile().name,int(width*.72f),std::max(2,width/260));
     SDL_Rect bossBar{margin,int(height*.079f),barWidth,barHeight};
     SDL_SetRenderDrawColor(renderer,30,28,45,235);SDL_RenderFillRect(renderer,&bossBar);
@@ -760,31 +813,36 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
 
 static SDL_Rect sfCampaignCard(int index,int width,int height)
 {
-    const int columns=height>=width ? 5 : 10,rows=50/columns;
-    const int cellWidth=int(width*.9f)/columns,cellHeight=int(height*.66f)/rows;
-    return {int(width*.05f)+(index%columns)*cellWidth,int(height*.16f)+(index/columns)*cellHeight,cellWidth-4,cellHeight-4};
+    const int columns=height>=width ? 2 : 5,rows=10/columns;
+    const int cellWidth=int(width*.9f)/columns,cellHeight=int(height*.58f)/rows;
+    return {int(width*.05f)+(index%columns)*cellWidth,int(height*.205f)+(index/columns)*cellHeight,cellWidth-6,cellHeight-5};
 }
 static void sfCampaignDrawSelect(SDL_Renderer *renderer)
 {
     sfLoadCampaign();int width,height;SDL_GetRendererOutputSize(renderer,&width,&height);
     if (width<=0 || height<=0) return;
-    sfDrawCampaignSpace(renderer,sfCampaignSave.selected,SDL_GetTicks64()*.001f,width,height);
-    sfCoopCentered(renderer,width,int(height*.035f),"CAMPAGNE COOPERATIVE",std::max(2,width/150));
-    sfCoopCentered(renderer,width,int(height*.095f),std::to_string(sfCampaignSave.cleared)+" VICTOIRES SUR 50",std::max(2,width/240));
+    sfCampaignPage=std::clamp(sfCampaignPage,0,19);
+    const int first=sfCampaignPage*10,difficulty=first/50;
+    const float time=SDL_GetTicks64()*.001f;
+    sfDrawCampaignSpace(renderer,sfBossIndex(sfCampaignSave.selected),time,width,height);
+    sfCoopCentered(renderer,width,int(height*.025f),"CAMPAGNE COOPERATIVE",std::max(2,std::min(width/150,height/170)));
+    sfCoopCentered(renderer,width,int(height*.078f),std::to_string(sfCampaignSave.cleared)+" VICTOIRES SUR 200",std::max(2,std::min(width/240,height/250)));
+    for(int d=0;d<4;++d) sfCoopButton(renderer,{int(width*(.04f+d*.235f)),int(height*.127f),int(width*.215f),int(height*.055f)},
+        std::to_string(d+1)+" "+sfDifficultyNames[d],d==difficulty);
     auto &textures=sfCoopTextures(renderer);
-    for (int i=0;i<50;++i) {
-        const auto rect=sfCampaignCard(i,width,height);const bool unlocked=i<=sfCampaignSave.cleared;
+    for (int i=0;i<10;++i) {
+        const int encounter=first+i;
+        const auto rect=sfCampaignCard(i,width,height);const bool unlocked=encounter<=sfCampaignSave.cleared;
         sfUiPanel(renderer,rect,5,14,28,unlocked ? 80 : 35,unlocked ? 175 : 55,unlocked ? 185 : 70);
-        if (textures.bosses) {
-            const auto source=sfBossAtlasRect(textures.bosses,i);
-            const int size=std::min(rect.w-6,rect.h-18);
-            SDL_Rect spriteRect{rect.x+(rect.w-size)/2,rect.y+3,size,size};
-            SDL_SetTextureColorMod(textures.bosses,unlocked ? 255 : 45,unlocked ? 255 : 45,unlocked ? 255 : 60);
-            SDL_RenderCopy(renderer,textures.bosses,&source,&spriteRect);
-        }
-        sfCoopText(renderer,rect.x+5,rect.y+rect.h-15,std::to_string(i+1)+(i<sfCampaignSave.cleared ? " OK" : unlocked ? " GO" : " -"),rect.w-8,2);
+        const float radius=std::max(1.0f,std::min(float(rect.w),float(rect.h-36))*.27f);
+        sfDrawEncounterBoss(renderer,textures.bosses,encounter,tupl(rect.x+rect.w*.5f,rect.y+(rect.h-30)*.5f),radius,time);
+        sfCoopText(renderer,rect.x+6,rect.y+rect.h-29,"BOSS "+std::to_string(sfBossIndex(encounter)+1)+" - N"+std::to_string(difficulty+1),rect.w-12,2);
+        sfCoopText(renderer,rect.x+6,rect.y+rect.h-10,encounter<sfCampaignSave.cleared ? "VICTOIRE" : unlocked ? "JOUER" : "VERROUILLE",rect.w-12,1,
+                   unlocked ? SDL_Color{140,240,180,255} : SDL_Color{190,190,200,255});
     }
-    if (textures.bosses) SDL_SetTextureColorMod(textures.bosses,255,255,255);
+    sfCoopButton(renderer,{int(width*.05f),int(height*.80f),int(width*.25f),int(height*.045f)},"PRECEDENT");
+    sfCoopCentered(renderer,width,int(height*.81f),"BOSS "+std::to_string(first%50+1)+" A "+std::to_string(first%50+10),2);
+    sfCoopButton(renderer,{int(width*.70f),int(height*.80f),int(width*.25f),int(height*.045f)},"SUIVANT");
     sfCoopButton(renderer,{int(width*.08f),int(height*.86f),int(width*.84f),int(height*.065f)},sfCampaignSave.pending ? "INSCRIRE LA VICTOIRE EN ATTENTE" : "REPRENDRE LA CAMPAGNE");
     sfCoopButton(renderer,{int(width*.3f),int(height*.94f),int(width*.4f),int(height*.045f)},"ACCUEIL");
 }
@@ -814,7 +872,7 @@ static void sfCampaignDrawHall(SDL_Renderer *renderer)
         const int left=panel.x+12,w=panel.w-24,scale=std::max(2,std::min(width/240,panel.h/30));
         sfCoopText(renderer,left,y+8,std::to_string(index+1)+". "+entry.names[2],w,scale+1,{255,215,125,255});
         sfCoopText(renderer,left,y+10+9*(scale+1),entry.names[0]+" + "+entry.names[1],w,scale);
-        sfCoopText(renderer,left,y+14+18*(scale+1),"BOSS "+std::to_string(entry.boss)+" / 50  SCORE "+std::to_string(entry.score)+"  "+std::to_string(entry.seconds)+" S",w,scale,{120,220,220,255});
+        sfCoopText(renderer,left,y+14+18*(scale+1),"COMBAT "+std::to_string(entry.boss)+" / 200  SCORE "+std::to_string(entry.score)+"  "+std::to_string(entry.seconds)+" S",w,scale,{120,220,220,255});
     }
     if (!sfCampaignStorageError.empty()) sfCoopCentered(renderer,width,int(height*.79f),sfCampaignStorageError,2,{255,130,110,255});
     else sfCoopCentered(renderer,width,int(height*.79f),"MEMOIRE DE CE TELEPHONE - "+std::to_string(sfCampaignSave.fame.size())+" VICTOIRES",2);
@@ -830,7 +888,7 @@ static void sfCoopDrawOverlay(SDL_Renderer *renderer,int width,int height)
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);SDL_SetRenderDrawColor(renderer,2,6,18,205);
     SDL_Rect dim{0,0,width,height};SDL_RenderFillRect(renderer,&dim);
     if (sfCoop.phase==SfCoopPhase::Name) {
-        sfCoopCentered(renderer,width,int(height*.04f),sfCoop.boss==49 ? "LES 50 BOSS SONT VAINCUS" : "VICTOIRE COOPERATIVE",std::max(3,width/190),{255,215,125,255});
+        sfCoopCentered(renderer,width,int(height*.04f),sfCoop.encounter==199 ? "LES 200 AFFRONTEMENTS SONT VAINCUS" : "VICTOIRE COOPERATIVE",std::max(3,width/190),{255,215,125,255});
         sfCoopCentered(renderer,width,int(height*.09f),"GRAVEZ VOTRE EQUIPE DANS L HISTOIRE",std::max(2,width/300));
         const std::array<const char*,3> labels{{"PILOTE ORANGE","PILOTE BLEU","NOM DE L EQUIPE"}};
         for (int i=0;i<3;++i) {
@@ -846,16 +904,16 @@ static void sfCoopDrawOverlay(SDL_Renderer *renderer,int width,int height)
         else sfCoopCentered(renderer,width,int(height*.505f),"24 CARACTERES PAR NOM",2);
         sfCoopButton(renderer,{int(width*.08f),int(height*.54f),int(width*.84f),int(height*.068f)},"IMMORTALISER LA VICTOIRE");
     } else if (sfCoop.phase==SfCoopPhase::Intro) {
-        sfCoopCentered(renderer,width,int(height*.32f),"BOSS "+std::to_string(sfCoop.boss+1)+" / 50",std::max(3,width/150),{255,210,125,255});
+        sfCoopCentered(renderer,width,int(height*.32f),"COMBAT "+std::to_string(sfCoop.encounter+1)+" / 200 - "+sfDifficultyNames[sfDifficultyIndex(sfCoop.encounter)],std::max(3,width/150),{255,210,125,255});
         sfCoopCentered(renderer,width,int(height*.40f),sfCoopProfile().name,std::max(3,width/190));
         sfCoopCentered(renderer,width,int(height*.51f),sfBossHints[sfCoopProfile().family],std::max(2,width/320));
-        sfCoopCentered(renderer,width,int(height*.60f),"GLISSEZ POUR PILOTER - TIR AUTOMATIQUE",std::max(2,width/340));
+        sfCoopCentered(renderer,width,int(height*.60f),"1 DOIGT : PILOTER - 2E DOIGT : TAP POUR TIRER",std::max(2,width/340));
         sfCoopCentered(renderer,width,int(height*.67f),"MINERAIS = ENERGIE - PROXIMITE = SECOURS",std::max(2,width/350));
     } else {
         const bool saved=sfCoop.phase==SfCoopPhase::Saved,paused=sfCoop.phase==SfCoopPhase::Paused;
         sfCoopCentered(renderer,width,int(height*.31f),saved ? "VICTOIRE IMMORTALISEE" : paused ? "PAUSE COOPERATIVE" : "EQUIPE HORS COMBAT",std::max(3,width/190),{255,220,130,255});
         if (saved) sfCoopCentered(renderer,width,int(height*.42f),sfCampaignSave.names[2],std::max(3,width/200));
-        sfCoopButton(renderer,{int(width*.13f),int(height*.53f),int(width*.74f),int(height*.09f)},saved ? (sfCoop.boss==49 ? "VOIR LE HALL OF FAME" : "BOSS SUIVANT") : paused ? "REPRENDRE" : "REESSAYER CE BOSS");
+        sfCoopButton(renderer,{int(width*.13f),int(height*.53f),int(width*.74f),int(height*.09f)},saved ? (sfCoop.encounter==199 ? "VOIR LE HALL OF FAME" : "BOSS SUIVANT") : paused ? "REPRENDRE" : "REESSAYER CE BOSS");
         sfCoopButton(renderer,{int(width*.23f),int(height*.68f),int(width*.54f),int(height*.08f)},"CHOISIR UNE MISSION");
         sfCoopButton(renderer,{int(width*.3f),int(height*.81f),int(width*.4f),int(height*.07f)},"ACCUEIL");
     }
@@ -936,7 +994,7 @@ static bool sfCampaignHandleEvent(SDL_Event *event)
     if (screen==SF_UI_HOME && event->type==SDL_FINGERDOWN) {
         if (y>=.71f && y<=.85f && x>=.5f) {sfLoadCampaign();sfFixRequestedScreen.store(SF_UI_HALL);}
         else if (y>=.545f && y<=.69f && (sfSelectedMode==SF_COOP_LOCAL || sfSelectedMode==SF_COOP_AI)) {
-            sfLoadCampaign();sfFixRequestedScreen.store(SF_UI_CAMPAIGN);
+            sfLoadCampaign();sfCampaignPage=sfCampaignSave.selected/10;sfFixRequestedScreen.store(SF_UI_CAMPAIGN);
         } else return false;
         sfFixConsumedFingers.insert(finger);event->type=SDL_USEREVENT;return true;
     }
@@ -947,15 +1005,21 @@ static bool sfCampaignHandleEvent(SDL_Event *event)
                 if (y>.915f) sfCoopRequestHome();
                 else if (y>=.825f && y<=.91f) {if (x<.35f) sfFamePage=std::max(0,sfFamePage-1);else if (x>.65f) ++sfFamePage;}
             } else if (y>.935f) sfCoopRequestHome();
-            else {
+            else if (y>=.127f && y<=.182f && x>=.04f && x<.96f) {
+                const int d=std::clamp(int((x-.04f)/.235f),0,3);sfCampaignPage=d*5+sfCampaignPage%5;
+            } else if (y>=.80f && y<=.85f) {
+                const int d=sfCampaignPage/5,p=sfCampaignPage%5;
+                if(x<.31f) sfCampaignPage=d*5+std::max(0,p-1);
+                else if(x>.69f) sfCampaignPage=d*5+std::min(4,p+1);
+            } else {
                 int selected=-1;
                 if (y>=.85f && y<=.93f) selected=sfCampaignSave.selected;
-                else for (int i=0;i<50;++i) {
+                else for (int i=0;i<10;++i) {
                     const auto rect=sfCampaignCard(i,int(sfArenaW),int(sfArenaH));
-                    if (x*sfArenaW>=rect.x && x*sfArenaW<rect.x+rect.w && y*sfArenaH>=rect.y && y*sfArenaH<rect.y+rect.h) {selected=i;break;}
+                    if (x*sfArenaW>=rect.x && x*sfArenaW<rect.x+rect.w && y*sfArenaH>=rect.y && y*sfArenaH<rect.y+rect.h) {selected=sfCampaignPage*10+i;break;}
                 }
                 if (selected>=0 && (selected<=sfCampaignSave.cleared || sfCampaignSave.pending)) {
-                    sfCampaignSave.selected=std::clamp(selected,0,49);
+                    sfCampaignSave.selected=std::clamp(selected,0,199);
                     sfFixLaunchPending.store(true);
                 }
             }
@@ -972,8 +1036,8 @@ static bool sfCampaignHandleEvent(SDL_Event *event)
             } else if (sfCoop.phase==SfCoopPhase::Saved || sfCoop.phase==SfCoopPhase::Defeat || sfCoop.phase==SfCoopPhase::Paused) {
                 if (y>=.53f && y<=.64f) {
                     if (sfCoop.phase==SfCoopPhase::Paused) sfCoop.phase=SfCoopPhase::Combat;
-                    else if (sfCoop.phase==SfCoopPhase::Saved && sfCoop.boss==49) sfCoopRequestHome(SF_UI_HALL);
-                    else {if (sfCoop.phase==SfCoopPhase::Defeat) sfCampaignSave.selected=sfCoop.boss;sfFixLaunchPending.store(true);}
+                    else if (sfCoop.phase==SfCoopPhase::Saved && sfCoop.encounter==199) sfCoopRequestHome(SF_UI_HALL);
+                    else {if (sfCoop.phase==SfCoopPhase::Defeat) sfCampaignSave.selected=sfCoop.encounter;sfFixLaunchPending.store(true);}
                 } else if (y>=.68f && y<=.78f) sfCoopRequestHome(SF_UI_CAMPAIGN);
                 else if (y>=.80f) sfCoopRequestHome();
             }
@@ -983,10 +1047,18 @@ static bool sfCampaignHandleEvent(SDL_Event *event)
     if (event->type==SDL_FINGERDOWN && x>.79f && y<.10f) {
         sfCampaignSuspend();sfFixConsumedFingers.insert(finger);event->type=SDL_USEREVENT;return true;
     }
+    if (event->type==SDL_FINGERUP) sfCoop.fireFingers.erase(finger);
     if (event->type==SDL_FINGERDOWN) {
+        bool assigned=sfCoop.fireFingers.count(finger)>0;
+        for (const auto &control : sfCoop.controls) assigned|=control.down && control.finger==finger;
         const int owner=y<.5f ? 0 : 1;
-        if (!(owner==0 && sfActiveMode==SF_COOP_AI) && !sfCoop.controls[owner].down && sfCoopShip(owner)->pv>0) {
-            sfCoop.controls[owner].down=true;sfCoop.controls[owner].finger=finger;
+        auto &control=sfCoop.controls[owner];
+        if (!assigned && !(owner==0 && sfActiveMode==SF_COOP_AI) && sfCoopShip(owner)->pv>0) {
+            if (!control.down) {control.down=true;control.finger=finger;}
+            else if (std::none_of(sfCoop.fireFingers.begin(),sfCoop.fireFingers.end(),
+                       [owner](const auto &binding){return binding.second==owner;})) {
+                sfCoop.fireFingers[finger]=owner;sfCoopFire(owner);
+            }
         }
     }
     for (auto &control : sfCoop.controls) if (control.finger==finger) {

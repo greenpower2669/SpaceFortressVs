@@ -15,6 +15,8 @@ inline float sfArenaW = 780, sfArenaH = 1680;
 inline float sfFrameDt = 1.0f / 60.0f;
 inline Uint64 sfTacticsLastTick = 0;
 inline Uint64 sfNextAsteroidId = 0;
+inline float sfFieldRemainder=0;
+inline bool sfFieldCollisionSound=false,sfFieldMiningSound=false;
 constexpr int SF_TURRETS_PER_TEAM = 6;
 constexpr int SF_TURRET_COUNT = SF_TURRETS_PER_TEAM*2;
 
@@ -172,7 +174,8 @@ inline std::array<float,2> sfPickupGlow{};
 static bool sfRoundActive()
 {
     return sfUiScreen==SF_UI_GAME && !setgui && Spritej1 && Spritej2 &&
-        Spritej1->pv>0 && Spritej2->pv>0 && loosej1->pv<=0 && loosej2->pv<=0;
+        (sfIsCoop() ? (Spritej1->pv>0 || Spritej2->pv>0) :
+         (Spritej1->pv>0 && Spritej2->pv>0 && loosej1->pv<=0 && loosej2->pv<=0));
 }
 
 // Owner 0 is the upper orange fortress; owner 1 is the lower blue fortress.
@@ -198,9 +201,9 @@ static bool sfFireMain(int owner,const tupl *target=nullptr)
     sprite *ship=owner==0 ? Spritej1 : Spritej2;
     sprite *shot=sfMakeShot(owner);
     if (!shot) return false;
-    sfAddShipHeat(ship,1);
+    const bool missile=sfSpendMainEnergy(ship);
     shot->x=ship->x; shot->y=ship->y;
-    shot->vx=.5f*(rand()%3-1);
+    shot->vx=0;
     shot->vy=(60-ship->nrj)*(owner==0 ? .4f : -.4f);
     shot->shotImpactHeat=std::clamp(shot->vy*shot->vy*.005f,0.0f,3.0f);
     shot->shotVelocityX=shot->vx*60*sfArenaW/780;
@@ -211,8 +214,8 @@ static bool sfFireMain(int owner,const tupl *target=nullptr)
         shot->shotVelocityX=(target->x-ship->x)/distance*speed;
         shot->shotVelocityY=(target->y-ship->y)/distance*speed;
     }
-    if (ship->nrj<1.5f) {
-        shot->name="miss"; sfAddShipHeat(ship,10);
+    if (missile) {
+        shot->name="miss";
         shot->shotVelocityX=0;
         shot->shotVelocityY=(owner==0 ? 1 : -1)*sfArenaW*.65f;
         shot->vy=shot->shotVelocityY*sfFrameDt/std::max(.05f,k0);
@@ -480,6 +483,7 @@ static void sfCollectDust()
         float nearest=std::numeric_limits<float>::max();
         for (int i=0;i<2;++i) {
             sprite *ship=i==0 ? Spritej1 : Spritej2;
+            if (ship->pv<=0) continue;
             const float distance=vlong(dust->x-ship->x,dust->y-ship->y);
             if (distance<ship->sh*.5f && distance<nearest) { nearest=distance; winner=ship; owner=i; }
         }
@@ -494,7 +498,7 @@ static void sfCollectDust()
 }
 
 struct SfTurret {
-    float deploy=0, angle=0, cooldown=0, flash=0;
+    float deploy=0, angle=0, cooldown=0, flash=0, energy=100;
     bool alert=false;
     tupl virtualTarget; // Invisible prediction, never a renderable sprite.
 };
@@ -563,7 +567,8 @@ static void sfUpdateTurrets(float dt)
 static void sfTacticsReset()
 {
     sfPilot=SfPilot{}; sfObserved={}; sfPickupGlow={}; sfTurrets={};
-    sfSceneSeconds=0; sfTacticsLastTick=0;
+    sfSceneSeconds=0; sfTacticsLastTick=0;sfFieldRemainder=0;
+    sfFieldCollisionSound=sfFieldMiningSound=false;
     for (int i=0;i<SF_TURRET_COUNT;++i) {
         sfTurrets[i].angle=i<SF_TURRETS_PER_TEAM ? float(PI)*.5f : -float(PI)*.5f;
         sfTurrets[i].cooldown=(i%SF_TURRETS_PER_TEAM)*.06f;

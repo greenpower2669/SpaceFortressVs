@@ -60,6 +60,8 @@ static void testCoopHumanAim()
     for (bool ai : {false,true}) for (int fps : {30,60,120}) {
         setupCampaign(0,ai);sfCoop.position=tupl(700,840);
         sfCoop.motion.velocity.set(110,0);sfCoop.shots.clear();
+        Spritej1->nrj=Spritej2->nrj=10;
+        if (!ai) sfCoopFire(0);sfCoopFire(1);
         sfCoopMovePlayers(1.0f/fps);
         assert(sfCoop.shots.size()==2);
         for (const auto &shot : sfCoop.shots) {
@@ -128,7 +130,7 @@ static void testSaveRecoveryPreservation(const std::string &directory)
     }
     closedir(files);assert(preserved);
     assert(sfTestReadBytes(path)==good && sfTestReadBytes(path+".bak")==good);
-    auto invalid=known;invalid.cleared=51;
+    auto invalid=known;invalid.cleared=201;
     assert(!sfSaveCampaign(invalid));
     assert(sfTestReadBytes(path)==good && sfTestReadBytes(path+".bak")==good);
     // A newer backup is just as valuable as a newer primary.

@@ -49,17 +49,17 @@ static void sfWriteFame(std::ostream &out,const SfFameEntry &entry)
     for (const auto &name : entry.names) out<<' '<<std::quoted(name);
     out<<'\n';
 }
-static bool sfReadFame(std::istream &in,SfFameEntry &entry)
+static bool sfReadFame(std::istream &in,SfFameEntry &entry,int limit=200)
 {
     if (!(in>>entry.id>>entry.boss>>entry.score>>entry.seconds>>entry.mode>>entry.date)) return false;
     for (auto &name : entry.names) if (!(in>>std::quoted(name)) || name.size()>96) return false;
-    return entry.id>0 && entry.boss>=1 && entry.boss<=50 && entry.score>=0 && entry.seconds>=0 &&
+    return entry.id>0 && entry.boss>=1 && entry.boss<=limit && entry.score>=0 && entry.seconds>=0 &&
            (entry.mode==SF_COOP_LOCAL || entry.mode==SF_COOP_AI);
 }
 static std::string sfEncodeCampaign(const SfCampaignSave &save)
 {
     std::ostringstream out;
-    out<<"SPACEFORTRESS_CAMPAIGN 1\n"<<save.cleared<<' '<<save.selected<<' '<<save.pending<<' '<<save.fame.size()<<'\n';
+    out<<"SPACEFORTRESS_CAMPAIGN 2\n"<<save.cleared<<' '<<save.selected<<' '<<save.pending<<' '<<save.fame.size()<<'\n';
     for (const auto &name : save.names) out<<std::quoted(name)<<'\n';
     if (save.pending) sfWriteFame(out,save.victory);
     for (const auto &entry : save.fame) sfWriteFame(out,entry);
@@ -69,15 +69,16 @@ static bool sfDecodeCampaign(std::istream &in,SfCampaignSave &save)
 {
     SfCampaignSave candidate;
     std::string magic; int version,pending; size_t count;
-    if (!(in>>magic>>version) || magic!="SPACEFORTRESS_CAMPAIGN" || version!=1) return false;
+    if (!(in>>magic>>version) || magic!="SPACEFORTRESS_CAMPAIGN" || (version!=1 && version!=2)) return false;
+    const int limit=version==1 ? 50 : 200;
     if (!(in>>candidate.cleared>>candidate.selected>>pending>>count) || candidate.cleared<0 ||
-        candidate.cleared>50 || candidate.selected<0 || candidate.selected>49 ||
+        candidate.cleared>limit || candidate.selected<0 || candidate.selected>=limit ||
         pending<0 || pending>1 || count>100000) return false;
     candidate.pending=pending;
     for (auto &name : candidate.names) if (!(in>>std::quoted(name)) || name.size()>96) return false;
-    if (candidate.pending && !sfReadFame(in,candidate.victory)) return false;
+    if (candidate.pending && !sfReadFame(in,candidate.victory,limit)) return false;
     for (size_t i=0;i<count;++i) {
-        SfFameEntry entry; if (!sfReadFame(in,entry)) return false;
+        SfFameEntry entry; if (!sfReadFame(in,entry,limit)) return false;
         candidate.fame.push_back(entry);
     }
     in>>std::ws;
@@ -104,7 +105,7 @@ static SfSaveFileState sfInspectCampaign(const std::string &path,SfCampaignSave 
     std::istringstream input(bytes);
     if (sfDecodeCampaign(input,save)) return SfSaveFileState::Valid;
     std::istringstream header(bytes);std::string magic;int version=0;
-    if (header>>magic>>version && magic=="SPACEFORTRESS_CAMPAIGN" && version!=1)
+    if (header>>magic>>version && magic=="SPACEFORTRESS_CAMPAIGN" && version!=1 && version!=2)
         return SfSaveFileState::Unknown;
     return SfSaveFileState::Invalid;
 }
@@ -202,6 +203,14 @@ static bool sfSaveCampaign(const SfCampaignSave &candidate)
     if ((state==SfSaveFileState::Invalid && !sfPreserveCampaignBytes(sfCampaignStoragePath,oldBytes)) ||
         (backupState==SfSaveFileState::Invalid && !sfPreserveCampaignBytes(backupPath,backupBytes))) {
         sfCampaignStorageError="ECHEC COPIE DE RECUPERATION - FICHIERS CONSERVES";return false;
+    }
+    // Preserve the complete original v1 bytes independently of the rotating
+    // backup before migration. Scores, IDs, names and pending victory map 1:1.
+    for (const auto &source : {std::make_pair(state,oldBytes),std::make_pair(backupState,backupBytes)}) {
+        if (source.first==SfSaveFileState::Valid && source.second.rfind("SPACEFORTRESS_CAMPAIGN 1\n",0)==0 &&
+            !sfPreserveCampaignBytes(sfCampaignStoragePath+".v1-original",source.second)) {
+            sfCampaignStorageError="ECHEC ARCHIVE V1 - FICHIERS CONSERVES";return false;
+        }
     }
     if (state==SfSaveFileState::Valid && !sfAtomicCampaignWrite(backupPath,oldBytes)) {
         sfCampaignStorageError="ECHEC COPIE - REESSAYER";return false;
