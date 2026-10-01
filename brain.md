@@ -174,3 +174,7 @@ Ce certificat diffère de la v1.3.1 publiée (`8abfc11c8bc4f9ac065eb5c086ad4e457
 
 ## Décision Fab — dégâts entrants coop ×5 — 2026-10-02
 Fab fixe le coefficient à ×5 pour les pertes de PV des deux pilotes coop causées par les attaques du boss, le contact boss et les astéroïdes. Le multiplicateur s'applique après la protection actuelle du bouclier : un impact totalement absorbé reste absorbé. Énergie, délais d'invulnérabilité, dégâts sortants, PV boss et `src/main.cpp` restent inchangés. Tests ajoutés pour les deux pilotes, coop locale/IA, nrj 0/25/50, projectiles/spéciaux boss, contact 30/60/120 Hz et callback astéroïdes. Validation CI fraîche et ressenti téléphone Fab requis.
+
+
+### CI du réglage ×5 — diagnostic test
+Le workflow 36939207044 a atteint les régressions puis a échoué uniquement sur l'assertion du nouveau test astéroïde. Cause : le test utilisait `sfCoopResources()`, qui exécute correctement le callback d'impact puis `sfCollectDust()`; la poussière créée à l'impact peut immédiatement rendre un peu de PV et d'énergie, contaminant une mesure censée isoler le seul dégât. Le test est corrigé pour exercer `sfLegacyFieldStep(sfCoopAsteroidHurt)` directement au point réel du callback. Aucun changement supplémentaire du code de gameplay.

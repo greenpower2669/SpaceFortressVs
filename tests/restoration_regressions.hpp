@@ -165,7 +165,10 @@ static void testCoopIncomingDamageMultiplier()
     }
     const float asteroidLegacyDamage=20.0f*20.0f*.05f;
     const float asteroidExpected=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(asteroidLegacyDamage,25);
-    sfCoopResources(1.0f/60);
+    // Exercise the real field collision callback before sfCoopResources()
+    // performs its intentional dust pickup/recovery pass, which would mask the
+    // exact impact-only PV/heat delta we are measuring here.
+    sfLegacyFieldStep(sfCoopAsteroidHurt);
     assert(std::abs((1000.0f-Spritej1->pv)-asteroidExpected)<.01f && Spritej1->nrj>25);
 
     std::puts("PASS: coop incoming damage is exactly x5 after shield for both pilots/modes, boss specials, contact and asteroid callback");

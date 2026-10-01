@@ -209,3 +209,9 @@ Vie boss
 `contact boss` → énergie/chaleur historique → formule continue → ×5 PV.
 `champ astéroïdes` → callback `sfCoopAsteroidHurt` → bouclier actuel → ×5 PV.
 Aucun changement : énergie, i-frames, dégâts vers boss, PV boss, mode classique, `src/main.cpp`.
+
+
+Test callback astéroïde
+→ `sfLegacyFieldStep(sfCoopAsteroidHurt)` pour mesurer l'impact seul
+→ ne pas inclure `sfCollectDust()` dans l'assertion exacte ×5
+→ récupération poussière reste testée séparément.

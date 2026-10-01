@@ -96,3 +96,6 @@ local au téléphone. Ne pas effacer les données de l'application pour le conse
 - [x] Ajouter les régressions deux pilotes / coop locale+IA / nrj 0-25-50 / spéciaux boss / 30-60-120 Hz / callback astéroïdes / clamp zéro.
 - [ ] CI fraîche sur le SHA de ce lot.
 - [ ] Validation téléphone Fab du nouvel équilibre.
+
+- [x] Diagnostiquer CI 36939207044 : échec limité au test astéroïde contaminé par la récupération de poussière après callback.
+- [x] Isoler le callback réel via `sfLegacyFieldStep(sfCoopAsteroidHurt)` sans modifier le gameplay.

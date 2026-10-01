@@ -196,3 +196,8 @@ Ce certificat diffère de la v1.3.1 publiée (`8abfc11c8bc4f9ac065eb5c086ad4e457
 Décision Fab : multiplier exactement par 5 les pertes de PV coop issues des attaques boss, du contact boss et des astéroïdes, après calcul du bouclier. La consommation/récupération d'énergie n'est pas multipliée. Le correctif est localisé dans `src/campaign_runtime.hpp` via `SF_COOP_INCOMING_DAMAGE_MULTIPLIER=5.0f`.
 Couverture ajoutée : deux pilotes, coop locale/IA, nrj 0/25/50, projectile boss réel, beam/wave, contact non létal à 30/60/120 Hz avec comparaison exacte ×5, mort plus précoce sans exigence d'énergie post-mortem, callback réel du champ d'astéroïdes et plafonnement PV à zéro. Le mode classique et les dégâts sortants restent couverts par les suites existantes.
 Statut au commit : code et tests préparés ; CI fraîche et essai téléphone Fab requis avant validation du ressenti.
+
+
+### D-140-10 — première CI et correction de test
+Workflow 36939207044, SHA `358c25a0f39598dacf60635d00cfe5d8b983bf88` : setup/SDL réussis ; échec de la suite sur le nouveau test astéroïde, avant build APK/AAB. L'assertion mesurait le résultat après `sfCoopResources()`, qui enchaîne collision/callback puis mise à jour des particules et `sfCollectDust()`. La poussière d'impact peut rendre jusqu'à un peu de PV et réduire la chaleur, donc la valeur n'est plus le delta brut du callback.
+Correction : conserver le même scénario de collision du champ mais appeler `sfLegacyFieldStep(sfCoopAsteroidHurt)` pour vérifier exactement le coefficient ×5 avant la passe de récupération. Aucun changement au multiplicateur ni au gameplay.
