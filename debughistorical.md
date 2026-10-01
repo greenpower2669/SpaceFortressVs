@@ -201,3 +201,7 @@ Statut au commit : code et tests préparés ; CI fraîche et essai téléphone F
 ### D-140-10 — première CI et correction de test
 Workflow 36939207044, SHA `358c25a0f39598dacf60635d00cfe5d8b983bf88` : setup/SDL réussis ; échec de la suite sur le nouveau test astéroïde, avant build APK/AAB. L'assertion mesurait le résultat après `sfCoopResources()`, qui enchaîne collision/callback puis mise à jour des particules et `sfCollectDust()`. La poussière d'impact peut rendre jusqu'à un peu de PV et réduire la chaleur, donc la valeur n'est plus le delta brut du callback.
 Correction : conserver le même scénario de collision du champ mais appeler `sfLegacyFieldStep(sfCoopAsteroidHurt)` pour vérifier exactement le coefficient ×5 avant la passe de récupération. Aucun changement au multiplicateur ni au gameplay.
+
+
+### D-140-10 — seconde CI
+Workflow 36939614317, SHA `1fcab304b34552b7347723ee5f4cbe69b4cf3f3d` : le même test callback échoue encore après retrait de la récupération poussière. Cause exacte supplémentaire : `sprite::setv` fixe la largeur demandée mais initialise historiquement la hauteur avec une variation aléatoire ; la surface réelle n'est donc pas 20×20. Correction du test : calculer `legacyDamage` depuis `impact->w*impact->h*.05f`. Le code de gameplay ×5 reste inchangé.

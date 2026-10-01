@@ -163,7 +163,7 @@ static void testCoopIncomingDamageMultiplier()
     for(int i=0;i<7;++i) {
         auto *dummy=new sprite;dummy->setv(40+i*95,80,10,10,0,0,1);dummy->pv=1;sa1.push_back(dummy);
     }
-    const float asteroidLegacyDamage=20.0f*20.0f*.05f;
+    const float asteroidLegacyDamage=impact->w*impact->h*.05f;
     const float asteroidExpected=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(asteroidLegacyDamage,25);
     // Exercise the real field collision callback before sfCoopResources()
     // performs its intentional dust pickup/recovery pass, which would mask the

@@ -215,3 +215,5 @@ Test callback astéroïde
 → `sfLegacyFieldStep(sfCoopAsteroidHurt)` pour mesurer l'impact seul
 → ne pas inclure `sfCollectDust()` dans l'assertion exacte ×5
 → récupération poussière reste testée séparément.
+
+`sprite::setv(…,20,20,…)` → hauteur historique randomisée → test surface = `impact->w*impact->h`, jamais 20×20 supposé.

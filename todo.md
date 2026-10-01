@@ -99,3 +99,4 @@ local au téléphone. Ne pas effacer les données de l'application pour le conse
 
 - [x] Diagnostiquer CI 36939207044 : échec limité au test astéroïde contaminé par la récupération de poussière après callback.
 - [x] Isoler le callback réel via `sfLegacyFieldStep(sfCoopAsteroidHurt)` sans modifier le gameplay.
+- [x] Diagnostiquer CI 36939614317 : surface de test erronée car `setv()` randomise historiquement la hauteur ; utiliser la surface réellement créée.

@@ -52,3 +52,5 @@ Fab autorise le réglage ×5 des pertes de PV des deux pilotes coop provenant de
 
 ### Suivi CI D-140-10
 La première CI (36939207044) a échoué dans le nouveau test astéroïde parce que la mesure incluait la récupération de poussière exécutée après le callback. Corriger uniquement le test pour mesurer l'impact brut au niveau de `sfLegacyFieldStep(sfCoopAsteroidHurt)`; ne pas modifier le gameplay ×5. Relancer une CI fraîche.
+
+Deuxième CI 36939614317 : échec de test uniquement, dû à la hauteur randomisée par `setv()`. Utiliser la surface réelle `impact->w*impact->h`; ne pas modifier le gameplay.

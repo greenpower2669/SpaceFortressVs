@@ -178,3 +178,7 @@ Fab fixe le coefficient à ×5 pour les pertes de PV des deux pilotes coop caus�
 
 ### CI du réglage ×5 — diagnostic test
 Le workflow 36939207044 a atteint les régressions puis a échoué uniquement sur l'assertion du nouveau test astéroïde. Cause : le test utilisait `sfCoopResources()`, qui exécute correctement le callback d'impact puis `sfCollectDust()`; la poussière créée à l'impact peut immédiatement rendre un peu de PV et d'énergie, contaminant une mesure censée isoler le seul dégât. Le test est corrigé pour exercer `sfLegacyFieldStep(sfCoopAsteroidHurt)` directement au point réel du callback. Aucun changement supplémentaire du code de gameplay.
+
+
+### CI D-140-10 — précision historique `setv()`
+La seconde CI 36939614317 a confirmé que l'isolement du callback était nécessaire mais a encore échoué car le test supposait une hauteur d'astéroïde fixe à 20. Le `setv()` historique conserve `w=20` mais randomise `h` à la création. Le test calcule désormais le dommage historique depuis `impact->w*impact->h` réellement créé. Aucun changement de gameplay.
