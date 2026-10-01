@@ -202,3 +202,10 @@ Vie boss
 
 ## Preuve CI du lot
 `fbb1ff92907821217ff94d847d9f2bbf4683636d` → run 36266178070 → 57 PASS → Gradle PASS → packaging PASS → artefact 10914467015. Test téléphone Fab reste requis pour le ressenti réel et le placement HUD.
+
+
+## Dégâts entrants coop ×5
+`boss projectile / beam / wave` → `sfCoopHurt` → bouclier actuel → ×5 PV.
+`contact boss` → énergie/chaleur historique → formule continue → ×5 PV.
+`champ astéroïdes` → callback `sfCoopAsteroidHurt` → bouclier actuel → ×5 PV.
+Aucun changement : énergie, i-frames, dégâts vers boss, PV boss, mode classique, `src/main.cpp`.

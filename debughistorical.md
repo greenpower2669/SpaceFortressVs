@@ -190,3 +190,9 @@ SHA de code testé : `fbb1ff92907821217ff94d847d9f2bbf4683636d`.
 - Digest ZIP artefact : `sha256:6cdc725a398e47cd3854ab3f2b4bb4bf6751206ebec4dbb5660fbad5f8f49aec`.
 - Certificat APK debug de ce build : `19e25032f58c41ea692554dd7b2849dad4b9589e78fac6a1f1988a8e384295f5`.
 Ce certificat diffère de la v1.3.1 publiée (`8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868`) : APK de test, pas une mise à jour directe compatible. Ne pas désinstaller ni effacer les données.
+
+
+## D-140-10 — rééquilibrage dégâts entrants coop ×5 — 2026-10-02
+Décision Fab : multiplier exactement par 5 les pertes de PV coop issues des attaques boss, du contact boss et des astéroïdes, après calcul du bouclier. La consommation/récupération d'énergie n'est pas multipliée. Le correctif est localisé dans `src/campaign_runtime.hpp` via `SF_COOP_INCOMING_DAMAGE_MULTIPLIER=5.0f`.
+Couverture ajoutée : deux pilotes, coop locale/IA, nrj 0/25/50, projectile boss réel, beam/wave, contact non létal à 30/60/120 Hz avec comparaison exacte ×5, mort plus précoce sans exigence d'énergie post-mortem, callback réel du champ d'astéroïdes et plafonnement PV à zéro. Le mode classique et les dégâts sortants restent couverts par les suites existantes.
+Statut au commit : code et tests préparés ; CI fraîche et essai téléphone Fab requis avant validation du ressenti.

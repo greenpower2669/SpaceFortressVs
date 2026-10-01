@@ -170,3 +170,7 @@ SHA de code testé : `fbb1ff92907821217ff94d847d9f2bbf4683636d`.
 - Digest ZIP artefact : `sha256:6cdc725a398e47cd3854ab3f2b4bb4bf6751206ebec4dbb5660fbad5f8f49aec`.
 - Certificat APK debug de ce build : `19e25032f58c41ea692554dd7b2849dad4b9589e78fac6a1f1988a8e384295f5`.
 Ce certificat diffère de la v1.3.1 publiée (`8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868`) : APK de test, pas une mise à jour directe compatible. Ne pas désinstaller ni effacer les données.
+
+
+## Décision Fab — dégâts entrants coop ×5 — 2026-10-02
+Fab fixe le coefficient à ×5 pour les pertes de PV des deux pilotes coop causées par les attaques du boss, le contact boss et les astéroïdes. Le multiplicateur s'applique après la protection actuelle du bouclier : un impact totalement absorbé reste absorbé. Énergie, délais d'invulnérabilité, dégâts sortants, PV boss et `src/main.cpp` restent inchangés. Tests ajoutés pour les deux pilotes, coop locale/IA, nrj 0/25/50, projectiles/spéciaux boss, contact 30/60/120 Hz et callback astéroïdes. Validation CI fraîche et ressenti téléphone Fab requis.

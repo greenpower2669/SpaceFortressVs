@@ -54,7 +54,7 @@ static void testCollectedBonusAndShield()
     for(auto *ship:{Spritej1,Spritej2}) ship->pv=1000;
     Spritej1->nrj=0;Spritej2->nrj=50;
     sfCoopHurt(0,100);sfCoopHurt(1,100);
-    assert(Spritej1->pv==1000 && Spritej2->pv==900);
+    assert(Spritej1->pv==1000 && Spritej2->pv==500);
     assert(Spritej1->nrj>0 && Spritej2->nrj==50);
     std::puts("PASS: random floating bonus, collection, independent turret energy, expiration and reserve-dependent shield");
 }
@@ -86,14 +86,31 @@ static void testCoopDifficultyChain()
 
     for(int fps:{30,60,120}) {
         setupCampaign();auto *ship=Spritej1;ship->pv=1000;ship->nrj=0;
-        for(int frame=0;frame<fps*2;++frame) sfCoopBossContact(0,1.0f/fps);
-        assert(ship->nrj>=49.9f && ship->pv<500);
+        const float dt=1.0f/fps;
+        float legacyHeat=0,legacyLoss=0;
+        for(int frame=0;frame<fps/2;++frame) {
+            legacyHeat=sfShipHeat(legacyHeat+45.0f*dt);
+            const float spent=sfShipHeat(legacyHeat)/SF_MAX_SHIP_HEAT;
+            legacyLoss+=650.0f*spent*spent*dt;
+            sfCoopBossContact(0,dt);
+        }
+        const float actualLoss=1000.0f-ship->pv;
+        assert(ship->pv>0 && std::abs(actualLoss-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*legacyLoss)<.02f);
     }
+    setupCampaign();Spritej1->pv=1000;Spritej1->nrj=0;
+    int deathFrame=-1;
+    for(int frame=0;frame<120;++frame) {
+        sfCoopBossContact(0,1.0f/60);
+        if(Spritej1->pv<=0) {deathFrame=frame;break;}
+    }
+    assert(deathFrame>=0 && deathFrame<119);
 
     setupCampaign();Spritej1->pv=1000;Spritej1->nrj=40;sfCoop.invulnerable[0]=10;
-    const float p0=Spritej1->pv;sfCoopAsteroidHurt(0,500);const float p1=Spritej1->pv;
-    sfCoopAsteroidHurt(0,500);const float p2=Spritej1->pv;
+    const float p0=Spritej1->pv;sfCoopAsteroidHurt(0,20);const float p1=Spritej1->pv;
+    sfCoopAsteroidHurt(0,20);const float p2=Spritej1->pv;
     assert(p1<p0 && p2<p1 && Spritej1->nrj>40);
+    setupCampaign();Spritej1->pv=100;Spritej1->nrj=50;
+    sfCoopAsteroidHurt(0,100);assert(Spritej1->pv==0);
 
     setupCampaign();Spritej1->setxywh(390,300,100,100);Spritej2->setxywh(700,1500,100,100);
     Spritej1->nrj=30;Spritej1->pv=900;
@@ -101,6 +118,57 @@ static void testCoopDifficultyChain()
     sfCollectDust();
     assert(Spritej1->nrj>25 && Spritej1->pv<=909);
     std::puts("PASS: energy lowers cadence/accuracy, boss contact is continuous, rocks bypass shot i-frames and ore no longer resets the shield");
+}
+
+static void testCoopIncomingDamageMultiplier()
+{
+    for(bool ai:{false,true}) for(int owner=0;owner<2;++owner) for(float heat:{0.0f,25.0f,50.0f}) {
+        setupCampaign(0,ai);
+        auto *ship=sfCoopShip(owner);auto *other=sfCoopShip(1-owner);
+        ship->pv=1000;ship->nrj=heat;other->pv=1000;other->nrj=0;
+        if(owner==0) {
+            ship->setxywh(200,350,100,100);other->setxywh(580,1330,100,100);
+        } else {
+            ship->setxywh(580,1330,100,100);other->setxywh(200,350,100,100);
+        }
+        sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
+        sfCoop.invulnerable[owner]=0;
+        const float expected=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(100,heat);
+        sfCoopEmit(tupl(ship->x,ship->y),0,0,-1,100);
+        sfCoopProjectiles(.01f);
+        assert(std::abs((1000.0f-ship->pv)-expected)<.01f);
+        assert(other->pv==1000);
+    }
+
+    setupCampaign();Spritej1->pv=2000;Spritej1->nrj=50;Spritej2->setxywh(700,1500,100,100);
+    Spritej1->setxywh(300,500,100,100);sfCoop.invulnerable[0]=0;
+    sfCoop.shots.clear();sfCoop.waves.clear();
+    const float beamDamage=sfCoopProfile().damage*1.6f;
+    sfCoop.beams={{tupl(100,500),0,0,0}};
+    sfCoopProjectiles(.01f);
+    assert(std::abs((2000.0f-Spritej1->pv)-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*beamDamage)<.01f);
+
+    setupCampaign();Spritej1->pv=2000;Spritej1->nrj=50;Spritej2->setxywh(700,1500,100,100);
+    Spritej1->setxywh(300,500,100,100);sfCoop.invulnerable[0]=0;
+    sfCoop.shots.clear();sfCoop.beams.clear();
+    const float waveDamage=sfCoopProfile().damage*1.3f;
+    sfCoop.waves={{tupl(300,500),.7f,0}};
+    sfCoopProjectiles(.01f);
+    assert(std::abs((2000.0f-Spritej1->pv)-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*waveDamage)<.01f);
+
+    setupCampaign();sfFixResetAsteroidField();sfFieldRemainder=0;
+    Spritej1->setxywh(390,400,100,100);Spritej2->setxywh(700,1500,100,100);
+    Spritej1->pv=1000;Spritej1->nrj=25;
+    auto *impact=new sprite;impact->setv(390,400,20,20,0,0,1);impact->pv=1;sa1.push_back(impact);
+    for(int i=0;i<7;++i) {
+        auto *dummy=new sprite;dummy->setv(40+i*95,80,10,10,0,0,1);dummy->pv=1;sa1.push_back(dummy);
+    }
+    const float asteroidLegacyDamage=20.0f*20.0f*.05f;
+    const float asteroidExpected=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(asteroidLegacyDamage,25);
+    sfCoopResources(1.0f/60);
+    assert(std::abs((1000.0f-Spritej1->pv)-asteroidExpected)<.01f && Spritej1->nrj>25);
+
+    std::puts("PASS: coop incoming damage is exactly x5 after shield for both pilots/modes, boss specials, contact and asteroid callback");
 }
 
 static void testCoopHudAndMissile()

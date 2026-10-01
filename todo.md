@@ -88,3 +88,11 @@ https://github.com/greenpower2669/SpaceFortressVs/releases/tag/v1.3.1
 Livraison publiée : https://github.com/greenpower2669/SpaceFortressVs/releases/tag/v1.3.0
 APK signé avec la clé de test Android ; AAB non signé. Le Hall of Fame reste
 local au téléphone. Ne pas effacer les données de l'application pour le conserver.
+
+
+## D-140-10 — dégâts entrants coop ×5
+- [x] Appliquer ×5 après bouclier aux attaques boss, au contact boss et aux astéroïdes.
+- [x] Préserver énergie, i-frames, dégâts sortants, PV boss, mode classique et `src/main.cpp`.
+- [x] Ajouter les régressions deux pilotes / coop locale+IA / nrj 0-25-50 / spéciaux boss / 30-60-120 Hz / callback astéroïdes / clamp zéro.
+- [ ] CI fraîche sur le SHA de ce lot.
+- [ ] Validation téléphone Fab du nouvel équilibre.

@@ -44,3 +44,7 @@ Synchroniser `brain.md`, `brainmap.md`, `debughistorical.md`, `todo.md` dans tou
 
 ## État après exécution
 Lot appliqué au SHA `fbb1ff92907821217ff94d847d9f2bbf4683636d` et vérifié par le workflow 36266178070 : 57 PASS, build et packaging réussis. Prochaine étape : essai physique Fab. Aucun merge main ni release.
+
+
+## Mission active — dégâts entrants coop ×5 — 2026-10-02
+Fab autorise le réglage ×5 des pertes de PV des deux pilotes coop provenant des attaques du boss, du contact direct avec le boss et des astéroïdes. Le coefficient est appliqué exactement une fois après la protection du bouclier. Conserver énergie, récupération, i-frames, dégâts sortants, PV boss, mode classique et `src/main.cpp`. Vérifier les deux pilotes, coop locale/IA, nrj 0/25/50, projectiles et spéciaux boss, contact 30/60/120 Hz, callback astéroïdes et clamp zéro. Aucun merge main ni release. Validation téléphone finale : Fab.
