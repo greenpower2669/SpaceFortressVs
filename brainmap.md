@@ -217,3 +217,7 @@ Test callback astéroïde
 → récupération poussière reste testée séparément.
 
 `sprite::setv(…,20,20,…)` → hauteur historique randomisée → test surface = `impact->w*impact->h`, jamais 20×20 supposé.
+
+
+## Preuve CI D-140-10
+`7e624256d8f50d07a63e92c9c3851ff2b6048ace` → run 36940059444 → 58 PASS → ×5 confirmé sur pilotes/modes/spéciaux/contact/astéroïdes → Gradle PASS → packaging PASS → artefact 11199572849.

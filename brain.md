@@ -182,3 +182,15 @@ Le workflow 36939207044 a atteint les régressions puis a échoué uniquement su
 
 ### CI D-140-10 — précision historique `setv()`
 La seconde CI 36939614317 a confirmé que l'isolement du callback était nécessaire mais a encore échoué car le test supposait une hauteur d'astéroïde fixe à 20. Le `setv()` historique conserve `w=20` mais randomise `h` à la création. Le test calcule désormais le dommage historique depuis `impact->w*impact->h` réellement créé. Aucun changement de gameplay.
+
+
+## Preuve fraîche D-140-10 — workflow 36940059444
+SHA de code testé : `7e624256d8f50d07a63e92c9c3851ff2b6048ace`.
+- 58 lignes PASS ; le test dédié confirme « coop incoming damage is exactly x5 after shield for both pilots/modes, boss specials, contact and asteroid callback ».
+- Régressions historiques duel/coop, champ réel, 30/60/120 Hz : PASS.
+- Build Android : `BUILD SUCCESSFUL in 2m 45s`.
+- Packaging 1.4.0/versionCode 10, APK signature, intégrité ZIP, bibliothèque et assets : vérifiés.
+- Artefact release-files : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36940059444/artifacts/11199572849
+- Digest artefact : `sha256:181030495d4ba54a875734c762a22f6ff80eb22d44551fe2e20c53b8b0265964`.
+- Certificat APK debug : `a76bcc6b3183e3dbfd3f1ee3a296591dff990ba350e3eb990e44cc7e2b686b38`, différent de la v1.3.1 publiée : APK de test uniquement.
+Validation du ressenti téléphone reste à Fab. Aucun merge main ni release.

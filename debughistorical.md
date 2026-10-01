@@ -205,3 +205,15 @@ Correction : conserver le même scénario de collision du champ mais appeler `sf
 
 ### D-140-10 — seconde CI
 Workflow 36939614317, SHA `1fcab304b34552b7347723ee5f4cbe69b4cf3f3d` : le même test callback échoue encore après retrait de la récupération poussière. Cause exacte supplémentaire : `sprite::setv` fixe la largeur demandée mais initialise historiquement la hauteur avec une variation aléatoire ; la surface réelle n'est donc pas 20×20. Correction du test : calculer `legacyDamage` depuis `impact->w*impact->h*.05f`. Le code de gameplay ×5 reste inchangé.
+
+
+### D-140-10 — validation CI fraîche
+Workflow 36940059444 sur `7e624256d8f50d07a63e92c9c3851ff2b6048ace` : succès complet.
+- 58 PASS, dont le test dédié ×5 après bouclier sur deux pilotes, coop locale/IA, nrj 0/25/50, attaques boss normales/spéciales, contact et callback astéroïdes.
+- Suites historiques duel/coop et champ réel 30/60/120 Hz : PASS.
+- Build Android : `BUILD SUCCESSFUL in 2m 45s`.
+- Vérification 1.4.0/versionCode 10, signature APK, intégrité ZIP, bibliothèque et assets : PASS.
+- Artefact : https://github.com/greenpower2669/SpaceFortressVs/actions/runs/36940059444/artifacts/11199572849
+- Digest : `sha256:181030495d4ba54a875734c762a22f6ff80eb22d44551fe2e20c53b8b0265964`.
+- Certificat debug : `a76bcc6b3183e3dbfd3f1ee3a296591dff990ba350e3eb990e44cc7e2b686b38`, différent de la v1.3.1 publiée. APK de test uniquement ; ne pas désinstaller ni effacer les données de la version existante.
+Le ressenti réel du nouvel équilibrage reste à valider sur téléphone par Fab.

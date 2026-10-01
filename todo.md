@@ -94,7 +94,7 @@ local au téléphone. Ne pas effacer les données de l'application pour le conse
 - [x] Appliquer ×5 après bouclier aux attaques boss, au contact boss et aux astéroïdes.
 - [x] Préserver énergie, i-frames, dégâts sortants, PV boss, mode classique et `src/main.cpp`.
 - [x] Ajouter les régressions deux pilotes / coop locale+IA / nrj 0-25-50 / spéciaux boss / 30-60-120 Hz / callback astéroïdes / clamp zéro.
-- [ ] CI fraîche sur le SHA de ce lot.
+- [x] CI fraîche sur `7e624256d8f50d07a63e92c9c3851ff2b6048ace` : workflow 36940059444, 58 PASS, build APK/AAB et packaging vérifiés.
 - [ ] Validation téléphone Fab du nouvel équilibre.
 
 - [x] Diagnostiquer CI 36939207044 : échec limité au test astéroïde contaminé par la récupération de poussière après callback.
