@@ -39,3 +39,4 @@ jobs:
           git status --short
           git commit -m "fix: rebalance kinetic impacts and resource feedback"
           git push origin HEAD:fix/gameplay-campaign-200
+# historical zero-speed regression aligned with the approved linear kinetic canon
