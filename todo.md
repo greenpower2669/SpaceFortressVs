@@ -107,5 +107,9 @@ local au téléphone. Ne pas effacer les données de l'application pour le conse
 - [x] Autoriser boss blessé et munitions spéciales kind 1/2/3 à récupérer les poussières blanches pour soigner le boss.
 - [x] Générer des poussières rouges sur impacts boss ; aucune recharge, légère usure du bouclier via chaleur.
 - [x] Préserver les poussières rouges historiques des collisions d'astéroïdes et `src/main.cpp`.
-- [ ] CI fraîche + APK/AAB de test.
+- [x] CI fraîche + APK/AAB de test sur `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`, workflow `37095128530`.
 - [ ] Validation téléphone Fab.
+
+
+### Preuve fraîche D-140-11 APK
+Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128530` : régressions complètes GREEN puis build Android APK+AAB réussi. Artefact : `SpaceFortressVs-x15-dust-APK-AAB-37095128530`. Le premier essai avait échoué uniquement sur la validation d'un wrapper Gradle tiers SDL téléchargé trop tôt ; l'ordre CI a été corrigé sans changement gameplay. Aucun merge `main`, aucune release ; validation téléphone reste à Fab.
