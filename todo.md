@@ -100,3 +100,12 @@ local au téléphone. Ne pas effacer les données de l'application pour le conse
 - [x] Diagnostiquer CI 36939207044 : échec limité au test astéroïde contaminé par la récupération de poussière après callback.
 - [x] Isoler le callback réel via `sfLegacyFieldStep(sfCoopAsteroidHurt)` sans modifier le gameplay.
 - [x] Diagnostiquer CI 36939614317 : surface de test erronée car `setv()` randomise historiquement la hauteur ; utiliser la surface réellement créée.
+
+
+## D-140-11 — dégâts ×15 et poussières
+- [x] Passer le multiplicateur entrant coop de ×5 à ×15 après bouclier.
+- [x] Autoriser boss blessé et munitions spéciales kind 1/2/3 à récupérer les poussières blanches pour soigner le boss.
+- [x] Générer des poussières rouges sur impacts boss ; aucune recharge, légère usure du bouclier via chaleur.
+- [x] Préserver les poussières rouges historiques des collisions d'astéroïdes et `src/main.cpp`.
+- [ ] CI fraîche + APK/AAB de test.
+- [ ] Validation téléphone Fab.

@@ -27,6 +27,7 @@ struct SfCoopState {
     tuplv bonusVelocity;
     std::array<float,2> cooldown{},invulnerable{},reviveProgress{};
     std::array<unsigned,2> shotSequence{};
+    std::array<float,2> redDustCooldown{};
     std::vector<SfCoopShot> shots;
     std::vector<SfCoopBeam> beams;
     std::vector<SfCoopWave> waves;
@@ -82,7 +83,78 @@ static void sfCoopEmit(tupl origin,float angle,float speed,int owner,float damag
     sfCoop.shots.push_back(shot);
     if (owner>=0) sfCoop.soundShot[owner]=true;
 }
-static constexpr float SF_COOP_INCOMING_DAMAGE_MULTIPLIER = 5.0f;
+static constexpr float SF_COOP_INCOMING_DAMAGE_MULTIPLIER = 15.0f;
+static constexpr float SF_COOP_BOSS_DUST_HEAL_FRACTION = .0015f;
+static constexpr float SF_COOP_RED_DUST_HEAT = .08f;
+static constexpr float SF_COOP_RED_DUST_ARMED_PV = 560.0f;
+
+static void sfCoopEmitRedDust(int owner,int count)
+{
+    if (owner<0 || owner>1 || count<=0 || sfCoop.phase!=SfCoopPhase::Combat || sfCoop.redDustCooldown[owner]>0) return;
+    auto *ship=sfCoopShip(owner);
+    const float ring=sfCoopShipRadius()*1.18f;
+    for(int i=0;i<count && particulesr.size()<1000;++i) {
+        const float angle=(i+.5f)*2*float(PI)/count+owner*.37f;
+        auto *dust=new parts(ship->x+std::cos(angle)*ring,ship->y+std::sin(angle)*ring);
+        dust->pv=600;
+        dust->vx+=std::cos(angle)*sfArenaW*.65f;
+        dust->vy+=std::sin(angle)*sfArenaW*.65f;
+        particulesr.push_back(dust);
+    }
+    sfCoop.redDustCooldown[owner]=.16f;
+}
+
+static void sfCoopEnemyCollectWhiteDust()
+{
+    if (sfCoop.phase!=SfCoopPhase::Combat) return;
+    const float maximum=sfCoopProfile().health;
+    if (sfCoop.health>=maximum-.001f) return; // Never waste ore at full boss health.
+    for(auto *dust:particules) {
+        if (dust->pv<=0) continue;
+        const tupl dustPosition(dust->x,dust->y);
+        float nearest=std::numeric_limits<float>::max();
+        bool enemyWins=false;
+        // Players retain a fair claim: the closest eligible collector wins.
+        for(int owner=0;owner<2;++owner) {
+            const auto *ship=sfCoopShip(owner);
+            if (ship->pv<=0) continue;
+            const float distance=vlong(dust->x-ship->x,dust->y-ship->y);
+            if (distance<ship->sh*.5f && distance<nearest) nearest=distance;
+        }
+        const float bossDistance=vlong(dust->x-sfCoop.position.x,dust->y-sfCoop.position.y);
+        if (bossDistance<sfCoopBossRadius()*.90f && bossDistance<nearest) {
+            nearest=bossDistance;enemyWins=true;
+        }
+        for(const auto &shot:sfCoop.shots) {
+            if (shot.owner>=0 || shot.life<=0 || shot.kind<1 || shot.kind>3) continue;
+            const float distance=sfSegmentDistance(shot.previous,shot.position,dustPosition);
+            const float pickup=std::max(shot.radius*2.5f,sfArenaW*.012f);
+            if (distance<pickup && distance<nearest) {nearest=distance;enemyWins=true;}
+        }
+        if (!enemyWins) continue;
+        const float value=std::clamp(dust->pv/600.0f,0.0f,1.0f);
+        sfCoop.health=std::min(maximum,sfCoop.health+maximum*SF_COOP_BOSS_DUST_HEAL_FRACTION*value);
+        dust->pv=0;
+    }
+}
+
+static void sfCoopCollectRedDust()
+{
+    if (sfCoop.phase!=SfCoopPhase::Combat) return;
+    for(auto *dust:particulesr) {
+        if (dust->pv<=0 || dust->pv>SF_COOP_RED_DUST_ARMED_PV) continue;
+        const float value=std::clamp(dust->pv/600.0f,0.0f,1.0f);
+        for(int owner=0;owner<2;++owner) {
+            auto *ship=sfCoopShip(owner);
+            if (ship->pv<=0) continue;
+            if (vlong(dust->x-ship->x,dust->y-ship->y)>=sfCoopShipRadius()*.82f) continue;
+            // Red dust is hostile: no PV/energy recharge. More nrj means less shield reserve.
+            sfAddShipHeat(ship,SF_COOP_RED_DUST_HEAT*value);
+            dust->pv=0;
+            break;
+        }
+    }
+}
 
 static void sfCoopHurt(int owner,float damage)
 {
@@ -90,7 +162,7 @@ static void sfCoopHurt(int owner,float damage)
     if (ship->pv<=0 || sfCoop.invulnerable[owner]>0 || sfCoop.phase!=SfCoopPhase::Combat) return;
     ship->pv=std::max(0.0f,ship->pv-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(damage,ship->nrj));
     sfAddShipHeat(ship,2); sfCoop.invulnerable[owner]=.38f;
-    sfCoop.soundHit=true;
+    sfCoop.soundHit=true;sfCoopEmitRedDust(owner,6);
     if (ship->pv<=0) {
         sfCoop.controls[owner].down=false;sfCoop.controls[owner].finger=-1;
         sfCoop.controls[owner].velocity.set(0,0);
@@ -244,7 +316,7 @@ static void sfCoopBossContact(int owner,float dt)
     sfAddShipHeat(ship,45.0f*dt);
     const float spent=sfShipHeat(ship->nrj)/SF_MAX_SHIP_HEAT;
     ship->pv=std::max(0.0f,ship->pv-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*650.0f*spent*spent*dt);
-    sfCoop.soundHit=true;
+    sfCoop.soundHit=true;sfCoopEmitRedDust(owner,2);
 }
 static void sfCoopAsteroidHurt(int owner,float legacyDamage)
 {
@@ -261,6 +333,7 @@ static void sfCoopMovePlayers(float dt)
     const float radius=sfCoopShipRadius();
     for (int owner=0;owner<2;++owner) {
         auto *ship=sfCoopShip(owner); auto &control=sfCoop.controls[owner];
+        sfCoop.redDustCooldown[owner]=std::max(0.0f,sfCoop.redDustCooldown[owner]-dt);
         ship->vib(sfCoop.time);
         sfCoop.invulnerable[owner]=std::max(0.0f,sfCoop.invulnerable[owner]-dt);
         if (ship->pv<=0) continue;
@@ -408,6 +481,7 @@ static void sfCoopProjectiles(float dt)
         }
     }
     sfCoop.waves.erase(std::remove_if(sfCoop.waves.begin(),sfCoop.waves.end(),[](const auto &w){return w.radius>sfArenaH*1.2f;}),sfCoop.waves.end());
+    sfCoopEnemyCollectWhiteDust();
 }
 
 static void sfCoopBonus(float dt)
@@ -435,6 +509,7 @@ static void sfCoopBonus(float dt)
 static void sfCoopResources(float dt)
 {
     sfLegacyFieldFrame(dt,sfCoopAsteroidHurt);
+    sfCoopCollectRedDust();
 }
 
 static void sfCoopWin()

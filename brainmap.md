@@ -221,3 +221,7 @@ Test callback astéroïde
 
 ## Preuve CI D-140-10
 `7e624256d8f50d07a63e92c9c3851ff2b6048ace` → run 36940059444 → 58 PASS → ×5 confirmé sur pilotes/modes/spéciaux/contact/astéroïdes → Gradle PASS → packaging PASS → artefact 11199572849.
+
+
+## D-140-11 — dégâts ×15 et économie de poussières
+Fab demande ×3 supplémentaire sur le ×5 validé : multiplicateur coop total ×15 après protection du bouclier. Les poussières blanches historiques peuvent soigner un boss blessé lorsqu'il les touche ; les munitions boss spéciales kind 1/2/3 peuvent aussi les ramasser et transmettre le soin. Le collecteur éligible le plus proche gagne et un boss à pleine vie ne consomme pas la poussière. Les impacts boss sur un vaisseau génèrent des poussières rouges ; elles ne rendent ni PV ni énergie et, après armement, ajoutent seulement un peu de chaleur `nrj`, donc usent le bouclier. Les collisions d'astéroïdes conservent leur émission rouge historique. `src/main.cpp` reste intact.

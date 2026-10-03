@@ -54,7 +54,7 @@ static void testCollectedBonusAndShield()
     for(auto *ship:{Spritej1,Spritej2}) ship->pv=1000;
     Spritej1->nrj=0;Spritej2->nrj=50;
     sfCoopHurt(0,100);sfCoopHurt(1,100);
-    assert(Spritej1->pv==1000 && Spritej2->pv==500);
+    assert(Spritej1->pv==1000 && Spritej2->pv==0);
     assert(Spritej1->nrj>0 && Spritej2->nrj==50);
     std::puts("PASS: random floating bonus, collection, independent turret energy, expiration and reserve-dependent shield");
 }
@@ -85,7 +85,7 @@ static void testCoopDifficultyChain()
     assert(!sfCoopFire(1) && Spritej2->nrj==heat && sfCoop.shots.size()==shots);
 
     for(int fps:{30,60,120}) {
-        setupCampaign();auto *ship=Spritej1;ship->pv=1000;ship->nrj=0;
+        setupCampaign();auto *ship=Spritej1;ship->pv=5000;ship->nrj=0;
         const float dt=1.0f/fps;
         float legacyHeat=0,legacyLoss=0;
         for(int frame=0;frame<fps/2;++frame) {
@@ -94,7 +94,7 @@ static void testCoopDifficultyChain()
             legacyLoss+=650.0f*spent*spent*dt;
             sfCoopBossContact(0,dt);
         }
-        const float actualLoss=1000.0f-ship->pv;
+        const float actualLoss=5000.0f-ship->pv;
         assert(ship->pv>0 && std::abs(actualLoss-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*legacyLoss)<.02f);
     }
     setupCampaign();Spritej1->pv=1000;Spritej1->nrj=0;
@@ -125,7 +125,7 @@ static void testCoopIncomingDamageMultiplier()
     for(bool ai:{false,true}) for(int owner=0;owner<2;++owner) for(float heat:{0.0f,25.0f,50.0f}) {
         setupCampaign(0,ai);
         auto *ship=sfCoopShip(owner);auto *other=sfCoopShip(1-owner);
-        ship->pv=1000;ship->nrj=heat;other->pv=1000;other->nrj=0;
+        ship->pv=3000;ship->nrj=heat;other->pv=1000;other->nrj=0;
         if(owner==0) {
             ship->setxywh(200,350,100,100);other->setxywh(580,1330,100,100);
         } else {
@@ -136,7 +136,7 @@ static void testCoopIncomingDamageMultiplier()
         const float expected=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(100,heat);
         sfCoopEmit(tupl(ship->x,ship->y),0,0,-1,100);
         sfCoopProjectiles(.01f);
-        assert(std::abs((1000.0f-ship->pv)-expected)<.01f);
+        assert(std::abs((3000.0f-ship->pv)-expected)<.01f);
         assert(other->pv==1000);
     }
 
@@ -171,7 +171,51 @@ static void testCoopIncomingDamageMultiplier()
     sfLegacyFieldStep(sfCoopAsteroidHurt);
     assert(std::abs((1000.0f-Spritej1->pv)-asteroidExpected)<.01f && Spritej1->nrj>25);
 
-    std::puts("PASS: coop incoming damage is exactly x5 after shield for both pilots/modes, boss specials, contact and asteroid callback");
+    // D-140-11: Fab asks for another x3 over the verified x5 => x15 total.
+    assert(SF_COOP_INCOMING_DAMAGE_MULTIPLIER==15.0f);
+
+    // A wounded boss may recover historical white dust itself.
+    setupCampaign();
+    const float bossMax=sfCoopProfile().health;
+    sfCoop.health=bossMax-100;
+    auto *bossDust=new parts(sfCoop.position.x,sfCoop.position.y);bossDust->pv=600;particules.push_back(bossDust);
+    const float bossBefore=sfCoop.health;
+    sfCoopProjectiles(0);
+    assert(bossDust->pv==0 && sfCoop.health>bossBefore && sfCoop.health<=bossMax);
+
+    // Only selected boss ammunition families 1/2/3 may pick white dust up.
+    for(int kind:{1,2,3}) {
+        setupCampaign();
+        const float maxHealth=sfCoopProfile().health;sfCoop.health=maxHealth-100;
+        Spritej1->setxywh(sfArenaW*.85f,sfArenaH*.15f,100,100);
+        Spritej2->setxywh(sfArenaW*.85f,sfArenaH*.85f,100,100);
+        auto *dust=new parts(80,80);dust->pv=600;particules.push_back(dust);
+        sfCoopEmit(tupl(80,80),0,0,-1,10,kind);
+        const float before=sfCoop.health;sfCoopProjectiles(0);
+        assert(dust->pv==0 && sfCoop.health>before);
+    }
+    setupCampaign();
+    sfCoop.health=sfCoopProfile().health-100;
+    Spritej1->setxywh(sfArenaW*.85f,sfArenaH*.15f,100,100);
+    Spritej2->setxywh(sfArenaW*.85f,sfArenaH*.85f,100,100);
+    auto *ordinaryDust=new parts(80,80);ordinaryDust->pv=600;particules.push_back(ordinaryDust);
+    sfCoopEmit(tupl(80,80),0,0,-1,10,0);
+    const float ordinaryBefore=sfCoop.health;sfCoopProjectiles(0);
+    assert(ordinaryDust->pv>0 && sfCoop.health==ordinaryBefore);
+
+    // A boss hit makes red dust. Armed red dust never heals PV/energy: it adds heat,
+    // i.e. weakens the shield, and leaves PV untouched by the pickup itself.
+    setupCampaign();Spritej1->pv=3000;Spritej1->nrj=50;sfCoop.invulnerable[0]=0;
+    const auto redBefore=particulesr.size();sfCoopHurt(0,10);
+    assert(particulesr.size()>redBefore);
+    setupCampaign();sfFieldRemainder=-1;
+    Spritej1->pv=900;Spritej1->nrj=10;
+    auto *red=new parts(Spritej1->x,Spritej1->y);red->pv=550;particulesr.push_back(red);
+    const float pvBeforeRed=Spritej1->pv,heatBeforeRed=Spritej1->nrj;
+    sfCoopResources(0);
+    assert(Spritej1->pv==pvBeforeRed && Spritej1->nrj>heatBeforeRed && red->pv==0);
+
+    std::puts("PASS: coop incoming damage is x15 and white/red dust economy is active for boss, special ammo and shields");
 }
 
 static void testCoopHudAndMissile()

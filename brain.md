@@ -194,3 +194,7 @@ SHA de code testé : `7e624256d8f50d07a63e92c9c3851ff2b6048ace`.
 - Digest artefact : `sha256:181030495d4ba54a875734c762a22f6ff80eb22d44551fe2e20c53b8b0265964`.
 - Certificat APK debug : `a76bcc6b3183e3dbfd3f1ee3a296591dff990ba350e3eb990e44cc7e2b686b38`, différent de la v1.3.1 publiée : APK de test uniquement.
 Validation du ressenti téléphone reste à Fab. Aucun merge main ni release.
+
+
+## D-140-11 — dégâts ×15 et économie de poussières
+Fab demande ×3 supplémentaire sur le ×5 validé : multiplicateur coop total ×15 après protection du bouclier. Les poussières blanches historiques peuvent soigner un boss blessé lorsqu'il les touche ; les munitions boss spéciales kind 1/2/3 peuvent aussi les ramasser et transmettre le soin. Le collecteur éligible le plus proche gagne et un boss à pleine vie ne consomme pas la poussière. Les impacts boss sur un vaisseau génèrent des poussières rouges ; elles ne rendent ni PV ni énergie et, après armement, ajoutent seulement un peu de chaleur `nrj`, donc usent le bouclier. Les collisions d'astéroïdes conservent leur émission rouge historique. `src/main.cpp` reste intact.

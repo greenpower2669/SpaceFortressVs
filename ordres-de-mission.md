@@ -58,3 +58,7 @@ Deuxième CI 36939614317 : échec de test uniquement, dû à la hauteur randomis
 
 ### État validé D-140-10
 SHA de code `7e624256d8f50d07a63e92c9c3851ff2b6048ace` vérifié par le workflow 36940059444 : 58 PASS, build Android et packaging 1.4.0 réussis. Artefact 11199572849 (sha256:181030495d4ba54a875734c762a22f6ff80eb22d44551fe2e20c53b8b0265964). Aucun merge main ni release. Étape restante : validation du ressenti sur téléphone par Fab.
+
+
+## D-140-11 — dégâts ×15 et économie de poussières
+Fab demande ×3 supplémentaire sur le ×5 validé : multiplicateur coop total ×15 après protection du bouclier. Les poussières blanches historiques peuvent soigner un boss blessé lorsqu'il les touche ; les munitions boss spéciales kind 1/2/3 peuvent aussi les ramasser et transmettre le soin. Le collecteur éligible le plus proche gagne et un boss à pleine vie ne consomme pas la poussière. Les impacts boss sur un vaisseau génèrent des poussières rouges ; elles ne rendent ni PV ni énergie et, après armement, ajoutent seulement un peu de chaleur `nrj`, donc usent le bouclier. Les collisions d'astéroïdes conservent leur émission rouge historique. `src/main.cpp` reste intact.
