@@ -46,40 +46,25 @@ jobs:
           read -r -a CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
           read -r -a LIBS <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
           g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all -ffunction-sections -fdata-sections -I src -I tests/include "${CFLAGS[@]}" tests/regressions.cpp -Wl,--gc-sections "${LIBS[@]}" -pthread -o "$RUNNER_TEMP/sf-reg/regressions"
-      - name: A base input textures scenic
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: A
-        run: ./regressions
-      - name: B tactical and raids
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: B
-        run: ./regressions
-      - name: C feedback
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: C
-        run: ./regressions
-      - name: D campaign core
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: D
-        run: ./regressions
-      - name: E maintenance saves ships
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: E
-        run: ./regressions
-      - name: F restoration kinetic and field
+      - name: F restoration baseline
         working-directory: ${{ runner.temp }}/sf-reg
         env:
           SF_DIAG_STOP: F
         run: ./regressions
-      - name: G coop difficulty damage HUD
+      - name: G1 coop difficulty chain
         working-directory: ${{ runner.temp }}/sf-reg
         env:
-          SF_DIAG_STOP: G
+          SF_DIAG_STOP: G1
+        run: ./regressions
+      - name: G2 incoming damage multiplier
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: G2
+        run: ./regressions
+      - name: G3 coop HUD missile
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: G3
         run: ./regressions
       - name: H migration and difficulty
         working-directory: ${{ runner.temp }}/sf-reg
