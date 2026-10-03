@@ -1,0 +1,123 @@
+name: FAB shared shield both modes v2
+
+on:
+  push:
+    branches: [fix/gameplay-campaign-200]
+    paths:
+      - .github/workflows/fab-shield-both-modes-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/gameplay-campaign-200
+          fetch-depth: 0
+
+      - name: Install native regression dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
+
+      - name: Apply shared linear shield to duel and coop
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def one(s,a,b,label):
+              n=s.count(a)
+              if n!=1: raise SystemExit(f'{label}: expected 1, found {n}')
+              return s.replace(a,b,1)
+
+          p=Path('src/ship_energy.hpp');s=p.read_text()
+          s=one(s,'''static float sfShieldDamage(float damage,float heat)\n{\n    const float spent=sfShipHeat(heat)/SF_MAX_SHIP_HEAT;\n    return damage*spent*spent;\n}\n''','''static float sfShieldSpent(float heat)\n{\n    return sfShipHeat(heat)/SF_MAX_SHIP_HEAT;\n}\nstatic float sfShieldFraction(float heat)\n{\n    return 1.0f-sfShieldSpent(heat);\n}\nstatic float sfShieldDamage(float damage,float heat)\n{\n    return std::max(0.0f,damage)*sfShieldSpent(heat);\n}\nstatic float sfShieldWear(float damage,float heat)\n{\n    const float factor=std::clamp(.1f+sfShieldSpent(heat),.1f,1.0f);\n    return std::max(0.0f,damage)*factor;\n}\nstatic float sfApplyShieldImpact(sprite *ship,float incomingDamage)\n{\n    if (!ship || incomingDamage<=0) return 0;\n    const float heatBefore=sfShipHeat(ship->nrj);\n    const float hullDamage=sfShieldDamage(incomingDamage,heatBefore);\n    sfAddShipHeat(ship,sfShieldWear(incomingDamage,heatBefore));\n    return hullDamage;\n}\nstatic float sfApplyShieldContinuousImpact(sprite *ship,float incomingPerSecond,float dt)\n{\n    if (!ship || incomingPerSecond<=0 || dt<=0) return 0;\n    constexpr float step=1.0f/240.0f;\n    float remaining=dt,total=0;\n    while (remaining>1e-6f) {\n        const float slice=std::min(step,remaining);\n        total+=sfApplyShieldImpact(ship,incomingPerSecond*slice);\n        remaining-=slice;\n    }\n    return total;\n}\n''','shared shield core')
+          p.write_text(s)
+
+          p=Path('src/tactical_runtime.hpp');s=p.read_text()
+          s=one(s,'winner->nrj=sfShipHeat(sfShipHeat(winner->nrj)*.998f-.02f*value);','winner->nrj=sfShipHeat(sfShipHeat(winner->nrj)-.25f*value);','white dust')
+          p.write_text(s)
+
+          p=Path('src/campaign_runtime.hpp');s=p.read_text()
+          s=one(s,'''    ship->pv=std::max(0.0f,ship->pv-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(damage,ship->nrj));\n    sfAddShipHeat(ship,2); sfCoop.invulnerable[owner]=.38f;''','''    const float incoming=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*damage;\n    ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));\n    sfCoop.invulnerable[owner]=.38f;''','coop projectile')
+          s=one(s,'''    sfAddShipHeat(ship,45.0f*dt);\n    const float spent=sfShipHeat(ship->nrj)/SF_MAX_SHIP_HEAT;\n    ship->pv=std::max(0.0f,ship->pv-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*650.0f*spent*spent*dt);''','''    const float incomingPerSecond=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*650.0f;\n    ship->pv=std::max(0.0f,ship->pv-sfApplyShieldContinuousImpact(ship,incomingPerSecond,dt));''','coop contact')
+          s=one(s,'''    const float area=legacyDamage/.05f;\n    ship->pv=std::max(0.0f,ship->pv-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(legacyDamage,ship->nrj));\n    sfAddShipHeat(ship,area*.0001f);''','''    const float incoming=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*legacyDamage;\n    ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));''','coop asteroid')
+          p.write_text(s)
+
+          p=Path('scripts/prepare-legacy-source.cmake');s=p.read_text()
+          marker='sf_replace_region("bounded missile impact heat" "float missnrjminus(sprite *e){" "float misspvminus(" "float missnrjminus(sprite *e){ return sfShotHeat(e); }\\n\\n")\n'
+          s=one(s,marker,marker+'sf_replace_region("linear shield missile raw damage" "float misspvminus(sprite *e){" "float pvminus(" "float misspvminus(sprite *e){ (void)e; return rand()%10+1875.0f; }\\n")\n'+'sf_replace_region("linear shield normal raw damage" "float pvminus(sprite *e){" "float nrjminus(" "float pvminus(sprite *e){ (void)e; return rand()%10+75.0f; }\\n")\n','classic raw power')
+          marker='sf_replace_region("bounded energy HUD"'
+          routing='''# D-140-12: generated classic Android copy shares the linear shield core.\nforeach(sf_ship Spritej1 Spritej2)\n    sf_patch_once("${sf_ship} missile linear shield hull" "${sf_ship}->pv-=misspvminus(${sf_ship});" "${sf_ship}->pv-=sfApplyShieldImpact(${sf_ship},misspvminus(${sf_ship}));")\n    sf_patch_once("${sf_ship} normal linear shield hull" "${sf_ship}->pv-=pvminus(${sf_ship});" "${sf_ship}->pv-=sfApplyShieldImpact(${sf_ship},pvminus(${sf_ship}));")\n    sf_patch_once("${sf_ship} missile shared wear only" "sfAddShipHeat(${sf_ship},missnrjminus(e));" "/* shared shield resolver owns missile wear */")\n    sf_patch_once("${sf_ship} normal shared wear only" "sfAddShipHeat(${sf_ship},nrjminus(e));" "/* shared shield resolver owns shot wear */")\n    sf_patch_once("${sf_ship} asteroid linear shield hull" "${sf_ship}->pv-=${sf_ship}->nrj*${sf_ship}->nrj*e->w*e->h*0.00002;" "${sf_ship}->pv-=sfApplyShieldImpact(${sf_ship},e->w*e->h*.05f);")\n    sf_patch_once("${sf_ship} asteroid shared wear only" "sfAddShipHeat(${sf_ship},e->w*e->h*0.0001);" "/* shared shield resolver owns asteroid wear */")\nendforeach()\n'''
+          s=one(s,marker,routing+marker,'classic routing insert')
+          p.write_text(s)
+
+          p=Path('tests/restoration_regressions.hpp');s=p.read_text()
+          marker='static void testCollectedBonusAndShield()\n{'
+          final=r'''static void testSharedLinearShieldModel()
+          {
+              struct Case { float heat,spent,wear; };
+              const Case cases[]={{0,0,.1f},{5,.1f,.2f},{10,.2f,.3f},{25,.5f,.6f},{45,.9f,1.0f},{50,1.0f,1.0f}};
+              for(const auto &c:cases) {
+                  assert(std::abs(sfShieldFraction(c.heat)-(1.0f-c.spent))<.0001f);
+                  assert(std::abs(sfShieldDamage(10.0f,c.heat)-10.0f*c.spent)<.001f);
+                  assert(std::abs(sfShieldWear(10.0f,c.heat)-10.0f*c.wear)<.001f);
+                  sprite ship;ship.nrj=c.heat;
+                  const float hull=sfApplyShieldImpact(&ship,10.0f);
+                  assert(std::abs(hull-10.0f*c.spent)<.001f);
+                  assert(std::abs(ship.nrj-std::min(50.0f,c.heat+10.0f*c.wear))<.001f);
+              }
+              setupTactics();Spritej1->nrj=30;Spritej1->pv=900;
+              for(int i=0;i<29;++i) {auto *dust=new parts(Spritej1->x,Spritej1->y);dust->pv=600;particules.push_back(dust);}
+              sfCollectDust();
+              assert(std::abs(Spritej1->nrj-22.75f)<.02f && Spritej1->pv>908.0f && Spritej1->pv<=909.0f);
+              std::puts("PASS: linear shield and white dust share one core across duel and coop");
+          }
+
+          static void testCollectedBonusAndShield()
+          {'''
+          s=one(s,marker,final,'insert shield tests')
+          s=one(s,'''    Spritej1->nrj=0;Spritej2->nrj=50;\n    sfCoopHurt(0,100);sfCoopHurt(1,100);\n    assert(Spritej1->pv==1000 && Spritej2->pv==0);\n    assert(Spritej1->nrj>0 && Spritej2->nrj==50);''','''    Spritej1->nrj=0;Spritej2->nrj=50;\n    sfCoopHurt(0,10);sfCoopHurt(1,10);\n    assert(Spritej1->pv==1000 && Spritej2->pv==850);\n    assert(std::abs(Spritej1->nrj-15.0f)<.01f && Spritej2->nrj==50);''','coop shield expectations')
+          s=one(s,'''    for(int fps:{30,60,120}) {\n        setupCampaign();auto *ship=Spritej1;ship->pv=5000;ship->nrj=0;\n        const float dt=1.0f/fps;\n        float legacyHeat=0,legacyLoss=0;\n        for(int frame=0;frame<fps/2;++frame) {\n            legacyHeat=sfShipHeat(legacyHeat+45.0f*dt);\n            const float spent=sfShipHeat(legacyHeat)/SF_MAX_SHIP_HEAT;\n            legacyLoss+=650.0f*spent*spent*dt;\n            sfCoopBossContact(0,dt);\n        }\n        const float actualLoss=5000.0f-ship->pv;\n        assert(ship->pv>0 && std::abs(actualLoss-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*legacyLoss)<.02f);\n    }''','''    std::array<float,3> contactLoss{};int contactIndex=0;\n    for(int fps:{30,60,120}) {\n        setupCampaign();auto *ship=Spritej1;ship->pv=5000;ship->nrj=0;\n        const float dt=1.0f/fps;\n        for(int frame=0;frame<fps/2;++frame) sfCoopBossContact(0,dt);\n        contactLoss[contactIndex++]=5000.0f-ship->pv;\n        assert(ship->pv>0 && ship->nrj==50);\n    }\n    assert(std::abs(contactLoss[0]-contactLoss[1])<.1f && std::abs(contactLoss[1]-contactLoss[2])<.1f);''','contact fps')
+          s=one(s,'assert(Spritej1->nrj>25 && Spritej1->pv<=909);','assert(std::abs(Spritej1->nrj-22.75f)<.02f && Spritej1->pv<=909);','dust 29')
+          p.write_text(s)
+
+          p=Path('tests/regressions.cpp');s=p.read_text()
+          s=one(s,'testNoHumanAutofire();testPassiveCoopTurrets();testCollectedBonusAndShield();testRealCoopField();','testNoHumanAutofire();testPassiveCoopTurrets();testSharedLinearShieldModel();testCollectedBonusAndShield();testRealCoopField();','register shield test')
+          p.write_text(s)
+
+          additions={
+          'brain.md':'\n\n## D-140-12 — bouclier linéaire partagé duel + coop — 2026-10-03\nUn seul cœur de bouclier sert désormais les deux modes : nrj=0 = 100% protection, nrj=50 = 0%. Dégâts PV linéaires selon spent=nrj/50 ; usure = puissance brute × clamp(0.1+spent,0.1,1.0), état pré-impact. Coop conserve ×15 exactement une fois. Contact boss intégré à 240 Hz interne. Poussière blanche pleine : -0.25 nrj, soit 0.5% de réserve. Le duel Android passe par la copie générée ; src/main.cpp reste byte-identique.\n',
+          'brainmap.md':'\n\n## D-140-12 — bouclier commun\nDUEL Android généré + COOP → sfApplyShieldImpact → protection linéaire → PV + usure. Contact coop → pas interne 240 Hz. Poussière blanche → -0.25 nrj pleine. Rouge coop → petite usure seulement. main.cpp historique inchangé.\n',
+          'debughistorical.md':'\n\n## D-140-12 — ancien carré remplacé\nLe ressenti incohérent venait de spent² en coop, d’une usure fixe +2, et des formules nrj² du duel historique. Le cœur est maintenant linéaire dans ship_energy.hpp. La copie Android classique transforme ses impacts tir/missile/astéroïde vers sfApplyShieldImpact sans modifier src/main.cpp. Les poussières blanches récupèrent 0.25 nrj chacune. RED confirmé avant implémentation ; GREEN/CI Android à vérifier.\n',
+          'todo.md':'\n\n## D-140-12 — bouclier linéaire deux modes\n- [x] Cœur commun duel + coop sans modifier src/main.cpp.\n- [x] Protection linéaire 100/90/80/.../0 %.\n- [x] Usure 10/20/30/.../100 % selon réserve pré-impact.\n- [x] Poussière blanche pleine = 0.25 nrj (~0.5%).\n- [x] Contact boss stable 30/60/120 via intégration interne.\n- [ ] CI Android fraîche + APK/AAB.\n- [ ] Validation téléphone Fab dans les deux modes.\n',
+          'ordres-de-mission.md':'\n\n## Mission D-140-12 — bouclier commun duel + coop\nMême modèle de bouclier dans les deux modes : protection = réserve restante ; usure = 10% du coup à 100%, 20% à 90%, etc. Coop garde ×15 une seule fois. Poussières blanches ~0.5% de bouclier chacune. Duel Android via copie générée, main.cpp historique intact. Aucun merge main ni release.\n'}
+          for name,text in additions.items():
+              p=Path(name);p.write_text(p.read_text()+text)
+          PY
+
+      - name: GREEN native regressions
+        run: bash scripts/test-regressions.sh
+
+      - name: Verify generated classic path and historical source
+        run: |
+          git diff --exit-code -- src/main.cpp
+          grep -q 'linear shield missile raw damage' scripts/prepare-legacy-source.cmake
+          grep -q 'sfApplyShieldImpact' scripts/prepare-legacy-source.cmake
+          grep -q 'sfApplyShieldContinuousImpact' src/campaign_runtime.hpp
+          grep -q -- '-.25f\*value' src/tactical_runtime.hpp
+
+      - name: Commit and push implementation
+        run: |
+          rm -f .github/workflows/fab-shield-both-modes.yml .github/workflows/fab-shield-both-modes-v2.yml
+          git config user.name 'FAB Copilot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'balance: share linear shield across duel and coop'
+          git push origin HEAD:fix/gameplay-campaign-200
+          git rev-parse HEAD
