@@ -4,6 +4,7 @@ on:
     branches: [fix/gameplay-campaign-200]
     paths:
       - scripts/apply-kinetic-audio-danger.py
+      - scripts/patch-kinetic-audio-restoration-tests.py
       - tests/test_kinetic_integration.py
       - .github/workflows/kinetic-audio-danger.yml
 permissions:
@@ -31,6 +32,7 @@ jobs:
           p.write_text(t.replace(old,new))
           PY
           python3 scripts/apply-kinetic-audio-danger.py
+          python3 scripts/patch-kinetic-audio-restoration-tests.py
       - name: Targeted kinetic surge GREEN
         run: |
           python3 tests/test_kinetic_surge_integration.py
@@ -54,7 +56,7 @@ jobs:
           PY
       - name: Commit gameplay and clean applicator
         run: |
-          rm -f scripts/apply-kinetic-audio-danger.py .github/workflows/kinetic-audio-danger.yml
+          rm -f scripts/apply-kinetic-audio-danger.py scripts/patch-kinetic-audio-restoration-tests.py .github/workflows/kinetic-audio-danger.yml
           git config user.name "greenpower2669"
           git config user.email "80179295+greenpower2669@users.noreply.github.com"
           git add -A
