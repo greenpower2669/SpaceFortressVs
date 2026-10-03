@@ -3,7 +3,7 @@ on:
   push:
     branches: [fix/gameplay-campaign-200]
     paths:
-      - scripts/apply-kinetic-balance-v3.py
+      - scripts/apply-kinetic-balance-v3b.py
       - .github/workflows/kinetic-balance-v3-green.yml
 permissions:
   contents: write
@@ -19,9 +19,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
       - name: Apply kinetic balance v3
-        run: |
-          sed -i 's/inline constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR/constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR/g; s/inline constexpr float SF_KINETIC_ENERGY_COST_SCALE/constexpr float SF_KINETIC_ENERGY_COST_SCALE/g' scripts/apply-kinetic-balance-v3.py
-          python3 scripts/apply-kinetic-balance-v3.py
+        run: python3 scripts/apply-kinetic-balance-v3b.py
       - name: Targeted GREEN
         run: |
           python3 tests/test_balance_v3_integration.py
@@ -33,7 +31,7 @@ jobs:
         run: test "$(git hash-object src/main.cpp)" = "835059a0ecfe0f74708068b3259cad5db1cdb579"
       - name: Commit verified gameplay and clean temporary tooling
         run: |
-          rm -f scripts/apply-kinetic-balance-v3.py
+          rm -f scripts/apply-kinetic-balance-v3.py scripts/apply-kinetic-balance-v3b.py
           rm -f .github/workflows/kinetic-balance-v3-red.yml .github/workflows/kinetic-balance-v3-green.yml
           git config user.name "greenpower2669"
           git config user.email "80179295+greenpower2669@users.noreply.github.com"
