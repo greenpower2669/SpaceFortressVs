@@ -89,3 +89,6 @@ Remplace les réglages cinétiques incompatibles de D-140-14: BOTH modes, aucun 
 - Normal absorption waves are more transparent; surge aura shows inner + outer circles.
 - Classic hull dimensions remain historical; only the kinetic field diameter expands.
 - No main merge/release before Fab phone validation.
+
+## AVENANT 2026-10-03 — SURCHARGE AUDIO + DANGER BOSS
+Canon validé Fab: charge 2e doigt exactement 2 s, champ x2 irisé pendant la charge; à 2 s son prêt et bouclier cinétique OFF jusqu’au relâchement; relâchement chargé = son de déflagration + purge astéroïdes. Trois sons originaux synthétiques intégrés. Dégâts boss non cinétiques: défaut x10, sélection accueil x1/x5/x10/x15/x20. Le cinétique reste hors multiplicateur boss. Classique et coop homogènes. Aucun merge main/release sans validation téléphone.

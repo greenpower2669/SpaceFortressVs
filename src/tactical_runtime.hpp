@@ -17,6 +17,65 @@ inline Uint64 sfTacticsLastTick = 0;
 inline Uint64 sfNextAsteroidId = 0;
 inline float sfFieldRemainder=0;
 inline bool sfFieldCollisionSound=false,sfFieldMiningSound=false;
+
+struct SfKineticAudioState {
+    Mix_Chunk *charge=nullptr,*ready=nullptr,*release=nullptr;
+    std::array<int,2> chargeChannel{{-1,-1}};
+    std::array<bool,2> readySignaled{{false,false}};
+};
+inline SfKineticAudioState sfKineticAudio;
+static void sfKineticAudioEnsure()
+{
+    if(!sfKineticAudio.charge) sfKineticAudio.charge=Mix_LoadWAV("./resources/assets/sounds/kinetic_charge.wav");
+    if(!sfKineticAudio.ready) sfKineticAudio.ready=Mix_LoadWAV("./resources/assets/sounds/kinetic_ready.wav");
+    if(!sfKineticAudio.release) sfKineticAudio.release=Mix_LoadWAV("./resources/assets/sounds/kinetic_release.wav");
+    if(sfKineticAudio.charge) Mix_VolumeChunk(sfKineticAudio.charge,76);
+    if(sfKineticAudio.ready) Mix_VolumeChunk(sfKineticAudio.ready,102);
+    if(sfKineticAudio.release) Mix_VolumeChunk(sfKineticAudio.release,122);
+}
+static void sfKineticAudioHaltCharge(int owner)
+{
+    if(owner<0 || owner>1) return;
+    const int channel=sfKineticAudio.chargeChannel[owner];
+    if(channel>=0) Mix_HaltChannel(channel);
+    sfKineticAudio.chargeChannel[owner]=-1;
+}
+static void sfKineticAudioStartCharge(int owner)
+{
+    if(owner<0 || owner>1) return;
+    sfKineticAudioEnsure();sfKineticAudioHaltCharge(owner);sfKineticAudio.readySignaled[owner]=false;
+    if(sfKineticAudio.charge) sfKineticAudio.chargeChannel[owner]=Mix_PlayChannel(-1,sfKineticAudio.charge,0);
+}
+static void sfKineticAudioCancel(int owner)
+{
+    if(owner<0 || owner>1) return;
+    sfKineticAudioHaltCharge(owner);sfKineticAudio.readySignaled[owner]=false;
+}
+static void sfKineticAudioRelease(int owner)
+{
+    if(owner<0 || owner>1) return;
+    sfKineticAudioEnsure();sfKineticAudioHaltCharge(owner);sfKineticAudio.readySignaled[owner]=false;
+    if(sfKineticAudio.release) Mix_PlayChannel(-1,sfKineticAudio.release,0);
+}
+static void sfKineticAudioUpdate()
+{
+    sfKineticAudioEnsure();
+    for(int owner=0;owner<2;++owner) {
+        const auto &surge=sfKineticSurges[owner];
+        if(surge.held && surge.charged && !sfKineticAudio.readySignaled[owner]) {
+            sfKineticAudioHaltCharge(owner);
+            if(sfKineticAudio.ready) Mix_PlayChannel(-1,sfKineticAudio.ready,0);
+            sfKineticAudio.readySignaled[owner]=true;
+        } else if(!surge.held) {
+            sfKineticAudioHaltCharge(owner);sfKineticAudio.readySignaled[owner]=false;
+        }
+    }
+}
+static void sfKineticAudioReset()
+{
+    for(int owner=0;owner<2;++owner) sfKineticAudioCancel(owner);
+}
+
 constexpr int SF_TURRETS_PER_TEAM = 6;
 constexpr int SF_TURRET_COUNT = SF_TURRETS_PER_TEAM*2;
 
@@ -566,7 +625,7 @@ static void sfUpdateTurrets(float dt)
 
 static void sfTacticsReset()
 {
-    sfPilot=SfPilot{}; sfObserved={}; sfPickupGlow={}; sfTurrets={}; sfKineticWaves.clear(); sfKineticWaveSerial=0;sfKineticResetSurges();
+    sfPilot=SfPilot{}; sfObserved={}; sfPickupGlow={}; sfTurrets={}; sfKineticWaves.clear(); sfKineticWaveSerial=0;sfKineticAudioReset();sfKineticResetSurges();
     sfSceneSeconds=0; sfTacticsLastTick=0;sfFieldRemainder=0;
     sfFieldCollisionSound=sfFieldMiningSound=false;
     for (int i=0;i<SF_TURRET_COUNT;++i) {
@@ -601,7 +660,7 @@ static void sfTacticsBeginFrame(SDL_Renderer *renderer)
         sfObserved={}; sfPilot.velocity.set(0,0); sfPilot.aligned=0; sfPilot.rethink=0;
     }
     if (sfUiScreen==SF_UI_GAME) sfSceneSeconds+=sfFrameDt;
-    if (sfUiScreen==SF_UI_GAME && !sfIsCoop()) sfKineticAdvanceSurges(sfFrameDt);
+    if (sfUiScreen==SF_UI_GAME && !sfIsCoop()) {sfKineticAdvanceSurges(sfFrameDt);sfKineticAudioUpdate();}
     if (sfUiScreen==SF_UI_GAME && !setgui) { sfRegenerateHull(Spritej1,sfFrameDt); sfRegenerateHull(Spritej2,sfFrameDt); }
     // Cooperative simulation samples after each movement substep; observing
     // the same position again here would incorrectly damp the velocity ghost.
@@ -625,6 +684,27 @@ static void sfTacticalRing(SDL_Renderer *renderer,tupl center,float radius,SDL_C
     SDL_SetRenderDrawColor(renderer,color.r,color.g,color.b,color.a);
     SDL_RenderDrawLinesF(renderer,points.data(),int(points.size()));
 }
+static SDL_Color sfKineticRainbowColor(float hue,Uint8 alpha)
+{
+    hue=std::fmod(hue,1.0f);if(hue<0) hue+=1.0f;
+    const float h=hue*6.0f;const int sector=int(h)%6;const float f=h-int(h);
+    const float q=1.0f-f;float r=0,g=0,b=0;
+    if(sector==0){r=1;g=f;} else if(sector==1){r=q;g=1;}
+    else if(sector==2){g=1;b=f;} else if(sector==3){g=q;b=1;}
+    else if(sector==4){r=f;b=1;} else {r=1;b=q;}
+    return {Uint8(255*r),Uint8(255*g),Uint8(255*b),alpha};
+}
+static void sfTacticalRainbowRing(SDL_Renderer *renderer,tupl center,float radius,float phase,Uint8 alpha)
+{
+    constexpr int segments=72;
+    for(int i=0;i<segments;++i) {
+        const float a0=i*2*float(PI)/segments,a1=(i+1)*2*float(PI)/segments;
+        const auto c=sfKineticRainbowColor(phase+i/float(segments),alpha);
+        SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,c.a);
+        SDL_RenderDrawLineF(renderer,center.x+std::cos(a0)*radius,center.y+std::sin(a0)*radius,
+                            center.x+std::cos(a1)*radius,center.y+std::sin(a1)*radius);
+    }
+}
 
 static void sfDrawKineticEffects(SDL_Renderer *renderer)
 {
@@ -638,12 +718,12 @@ static void sfDrawKineticEffects(SDL_Renderer *renderer)
         if(!ship || ship->pv<=0) continue;
         const float diameter=std::max(1.0f,std::max({ship->sw,ship->sh,ship->w,ship->h}));
         const float pulse=.5f+.5f*std::sin(float(SDL_GetTicks64())*.010f+owner*1.7f);
-        const SDL_Color team=owner==0 ? SDL_Color{255,188,96,255} : SDL_Color{96,210,255,255};
+        const float phase=std::fmod(float(SDL_GetTicks64())*.00028f+owner*.17f,1.0f);
         const float outer=diameter*SF_KINETIC_MAX_SHIELD_DIAMETER*.5f;
         const float inner=diameter*SF_KINETIC_INNER_MAX_RADIUS_SHIP_DIAMETERS;
-        sfTacticalRing(renderer,tupl(ship->x,ship->y),outer,SDL_Color{team.r,team.g,team.b,Uint8(78+34*pulse)});
-        sfTacticalRing(renderer,tupl(ship->x,ship->y),outer-2,SDL_Color{team.r,team.g,team.b,Uint8(36+18*pulse)});
-        sfTacticalRing(renderer,tupl(ship->x,ship->y),inner,SDL_Color{team.r,team.g,team.b,Uint8(58+26*pulse)});
+        sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),outer,phase,Uint8(112+36*pulse));
+        sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),outer-2,phase+.19f,Uint8(62+22*pulse));
+        sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),inner,phase+.37f,Uint8(92+28*pulse));
     }
     for(const auto &wave:sfKineticWaves) {
         if(wave.owner<0 || wave.owner>1 || !sfKineticWaveAlive(wave)) continue;

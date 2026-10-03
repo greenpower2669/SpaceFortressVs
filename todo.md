@@ -155,3 +155,5 @@ Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128
 - Normal absorption waves are more transparent; surge aura shows inner + outer circles.
 - Classic hull dimensions remain historical; only the kinetic field diameter expands.
 - No main merge/release before Fab phone validation.
+
+- [ ] TEST TELEPHONE: confirmer synchro son charge 2.00 s, signal prêt, coupure visuelle/protection après 2 s, déflagration au relâchement, irisation lisible et sélecteur DANGER BOSS x1/x5/x10/x15/x20.

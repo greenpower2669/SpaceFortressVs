@@ -87,7 +87,6 @@ static void sfCoopEmit(tupl origin,float angle,float speed,int owner,float damag
     sfCoop.shots.push_back(shot);
     if (owner>=0) sfCoop.soundShot[owner]=true;
 }
-static constexpr float SF_COOP_INCOMING_DAMAGE_MULTIPLIER = 15.0f;
 static constexpr float SF_COOP_BOSS_DUST_HEAL_FRACTION = .0015f;
 static constexpr float SF_COOP_RED_DUST_HEAT = .08f;
 static constexpr float SF_COOP_RED_DUST_ARMED_PV = 560.0f;
@@ -164,7 +163,7 @@ static void sfCoopHurt(int owner,float damage)
 {
     auto *ship=sfCoopShip(owner);
     if (ship->pv<=0 || sfCoop.invulnerable[owner]>0 || sfCoop.phase!=SfCoopPhase::Combat) return;
-    const float incoming=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*damage;
+    const float incoming=sfBossDangerMultiplier()*damage;
     ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));
     sfCoop.invulnerable[owner]=.38f;
     sfCoop.soundHit=true;sfCoopEmitRedDust(owner,6);
@@ -174,7 +173,7 @@ static void sfCoopHurt(int owner,float damage)
         for(auto i=sfCoop.fireFingers.begin();i!=sfCoop.fireFingers.end();) {
             if(i->second==owner) i=sfCoop.fireFingers.erase(i);else ++i;
         }
-        sfKineticSurgeCancel(owner);
+        sfKineticAudioCancel(owner);sfKineticSurgeCancel(owner);
     }
 }
 
@@ -352,7 +351,7 @@ static void sfCoopBossContact(int owner,float dt)
         sfCoop.chargeHit[owner]=true;sfCoop.soundHit=true;
         return;
     }
-    const float incomingPerSecond=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*650.0f;
+    const float incomingPerSecond=sfBossDangerMultiplier()*650.0f;
     ship->pv=std::max(0.0f,ship->pv-sfApplyShieldContinuousImpact(ship,incomingPerSecond,dt));
     sfCoop.soundHit=true;sfCoopEmitRedDust(owner,2);
 }
@@ -637,7 +636,7 @@ static tupl sfCoopBossPosition(float time)
 static void sfCoopTick(float dt)
 {
     if (sfCoop.phase!=SfCoopPhase::Combat) return;
-    sfKineticAdvanceSurges(dt);
+    sfKineticAdvanceSurges(dt);sfKineticAudioUpdate();
     sfCoop.time+=dt;sfCoop.hit=std::max(0.0f,sfCoop.hit-dt);
     const auto &boss=sfCoopProfile();
     sfCoopUpdateCharge(dt);
@@ -721,7 +720,7 @@ static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,M
 static void sfCampaignSuspend()
 {
     for (auto &control : sfCoop.controls) {control.down=false;control.finger=-1;control.velocity.set(0,0);}
-    sfCoop.fireFingers.clear();sfKineticResetSurges();
+    sfCoop.fireFingers.clear();sfKineticAudioReset();sfKineticResetSurges();
     sfObserved={};sfCoop.motion.valid=false;
     if (sfCoop.phase==SfCoopPhase::Combat) sfCoop.phase=SfCoopPhase::Paused;
     if (sfCoop.keyboard) {SDL_StopTextInput();sfCoop.keyboard=false;}
@@ -1283,8 +1282,8 @@ static bool sfCampaignHandleEvent(SDL_Event *event)
     if (!touch) return false;
     const float x=event->tfinger.x,y=event->tfinger.y;const auto finger=event->tfinger.fingerId;
     if (screen==SF_UI_HOME && event->type==SDL_FINGERDOWN) {
-        if (y>=.71f && y<=.85f && x>=.5f) {sfLoadCampaign();sfFixRequestedScreen.store(SF_UI_HALL);}
-        else if (y>=.545f && y<=.69f && (sfSelectedMode==SF_COOP_LOCAL || sfSelectedMode==SF_COOP_AI)) {
+        if (y>=.73f && y<=.85f && x>=.5f) {sfLoadCampaign();sfFixRequestedScreen.store(SF_UI_HALL);}
+        else if (y>=.61f && y<=.715f && (sfSelectedMode==SF_COOP_LOCAL || sfSelectedMode==SF_COOP_AI)) {
             sfLoadCampaign();sfCampaignPage=sfCampaignSave.selected/10;sfFixRequestedScreen.store(SF_UI_CAMPAIGN);
         } else return false;
         sfFixConsumedFingers.insert(finger);event->type=SDL_USEREVENT;return true;
@@ -1343,7 +1342,8 @@ static bool sfCampaignHandleEvent(SDL_Event *event)
         if(binding!=sfCoop.fireFingers.end()) {
             const int owner=binding->second;
             const bool purge=sfKineticSurgeRelease(owner);
-            if(purge) sfKineticPurgeAsteroids(owner); else sfCoopFire(owner);
+            if(purge) {sfKineticAudioRelease(owner);sfKineticPurgeAsteroids(owner);}
+            else {sfKineticAudioCancel(owner);sfCoopFire(owner);}
             sfCoop.fireFingers.erase(binding);
         }
     }
@@ -1356,7 +1356,7 @@ static bool sfCampaignHandleEvent(SDL_Event *event)
             if (!control.down) {control.down=true;control.finger=finger;}
             else if (std::none_of(sfCoop.fireFingers.begin(),sfCoop.fireFingers.end(),
                        [owner](const auto &binding){return binding.second==owner;})) {
-                sfCoop.fireFingers[finger]=owner;sfKineticSurgePress(owner);
+                sfCoop.fireFingers[finger]=owner;sfKineticSurgePress(owner);sfKineticAudioStartCharge(owner);
             }
         }
     }

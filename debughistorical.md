@@ -248,3 +248,5 @@ Cause confirmée: plancher `speedFactor>=1`, coop ×15 réinjecté dans astéro�
 - Normal absorption waves are more transparent; surge aura shows inner + outer circles.
 - Classic hull dimensions remain historical; only the kinetic field diameter expands.
 - No main merge/release before Fab phone validation.
+
+- 2026-10-03: ancien surge 0.35 s + boost 2 s remplacé par charge totale 2.00 s puis fenêtre volontaire sans bouclier jusqu’au relâchement. x15 boss fixe supprimé au profit du réglage non cinétique x1..x20 (défaut x10). src/main.cpp reste historique.

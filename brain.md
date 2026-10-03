@@ -230,3 +230,5 @@ Fab supersedes D-140-14 kinetic tuning in BOTH classic and coop/campaign: kineti
 - Normal absorption waves are more transparent; surge aura shows inner + outer circles.
 - Classic hull dimensions remain historical; only the kinetic field diameter expands.
 - No main merge/release before Fab phone validation.
+
+- 2026-10-03 KINETIC AUDIO/DANGER: 2e doigt charge exactement 2 s avec champ cinétique x2 irisé; à 2.00 s signal CHARGE et protection cinétique coupée jusqu’au relâchement; relâchement chargé = déflagration + purge. Danger boss non cinétique réglable accueil x1/x5/x10/x15/x20, défaut x10.

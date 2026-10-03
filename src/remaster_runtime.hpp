@@ -15,6 +15,9 @@
 #include "kinetic_shield.hpp"
 
 static bool sfFireMain(int owner,const tupl *target);
+static void sfKineticAudioStartCharge(int owner);
+static void sfKineticAudioCancel(int owner);
+static void sfKineticAudioRelease(int owner);
 
 extern sprite *Spritej1;
 extern sprite *Spritej2;
@@ -424,7 +427,7 @@ static int SpaceFortressRemaster_WaitEvent(SDL_Event *event)
         if (setia && !hit1 && !hit2 && py > HEIGHT * 0.5f &&
             Spritej2 && Spritej2->id == 100) {
             if(sfRmTrackJ2 && fid!=sfRmJ2Finger && sfRmKineticFinger<0) {
-                sfRmKineticFinger=fid;sfKineticSurgePress(1);
+                sfRmKineticFinger=fid;sfKineticSurgePress(1);sfKineticAudioStartCharge(1);
                 event->type=SDL_USEREVENT;return result;
             }
             if(!sfRmTrackJ2) {
@@ -441,7 +444,8 @@ static int SpaceFortressRemaster_WaitEvent(SDL_Event *event)
         const SDL_FingerID fid = event->tfinger.fingerId;
         if(fid==sfRmKineticFinger) {
             const bool purge=sfKineticSurgeRelease(1);
-            if(purge) sfKineticPurgeAsteroids(1); else sfFireMain(1,nullptr);
+            if(purge) {sfKineticAudioRelease(1);sfKineticPurgeAsteroids(1);}
+            else {sfKineticAudioCancel(1);sfFireMain(1,nullptr);}
             sfRmKineticFinger=-1;event->type=SDL_USEREVENT;return result;
         }
         if (sfRmGear1Down && fid == sfRmGear1Finger) { sfRmGear1Down = false; sfRmGear1Finger = 0; }

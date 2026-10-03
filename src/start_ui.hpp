@@ -337,9 +337,19 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
                      mode.y + (mode.h - 7 * buttonScale) / 2,
                      modeText, buttonScale, 238, 248, 255);
 
+    SDL_Rect danger = {
+        static_cast<int>(width * 0.10f), static_cast<int>(height * 0.515f),
+        static_cast<int>(width * 0.80f), static_cast<int>(height * 0.075f)
+    };
+    sfUiPanel(renderer, danger, 8, 24, 45, 235, 110, 95);
+    const std::string dangerText = std::string("< DANGER BOSS : X") +
+        std::to_string(int(sfBossDangerMultiplier())) + " >";
+    sfUiCenteredText(renderer,width,danger.y+(danger.h-7*base)/2,
+                     dangerText.c_str(),base,255,225,205);
+
     SDL_Rect start = {
-        static_cast<int>(width * 0.10f), static_cast<int>(height * 0.56f),
-        static_cast<int>(width * 0.80f), static_cast<int>(height * 0.115f)
+        static_cast<int>(width * 0.10f), static_cast<int>(height * 0.615f),
+        static_cast<int>(width * 0.80f), static_cast<int>(height * 0.095f)
     };
     sfUiPanel(renderer, start, 5, 39, 36, 80, 235, 185);
     sfUiCenteredText(renderer, width,
@@ -461,14 +471,15 @@ static void sfUiHandleFingerDown(const SDL_TouchFingerEvent &finger)
 {
     const float x = finger.x;
     const float y = finger.y;
-    (void)x; // full-width buttons for now
 
     if (sfUiScreen == SF_UI_HOME) {
-        if (y >= 0.39f && y <= 0.52f) {
+        if (y >= 0.39f && y <= 0.505f) {
             setia = !setia;
-        } else if (y >= 0.545f && y <= 0.69f) {
+        } else if (y >= 0.515f && y <= 0.60f) {
+            sfBossDangerAdjust(x < .5f ? -1 : 1);
+        } else if (y >= 0.61f && y <= 0.715f) {
             sfUiStartMatch();
-        } else if (y >= 0.71f && y <= 0.85f) {
+        } else if (y >= 0.73f && y <= 0.85f) {
             sfUiScreen = SF_UI_HELP;
         }
     } else if (sfUiScreen == SF_UI_HELP) {

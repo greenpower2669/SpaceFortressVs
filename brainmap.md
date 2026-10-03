@@ -251,3 +251,5 @@ DUEL Android généré + COOP → sfApplyShieldImpact → protection linéaire �
 - Normal absorption waves are more transparent; surge aura shows inner + outer circles.
 - Classic hull dimensions remain historical; only the kinetic field diameter expands.
 - No main merge/release before Fab phone validation.
+
+- Kinetic surge canon: HOLD 0..2s => x2 + rainbow + charge sound; READY >=2s => kinetic shield OFF; release => blast/purge. Boss non-kinetic danger selector: 1/5/10/15/20, default 10.

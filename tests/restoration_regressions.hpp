@@ -101,11 +101,9 @@ static void testKineticFieldAndHullRegen()
 
     sfKineticResetSurges();sfKineticSurgePress(0);
     sfKineticAdvanceSurges(SF_KINETIC_SURGE_HOLD_SECONDS-.01f);
-    assert(!sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==1.0f);
+    assert(sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==2.0f && !sfKineticSurgeVulnerable(0));
     sfKineticAdvanceSurges(.02f);
-    assert(sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==2.0f);
-    sfKineticAdvanceSurges(SF_KINETIC_SURGE_DURATION+.01f);
-    assert(!sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==1.0f);
+    assert(!sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==0.0f && sfKineticSurgeVulnerable(0));
     assert(sfKineticSurgeRelease(0));
 
     setupTactics();sfFixResetAsteroidField();sfFieldRemainder=0;
@@ -136,8 +134,8 @@ static void testCollectedBonusAndShield()
     for(auto *ship:{Spritej1,Spritej2}) ship->pv=1000;
     Spritej1->nrj=0;Spritej2->nrj=50;
     sfCoopHurt(0,10);sfCoopHurt(1,10);
-    assert(Spritej1->pv==1000 && Spritej2->pv==850);
-    assert(std::abs(Spritej1->nrj-15.0f)<.01f && Spritej2->nrj==50);
+    assert(Spritej1->pv==1000 && Spritej2->pv==900);
+    assert(std::abs(Spritej1->nrj-10.0f)<.01f && Spritej2->nrj==50);
     std::puts("PASS: random floating bonus, collection, independent turret energy, expiration and reserve-dependent shield");
 }
 
@@ -200,6 +198,8 @@ static void testCoopDifficultyChain()
 
 static void testCoopIncomingDamageMultiplier()
 {
+    sfBossDangerIndex=2;
+    assert(sfBossDangerMultiplier()==10.0f);
     for(bool ai:{false,true}) for(int owner=0;owner<2;++owner) for(float heat:{0.0f,25.0f,50.0f}) {
         setupCampaign(0,ai);
         auto *ship=sfCoopShip(owner);auto *other=sfCoopShip(1-owner);
@@ -211,7 +211,7 @@ static void testCoopIncomingDamageMultiplier()
         }
         sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
         sfCoop.invulnerable[owner]=0;
-        const float expected=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(100,heat);
+        const float expected=sfBossDangerMultiplier()*sfShieldDamage(100,heat);
         sfCoopEmit(tupl(ship->x,ship->y),0,0,-1,100);
         sfCoopProjectiles(.01f);
         assert(std::abs((3000.0f-ship->pv)-expected)<.01f);
@@ -224,7 +224,7 @@ static void testCoopIncomingDamageMultiplier()
     const float beamDamage=sfCoopProfile().damage*1.6f;
     sfCoop.beams={{tupl(100,500),0,0,0}};
     sfCoopProjectiles(.01f);
-    assert(std::abs((2000.0f-Spritej1->pv)-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*beamDamage)<.01f);
+    assert(std::abs((2000.0f-Spritej1->pv)-sfBossDangerMultiplier()*beamDamage)<.01f);
 
     setupCampaign();Spritej1->pv=2000;Spritej1->nrj=50;Spritej2->setxywh(700,1500,100,100);
     Spritej1->setxywh(300,500,100,100);sfCoop.invulnerable[0]=0;
@@ -232,7 +232,7 @@ static void testCoopIncomingDamageMultiplier()
     const float waveDamage=sfCoopProfile().damage*1.3f;
     sfCoop.waves={{tupl(300,500),.7f,0}};
     sfCoopProjectiles(.01f);
-    assert(std::abs((2000.0f-Spritej1->pv)-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*waveDamage)<.01f);
+    assert(std::abs((2000.0f-Spritej1->pv)-sfBossDangerMultiplier()*waveDamage)<.01f);
 
     setupCampaign();sfFixResetAsteroidField();sfFieldRemainder=0;
     Spritej1->setxywh(390,400,100,100);Spritej2->setxywh(700,1500,100,100);
@@ -249,8 +249,12 @@ static void testCoopIncomingDamageMultiplier()
     sfLegacyFieldStep(sfCoopAsteroidHurt);
     assert(std::abs((1000.0f-Spritej1->pv)-asteroidExpected)<.01f && Spritej1->nrj>25);
 
-    // D-140-11 x15 remains only for the validated NON-KINETIC coop attack/contact paths.
-    assert(SF_COOP_INCOMING_DAMAGE_MULTIPLIER==15.0f);
+    // Boss danger changes only the validated NON-KINETIC coop attack/contact paths.
+    assert(sfBossDangerMultiplier()==10.0f);
+    sfBossDangerAdjust(1);assert(sfBossDangerMultiplier()==15.0f);
+    sfBossDangerAdjust(1);assert(sfBossDangerMultiplier()==20.0f);
+    sfBossDangerAdjust(-1);assert(sfBossDangerMultiplier()==15.0f);
+    sfBossDangerIndex=2;assert(sfBossDangerMultiplier()==10.0f);
 
     // A wounded boss may recover historical white dust itself.
     setupCampaign();
@@ -293,7 +297,7 @@ static void testCoopIncomingDamageMultiplier()
     sfCoopResources(0);
     assert(Spritej1->pv==pvBeforeRed && Spritej1->nrj>heatBeforeRed && red->pv==0);
 
-    std::puts("PASS: coop incoming damage is x15 and white/red dust economy is active for boss, special ammo and shields");
+    std::puts("PASS: coop boss danger is configurable x1/x5/x10/x15/x20 while kinetic and dust economy stay separate");
 }
 
 static void testCoopHudAndMissile()
