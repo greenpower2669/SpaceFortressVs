@@ -1,4 +1,4 @@
-name: Repair kinetic applicator
+name: Execute kinetic shield TDD
 
 on:
   push:
@@ -8,20 +8,26 @@ on:
       - .github/workflows/kinetic-bootstrap.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  repair:
+  apply:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout branch
+        uses: actions/checkout@v5
         with:
           ref: fix/gameplay-campaign-200
-      - name: Repair every YAML run block
+          fetch-depth: 0
+
+      - name: Extract and execute RED then GREEN implementation
         shell: bash
         run: |
+          set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import yaml
           p=Path('.github/workflows/kinetic-apply.yml')
           lines=p.read_text().splitlines()
           out=[]
@@ -38,22 +44,32 @@ jobs:
                   if indent < 10:
                       line='          '+line
               out.append(line)
-          p.write_text('\n'.join(out)+'\n')
+          data=yaml.safe_load('\n'.join(out)+'\n')
+          step=next(s for s in data['jobs']['apply']['steps'] if s.get('name')=='RED then implement kinetic shield')
+          script=step['run']
+          script=script.replace('out.speedFactor=1.0f+impactRatio*impactRatio;',
+                                'out.speedFactor=std::max(1.0f,impactRatio*impactRatio);')
+          Path('/tmp/apply-kinetic.sh').write_text(script+'\n')
           PY
-          python3 - <<'PY'
-          import yaml
-          from pathlib import Path
-          data=yaml.safe_load(Path('.github/workflows/kinetic-apply.yml').read_text())
-          assert 'jobs' in data and 'apply' in data['jobs']
-          steps=data['jobs']['apply']['steps']
-          assert [s.get('name') for s in steps if 'name' in s] == [
-              'Checkout branch','RED then implement kinetic shield','Full native regression suite','Commit verified gameplay and remove applicator'
-          ]
-          print('VALID: repaired workflow has all four steps')
-          PY
-      - name: Upload repaired workflow
-        uses: actions/upload-artifact@v4
-        with:
-          name: kinetic-apply-repaired-v2
-          path: .github/workflows/kinetic-apply.yml
-          if-no-files-found: error
+          bash /tmp/apply-kinetic.sh
+
+      - name: Full native regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
+          bash scripts/test-regressions.sh
+          git diff --check
+          test "$(git diff -- src/main.cpp)" = ""
+
+      - name: Commit verified gameplay only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "greenpower2669"
+          git config user.email "80179295+greenpower2669@users.noreply.github.com"
+          git add src tests scripts docs brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md
+          git diff --cached --check
+          git commit -m "feat: add shared kinetic shield physics"
+          git push origin HEAD:fix/gameplay-campaign-200
