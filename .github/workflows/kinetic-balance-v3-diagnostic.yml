@@ -35,64 +35,54 @@ jobs:
         run: |
           python3 scripts/apply-kinetic-balance-v3b.py
           python3 scripts/adapt-kinetic-balance-v3-tests.py
+          python3 scripts/make-regression-prefixes.py
       - name: Prepare test assets
         run: |
           rm -rf "$RUNNER_TEMP/sf-reg"
           mkdir -p "$RUNNER_TEMP/sf-reg/resources/assets"
           python3 scripts/prepare-assets.py --output "$RUNNER_TEMP/sf-reg/resources/assets"
-      - name: Python assets
-        run: python3 tests/test_assets.py
-      - name: Python release
-        run: python3 tests/test_release.py
-      - name: Python scenic integration
-        run: python3 tests/test_scenic_integration.py
-      - name: Python kinetic integration
-        run: python3 tests/test_kinetic_integration.py
-      - name: Python kinetic surge integration
-        run: python3 tests/test_kinetic_surge_integration.py
-      - name: Python balance v3 integration
-        run: python3 tests/test_balance_v3_integration.py
-      - name: Native kinetic surge
-        run: |
-          g++ -std=c++17 -O1 -I src tests/kinetic_surge_regressions.cpp -o "$RUNNER_TEMP/sf-reg/kinetic-surge"
-          "$RUNNER_TEMP/sf-reg/kinetic-surge"
-      - name: Native kinetic balance v3
-        run: |
-          g++ -std=c++17 -O1 -I src tests/kinetic_balance_v3_regressions.cpp -o "$RUNNER_TEMP/sf-reg/kinetic-balance-v3"
-          "$RUNNER_TEMP/sf-reg/kinetic-balance-v3"
-      - name: Native scenic mix compile
-        run: g++ -std=c++17 -O1 -I src tests/scenic_mix_regressions.cpp -o "$RUNNER_TEMP/sf-reg/scenic-mix"
-      - name: Native kinetic compile and run
-        run: |
-          g++ -std=c++17 -O1 -I src tests/kinetic_regressions.cpp -o "$RUNNER_TEMP/sf-reg/kinetic"
-          "$RUNNER_TEMP/sf-reg/kinetic"
-      - name: Native scenic mix run
-        run: "$RUNNER_TEMP/sf-reg/scenic-mix"
-      - name: Native campaign format
-        run: |
-          g++ -std=c++17 -O1 -ffunction-sections -fdata-sections -I src tests/campaign_format_regressions.cpp -Wl,--gc-sections -o "$RUNNER_TEMP/sf-reg/campaign-format"
-          "$RUNNER_TEMP/sf-reg/campaign-format"
-      - name: Compile full SDL regressions
+      - name: Compile checkpointed SDL regressions
         run: |
           read -r -a CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
           read -r -a LIBS <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
           g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all -ffunction-sections -fdata-sections -I src -I tests/include "${CFLAGS[@]}" tests/regressions.cpp -Wl,--gc-sections "${LIBS[@]}" -pthread -o "$RUNNER_TEMP/sf-reg/regressions"
-      - name: Run full SDL regressions
+      - name: A base input textures scenic
         working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: A
         run: ./regressions
-      - name: Prepare Android compatibility source
-        run: |
-          cd "$RUNNER_TEMP/sf-reg"
-          cmake -DREPO_ROOT="$GITHUB_WORKSPACE" -P "$GITHUB_WORKSPACE/scripts/prepare-legacy-source.cmake"
-          grep -Fq "::setw(static_cast<float>(DM.w));seth(DM.h);" generated/main_android_compat.cpp
-      - name: Android compatibility syntax
-        run: |
-          read -r -a CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
-          g++ -std=c++17 -D__ANDROID__ -Werror=return-type -fsyntax-only -I src -I tests/include -I "$RUNNER_TEMP/sf-reg/generated" "${CFLAGS[@]}" "$RUNNER_TEMP/sf-reg/generated/main_android_compat.cpp"
-      - name: Legacy field regressions
-        run: |
-          read -r -a CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
-          read -r -a LIBS <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
-          g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all -ffunction-sections -fdata-sections -I src -I tests/include -I "$RUNNER_TEMP/sf-reg/generated" "${CFLAGS[@]}" tests/legacy_field_regressions.cpp -Wl,--gc-sections "${LIBS[@]}" -pthread -o "$RUNNER_TEMP/sf-reg/legacy-field-regressions"
-          cd "$RUNNER_TEMP/sf-reg"
-          ./legacy-field-regressions
+      - name: B tactical and raids
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: B
+        run: ./regressions
+      - name: C feedback
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: C
+        run: ./regressions
+      - name: D campaign core
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: D
+        run: ./regressions
+      - name: E maintenance saves ships
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: E
+        run: ./regressions
+      - name: F restoration kinetic and field
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: F
+        run: ./regressions
+      - name: G coop difficulty damage HUD
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: G
+        run: ./regressions
+      - name: H migration and difficulty
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: H
+        run: ./regressions
