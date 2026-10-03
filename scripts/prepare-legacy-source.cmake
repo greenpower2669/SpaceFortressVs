@@ -158,6 +158,9 @@ sf_patch_once("orange shot count" "tirj1-=1;" "tirj1=std::max(0,tirj1-1);")
 sf_patch_once("blue shot count" "tirj2-=1;" "tirj2=std::max(0,tirj2-1);")
 sf_patch_once("single IA movement" "\tSpritej1->unctrl();" "\tif (!setia) Spritej1->unctrl();")
 sf_patch_once("visible turret effects" " SDL_RenderPresent(renderer);" " sfDrawTacticalEffects(renderer);\n SDL_RenderPresent(renderer);")
+sf_patch_once("classic campaign scenic map"
+    "SDL_RenderCopy(renderer, imgfondjup, NULL, &texrfondjup);"
+    "SDL_RenderCopy(renderer, imgfondjup, NULL, &texrfondjup);\n            sfRmDrawClassicScenicMap(renderer);")
 
 # Lists, ships and state resets share one guard across their legacy producers.
 # Schedule waits and blocking SDL events remain outside that guard.

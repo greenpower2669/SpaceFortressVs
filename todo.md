@@ -123,3 +123,13 @@ Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128
 - [x] Contact boss stable 30/60/120 via intégration interne.
 - [ ] CI Android fraîche + APK/AAB.
 - [ ] Validation téléphone Fab dans les deux modes.
+
+
+## D-140-13 scenic progression
+- [x] 20 base identities / 100 mixed candidates.
+- [x] Classic no-repeat shuffled 100-scene bag.
+- [x] Campaign full 0..199 scenery and RGB progression.
+- [x] Subtle boss/planet colour correction.
+- [x] Continuous boss travel toward safe edges.
+- [x] Native regressions and generated classic compile.
+- [ ] Phone visual validation by Fab.

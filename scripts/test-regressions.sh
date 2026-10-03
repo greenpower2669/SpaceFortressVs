@@ -7,6 +7,9 @@ trap 'rm -rf "$sf_test_dir"' EXIT
 python3 "$sf_repo/scripts/prepare-assets.py" --output "$sf_test_dir/resources/assets"
 python3 "$sf_repo/tests/test_assets.py"
 python3 "$sf_repo/tests/test_release.py"
+python3 "$sf_repo/tests/test_scenic_integration.py"
+g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/scenic_mix_regressions.cpp" -o "$sf_test_dir/scenic-mix"
+"$sf_test_dir/scenic-mix"
 g++ -std=c++17 -O1 -ffunction-sections -fdata-sections -I "$sf_repo/src" \
     "$sf_repo/tests/campaign_format_regressions.cpp" -Wl,--gc-sections -o "$sf_test_dir/campaign-format"
 "$sf_test_dir/campaign-format"

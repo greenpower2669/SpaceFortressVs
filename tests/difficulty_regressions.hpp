@@ -42,15 +42,18 @@ static void testDifficultyRendering(const char *previewDirectory)
         const auto rect=sfBossAtlasRect(atlas,encounter),originalRect=sfBossAtlasRect(atlas,boss);
         assert(rect.x==originalRect.x && rect.y==originalRect.y);
         const auto original=pixels(encounter,true),decorated=pixels(encounter,false);
-        if(difficulty==0) assert(original==decorated); // No aura or reflection at level 1.
-        else {
-            size_t outside=0,unchanged=0,body=0;
-            for(int y=0;y<400;++y) for(int x=0;x<400;++x) {
-                const size_t p=y*400+x;
-                if(std::hypot(x-200,y-200)>110 && original[p]!=decorated[p]) ++outside;
-                if(std::hypot(x-200,y-200)<60) {++body;if(original[p]==decorated[p]) ++unchanged;}
-            }
-            assert(outside>100 && unchanged>body/3); // Visible signature, original central colors retained.
+        size_t outside=0,changedBody=0,body=0;
+        for(int y=0;y<400;++y) for(int x=0;x<400;++x) {
+            const size_t p=y*400+x;
+            if(std::hypot(x-200,y-200)>110 && original[p]!=decorated[p]) ++outside;
+            if(std::hypot(x-200,y-200)<60) {++body;if(original[p]!=decorated[p]) ++changedBody;}
+        }
+        const auto look=sfBossAppearance(encounter);
+        assert(look.bodyTint.r>=215 && look.bodyTint.g>=215 && look.bodyTint.b>=215); // RGB correction stays deliberately light.
+        if(difficulty==0) {
+            assert(look.tentacles==0 && changedBody>body/50); // Tint only; animated square mesh can extend beyond radius 110.
+        } else {
+            assert(outside>100 && changedBody>body/50); // Aura/tentacles outside + subtle body correction.
         }
         for(int i=0;i<counts[difficulty];++i) {
             const auto a=sfTentaclePath(boss,i,counts[difficulty],1.25f);
@@ -94,7 +97,7 @@ static void testDifficultyRendering(const char *previewDirectory)
             SDL_DestroyRenderer(renderer);SDL_FreeSurface(surface);
         }
     }
-    std::puts("PASS: 200 renders, original level-1 pixels, 0/4/8/20 smooth bounded tentacles, visible aura and localized reflections");
+    std::puts("PASS: 200 renders, subtle progressive boss tint, 0/4/8/20 smooth bounded tentacles, visible aura and localized reflections");
 }
 
 static void testDifficultySelection()

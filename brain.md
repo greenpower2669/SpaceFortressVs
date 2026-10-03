@@ -206,3 +206,12 @@ Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128
 
 ## D-140-12 — bouclier linéaire partagé duel + coop — 2026-10-03
 Un seul cœur de bouclier sert désormais les deux modes : nrj=0 = 100% protection, nrj=50 = 0%. Dégâts PV linéaires selon spent=nrj/50 ; usure = puissance brute × clamp(0.1+spent,0.1,1.0), état pré-impact. Coop conserve ×15 exactement une fois. Contact boss intégré à 240 Hz interne. Poussière blanche pleine : -0.25 nrj, soit 0.5% de réserve. Le duel Android passe par la copie générée ; src/main.cpp reste byte-identique.
+
+
+## D-140-13 — Scenic mix / progression 200 (2026-10-03)
+- 20 base scenic identities generate 100 mixed candidates (nebula + planet + filter).
+- Classic selects from a shuffled 100-candidate bag without replacement; refill restores 100% eligibility and prevents an immediate boundary duplicate.
+- Campaign scenery now consumes encounter 0..199, with continuous blue→green→red RGB progression.
+- Boss body receives only a subtle RGB correction; historical 0/4/8/20 tentacle counts remain.
+- Boss travel expands continuously from centre-biased to near safe arena edges by encounter 200.
+- src/main.cpp remains historical and untouched; classic hook is generated through prepare-legacy-source.cmake.

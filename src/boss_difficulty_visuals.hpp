@@ -1,11 +1,14 @@
 #pragma once
 
-struct SfBossAppearance {SDL_Color aura;int tentacles;};
+struct SfBossAppearance {SDL_Color aura;int tentacles;SDL_Color bodyTint;};
 static SfBossAppearance sfBossAppearance(int encounter)
 {
-    const SfBossAppearance styles[]={{{0,0,0,0},0},{{85,235,130,255},4},
-        {{255,208,65,255},8},{{255,78,70,255},20}};
-    return styles[sfDifficultyIndex(encounter)];
+    const int tentacles[]={0,4,8,20};
+    const auto rgb=sfProgressRgb(encounter);
+    const float correction=.08f+.06f*sfBossTravelProgress(encounter);
+    const auto channel=[&](std::uint8_t target){return Uint8(255*(1-correction)+target*correction+.5f);};
+    return {{rgb.r,rgb.g,rgb.b,255},tentacles[sfDifficultyIndex(encounter)],
+            {channel(rgb.r),channel(rgb.g),channel(rgb.b),255}};
 }
 static std::array<SDL_FPoint,15> sfTentaclePath(int boss,int index,int count,float time)
 {
@@ -64,7 +67,7 @@ static void sfDrawEncounterBoss(SDL_Renderer *renderer,SDL_Texture *atlas,int en
             SDL_RenderGeometry(renderer,nullptr,mesh.data(),30,triangles.data(),84);
         }
     }
-    sfDrawBoss(renderer,atlas,boss,centre,radius,time,hit,dying);
+    sfDrawBoss(renderer,atlas,boss,centre,radius,time,hit,dying,look.bodyTint);
     if (atlas && look.tentacles && opacity>0) {
         auto vertices=sfBossVertices(atlas,boss,centre,radius,time,hit,dying);
         std::array<int,384> indices{};int offset=0;

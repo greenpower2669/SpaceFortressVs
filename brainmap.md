@@ -233,3 +233,7 @@ Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128
 
 ## D-140-12 — bouclier commun
 DUEL Android généré + COOP → sfApplyShieldImpact → protection linéaire → PV + usure. Contact coop → pas interne 240 Hz. Poussière blanche → -0.25 nrj pleine. Rouge coop → petite usure seulement. main.cpp historique inchangé.
+
+
+### D-140-13 scenic architecture
+`scenic_mix.hpp` → 20 bases → 100 mixed candidates → campaign 200 / classic shuffled bag. Campaign: `sfDrawCampaignSpace(encounter)` + `sfBossTravelProgress`. Classic: `sfRmSyncUiEngineState` selects once on GAME entry; generated legacy source calls `sfRmDrawClassicScenicMap` after historical backdrop layers.

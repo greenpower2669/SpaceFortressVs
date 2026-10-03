@@ -1,5 +1,6 @@
 #pragma once
 #include "boss_catalog.hpp"
+#include "scenic_mix.hpp"
 #include "campaign_save.hpp"
 #include <map>
 
@@ -532,7 +533,8 @@ static void sfCoopWin()
 static tupl sfCoopBossPosition(float time)
 {
     const auto &b=sfCoopProfile();
-    const float t=time*(.35f+b.tier*.018f)*(1+.15f*b.difficulty)+b.index*.3f;
+    const float progress=sfBossTravelProgress(sfCoop.encounter);
+    const float t=time*(.35f+b.tier*.018f)*(1+.45f*progress)+b.index*.3f;
     float x=std::sin(t),y=std::sin(t*.71f)*.4f;
     switch(b.family) {
         case 1:x=std::sin(t)*.7f;y=std::sin(t*2)*.7f;break;
@@ -545,8 +547,12 @@ static tupl sfCoopBossPosition(float time)
         case 8:x=std::tanh(1.5f*std::sin(t*.8f));y=std::cos(t*.8f)*.65f;break;
         case 9:x=std::sin(t)*.7f+std::sin(t*2.3f)*.2f;y=std::cos(t*1.4f)*.6f;break;
     }
-    const float span=.18f+.013f*b.difficulty;
-    return tupl(sfArenaW*(.5f+span*x),sfArenaH*(.5f+(.08f+.009f*b.difficulty)*y));
+    const float radius=sfCoopBossRadius();
+    const float safeSpanX=std::max(.12f,.5f-(radius/std::max(1.0f,sfArenaW)*.92f+.018f));
+    const float safeSpanY=std::max(.08f,.5f-(radius/std::max(1.0f,sfArenaH)*.92f+.105f));
+    const float spanX=std::min(.18f+.30f*progress,safeSpanX);
+    const float spanY=std::min(.08f+.30f*progress,safeSpanY);
+    return tupl(sfArenaW*(.5f+spanX*x),sfArenaH*(.5f+spanY*y));
 }
 
 static void sfCoopTick(float dt)
@@ -735,7 +741,7 @@ static void sfCoopButton(SDL_Renderer *renderer,SDL_Rect rect,const std::string 
 }
 
 static std::array<SDL_Vertex,81> sfBossVertices(SDL_Texture *atlas,int boss,tupl centre,float radius,float time,
-                                              float hit=0,float dying=0)
+                                              float hit=0,float dying=0,SDL_Color tint={255,255,255,255})
 {
     std::array<SDL_Vertex,81> vertices{};
     int twidth,theight;SDL_QueryTexture(atlas,nullptr,nullptr,&twidth,&theight);
@@ -760,15 +766,17 @@ static std::array<SDL_Vertex,81> sfBossVertices(SDL_Texture *atlas,int boss,tupl
         const float px=(x*breathing+dx)*radius*collapse,py=(y*breathing+dy)*radius*collapse;
         auto &vertex=vertices[row*9+col];
         vertex.position={centre.x+px*std::cos(turn)-py*std::sin(turn),centre.y+px*std::sin(turn)+py*std::cos(turn)};
-        vertex.color={255,Uint8(hit>0 ? 195 : 255),Uint8(hit>0 ? 165 : 255),Uint8(255*(1-std::clamp(dying,0.0f,1.0f)))};
+        const Uint8 hitG=Uint8(hit>0 ? 195 : 255),hitB=Uint8(hit>0 ? 165 : 255);
+        vertex.color={tint.r,Uint8(unsigned(hitG)*tint.g/255u),Uint8(unsigned(hitB)*tint.b/255u),
+                      Uint8(unsigned(tint.a)*Uint8(255*(1-std::clamp(dying,0.0f,1.0f)))/255u)};
         vertex.tex_coord={(src.x+(.005f+u*.99f)*src.w)/twidth,(src.y+(.005f+v*.99f)*src.h)/theight};
     }
     return vertices;
 }
-static void sfDrawBoss(SDL_Renderer *renderer,SDL_Texture *atlas,int boss,tupl centre,float radius,float time,float hit=0,float dying=0)
+static void sfDrawBoss(SDL_Renderer *renderer,SDL_Texture *atlas,int boss,tupl centre,float radius,float time,float hit=0,float dying=0,SDL_Color tint={255,255,255,255})
 {
     if (!atlas) {sfCoopDisc(renderer,centre.x,centre.y,radius*.6f,{180,60,230,220});return;}
-    const auto vertices=sfBossVertices(atlas,boss,centre,radius,time,hit,dying);
+    const auto vertices=sfBossVertices(atlas,boss,centre,radius,time,hit,dying,tint);
     std::array<int,384> indices{};int offset=0;
     for (int y=0;y<8;++y) for (int x=0;x<8;++x) {
         const int a=y*9+x;
@@ -780,51 +788,65 @@ static void sfDrawBoss(SDL_Renderer *renderer,SDL_Texture *atlas,int boss,tupl c
 
 #include "boss_difficulty_visuals.hpp"
 
-static void sfDrawCampaignSpace(SDL_Renderer *renderer,int boss,float time,int width,int height)
+static Uint8 sfCampaignTintChannel(Uint8 base,std::uint8_t accent,float amount)
 {
-    auto &textures=sfCoopTextures(renderer);const auto &profile=sfBossCatalog()[sfBossIndex(boss)];
+    amount=std::clamp(amount,0.0f,1.0f);
+    return Uint8(std::clamp(int(base*(1-amount)+accent*amount+.5f),0,255));
+}
+static void sfDrawCampaignSpace(SDL_Renderer *renderer,int encounter,float time,int width,int height)
+{
+    encounter=std::clamp(encounter,0,199);
+    auto &textures=sfCoopTextures(renderer);const auto scene=sfScenicProfileForEncounter(encounter);
+    const auto accent=scene.accent;
     SDL_SetRenderDrawColor(renderer,2,5,16,255);SDL_RenderClear(renderer);
     if (textures.backgrounds) {
-        auto source=sfAtlasRect(textures.backgrounds,profile.backdrop,3,2);
+        auto source=sfAtlasRect(textures.backgrounds,scene.backdrop,3,2);
         const float aspect=float(width)/height;
         if (aspect<1) {
             const int wanted=int(source.h*aspect),travel=source.w-wanted;
-            source.x+=int(travel*(.5f+.38f*std::sin(boss*1.71f+time*.011f)));source.w=wanted;
+            source.x+=int(travel*(.5f+.38f*std::sin(scene.candidate*1.71f+time*.011f)));source.w=wanted;
         } else {
             const int wanted=int(source.w/aspect),travel=source.h-wanted;
-            source.y+=int(travel*(.5f+.38f*std::sin(boss*1.71f+time*.011f)));source.h=wanted;
+            source.y+=int(travel*(.5f+.38f*std::sin(scene.candidate*1.71f+time*.011f)));source.h=wanted;
         }
-        SDL_Rect full{0,0,width,height};SDL_SetTextureColorMod(textures.backgrounds,155,165,190);
+        const float tint=.10f+scene.tintStrength*.30f;
+        SDL_Rect full{0,0,width,height};
+        SDL_SetTextureColorMod(textures.backgrounds,sfCampaignTintChannel(155,accent.r,tint),
+            sfCampaignTintChannel(165,accent.g,tint),sfCampaignTintChannel(190,accent.b,tint));
         SDL_RenderCopy(renderer,textures.backgrounds,&source,&full);
         SDL_SetTextureColorMod(textures.backgrounds,255,255,255);
     }
     if (textures.planets) {
-        const auto source=sfAtlasRect(textures.planets,profile.planet,11,5);
-        const float diameter=std::min(width,height)*(.36f+.012f*(boss%7));
-        const float x=width*(.5f+.28f*std::sin(boss*1.37f+time*.024f));
-        const float y=height*(boss%2 ? .77f+.045f*std::sin(time*.019f+boss) : .23f+.045f*std::sin(time*.019f+boss));
+        const auto source=sfAtlasRect(textures.planets,sfScenicPlanetAtlasIndex(scene.planetSlot),11,5);
+        const float diameter=std::min(width,height)*(.34f+.012f*(scene.basePlanet%7));
+        const float x=width*(.5f+.28f*std::sin(scene.candidate*1.37f+time*.024f));
+        const float y=height*(scene.baseBackdrop%2 ? .77f+.045f*std::sin(time*.019f+scene.basePlanet) : .23f+.045f*std::sin(time*.019f+scene.basePlanet));
         int twidth,theight;SDL_QueryTexture(textures.planets,nullptr,nullptr,&twidth,&theight);
         std::array<SDL_Vertex,66> vertices{};std::array<int,192> indices{};
         const float uc=(source.x+source.w*.5f)/twidth,vc=(source.y+source.h*.5f)/theight;
-        vertices[0]={{x,y},{180,190,220,190},{uc,vc}};
-        // A circular source mask guarantees complete discs despite the atlas's
-        // rectangular cells. Each encounter samples a distinct planet surface.
+        const float planetTint=.10f+scene.tintStrength;
+        const SDL_Color planetColor{sfCampaignTintChannel(180,accent.r,planetTint),
+            sfCampaignTintChannel(190,accent.g,planetTint),sfCampaignTintChannel(220,accent.b,planetTint),190};
+        vertices[0]={{x,y},planetColor,{uc,vc}};
         for (int i=0;i<=64;++i) {
             const float a=i*2*float(PI)/64,rotation=time*.009f;
-            vertices[i+1]={{x+std::cos(a)*diameter*.5f,y+std::sin(a)*diameter*.5f},{180,190,220,190},
+            vertices[i+1]={{x+std::cos(a)*diameter*.5f,y+std::sin(a)*diameter*.5f},planetColor,
                 {uc+std::cos(a+rotation)*source.w*.405f/twidth,vc+std::sin(a+rotation)*source.w*.405f/theight}};
             if (i<64) {indices[i*3]=0;indices[i*3+1]=i+1;indices[i*3+2]=i+2;}
         }
         SDL_SetTextureBlendMode(textures.planets,SDL_BLENDMODE_BLEND);
         SDL_RenderGeometry(renderer,textures.planets,vertices.data(),int(vertices.size()),indices.data(),int(indices.size()));
-        sfUiCircle(renderer,int(x),int(y),int(diameter*.5f),70,105,145);
+        sfUiCircle(renderer,int(x),int(y),int(diameter*.5f),
+            sfCampaignTintChannel(70,accent.r,.12f),sfCampaignTintChannel(105,accent.g,.12f),sfCampaignTintChannel(145,accent.b,.12f));
     }
-    uint32_t seed=0x1968ab12u+boss*71539u;
+    std::uint32_t seed=scene.starSeed^std::uint32_t(encounter)*2654435761u;
     for (int i=0;i<70;++i) {
         seed=seed*1664525u+1013904223u;const int x=seed%std::max(1,width);
         seed=seed*1664525u+1013904223u;const int y=seed%std::max(1,height);
         const auto alpha=Uint8(90+65*(1+std::sin(time*.7f+i)));
-        SDL_SetRenderDrawColor(renderer,180,215,255,alpha);SDL_RenderDrawPoint(renderer,x,y);
+        SDL_SetRenderDrawColor(renderer,sfCampaignTintChannel(180,accent.r,.08f),
+            sfCampaignTintChannel(215,accent.g,.08f),sfCampaignTintChannel(255,accent.b,.08f),alpha);
+        SDL_RenderDrawPoint(renderer,x,y);
     }
 }
 
@@ -886,7 +908,7 @@ static void sfDrawRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,SDL_
 static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
 {
     auto &textures=sfCoopTextures(renderer);
-    sfDrawCampaignSpace(renderer,sfCoop.boss,sfCoop.time+sfCoop.phaseTime,width,height);
+    sfDrawCampaignSpace(renderer,sfCoop.encounter,sfCoop.time+sfCoop.phaseTime,width,height);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     for (const auto &beam : sfCoop.beams) {
         const bool active=beam.age>=beam.warning;
@@ -1011,7 +1033,7 @@ static void sfCampaignDrawSelect(SDL_Renderer *renderer)
     sfCampaignPage=std::clamp(sfCampaignPage,0,19);
     const int first=sfCampaignPage*10,difficulty=first/50;
     const float time=SDL_GetTicks64()*.001f;
-    sfDrawCampaignSpace(renderer,sfBossIndex(sfCampaignSave.selected),time,width,height);
+    sfDrawCampaignSpace(renderer,sfCampaignSave.selected,time,width,height);
     sfCoopCentered(renderer,width,int(height*.025f),"CAMPAGNE COOPERATIVE",std::max(2,std::min(width/150,height/170)));
     sfCoopCentered(renderer,width,int(height*.078f),std::to_string(sfCampaignSave.cleared)+" VICTOIRES SUR 200",std::max(2,std::min(width/240,height/250)));
     for(int d=0;d<4;++d) sfCoopButton(renderer,{int(width*(.04f+d*.235f)),int(height*.127f),int(width*.215f),int(height*.055f)},
@@ -1038,7 +1060,7 @@ static void sfCampaignDrawHall(SDL_Renderer *renderer)
 {
     sfLoadCampaign();int width,height;SDL_GetRendererOutputSize(renderer,&width,&height);
     if (width<=0 || height<=0) return;
-    sfDrawCampaignSpace(renderer,49,SDL_GetTicks64()*.001f,width,height);
+    sfDrawCampaignSpace(renderer,199,SDL_GetTicks64()*.001f,width,height);
     sfCoopCentered(renderer,width,int(height*.035f),"HALL OF FAME",std::max(3,width/130),{255,220,125,255});
     sfCoopCentered(renderer,width,int(height*.105f),"LES EQUIPES IMMORTALISEES",std::max(2,width/250));
     std::vector<SfFameEntry> entries=sfCampaignSave.fame;

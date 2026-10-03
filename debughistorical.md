@@ -229,3 +229,7 @@ Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128
 
 ## D-140-12 — ancien carré remplacé
 Le ressenti incohérent venait de spent² en coop, d’une usure fixe +2, et des formules nrj² du duel historique. Le cœur est maintenant linéaire dans ship_energy.hpp. La copie Android classique transforme ses impacts tir/missile/astéroïde vers sfApplyShieldImpact sans modifier src/main.cpp. Les poussières blanches récupèrent 0.25 nrj chacune. RED confirmé avant implémentation ; GREEN/CI Android à vérifier.
+
+
+## D-140-13 — Repetition visuelle campagne/classique
+Cause: campaign scenery was indexed with boss 0..49, so difficulty blocks 51..200 repeated visual families; classic had no campaign-atlas scene rotation. Fix: full encounter scenic model plus 100-candidate no-replacement classic bag. Historical `src/main.cpp` is not edited.
