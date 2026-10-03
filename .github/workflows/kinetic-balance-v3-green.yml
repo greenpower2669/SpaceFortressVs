@@ -1,0 +1,41 @@
+name: Kinetic balance v3 GREEN
+on:
+  push:
+    branches: [fix/gameplay-campaign-200]
+    paths:
+      - scripts/apply-kinetic-balance-v3.py
+      - .github/workflows/kinetic-balance-v3-green.yml
+permissions:
+  contents: write
+jobs:
+  apply-test-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Install native SDL regression dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
+      - name: Apply kinetic balance v3
+        run: python3 scripts/apply-kinetic-balance-v3.py
+      - name: Targeted GREEN
+        run: |
+          python3 tests/test_balance_v3_integration.py
+          g++ -std=c++17 -O1 -I src tests/kinetic_balance_v3_regressions.cpp -o /tmp/kinetic-balance-v3
+          /tmp/kinetic-balance-v3
+      - name: Full native regression suite
+        run: bash scripts/test-regressions.sh
+      - name: Verify historical main source untouched
+        run: test "$(git hash-object src/main.cpp)" = "835059a0ecfe0f74708068b3259cad5db1cdb579"
+      - name: Commit verified gameplay and clean temporary tooling
+        run: |
+          rm -f scripts/apply-kinetic-balance-v3.py
+          rm -f .github/workflows/kinetic-balance-v3-red.yml .github/workflows/kinetic-balance-v3-green.yml
+          git config user.name "greenpower2669"
+          git config user.email "80179295+greenpower2669@users.noreply.github.com"
+          git add -A
+          git status --short
+          git commit -m "fix: rebalance kinetic impacts and resource feedback"
+          git push origin HEAD:fix/gameplay-campaign-200
