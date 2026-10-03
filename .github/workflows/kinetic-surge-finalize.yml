@@ -1,0 +1,102 @@
+name: Kinetic surge FINALIZE
+
+on:
+  push:
+    branches:
+      - fix/gameplay-campaign-200
+    paths:
+      - .github/workflows/kinetic-surge-finalize.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v5
+        with:
+          ref: fix/gameplay-campaign-200
+          fetch-depth: 0
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev >/dev/null
+
+      - name: Apply surge then remove unintended classic hull scaling
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/apply-kinetic-surge.py
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new, label):
+              p=Path(path)
+              text=p.read_text()
+              count=text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected 1 occurrence, found {count}")
+              p.write_text(text.replace(old,new,1))
+
+          p=Path('src/tactical_runtime.hpp')
+          text=p.read_text()
+          start=text.find('static constexpr float SF_CLASSIC_SHIP_DIAMETER_RATIO=.15f;')
+          end=text.find('static void sfTacticsReset()',start)
+          if start < 0 or end < 0:
+              raise SystemExit('classic hull scaling block not found after surge apply')
+          text=text[:start]+text[end:]
+          marker='    sfNormalizeClassicShipScale();\n'
+          if text.count(marker) != 1:
+              raise SystemExit(f'classic scale frame hook: expected 1 occurrence, found {text.count(marker)}')
+          text=text.replace(marker,'',1)
+          p.write_text(text)
+
+          replace_once(
+              'tests/restoration_regressions.hpp',
+              '''    setupTactics();Spritej1->w=Spritej1->h=Spritej1->sw=Spritej1->sh=300;Spritej1->startup();\n    sfNormalizeClassicShipScale();\n    assert(std::max({Spritej1->w,Spritej1->h,Spritej1->sw,Spritej1->sh})<=sfArenaW*SF_CLASSIC_SHIP_DIAMETER_RATIO+.01f);\n    std::puts("PASS: shared kinetic layers, surge, purge, compact classic hulls and reserve-driven hull regeneration");''',
+              '''    std::puts("PASS: shared kinetic layers, surge, purge and reserve-driven hull regeneration");''',
+              'remove compact-hull regression')
+
+          replace_once(
+              'tests/test_kinetic_surge_integration.py',
+              "assert 'sfNormalizeClassicShipScale' in tactical",
+              "assert 'sfNormalizeClassicShipScale' not in tactical",
+              'integration preserves classic hull dimensions')
+
+          old='- Classic hulls are capped to the coop-like 15% arena-minimum diameter.'
+          new='- Classic hull dimensions remain historical; only the kinetic field diameter expands.'
+          for rel in ('brain.md','brainmap.md','debughistorical.md','todo.md','ordres-de-mission.md'):
+              replace_once(rel,old,new,f'{rel} kinetic surge ruling')
+          PY
+
+      - name: Targeted GREEN tests
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -O1 -I src tests/kinetic_surge_regressions.cpp -o /tmp/kinetic-surge
+          /tmp/kinetic-surge
+          python3 tests/test_kinetic_surge_integration.py
+          ! grep -q 'sfNormalizeClassicShipScale' src/tactical_runtime.hpp
+
+      - name: Full native regressions
+        run: |
+          set -euo pipefail
+          bash scripts/test-regressions.sh
+          test "$(git hash-object src/main.cpp)" = "835059a0ecfe0f74708068b3259cad5db1cdb579"
+          git diff --check
+
+      - name: Commit verified gameplay and remove temporary surge machinery
+        run: |
+          set -euo pipefail
+          git config user.name "greenpower2669"
+          git config user.email "80179295+greenpower2669@users.noreply.github.com"
+          git rm .github/workflows/kinetic-surge-apply.yml
+          git rm .github/workflows/kinetic-surge-debug.yml
+          git rm .github/workflows/kinetic-surge-red.yml
+          git rm .github/workflows/kinetic-surge-finalize.yml
+          git rm scripts/apply-kinetic-surge.py
+          git add -A
+          git commit -m "feat: add two-finger kinetic surge in both modes"
+          git push origin HEAD:fix/gameplay-campaign-200
