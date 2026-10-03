@@ -1,0 +1,24 @@
+name: Kinetic surge RED
+
+on:
+  push:
+    branches:
+      - fix/gameplay-campaign-200
+    paths:
+      - tests/kinetic_surge_regressions.cpp
+      - tests/test_kinetic_surge_integration.py
+      - .github/workflows/kinetic-surge-red.yml
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/gameplay-campaign-200
+      - name: Compile and run numeric contract
+        run: |
+          g++ -std=c++17 -O1 -I src tests/kinetic_surge_regressions.cpp -o /tmp/kinetic-surge-red
+          /tmp/kinetic-surge-red
+      - name: Check both-mode integration contract
+        run: python3 tests/test_kinetic_surge_integration.py
