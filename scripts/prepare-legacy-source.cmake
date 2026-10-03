@@ -123,6 +123,8 @@ sf_patch_once("swept blue ship impacts" "if (colee(Spritej2,e))" "if (e->pv>0 &&
 sf_patch_once("swept asteroid impacts" "e->pv>0 && colee(p,e)" "e->pv>0 && (colee(p,e) || sfShotCrosses(e,p))")
 sf_replace_region("defence impact heat independent of frame rate" "float nrjminus(sprite *e){" "float vectoriser(" "float nrjminus(sprite *e){ return sfShotHeat(e); }\n\n")
 sf_replace_region("bounded missile impact heat" "float missnrjminus(sprite *e){" "float misspvminus(" "float missnrjminus(sprite *e){ return sfShotHeat(e); }\n\n")
+sf_replace_region("linear shield missile raw damage" "float misspvminus(sprite *e){" "float pvminus(" "float misspvminus(sprite *e){ (void)e; return rand()%10+1875.0f; }\n")
+sf_replace_region("linear shield normal raw damage" "float pvminus(sprite *e){" "float nrjminus(" "float pvminus(sprite *e){ (void)e; return rand()%10+75.0f; }\n")
 # Every impact uses the same finite reserve range, before subsequent damage
 # calculations can square the victim's heat. Full-energy markers stay at their
 # historical shield anchor; exhausted markers stop at the corresponding gun.
@@ -130,6 +132,15 @@ foreach(sf_ship Spritej1 Spritej2)
     sf_patch_once("${sf_ship} missile heat" "${sf_ship}->nrj+=missnrjminus(e);" "sfAddShipHeat(${sf_ship},missnrjminus(e));")
     sf_patch_once("${sf_ship} shot heat" "${sf_ship}->nrj+=nrjminus(e);" "sfAddShipHeat(${sf_ship},nrjminus(e));")
     sf_patch_once("${sf_ship} asteroid heat" "${sf_ship}->nrj+=e->w*e->h*0.0001;" "sfAddShipHeat(${sf_ship},e->w*e->h*0.0001);")
+endforeach()
+# D-140-12: generated classic Android copy shares the linear shield core.
+foreach(sf_ship Spritej1 Spritej2)
+    sf_patch_once("${sf_ship} missile linear shield hull" "${sf_ship}->pv-=misspvminus(${sf_ship});" "${sf_ship}->pv-=sfApplyShieldImpact(${sf_ship},misspvminus(${sf_ship}));")
+    sf_patch_once("${sf_ship} normal linear shield hull" "${sf_ship}->pv-=pvminus(${sf_ship});" "${sf_ship}->pv-=sfApplyShieldImpact(${sf_ship},pvminus(${sf_ship}));")
+    sf_patch_once("${sf_ship} missile shared wear only" "sfAddShipHeat(${sf_ship},missnrjminus(e));" "/* shared shield resolver owns missile wear */")
+    sf_patch_once("${sf_ship} normal shared wear only" "sfAddShipHeat(${sf_ship},nrjminus(e));" "/* shared shield resolver owns shot wear */")
+    sf_patch_once("${sf_ship} asteroid linear shield hull" "${sf_ship}->pv-=${sf_ship}->nrj*${sf_ship}->nrj*e->w*e->h*0.00002;" "${sf_ship}->pv-=sfApplyShieldImpact(${sf_ship},e->w*e->h*.05f);")
+    sf_patch_once("${sf_ship} asteroid shared wear only" "sfAddShipHeat(${sf_ship},e->w*e->h*0.0001);" "/* shared shield resolver owns asteroid wear */")
 endforeach()
 sf_replace_region("bounded energy HUD" "\ttexreclr.x = WIDTH*0.05;" "\trouage1->updatetir();" [=[
     texreclr=sfEnergyMarkerRect(Spritej1->nrj,

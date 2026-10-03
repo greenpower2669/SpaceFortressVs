@@ -229,3 +229,7 @@ Fab demande ×3 supplémentaire sur le ×5 validé : multiplicateur coop total �
 
 ### Preuve fraîche D-140-11 APK
 Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128530` : régressions complètes GREEN puis build Android APK+AAB réussi. Artefact : `SpaceFortressVs-x15-dust-APK-AAB-37095128530`. Le premier essai avait échoué uniquement sur la validation d'un wrapper Gradle tiers SDL téléchargé trop tôt ; l'ordre CI a été corrigé sans changement gameplay. Aucun merge `main`, aucune release ; validation téléphone reste à Fab.
+
+
+## D-140-12 — bouclier commun
+DUEL Android généré + COOP → sfApplyShieldImpact → protection linéaire → PV + usure. Contact coop → pas interne 240 Hz. Poussière blanche → -0.25 nrj pleine. Rouge coop → petite usure seulement. main.cpp historique inchangé.

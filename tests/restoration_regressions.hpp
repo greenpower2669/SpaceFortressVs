@@ -39,6 +39,26 @@ static void testPassiveCoopTurrets()
     std::puts("PASS: cooperative turrets remain inactive without a collected bonus");
 }
 
+static void testSharedLinearShieldModel()
+{
+    struct Case { float heat,spent,wear; };
+    const Case cases[]={{0,0,.1f},{5,.1f,.2f},{10,.2f,.3f},{25,.5f,.6f},{45,.9f,1.0f},{50,1.0f,1.0f}};
+    for(const auto &c:cases) {
+        assert(std::abs(sfShieldFraction(c.heat)-(1.0f-c.spent))<.0001f);
+        assert(std::abs(sfShieldDamage(10.0f,c.heat)-10.0f*c.spent)<.001f);
+        assert(std::abs(sfShieldWear(10.0f,c.heat)-10.0f*c.wear)<.001f);
+        sprite ship;ship.nrj=c.heat;
+        const float hull=sfApplyShieldImpact(&ship,10.0f);
+        assert(std::abs(hull-10.0f*c.spent)<.001f);
+        assert(std::abs(ship.nrj-std::min(50.0f,c.heat+10.0f*c.wear))<.001f);
+    }
+    setupTactics();Spritej1->nrj=30;Spritej1->pv=900;
+    for(int i=0;i<29;++i) {auto *dust=new parts(Spritej1->x,Spritej1->y);dust->pv=600;particules.push_back(dust);}
+    sfCollectDust();
+    assert(std::abs(Spritej1->nrj-22.75f)<.02f && Spritej1->pv>908.0f && Spritej1->pv<=909.0f);
+    std::puts("PASS: linear shield and white dust share one core across duel and coop");
+}
+
 static void testCollectedBonusAndShield()
 {
     setupCampaign();sfCoop.bonusTimer=0;sfCoopBonus(.01f);
@@ -53,9 +73,9 @@ static void testCollectedBonusAndShield()
     assert(sfCoop.shots.empty());
     for(auto *ship:{Spritej1,Spritej2}) ship->pv=1000;
     Spritej1->nrj=0;Spritej2->nrj=50;
-    sfCoopHurt(0,100);sfCoopHurt(1,100);
-    assert(Spritej1->pv==1000 && Spritej2->pv==0);
-    assert(Spritej1->nrj>0 && Spritej2->nrj==50);
+    sfCoopHurt(0,10);sfCoopHurt(1,10);
+    assert(Spritej1->pv==1000 && Spritej2->pv==850);
+    assert(std::abs(Spritej1->nrj-15.0f)<.01f && Spritej2->nrj==50);
     std::puts("PASS: random floating bonus, collection, independent turret energy, expiration and reserve-dependent shield");
 }
 
@@ -84,19 +104,15 @@ static void testCoopDifficultyChain()
     const float heat=Spritej2->nrj;const auto shots=sfCoop.shots.size();
     assert(!sfCoopFire(1) && Spritej2->nrj==heat && sfCoop.shots.size()==shots);
 
+    std::array<float,3> contactLoss{};int contactIndex=0;
     for(int fps:{30,60,120}) {
         setupCampaign();auto *ship=Spritej1;ship->pv=5000;ship->nrj=0;
         const float dt=1.0f/fps;
-        float legacyHeat=0,legacyLoss=0;
-        for(int frame=0;frame<fps/2;++frame) {
-            legacyHeat=sfShipHeat(legacyHeat+45.0f*dt);
-            const float spent=sfShipHeat(legacyHeat)/SF_MAX_SHIP_HEAT;
-            legacyLoss+=650.0f*spent*spent*dt;
-            sfCoopBossContact(0,dt);
-        }
-        const float actualLoss=5000.0f-ship->pv;
-        assert(ship->pv>0 && std::abs(actualLoss-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*legacyLoss)<.02f);
+        for(int frame=0;frame<fps/2;++frame) sfCoopBossContact(0,dt);
+        contactLoss[contactIndex++]=5000.0f-ship->pv;
+        assert(ship->pv>0 && ship->nrj==50);
     }
+    assert(std::abs(contactLoss[0]-contactLoss[1])<.1f && std::abs(contactLoss[1]-contactLoss[2])<.1f);
     setupCampaign();Spritej1->pv=1000;Spritej1->nrj=0;
     int deathFrame=-1;
     for(int frame=0;frame<120;++frame) {
@@ -116,7 +132,7 @@ static void testCoopDifficultyChain()
     Spritej1->nrj=30;Spritej1->pv=900;
     for(int i=0;i<29;++i) {auto *dust=new parts(390,300);dust->pv=600;particules.push_back(dust);}
     sfCollectDust();
-    assert(Spritej1->nrj>25 && Spritej1->pv<=909);
+    assert(std::abs(Spritej1->nrj-22.75f)<.02f && Spritej1->pv<=909);
     std::puts("PASS: energy lowers cadence/accuracy, boss contact is continuous, rocks bypass shot i-frames and ore no longer resets the shield");
 }
 

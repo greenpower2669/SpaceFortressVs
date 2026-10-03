@@ -202,3 +202,7 @@ Fab demande ×3 supplémentaire sur le ×5 validé : multiplicateur coop total �
 
 ### Preuve fraîche D-140-11 APK
 Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128530` : régressions complètes GREEN puis build Android APK+AAB réussi. Artefact : `SpaceFortressVs-x15-dust-APK-AAB-37095128530`. Le premier essai avait échoué uniquement sur la validation d'un wrapper Gradle tiers SDL téléchargé trop tôt ; l'ordre CI a été corrigé sans changement gameplay. Aucun merge `main`, aucune release ; validation téléphone reste à Fab.
+
+
+## D-140-12 — bouclier linéaire partagé duel + coop — 2026-10-03
+Un seul cœur de bouclier sert désormais les deux modes : nrj=0 = 100% protection, nrj=50 = 0%. Dégâts PV linéaires selon spent=nrj/50 ; usure = puissance brute × clamp(0.1+spent,0.1,1.0), état pré-impact. Coop conserve ×15 exactement une fois. Contact boss intégré à 240 Hz interne. Poussière blanche pleine : -0.25 nrj, soit 0.5% de réserve. Le duel Android passe par la copie générée ; src/main.cpp reste byte-identique.

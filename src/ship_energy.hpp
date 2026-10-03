@@ -37,8 +37,40 @@ static bool sfSpendMainEnergy(sprite *ship)
     if (missile) sfAddShipHeat(ship,10);
     return missile;
 }
+static float sfShieldSpent(float heat)
+{
+    return sfShipHeat(heat)/SF_MAX_SHIP_HEAT;
+}
+static float sfShieldFraction(float heat)
+{
+    return 1.0f-sfShieldSpent(heat);
+}
 static float sfShieldDamage(float damage,float heat)
 {
-    const float spent=sfShipHeat(heat)/SF_MAX_SHIP_HEAT;
-    return damage*spent*spent;
+    return std::max(0.0f,damage)*sfShieldSpent(heat);
+}
+static float sfShieldWear(float damage,float heat)
+{
+    const float factor=std::clamp(.1f+sfShieldSpent(heat),.1f,1.0f);
+    return std::max(0.0f,damage)*factor;
+}
+static float sfApplyShieldImpact(sprite *ship,float incomingDamage)
+{
+    if (!ship || incomingDamage<=0) return 0;
+    const float heatBefore=sfShipHeat(ship->nrj);
+    const float hullDamage=sfShieldDamage(incomingDamage,heatBefore);
+    sfAddShipHeat(ship,sfShieldWear(incomingDamage,heatBefore));
+    return hullDamage;
+}
+static float sfApplyShieldContinuousImpact(sprite *ship,float incomingPerSecond,float dt)
+{
+    if (!ship || incomingPerSecond<=0 || dt<=0) return 0;
+    constexpr float step=1.0f/240.0f;
+    float remaining=dt,total=0;
+    while (remaining>1e-6f) {
+        const float slice=std::min(step,remaining);
+        total+=sfApplyShieldImpact(ship,incomingPerSecond*slice);
+        remaining-=slice;
+    }
+    return total;
 }

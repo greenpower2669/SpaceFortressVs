@@ -160,8 +160,9 @@ static void sfCoopHurt(int owner,float damage)
 {
     auto *ship=sfCoopShip(owner);
     if (ship->pv<=0 || sfCoop.invulnerable[owner]>0 || sfCoop.phase!=SfCoopPhase::Combat) return;
-    ship->pv=std::max(0.0f,ship->pv-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(damage,ship->nrj));
-    sfAddShipHeat(ship,2); sfCoop.invulnerable[owner]=.38f;
+    const float incoming=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*damage;
+    ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));
+    sfCoop.invulnerable[owner]=.38f;
     sfCoop.soundHit=true;sfCoopEmitRedDust(owner,6);
     if (ship->pv<=0) {
         sfCoop.controls[owner].down=false;sfCoop.controls[owner].finger=-1;
@@ -313,18 +314,16 @@ static void sfCoopBossContact(int owner,float dt)
 {
     auto *ship=sfCoopShip(owner);
     if (ship->pv<=0 || sfCoop.phase!=SfCoopPhase::Combat || dt<=0) return;
-    sfAddShipHeat(ship,45.0f*dt);
-    const float spent=sfShipHeat(ship->nrj)/SF_MAX_SHIP_HEAT;
-    ship->pv=std::max(0.0f,ship->pv-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*650.0f*spent*spent*dt);
+    const float incomingPerSecond=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*650.0f;
+    ship->pv=std::max(0.0f,ship->pv-sfApplyShieldContinuousImpact(ship,incomingPerSecond,dt));
     sfCoop.soundHit=true;sfCoopEmitRedDust(owner,2);
 }
 static void sfCoopAsteroidHurt(int owner,float legacyDamage)
 {
     auto *ship=sfCoopShip(owner);
     if (ship->pv<=0 || sfCoop.phase!=SfCoopPhase::Combat) return;
-    const float area=legacyDamage/.05f;
-    ship->pv=std::max(0.0f,ship->pv-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(legacyDamage,ship->nrj));
-    sfAddShipHeat(ship,area*.0001f);
+    const float incoming=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*legacyDamage;
+    ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));
     sfCoop.soundHit=true;
 }
 

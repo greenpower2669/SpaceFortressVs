@@ -113,3 +113,13 @@ local au téléphone. Ne pas effacer les données de l'application pour le conse
 
 ### Preuve fraîche D-140-11 APK
 Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128530` : régressions complètes GREEN puis build Android APK+AAB réussi. Artefact : `SpaceFortressVs-x15-dust-APK-AAB-37095128530`. Le premier essai avait échoué uniquement sur la validation d'un wrapper Gradle tiers SDL téléchargé trop tôt ; l'ordre CI a été corrigé sans changement gameplay. Aucun merge `main`, aucune release ; validation téléphone reste à Fab.
+
+
+## D-140-12 — bouclier linéaire deux modes
+- [x] Cœur commun duel + coop sans modifier src/main.cpp.
+- [x] Protection linéaire 100/90/80/.../0 %.
+- [x] Usure 10/20/30/.../100 % selon réserve pré-impact.
+- [x] Poussière blanche pleine = 0.25 nrj (~0.5%).
+- [x] Contact boss stable 30/60/120 via intégration interne.
+- [ ] CI Android fraîche + APK/AAB.
+- [ ] Validation téléphone Fab dans les deux modes.

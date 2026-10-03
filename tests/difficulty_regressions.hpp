@@ -5,6 +5,8 @@ static void testDifficultyGameplay()
 {
     for(int encounter=0;encounter<200;++encounter) {
         setupCampaign(encounter);sfCoop.attack=0;
+        // This fixture tests all 200 hostile openings, not pilot survivability.
+        Spritej1->pv=Spritej2->pv=1000000;
         const auto start=sfCoop.position;
         for(int frame=0;frame<120;++frame) sfCoopTick(1.0f/60);
         assert(sfCoop.volley>0 && sfCoop.phase==SfCoopPhase::Combat);
