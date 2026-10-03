@@ -29,12 +29,16 @@ main = r'''int main(int argc,char **argv)
     if(stop("E")) return 0;
     testNoHumanAutofire();testPassiveCoopTurrets();testSharedLinearShieldModel();testKineticFieldAndHullRegen();testCollectedBonusAndShield();testRealCoopField();
     if(stop("F")) return 0;
-    testCoopDifficultyChain();testCoopIncomingDamageMultiplier();testCoopHudAndMissile();
-    if(stop("G")) return 0;
+    testCoopDifficultyChain();
+    if(stop("G1")) return 0;
+    testCoopIncomingDamageMultiplier();
+    if(stop("G2")) return 0;
+    testCoopHudAndMissile();
+    if(stop("G3")) return 0;
     testDurableV1Migration(campaignDirectory);testDifficultySelection();testDifficultyGameplay();testDifficultyRendering(std::getenv("SPACEFORTRESS_DIFFICULTY_PREVIEW"));
     if(stop("H")) return 0;
     return 0;
 }
 '''
 p.write_text(t[:cut] + main)
-print('Injected A-H regression prefix checkpoints')
+print('Injected A-H regression prefix checkpoints with split G1-G3')
