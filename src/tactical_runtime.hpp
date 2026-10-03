@@ -566,7 +566,7 @@ static void sfUpdateTurrets(float dt)
 
 static void sfTacticsReset()
 {
-    sfPilot=SfPilot{}; sfObserved={}; sfPickupGlow={}; sfTurrets={}; sfKineticWaves.clear(); sfKineticWaveSerial=0;
+    sfPilot=SfPilot{}; sfObserved={}; sfPickupGlow={}; sfTurrets={}; sfKineticWaves.clear(); sfKineticWaveSerial=0;sfKineticResetSurges();
     sfSceneSeconds=0; sfTacticsLastTick=0;sfFieldRemainder=0;
     sfFieldCollisionSound=sfFieldMiningSound=false;
     for (int i=0;i<SF_TURRET_COUNT;++i) {
@@ -601,6 +601,7 @@ static void sfTacticsBeginFrame(SDL_Renderer *renderer)
         sfObserved={}; sfPilot.velocity.set(0,0); sfPilot.aligned=0; sfPilot.rethink=0;
     }
     if (sfUiScreen==SF_UI_GAME) sfSceneSeconds+=sfFrameDt;
+    if (sfUiScreen==SF_UI_GAME && !sfIsCoop()) sfKineticAdvanceSurges(sfFrameDt);
     if (sfUiScreen==SF_UI_GAME && !setgui) { sfRegenerateHull(Spritej1,sfFrameDt); sfRegenerateHull(Spritej2,sfFrameDt); }
     // Cooperative simulation samples after each movement substep; observing
     // the same position again here would incorrectly damp the velocity ghost.
@@ -627,9 +628,23 @@ static void sfTacticalRing(SDL_Renderer *renderer,tupl center,float radius,SDL_C
 
 static void sfDrawKineticEffects(SDL_Renderer *renderer)
 {
-    if (!renderer || sfUiScreen!=SF_UI_GAME || sfKineticWaves.empty()) return;
+    if (!renderer || sfUiScreen!=SF_UI_GAME) return;
+    const bool surgeVisible=sfKineticSurgeVisible(0) || sfKineticSurgeVisible(1);
+    if(sfKineticWaves.empty() && !surgeVisible) return;
     SDL_BlendMode previous;SDL_GetRenderDrawBlendMode(renderer,&previous);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+    for(int owner=0;owner<2;++owner) if(sfKineticSurgeVisible(owner)) {
+        const auto *ship=owner==0 ? Spritej1 : Spritej2;
+        if(!ship || ship->pv<=0) continue;
+        const float diameter=std::max(1.0f,std::max({ship->sw,ship->sh,ship->w,ship->h}));
+        const float pulse=.5f+.5f*std::sin(float(SDL_GetTicks64())*.010f+owner*1.7f);
+        const SDL_Color team=owner==0 ? SDL_Color{255,188,96,255} : SDL_Color{96,210,255,255};
+        const float outer=diameter*SF_KINETIC_MAX_SHIELD_DIAMETER*.5f;
+        const float inner=diameter*SF_KINETIC_INNER_MAX_RADIUS_SHIP_DIAMETERS;
+        sfTacticalRing(renderer,tupl(ship->x,ship->y),outer,SDL_Color{team.r,team.g,team.b,Uint8(78+34*pulse)});
+        sfTacticalRing(renderer,tupl(ship->x,ship->y),outer-2,SDL_Color{team.r,team.g,team.b,Uint8(36+18*pulse)});
+        sfTacticalRing(renderer,tupl(ship->x,ship->y),inner,SDL_Color{team.r,team.g,team.b,Uint8(58+26*pulse)});
+    }
     for(const auto &wave:sfKineticWaves) {
         if(wave.owner<0 || wave.owner>1 || !sfKineticWaveAlive(wave)) continue;
         const auto *ship=wave.owner==0 ? Spritej1 : Spritej2;
@@ -642,7 +657,7 @@ static void sfDrawKineticEffects(SDL_Renderer *renderer)
         if(envelope<=.01f) continue;
         const SDL_Color team=wave.owner==0 ? SDL_Color{255,188,96,255} : SDL_Color{96,210,255,255};
         sfTacticalRing(renderer,tupl(ship->x,ship->y),radius,
-            SDL_Color{team.r,team.g,team.b,Uint8(std::clamp(190.0f*envelope,0.0f,220.0f))});
+            SDL_Color{team.r,team.g,team.b,Uint8(std::clamp(105.0f*envelope,0.0f,135.0f))});
     }
     SDL_SetRenderDrawBlendMode(renderer,previous);
 }

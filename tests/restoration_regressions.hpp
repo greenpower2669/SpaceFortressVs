@@ -12,15 +12,19 @@ static void testNoHumanAutofire()
     a=sfCoopFinger(SDL_FINGERDOWN,1003,.4f,.2f);
     b=sfCoopFinger(SDL_FINGERDOWN,1004,.6f,.8f);
     sfFixHandleEvent(&a);sfFixHandleEvent(&b);
+    assert(sfCoop.shots.empty());
+    a=sfCoopFinger(SDL_FINGERUP,1003,.4f,.2f);
+    b=sfCoopFinger(SDL_FINGERUP,1004,.6f,.8f);
+    sfFixHandleEvent(&a);sfFixHandleEvent(&b);
     assert(sfCoop.shots.size()==2);
     assert(sfCoop.shots[0].kind==4 && sfCoop.shots[1].kind==4);
     assert(Spritej1->nrj==11 && Spritej2->nrj==11);
     for(int i=0;i<120;++i) sfCoopMovePlayers(1.0f/60);
-    assert(sfCoop.shots.size()==2); // Holding or moving the firing finger never repeats.
+    assert(sfCoop.shots.size()==2);
+    a=sfCoopFinger(SDL_FINGERDOWN,1003,.4f,.2f);sfFixHandleEvent(&a);
     a=sfCoopFinger(SDL_FINGERMOTION,1003,.8f,.8f);sfFixHandleEvent(&a);
     assert(sfCoop.controls[0].finger==1001 && sfCoop.controls[1].finger==1002);
     a=sfCoopFinger(SDL_FINGERUP,1003,.8f,.8f);sfFixHandleEvent(&a);
-    a=sfCoopFinger(SDL_FINGERDOWN,1003,.4f,.2f);sfFixHandleEvent(&a);
     assert(sfCoop.shots.size()==3 && sfCoop.shots.back().kind==0);
     const auto ordinaryVelocity=sfCoop.shots.back().velocity;
     sfCoop.position.x+=120;sfCoopProjectiles(1.0f/60);
@@ -94,7 +98,27 @@ static void testKineticFieldAndHullRegen()
     sfCoopBossContact(0,1.0f/60);const float afterHeat=Spritej1->nrj,afterPv=Spritej1->pv;
     assert(sfCoop.chargeHit[0] && afterHeat>0 && !sfKineticWaves.empty());
     sfCoopBossContact(0,1.0f/60);assert(Spritej1->nrj==afterHeat && Spritej1->pv==afterPv);
-    std::puts("PASS: shared kinetic layers, velocity damage, charge gating and reserve-driven hull regeneration");
+
+    sfKineticResetSurges();sfKineticSurgePress(0);
+    sfKineticAdvanceSurges(SF_KINETIC_SURGE_HOLD_SECONDS-.01f);
+    assert(!sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==1.0f);
+    sfKineticAdvanceSurges(.02f);
+    assert(sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==2.0f);
+    sfKineticAdvanceSurges(SF_KINETIC_SURGE_DURATION+.01f);
+    assert(!sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==1.0f);
+    assert(sfKineticSurgeRelease(0));
+
+    setupTactics();sfFixResetAsteroidField();sfFieldRemainder=0;
+    Spritej2->setxywh(390,1200,100,100);Spritej2->sw=Spritej2->sh=100;Spritej2->startup();
+    auto *nearRock=new sprite;nearRock->setv(470,1200,20,20,0,0,1);nearRock->w=nearRock->h=nearRock->sw=nearRock->sh=20;nearRock->pv=1;sa1.push_back(nearRock);
+    auto *farRock=new sprite;farRock->setv(650,1200,20,20,0,0,1);farRock->w=farRock->h=farRock->sw=farRock->sh=20;farRock->pv=1;sa1.push_back(farRock);
+    auto *white=new parts(410,1200);white->pv=600;white->vx=7;white->vy=-3;particules.push_back(white);
+    const float whiteVx=white->vx,whiteVy=white->vy;
+    const int purged=sfKineticPurgeAsteroids(1);
+    assert(purged==1 && nearRock->pv==0 && farRock->pv>0);
+    assert(white->pv==600 && white->vx==whiteVx && white->vy==whiteVy);
+
+    std::puts("PASS: shared kinetic layers, surge, purge and reserve-driven hull regeneration");
 }
 
 static void testCollectedBonusAndShield()

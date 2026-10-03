@@ -15,10 +15,13 @@ constexpr float SF_KINETIC_INNER_DISSIPATION = .78f;
 constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR = .01f;
 constexpr float SF_KINETIC_ENERGY_COST_SCALE = .00001f; // 0.001% of the previous cost.
 constexpr float SF_KINETIC_MIN_SHIELD_DIAMETER = 1.05f;
-constexpr float SF_KINETIC_MAX_SHIELD_DIAMETER = 1.58f;
+constexpr float SF_KINETIC_MAX_SHIELD_DIAMETER = 2.0f;
 constexpr float SF_KINETIC_INNER_MAX_RADIUS_SHIP_DIAMETERS = .575f;
 constexpr float SF_KINETIC_BOSS_BASE_DAMAGE = 50.0f;
 constexpr float SF_KINETIC_WAVE_DURATION = .27f;
+constexpr float SF_KINETIC_SURGE_HOLD_SECONDS = .35f;
+constexpr float SF_KINETIC_SURGE_DURATION = 2.0f;
+constexpr float SF_KINETIC_SURGE_POWER_MULTIPLIER = 2.0f;
 
 struct SfKineticVector { float x=0,y=0; };
 enum class SfKineticLayer { None, Inner, Outer };
@@ -44,6 +47,61 @@ struct SfKineticDustMotion {
 };
 inline std::vector<SfKineticWave> sfKineticWaves;
 inline unsigned sfKineticWaveSerial=0;
+struct SfKineticSurgeState {
+    bool held=false,charged=false;
+    float heldSeconds=0,boostSeconds=0;
+};
+inline std::array<SfKineticSurgeState,2> sfKineticSurges{};
+
+static void sfKineticSurgePress(int owner)
+{
+    if(owner<0 || owner>1) return;
+    auto &s=sfKineticSurges[owner];
+    s=SfKineticSurgeState{};s.held=true;
+}
+static void sfKineticSurgeCancel(int owner)
+{
+    if(owner<0 || owner>1) return;
+    sfKineticSurges[owner]=SfKineticSurgeState{};
+}
+static bool sfKineticSurgeRelease(int owner)
+{
+    if(owner<0 || owner>1) return false;
+    const bool purge=sfKineticSurges[owner].charged;
+    sfKineticSurges[owner]=SfKineticSurgeState{};
+    return purge;
+}
+static void sfKineticAdvanceSurges(float dt)
+{
+    if(dt<=0) return;
+    for(auto &s:sfKineticSurges) {
+        if(!s.held) continue;
+        s.heldSeconds+=dt;
+        if(!s.charged && s.heldSeconds>=SF_KINETIC_SURGE_HOLD_SECONDS) {
+            s.charged=true;s.boostSeconds=0;
+        } else if(s.charged && s.boostSeconds<SF_KINETIC_SURGE_DURATION) {
+            s.boostSeconds=std::min(SF_KINETIC_SURGE_DURATION,s.boostSeconds+dt);
+        }
+    }
+}
+static float sfKineticSurgePower(int owner)
+{
+    if(owner<0 || owner>1) return 1.0f;
+    const auto &s=sfKineticSurges[owner];
+    return s.held && s.charged && s.boostSeconds<SF_KINETIC_SURGE_DURATION ?
+        SF_KINETIC_SURGE_POWER_MULTIPLIER : 1.0f;
+}
+static bool sfKineticSurgeVisible(int owner)
+{
+    if(owner<0 || owner>1) return false;
+    const auto &s=sfKineticSurges[owner];
+    return s.held && s.charged && s.boostSeconds<SF_KINETIC_SURGE_DURATION;
+}
+static void sfKineticResetSurges()
+{
+    sfKineticSurges={};
+}
+static int sfKineticPurgeAsteroids(int owner);
 
 static float sfKineticReferenceSpeed(float arenaWidth)
 {
@@ -124,13 +182,14 @@ static SfKineticSolution sfResolveKinetic(float baseDamage,float massFactor,
                        out.selectedRange>0 ? SfKineticLayer::Inner : SfKineticLayer::None;
     return out;
 }
-static SfKineticSolution sfApplyKineticLayer(SfKineticSolution out,SfKineticLayer layer,float energyFraction)
+static SfKineticSolution sfApplyKineticLayer(SfKineticSolution out,SfKineticLayer layer,float energyFraction,float powerMultiplier=1.0f)
 {
     energyFraction=std::clamp(energyFraction,0.0f,1.0f);
+    powerMultiplier=std::clamp(powerMultiplier,1.0f,SF_KINETIC_SURGE_POWER_MULTIPLIER);
     const float maximum=layer==SfKineticLayer::Outer ? SF_KINETIC_OUTER_DISSIPATION :
                         layer==SfKineticLayer::Inner ? SF_KINETIC_INNER_DISSIPATION : 0.0f;
     out.appliedLayer=layer;
-    out.dissipationFraction=std::clamp(maximum*energyFraction,0.0f,.97f);
+    out.dissipationFraction=std::clamp(maximum*energyFraction*powerMultiplier,0.0f,.995f);
     out.dissipatedDamage=out.rawDamage*out.dissipationFraction;
     out.residualDamage=out.rawDamage-out.dissipatedDamage;
     if(out.dissipatedDamage>0) {

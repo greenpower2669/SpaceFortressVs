@@ -146,3 +146,12 @@ Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128
 - [x] Poussière rouge vibrée/déviée; poussière blanche jamais déviée.
 - [x] Logs KINETIC_IMPACT/WAVE/DUST.
 - [ ] Validation ressenti téléphone Fab avant toute merge/release.
+
+## Kinetic surge / two-finger field — 2026-10-03
+- Canon shared by classic + coop: maximum kinetic field diameter = 2.0 ship diameters.
+- Short second-finger tap keeps firing; long hold (0.35 s) enters a transparent visible surge.
+- Surge doubles kinetic dissipation for at most 2.0 s. Release after activation purges every asteroid inside the max kinetic zone into historical white resource dust.
+- White dust is never physically deflected by kinetic waves; red dust remains reactive.
+- Normal absorption waves are more transparent; surge aura shows inner + outer circles.
+- Classic hull dimensions remain historical; only the kinetic field diameter expands.
+- No main merge/release before Fab phone validation.

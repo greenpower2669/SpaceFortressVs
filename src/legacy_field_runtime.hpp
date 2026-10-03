@@ -53,6 +53,29 @@ static void sfKineticEmitRedDust(int owner,int count,float ring)
         particulesr.push_back(dust);
     }
 }
+static int sfKineticPurgeAsteroids(int owner)
+{
+    if(owner<0 || owner>1) return 0;
+    auto *ship=owner==0 ? Spritej1 : Spritej2;
+    if(!ship || ship->pv<=0) return 0;
+    const float diameter=sfKineticShipDiameter(ship);
+    const float radius=diameter*SF_KINETIC_MAX_SHIELD_DIAMETER*.5f;
+    int purged=0;
+    for(auto *rock:sa1) {
+        if(!rock || rock->pv<=0) continue;
+        const float rockRadius=std::max(rock->w,rock->h)*.5f;
+        if(vlong(rock->x-ship->x,rock->y-ship->y)>radius+rockRadius) continue;
+        partsforiw(rock,ship); // Historical white resource dust: never deflected by the field.
+        sfFieldImpact(rock,ship);
+        rock->pv=0;++purged;
+    }
+    if(purged>0) {
+        sfKineticTriggerWave(owner,SF_KINETIC_MAX_SHIELD_DIAMETER*.5f,1.0f);
+        sfKineticEmitRedDust(owner,std::min(12,3+purged),diameter*.46f);
+        SDL_Log("KINETIC_PURGE owner=%d asteroids=%d maxRadius=%.3f",owner,purged,radius);
+    }
+    return purged;
+}
 static void sfKineticUpdateEffects(float dt)
 {
     if(dt<=0) return;
@@ -140,7 +163,7 @@ static bool sfKineticFragmentRock(sprite *rock,const sprite *ship,int owner,SfKi
 static bool sfKineticTryLayer(sprite *rock,sprite *ship,int owner,SfKineticLayer layer,
                     const SfKineticSolution &raw)
 {
-    const auto solved=sfApplyKineticLayer(raw,layer,sfKineticEnergyFraction(ship->nrj));
+    const auto solved=sfApplyKineticLayer(raw,layer,sfKineticEnergyFraction(ship->nrj),sfKineticSurgePower(owner));
     if(solved.dissipationFraction<=.001f) return false;
     sfAddShipHeat(ship,solved.energyCost);
     const float strength=std::clamp(.28f+solved.dissipationFraction*.72f,0.0f,1.0f);

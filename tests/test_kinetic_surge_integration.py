@@ -21,6 +21,6 @@ assert 'sfKineticPurgeAsteroids(1)' in classic
 assert 'sfKineticSurgePress(owner)' in coop
 assert 'sfKineticSurgeRelease(owner)' in coop
 assert 'sfKineticPurgeAsteroids(owner)' in coop
-assert 'sfNormalizeClassicShipScale' in tactical
+assert 'sfNormalizeClassicShipScale' not in tactical
 assert 'sfKineticSurgeVisible' in tactical
 print('PASS: shared two-finger kinetic surge is wired in classic and coop')

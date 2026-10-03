@@ -221,3 +221,12 @@ Shared two-layer kinetic physics now uses relative vector speed, linear mass and
 
 ## 2026-10-03 — D-140-15 kinetic rebalance
 Fab supersedes D-140-14 kinetic tuning in BOTH classic and coop/campaign: kinetic damage has no coop x15, slow impacts are genuinely weak, interception distance grows continuously with relative speed, waves expand from the ship then disappear, energy cost is previous shared cost ×0.00001, red dust is perturbed but white resource dust is never physically deflected. Non-kinetic coop attacks keep their validated ×15.
+
+## Kinetic surge / two-finger field — 2026-10-03
+- Canon shared by classic + coop: maximum kinetic field diameter = 2.0 ship diameters.
+- Short second-finger tap keeps firing; long hold (0.35 s) enters a transparent visible surge.
+- Surge doubles kinetic dissipation for at most 2.0 s. Release after activation purges every asteroid inside the max kinetic zone into historical white resource dust.
+- White dust is never physically deflected by kinetic waves; red dust remains reactive.
+- Normal absorption waves are more transparent; surge aura shows inner + outer circles.
+- Classic hull dimensions remain historical; only the kinetic field diameter expands.
+- No main merge/release before Fab phone validation.

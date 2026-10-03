@@ -174,6 +174,7 @@ static void sfCoopHurt(int owner,float damage)
         for(auto i=sfCoop.fireFingers.begin();i!=sfCoop.fireFingers.end();) {
             if(i->second==owner) i=sfCoop.fireFingers.erase(i);else ++i;
         }
+        sfKineticSurgeCancel(owner);
     }
 }
 
@@ -334,7 +335,7 @@ static void sfCoopBossContact(int owner,float dt)
             {sfObserved[owner].velocity.vx,sfObserved[owner].velocity.vy},dx/d,dy/d,sfKineticReferenceSpeed(sfArenaW));
         auto solved=raw;
         if(raw.suggestedLayer!=SfKineticLayer::None)
-            solved=sfApplyKineticLayer(raw,raw.suggestedLayer,sfKineticEnergyFraction(ship->nrj));
+            solved=sfApplyKineticLayer(raw,raw.suggestedLayer,sfKineticEnergyFraction(ship->nrj),sfKineticSurgePower(owner));
         sfAddShipHeat(ship,solved.energyCost);
         const float incoming=solved.residualDamage; // Never apply coop x15 to kinetic damage.
         ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));
@@ -636,6 +637,7 @@ static tupl sfCoopBossPosition(float time)
 static void sfCoopTick(float dt)
 {
     if (sfCoop.phase!=SfCoopPhase::Combat) return;
+    sfKineticAdvanceSurges(dt);
     sfCoop.time+=dt;sfCoop.hit=std::max(0.0f,sfCoop.hit-dt);
     const auto &boss=sfCoopProfile();
     sfCoopUpdateCharge(dt);
@@ -662,7 +664,7 @@ static void sfCoopTick(float dt)
 
 static void sfCampaignStart()
 {
-    sfLoadCampaign();sfCoop=SfCoopState{};
+    sfLoadCampaign();sfCoop=SfCoopState{};sfKineticResetSurges();
     sfFixResetAsteroidField();sfFieldRemainder=0;
     if (!sfDuelShipStylesSaved) {
         for (int owner=0;owner<2;++owner) {
@@ -719,7 +721,7 @@ static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,M
 static void sfCampaignSuspend()
 {
     for (auto &control : sfCoop.controls) {control.down=false;control.finger=-1;control.velocity.set(0,0);}
-    sfCoop.fireFingers.clear();
+    sfCoop.fireFingers.clear();sfKineticResetSurges();
     sfObserved={};sfCoop.motion.valid=false;
     if (sfCoop.phase==SfCoopPhase::Combat) sfCoop.phase=SfCoopPhase::Paused;
     if (sfCoop.keyboard) {SDL_StopTextInput();sfCoop.keyboard=false;}
@@ -1060,6 +1062,7 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
         }
     }
     sfDrawTacticalEffects(renderer);
+    sfDrawKineticEffects(renderer);
     if (sfCoop.bonusLife>0 && textures.bonus) {
         const int side=int(std::min(sfArenaW,sfArenaH)*.085f);
         SDL_Rect rect{int(sfCoop.bonusPosition.x-side*.5f),int(sfCoop.bonusPosition.y-side*.5f),side,side};
@@ -1335,7 +1338,15 @@ static bool sfCampaignHandleEvent(SDL_Event *event)
     if (event->type==SDL_FINGERDOWN && x>.79f && y<.10f) {
         sfCampaignSuspend();sfFixConsumedFingers.insert(finger);event->type=SDL_USEREVENT;return true;
     }
-    if (event->type==SDL_FINGERUP) sfCoop.fireFingers.erase(finger);
+    if (event->type==SDL_FINGERUP) {
+        auto binding=sfCoop.fireFingers.find(finger);
+        if(binding!=sfCoop.fireFingers.end()) {
+            const int owner=binding->second;
+            const bool purge=sfKineticSurgeRelease(owner);
+            if(purge) sfKineticPurgeAsteroids(owner); else sfCoopFire(owner);
+            sfCoop.fireFingers.erase(binding);
+        }
+    }
     if (event->type==SDL_FINGERDOWN) {
         bool assigned=sfCoop.fireFingers.count(finger)>0;
         for (const auto &control : sfCoop.controls) assigned|=control.down && control.finger==finger;
@@ -1345,7 +1356,7 @@ static bool sfCampaignHandleEvent(SDL_Event *event)
             if (!control.down) {control.down=true;control.finger=finger;}
             else if (std::none_of(sfCoop.fireFingers.begin(),sfCoop.fireFingers.end(),
                        [owner](const auto &binding){return binding.second==owner;})) {
-                sfCoop.fireFingers[finger]=owner;sfCoopFire(owner);
+                sfCoop.fireFingers[finger]=owner;sfKineticSurgePress(owner);
             }
         }
     }

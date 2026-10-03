@@ -80,3 +80,12 @@ Contrat: deux modes, vitesse relative vectorielle, masse linéaire, v², deux co
 
 ## D-140-15 — ordre canonique Fab (03/10/2026)
 Remplace les réglages cinétiques incompatibles de D-140-14: BOTH modes, aucun ×15 cinétique, dégâts masse×vitesse d'impact² avec faible plancher masse, champs compacts dépendant de la vitesse, vagues transitoires, coût réserve ×0.00001, rouge réactif, blanc physiquement intangible, aucune merge/release avant test téléphone.
+
+## Kinetic surge / two-finger field — 2026-10-03
+- Canon shared by classic + coop: maximum kinetic field diameter = 2.0 ship diameters.
+- Short second-finger tap keeps firing; long hold (0.35 s) enters a transparent visible surge.
+- Surge doubles kinetic dissipation for at most 2.0 s. Release after activation purges every asteroid inside the max kinetic zone into historical white resource dust.
+- White dust is never physically deflected by kinetic waves; red dust remains reactive.
+- Normal absorption waves are more transparent; surge aura shows inner + outer circles.
+- Classic hull dimensions remain historical; only the kinetic field diameter expands.
+- No main merge/release before Fab phone validation.

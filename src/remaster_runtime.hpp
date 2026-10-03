@@ -12,6 +12,9 @@
 #include <cstdint>
 #include <vector>
 #include "scenic_mix.hpp"
+#include "kinetic_shield.hpp"
+
+static bool sfFireMain(int owner,const tupl *target);
 
 extern sprite *Spritej1;
 extern sprite *Spritej2;
@@ -32,6 +35,7 @@ static SDL_FingerID sfRmGear2Finger = 0;
 
 static bool sfRmTrackJ2 = false;
 static SDL_FingerID sfRmJ2Finger = 0;
+static SDL_FingerID sfRmKineticFinger = -1;
 static float sfRmJ2LastX = 0.0f;
 static float sfRmJ2LastY = 0.0f;
 static float sfRmJ2Vx = 0.0f;
@@ -336,6 +340,7 @@ static void sfRmGoHome()
     setgui = true;
     sfRmResetGearTouches();
     sfRmTrackJ2 = false;
+    sfRmKineticFinger=-1;sfKineticSurgeCancel(1);
     if (Spritej1) { Spritej1->ctrl = false; Spritej1->id = 100; }
     if (Spritej2) { Spritej2->ctrl = false; Spritej2->id = 100; }
 }
@@ -355,6 +360,7 @@ static void sfRmSyncUiEngineState()
         // IA and controls from running invisibly behind HOME/HELP.
         setgui = true;
         sfRmTrackJ2 = false;
+        sfRmKineticFinger=-1;sfKineticSurgeCancel(1);
     } else if (sfRmPreviousUiScreen != SF_UI_GAME) {
         sfRmCurrentScenicCandidate=sfScenicBagNext(sfRmScenicBag,
             std::uint32_t(SDL_GetTicks64())^std::uint32_t(sfRmScenicBag.cycle*0x9e3779b9u));
@@ -417,15 +423,27 @@ static int SpaceFortressRemaster_WaitEvent(SDL_Event *event)
         const float py = event->tfinger.y * th;
         if (setia && !hit1 && !hit2 && py > HEIGHT * 0.5f &&
             Spritej2 && Spritej2->id == 100) {
-            sfRmTrackJ2 = true;
-            sfRmJ2Finger = fid;
-            sfRmUpdateJ2Velocity(event->tfinger, true);
+            if(sfRmTrackJ2 && fid!=sfRmJ2Finger && sfRmKineticFinger<0) {
+                sfRmKineticFinger=fid;sfKineticSurgePress(1);
+                event->type=SDL_USEREVENT;return result;
+            }
+            if(!sfRmTrackJ2) {
+                sfRmTrackJ2 = true;
+                sfRmJ2Finger = fid;
+                sfRmUpdateJ2Velocity(event->tfinger, true);
+            }
         }
     } else if (event->type == SDL_FINGERMOTION) {
+        if(event->tfinger.fingerId==sfRmKineticFinger) {event->type=SDL_USEREVENT;return result;}
         if (sfRmTrackJ2 && event->tfinger.fingerId == sfRmJ2Finger)
             sfRmUpdateJ2Velocity(event->tfinger, false);
     } else if (event->type == SDL_FINGERUP) {
         const SDL_FingerID fid = event->tfinger.fingerId;
+        if(fid==sfRmKineticFinger) {
+            const bool purge=sfKineticSurgeRelease(1);
+            if(purge) sfKineticPurgeAsteroids(1); else sfFireMain(1,nullptr);
+            sfRmKineticFinger=-1;event->type=SDL_USEREVENT;return result;
+        }
         if (sfRmGear1Down && fid == sfRmGear1Finger) { sfRmGear1Down = false; sfRmGear1Finger = 0; }
         if (sfRmGear2Down && fid == sfRmGear2Finger) { sfRmGear2Down = false; sfRmGear2Finger = 0; }
         if (sfRmTrackJ2 && fid == sfRmJ2Finger) {
