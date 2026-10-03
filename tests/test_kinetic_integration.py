@@ -8,13 +8,14 @@ main=(root/'src/main.cpp').read_text()
 assert 'SF_KINETIC_COOP_DAMAGE_MULTIPLIER' not in k
 assert 'SF_KINETIC_COOP_DAMAGE_MULTIPLIER' not in c
 assert 'static_assert(SF_COOP_INCOMING_DAMAGE_MULTIPLIER' not in c
-# Non-kinetic coop attacks keep x15.
-assert 'const float incoming=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*damage;' in c
-assert 'const float incomingPerSecond=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*650.0f;' in c
-# Kinetic asteroid and boss charge paths do not use x15.
+# Non-kinetic coop attacks use the player-selected boss danger multiplier.
+assert 'const float incoming=sfBossDangerMultiplier()*damage;' in c
+assert 'const float incomingPerSecond=sfBossDangerMultiplier()*650.0f;' in c
+assert 'SF_COOP_INCOMING_DAMAGE_MULTIPLIER' not in c
+# Kinetic asteroid and boss charge paths never use the boss danger multiplier.
 assert 'static void sfCoopAsteroidHurt' in c and 'const float incoming=legacyDamage;' in c
 charge=c[c.index('static void sfCoopBossContact'):c.index('static void sfCoopAsteroidHurt')]
-assert 'SF_COOP_INCOMING_DAMAGE_MULTIPLIER*solved.residualDamage' not in charge
+assert 'sfBossDangerMultiplier()*solved.residualDamage' not in charge
 assert 'const float incoming=solved.residualDamage;' in charge
 # Both classic and coop share the legacy field resolver; no permanent pulse rings remain.
 assert 'sfLegacyFieldFrame' in l and 'sfKineticTryLayer' in l
