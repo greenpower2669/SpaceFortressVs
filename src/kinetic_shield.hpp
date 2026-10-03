@@ -2,30 +2,48 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <vector>
 
-// Shared kinetic model for duel and campaign. Velocities are pixels/second.
-// Kinetic damage is mass * velocity^2, normalized around the historical rock
-// damage so a nearly stationary rock still has a non-zero mass-only impact.
-constexpr float SF_KINETIC_COOP_DAMAGE_MULTIPLIER = 15.0f;
-constexpr float SF_KINETIC_OUTER_SPEED_RATIO = 1.35f;
-constexpr float SF_KINETIC_INNER_SPEED_RATIO = .55f;
+// Shared kinetic model for classic and coop/campaign. Velocities are pixels/second.
+// Gameplay energy remains the historical shared nrj reserve; no new visible heat system exists.
+constexpr float SF_KINETIC_PASS_SPEED_RATIO = .16f;
+constexpr float SF_KINETIC_MEDIUM_SPEED_RATIO = .42f;
+constexpr float SF_KINETIC_FAST_SPEED_RATIO = .72f;
+constexpr float SF_KINETIC_VERY_FAST_SPEED_RATIO = 1.10f;
 constexpr float SF_KINETIC_OUTER_DISSIPATION = .94f;
 constexpr float SF_KINETIC_INNER_DISSIPATION = .78f;
-constexpr float SF_KINETIC_OUTER_RADIUS_DIAMETERS = 2.0f;
-constexpr float SF_KINETIC_INNER_RADIUS_DIAMETERS = 1.25f;
+constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR = .01f;
+constexpr float SF_KINETIC_ENERGY_COST_SCALE = .00001f; // 0.001% of the previous cost.
+constexpr float SF_KINETIC_MIN_SHIELD_DIAMETER = 1.05f;
+constexpr float SF_KINETIC_MAX_SHIELD_DIAMETER = 1.58f;
+constexpr float SF_KINETIC_INNER_MAX_RADIUS_SHIP_DIAMETERS = .575f;
 constexpr float SF_KINETIC_BOSS_BASE_DAMAGE = 50.0f;
+constexpr float SF_KINETIC_WAVE_DURATION = .27f;
 
 struct SfKineticVector { float x=0,y=0; };
 enum class SfKineticLayer { None, Inner, Outer };
 struct SfKineticSolution {
     SfKineticLayer suggestedLayer=SfKineticLayer::None;
     SfKineticLayer appliedLayer=SfKineticLayer::None;
-    float relativeSpeed=0,impactSpeed=0,tangentSpeed=0;
-    float massFactor=0,speedFactor=1,rawDamage=0;
-    float dissipationFraction=0,dissipatedDamage=0,residualDamage=0,heatCost=0;
+    float relativeSpeed=0,impactSpeed=0,tangentSpeed=0,relativeRatio=0;
+    float massFactor=0,speedFactor=0,rawDamage=0;
+    int selectedRange=0;
+    float maxRadiusShipDiameters=0;
+    float dissipationFraction=0,dissipatedDamage=0,residualDamage=0;
+    float legacyEnergyCost=0,energyCost=0;
 };
-struct SfKineticPulseState { float outer=0,inner=0,phase=0; };
-inline std::array<SfKineticPulseState,2> sfKineticPulses{};
+struct SfKineticWave {
+    int owner=-1;
+    unsigned serial=0;
+    float age=0,duration=SF_KINETIC_WAVE_DURATION,maxRadiusShipDiameters=0,strength=0;
+    bool loggedMid=false,loggedRed=false,loggedWhite=false;
+};
+struct SfKineticDustMotion {
+    float vx=0,vy=0;
+    bool vibrated=false,deflected=false;
+};
+inline std::vector<SfKineticWave> sfKineticWaves;
+inline unsigned sfKineticWaveSerial=0;
 
 static float sfKineticReferenceSpeed(float arenaWidth)
 {
@@ -44,17 +62,38 @@ static float sfKineticBossMass(int encounter)
     const float p=std::clamp(encounter/199.0f,0.0f,1.0f);
     return 1.0f+1.8f*std::pow(p,1.25f);
 }
-static float sfKineticEnergyFraction(float heat)
+static float sfKineticEnergyFraction(float reserveSpent)
 {
-    if (std::isnan(heat)) return 0;
-    return 1.0f-std::clamp(heat/50.0f,0.0f,1.0f);
+    if (std::isnan(reserveSpent)) return 0;
+    return 1.0f-std::clamp(reserveSpent/50.0f,0.0f,1.0f);
 }
-static float sfHullRegenPerSecond(float heat)
+static float sfHullRegenPerSecond(float reserveSpent)
 {
-    const float energy=sfKineticEnergyFraction(heat);
+    const float energy=sfKineticEnergyFraction(reserveSpent);
     const float x=std::clamp((energy-.90f)/.10f,0.0f,1.0f);
     const float perfect=x*x*(3.0f-2.0f*x);
     return 6.0f*energy*energy+18.0f*perfect;
+}
+static int sfKineticSelectedRange(float relativeRatio)
+{
+    if(relativeRatio<SF_KINETIC_PASS_SPEED_RATIO) return 0;
+    if(relativeRatio<SF_KINETIC_MEDIUM_SPEED_RATIO) return 1;
+    if(relativeRatio<SF_KINETIC_FAST_SPEED_RATIO) return 2;
+    if(relativeRatio<SF_KINETIC_VERY_FAST_SPEED_RATIO) return 3;
+    return 4;
+}
+static float sfKineticMaxRadiusShipDiameters(float relativeRatio)
+{
+    if(relativeRatio<SF_KINETIC_PASS_SPEED_RATIO) return 0;
+    const float t=std::clamp((relativeRatio-SF_KINETIC_PASS_SPEED_RATIO)/(1.35f-SF_KINETIC_PASS_SPEED_RATIO),0.0f,1.0f);
+    const float smooth=t*t*(3.0f-2.0f*t);
+    const float shieldDiameter=SF_KINETIC_MIN_SHIELD_DIAMETER+
+        (SF_KINETIC_MAX_SHIELD_DIAMETER-SF_KINETIC_MIN_SHIELD_DIAMETER)*smooth;
+    return shieldDiameter*.5f;
+}
+static float sfKineticInnerRadiusShipDiameters(const SfKineticSolution &s)
+{
+    return std::min(s.maxRadiusShipDiameters,SF_KINETIC_INNER_MAX_RADIUS_SHIP_DIAMETERS);
 }
 static SfKineticSolution sfResolveKinetic(float baseDamage,float massFactor,
                                 SfKineticVector objectVelocity,
@@ -63,10 +102,9 @@ static SfKineticSolution sfResolveKinetic(float baseDamage,float massFactor,
                                 float referenceSpeed)
 {
     SfKineticSolution out;
-    const float nx=normalX,ny=normalY;
-    const float nlen=std::sqrt(nx*nx+ny*ny);
-    const float ux=nlen>.0001f ? nx/nlen : 0;
-    const float uy=nlen>.0001f ? ny/nlen : -1;
+    const float nlen=std::sqrt(normalX*normalX+normalY*normalY);
+    const float ux=nlen>.0001f ? normalX/nlen : 0;
+    const float uy=nlen>.0001f ? normalY/nlen : -1;
     const float rvx=objectVelocity.x-shipVelocity.x;
     const float rvy=objectVelocity.y-shipVelocity.y;
     out.relativeSpeed=std::sqrt(rvx*rvx+rvy*rvy);
@@ -74,35 +112,77 @@ static SfKineticSolution sfResolveKinetic(float baseDamage,float massFactor,
     out.tangentSpeed=std::sqrt(std::max(0.0f,out.relativeSpeed*out.relativeSpeed-out.impactSpeed*out.impactSpeed));
     referenceSpeed=std::max(1.0f,referenceSpeed);
     const float impactRatio=out.impactSpeed/referenceSpeed;
-    const float relativeRatio=out.relativeSpeed/referenceSpeed;
+    out.relativeRatio=out.relativeSpeed/referenceSpeed;
     out.massFactor=std::max(0.0f,massFactor);
-    out.speedFactor=std::max(1.0f,impactRatio*impactRatio);
+    // Small mass-only floor avoids a mathematically exact zero, but slow bodies now stay genuinely weak.
+    out.speedFactor=SF_KINETIC_MASS_DAMAGE_FLOOR+impactRatio*impactRatio;
     out.rawDamage=std::max(0.0f,baseDamage)*out.massFactor*out.speedFactor;
     out.residualDamage=out.rawDamage;
-    out.suggestedLayer=relativeRatio>=SF_KINETIC_OUTER_SPEED_RATIO ? SfKineticLayer::Outer :
-             relativeRatio>=SF_KINETIC_INNER_SPEED_RATIO ? SfKineticLayer::Inner : SfKineticLayer::None;
+    out.selectedRange=sfKineticSelectedRange(out.relativeRatio);
+    out.maxRadiusShipDiameters=sfKineticMaxRadiusShipDiameters(out.relativeRatio);
+    out.suggestedLayer=out.selectedRange>=3 ? SfKineticLayer::Outer :
+                       out.selectedRange>0 ? SfKineticLayer::Inner : SfKineticLayer::None;
     return out;
 }
-static SfKineticSolution sfApplyKineticLayer(SfKineticSolution out,SfKineticLayer layer,
-                                    float energyFraction,float damageMultiplier=1.0f)
+static SfKineticSolution sfApplyKineticLayer(SfKineticSolution out,SfKineticLayer layer,float energyFraction)
 {
     energyFraction=std::clamp(energyFraction,0.0f,1.0f);
     const float maximum=layer==SfKineticLayer::Outer ? SF_KINETIC_OUTER_DISSIPATION :
-              layer==SfKineticLayer::Inner ? SF_KINETIC_INNER_DISSIPATION : 0.0f;
+                        layer==SfKineticLayer::Inner ? SF_KINETIC_INNER_DISSIPATION : 0.0f;
     out.appliedLayer=layer;
     out.dissipationFraction=std::clamp(maximum*energyFraction,0.0f,.97f);
     out.dissipatedDamage=out.rawDamage*out.dissipationFraction;
     out.residualDamage=out.rawDamage-out.dissipatedDamage;
-    if (out.dissipatedDamage>0) {
-        const float weighted=out.dissipatedDamage*std::max(0.0f,damageMultiplier);
-        out.heatCost=std::min(4.0f,.04f+weighted*.002f);
+    if(out.dissipatedDamage>0) {
+        out.legacyEnergyCost=std::min(4.0f,.04f+out.dissipatedDamage*.002f);
+        out.energyCost=out.legacyEnergyCost*SF_KINETIC_ENERGY_COST_SCALE;
     }
     return out;
 }
-static void sfKineticTriggerPulse(int owner,SfKineticLayer layer,float strength=1.0f)
+static void sfKineticTriggerWave(int owner,float maxRadiusShipDiameters,float strength=1.0f)
 {
-    if (owner<0 || owner>1) return;
+    if(owner<0 || owner>1 || maxRadiusShipDiameters<=0) return;
+    if(sfKineticWaves.size()>=24) sfKineticWaves.erase(sfKineticWaves.begin());
+    SfKineticWave w;w.owner=owner;w.serial=++sfKineticWaveSerial;
+    w.maxRadiusShipDiameters=maxRadiusShipDiameters;w.strength=std::clamp(strength,0.0f,1.0f);
+    sfKineticWaves.push_back(w);
+}
+static bool sfKineticWaveAlive(const SfKineticWave &wave)
+{
+    return wave.age<wave.duration;
+}
+static float sfKineticWaveProgressAt(const SfKineticWave &wave,float age)
+{
+    return std::clamp(age/std::max(.001f,wave.duration),0.0f,1.0f);
+}
+static float sfKineticWaveRadiusAt(const SfKineticWave &wave,float shipDiameter,float age)
+{
+    const float p=sfKineticWaveProgressAt(wave,age);
+    const float fastExpansion=1.0f-(1.0f-p)*(1.0f-p);
+    return std::max(0.0f,shipDiameter)*wave.maxRadiusShipDiameters*fastExpansion;
+}
+static void sfKineticAdvanceWaves(float dt)
+{
+    if(dt<=0) return;
+    for(auto &wave:sfKineticWaves) wave.age+=dt;
+    sfKineticWaves.erase(std::remove_if(sfKineticWaves.begin(),sfKineticWaves.end(),
+        [](const auto &wave){return !sfKineticWaveAlive(wave);}),sfKineticWaves.end());
+}
+static SfKineticDustMotion sfKineticRespondDust(bool collectibleWhite,float vx,float vy,
+                                        float normalX,float normalY,float strength,
+                                        float variation,float arenaWidth)
+{
+    SfKineticDustMotion out{vx,vy,false,false};
+    if(collectibleWhite || strength<=0) return out; // White resource dust is physically untouchable.
+    const float nlen=std::sqrt(normalX*normalX+normalY*normalY);
+    if(nlen<=.0001f) return out;
+    const float nx=normalX/nlen,ny=normalY/nlen;
+    variation=std::clamp(variation,0.0f,1.0f);
     strength=std::clamp(strength,0.0f,1.0f);
-    if (layer==SfKineticLayer::Outer) sfKineticPulses[owner].outer=std::max(sfKineticPulses[owner].outer,strength);
-    if (layer==SfKineticLayer::Inner) sfKineticPulses[owner].inner=std::max(sfKineticPulses[owner].inner,strength);
+    const float radial=std::max(1.0f,arenaWidth)*(.018f+.032f*variation)*strength;
+    const float tangent=std::max(1.0f,arenaWidth)*.014f*(variation-.5f)*strength;
+    out.vx+=nx*radial-ny*tangent;
+    out.vy+=ny*radial+nx*tangent;
+    out.vibrated=true;out.deflected=true;
+    return out;
 }

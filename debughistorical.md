@@ -236,3 +236,6 @@ Cause: campaign scenery was indexed with boss 0..49, so difficulty blocks 51..20
 
 ## D-140-14
 Audit proved asteroid vx/vy affected movement but not historical damage (area-only). Repair routes relative velocity through a shared kinetic resolver while preserving src/main.cpp and the ordinary boss-contact path outside explicit charges.
+
+## D-140-15 — Cinétique létal à faible vitesse
+Cause confirmée: plancher `speedFactor>=1`, coop ×15 réinjecté dans astéroïdes/charges, coût de réserve trop élevé et anneaux rendus près du rayon final. Correctif: petit plancher masse 0.01 + vImpact², aucun ×15 cinétique, coût ×0.00001, plages compactes 1.05→1.58 diamètres de champ selon vitesse, vagues centre→extérieur→disparition, rouge dévié / blanc intact.

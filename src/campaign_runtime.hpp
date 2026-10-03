@@ -88,7 +88,6 @@ static void sfCoopEmit(tupl origin,float angle,float speed,int owner,float damag
     if (owner>=0) sfCoop.soundShot[owner]=true;
 }
 static constexpr float SF_COOP_INCOMING_DAMAGE_MULTIPLIER = 15.0f;
-static_assert(SF_COOP_INCOMING_DAMAGE_MULTIPLIER==SF_KINETIC_COOP_DAMAGE_MULTIPLIER,"coop multiplier must be applied exactly once");
 static constexpr float SF_COOP_BOSS_DUST_HEAL_FRACTION = .0015f;
 static constexpr float SF_COOP_RED_DUST_HEAT = .08f;
 static constexpr float SF_COOP_RED_DUST_ARMED_PV = 560.0f;
@@ -327,19 +326,28 @@ static void sfCoopBossContact(int owner,float dt)
     auto *ship=sfCoopShip(owner);
     if (ship->pv<=0 || sfCoop.phase!=SfCoopPhase::Combat || dt<=0) return;
     if(sfCoop.chargeActive) {
-        // A charge is a single kinetic event. Do not stack historical contact
-        // damage on top of it during outbound or recovery travel.
+        // Only explicit boss charges are kinetic. Ordinary body contact remains on the historical path.
         if(!sfCoopChargeImpactActive() || sfCoop.chargeHit[owner]) return;
         const float dx=sfCoop.position.x-ship->x,dy=sfCoop.position.y-ship->y,d=std::max(1.0f,vlong(dx,dy));
         const auto raw=sfResolveKinetic(SF_KINETIC_BOSS_BASE_DAMAGE,sfKineticBossMass(sfCoop.encounter),
-  {sfCoop.motion.velocity.vx,sfCoop.motion.velocity.vy},
-  {sfObserved[owner].velocity.vx,sfObserved[owner].velocity.vy},dx/d,dy/d,sfKineticReferenceSpeed(sfArenaW));
-        const SfKineticLayer layer=raw.suggestedLayer==SfKineticLayer::Outer ? SfKineticLayer::Outer : SfKineticLayer::Inner;
-        const auto solved=sfApplyKineticLayer(raw,layer,sfKineticEnergyFraction(ship->nrj),SF_COOP_INCOMING_DAMAGE_MULTIPLIER);
-        sfAddShipHeat(ship,solved.heatCost);
-        const float incoming=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*solved.residualDamage;
+            {sfCoop.motion.velocity.vx,sfCoop.motion.velocity.vy},
+            {sfObserved[owner].velocity.vx,sfObserved[owner].velocity.vy},dx/d,dy/d,sfKineticReferenceSpeed(sfArenaW));
+        auto solved=raw;
+        if(raw.suggestedLayer!=SfKineticLayer::None)
+            solved=sfApplyKineticLayer(raw,raw.suggestedLayer,sfKineticEnergyFraction(ship->nrj));
+        sfAddShipHeat(ship,solved.energyCost);
+        const float incoming=solved.residualDamage; // Never apply coop x15 to kinetic damage.
         ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));
-        sfKineticTriggerPulse(owner,layer,1.0f);sfCoopEmitRedDust(owner,6);
+        const float strength=std::clamp(.25f+solved.dissipationFraction*.75f,0.0f,1.0f);
+        if(raw.maxRadiusShipDiameters>0) {
+            sfKineticTriggerWave(owner,raw.maxRadiusShipDiameters,strength);
+            SDL_Log("KINETIC_WAVE owner=%d start=0 currentRadius=0 maxRadius=%.3f impactStrength=%.3f",
+                owner,sfKineticShipDiameter(ship)*raw.maxRadiusShipDiameters,strength);
+        }
+        SDL_Log("KINETIC_IMPACT owner=%d massFactor=%.5f relativeSpeed=%.3f impactSpeed=%.3f rawDamage=%.5f residualDamage=%.5f selectedRange=%d maxRadius=%.3f energyCost=%.8f",
+            owner,raw.massFactor,raw.relativeSpeed,raw.impactSpeed,raw.rawDamage,solved.residualDamage,
+            raw.selectedRange,sfKineticShipDiameter(ship)*raw.maxRadiusShipDiameters,solved.energyCost);
+        sfCoopEmitRedDust(owner,6);
         sfCoop.chargeHit[owner]=true;sfCoop.soundHit=true;
         return;
     }
@@ -351,7 +359,7 @@ static void sfCoopAsteroidHurt(int owner,float legacyDamage)
 {
     auto *ship=sfCoopShip(owner);
     if (ship->pv<=0 || sfCoop.phase!=SfCoopPhase::Combat) return;
-    const float incoming=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*legacyDamage;
+    const float incoming=legacyDamage; // Kinetic asteroid damage is shared with classic: no coop x15.
     ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));
     sfCoop.soundHit=true;
 }

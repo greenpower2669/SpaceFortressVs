@@ -239,3 +239,6 @@ DUEL Android généré + COOP → sfApplyShieldImpact → protection linéaire �
 `scenic_mix.hpp` → 20 bases → 100 mixed candidates → campaign 200 / classic shuffled bag. Campaign: `sfDrawCampaignSpace(encounter)` + `sfBossTravelProgress`. Classic: `sfRmSyncUiEngineState` selects once on GAME entry; generated legacy source calls `sfRmDrawClassicScenicMap` after historical backdrop layers.
 
 - D-140-14: kinetic_shield.hpp -> ship_energy.hpp -> legacy_field_runtime.hpp (classic+coop); campaign_runtime.hpp adds charge-only boss kinetics; tactical renderer shows transient two-ring ripples.
+
+### D-140-15
+`kinetic_shield.hpp` = shared low-speed-safe mass×v² core + compact speed ranges + transient multi-wave state. `legacy_field_runtime.hpp` = both-mode asteroid interception/fragmentation/red dust. `campaign_runtime.hpp` = charge-only boss kinetics without ×15; ordinary contact/projectiles keep non-kinetic ×15. White dust remains physically untouched.

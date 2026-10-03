@@ -55,24 +55,51 @@ static void sfKineticEmitRedDust(int owner,int count,float ring)
 }
 static void sfKineticUpdateEffects(float dt)
 {
-    for(int owner=0;owner<2;++owner) {
-        auto &pulse=sfKineticPulses[owner];pulse.phase+=dt*34.0f;
-        pulse.outer=std::max(0.0f,pulse.outer-dt/0.42f);
-        pulse.inner=std::max(0.0f,pulse.inner-dt/0.34f);
-        const auto *ship=owner==0 ? Spritej1 : Spritej2;
+    if(dt<=0) return;
+    for(auto &wave:sfKineticWaves) {
+        if(wave.owner<0 || wave.owner>1) continue;
+        auto *ship=wave.owner==0 ? Spritej1 : Spritej2;
         if(!ship || ship->pv<=0) continue;
         const float diameter=sfKineticShipDiameter(ship);
+        const float previousRadius=sfKineticWaveRadiusAt(wave,diameter,wave.age);
+        const float nextAge=std::min(wave.duration,wave.age+dt);
+        const float currentRadius=sfKineticWaveRadiusAt(wave,diameter,nextAge);
+        const float shellMin=std::max(0.0f,std::min(previousRadius,currentRadius)-diameter*.055f);
+        const float shellMax=std::max(previousRadius,currentRadius)+diameter*.055f;
+        const float progress=sfKineticWaveProgressAt(wave,nextAge);
+        if(!wave.loggedMid && progress>=.50f) {
+            SDL_Log("KINETIC_WAVE owner=%d start=0 currentRadius=%.3f maxRadius=%.3f impactStrength=%.3f",
+                wave.owner,currentRadius,diameter*wave.maxRadiusShipDiameters,wave.strength);
+            wave.loggedMid=true;
+        }
+        int index=0;
         for(auto *dust:particulesr) {
-  if(!dust || dust->pv<=0) continue;
-  const float dx=dust->x-ship->x,dy=dust->y-ship->y,d=std::max(1.0f,vlong(dx,dy));
-  float strength=0;
-  if(pulse.outer>0 && std::abs(d-diameter*SF_KINETIC_OUTER_RADIUS_DIAMETERS)<diameter*.10f) strength=pulse.outer;
-  if(pulse.inner>0 && std::abs(d-diameter*SF_KINETIC_INNER_RADIUS_DIAMETERS)<diameter*.09f) strength=std::max(strength,pulse.inner);
-  if(strength<=0) continue;
-  const float wobble=std::sin(pulse.phase+d*.08f)*diameter*.018f*strength;
-  dust->x+=(-dy/d)*wobble;dust->y+=(dx/d)*wobble;
+            if(!dust || dust->pv<=0) {++index;continue;}
+            const float dx=dust->x-ship->x,dy=dust->y-ship->y,d=std::max(1.0f,vlong(dx,dy));
+            if(d<shellMin || d>shellMax) {++index;continue;}
+            const float beforeVx=dust->vx,beforeVy=dust->vy;
+            const float variation=.5f+.5f*std::sin(index*1.73f+wave.serial*.61f+d*.019f);
+            const auto response=sfKineticRespondDust(false,dust->vx,dust->vy,dx/d,dy/d,wave.strength,variation,sfArenaW);
+            dust->vx=response.vx;dust->vy=response.vy;
+            const float wobble=std::sin(wave.serial*.77f+index*1.31f+progress*18.0f)*diameter*.018f*wave.strength;
+            dust->x+=(-dy/d)*wobble;dust->y+=(dx/d)*wobble;
+            if(!wave.loggedRed) {
+                SDL_Log("KINETIC_DUST type=red vibrated=%s deflected=%s velocityBefore=(%.3f,%.3f) velocityAfter=(%.3f,%.3f)",
+                    response.vibrated?"true":"false",response.deflected?"true":"false",beforeVx,beforeVy,dust->vx,dust->vy);
+                wave.loggedRed=true;
+            }
+            ++index;
+        }
+        if(!wave.loggedWhite) for(auto *dust:particules) {
+            if(!dust || dust->pv<=0) continue;
+            const float d=vlong(dust->x-ship->x,dust->y-ship->y);
+            if(d<shellMin || d>shellMax) continue;
+            SDL_Log("KINETIC_DUST type=white vibrated=false deflected=false velocityBefore=(%.3f,%.3f) velocityAfter=(%.3f,%.3f)",
+                dust->vx,dust->vy,dust->vx,dust->vy);
+            wave.loggedWhite=true;break;
         }
     }
+    sfKineticAdvanceWaves(dt);
 }
 static bool sfKineticFragmentRock(sprite *rock,const sprite *ship,int owner,SfKineticLayer layer,
                         const SfKineticSolution &solution)
@@ -103,23 +130,30 @@ static bool sfKineticFragmentRock(sprite *rock,const sprite *ship,int owner,SfKi
         const float relSpeed=solution.relativeSpeed*retained*(i<penetrators ? .82f : .62f);
         fragment->vx=(shipVx+std::cos(angle)*relSpeed)/60.0f;
         fragment->vy=(shipVy+std::sin(angle)*relSpeed)/60.0f;
-        fragment->startup();sa1.push_back(fragment);
+        fragment->startup();
+        if(i==0) SDL_Log("KINETIC_DUST type=debris vibrated=false deflected=true velocityBefore=(%.3f,%.3f) velocityAfter=(%.3f,%.3f)",
+            rock->vx,rock->vy,fragment->vx,fragment->vy);
+        sa1.push_back(fragment);
     }
     rock->pv=0;return true;
 }
 static bool sfKineticTryLayer(sprite *rock,sprite *ship,int owner,SfKineticLayer layer,
-                    const SfKineticSolution &raw,float damageMultiplier)
+                    const SfKineticSolution &raw)
 {
-    const auto solved=sfApplyKineticLayer(raw,layer,sfKineticEnergyFraction(ship->nrj),damageMultiplier);
+    const auto solved=sfApplyKineticLayer(raw,layer,sfKineticEnergyFraction(ship->nrj));
     if(solved.dissipationFraction<=.001f) return false;
-    sfAddShipHeat(ship,solved.heatCost);
-    sfKineticTriggerPulse(owner,layer,std::clamp(.35f+solved.dissipationFraction,0.0f,1.0f));
+    sfAddShipHeat(ship,solved.energyCost);
+    const float strength=std::clamp(.28f+solved.dissipationFraction*.72f,0.0f,1.0f);
+    sfKineticTriggerWave(owner,raw.maxRadiusShipDiameters,strength);
     const float diameter=sfKineticShipDiameter(ship);
-    sfKineticEmitRedDust(owner,layer==SfKineticLayer::Outer ? 7 : 4,
-        diameter*(layer==SfKineticLayer::Outer ? SF_KINETIC_OUTER_RADIUS_DIAMETERS : SF_KINETIC_INNER_RADIUS_DIAMETERS));
+    sfKineticEmitRedDust(owner,layer==SfKineticLayer::Outer ? 7 : 4,diameter*.46f);
+    SDL_Log("KINETIC_IMPACT owner=%d massFactor=%.5f relativeSpeed=%.3f impactSpeed=%.3f rawDamage=%.5f residualDamage=%.5f selectedRange=%d maxRadius=%.3f energyCost=%.8f",
+        owner,raw.massFactor,raw.relativeSpeed,raw.impactSpeed,raw.rawDamage,solved.residualDamage,
+        raw.selectedRange,diameter*raw.maxRadiusShipDiameters,solved.energyCost);
+    SDL_Log("KINETIC_WAVE owner=%d start=0 currentRadius=0 maxRadius=%.3f impactStrength=%.3f",
+        owner,diameter*raw.maxRadiusShipDiameters,strength);
     if(sfKineticFragmentRock(rock,ship,owner,layer,solved)) return true;
-    // Population cap fallback: preserve the object but shed kinetic speed and
-    // turn it sideways rather than deleting matter or tunnelling through.
+    // Population cap fallback: preserve matter, shed kinetic speed and deflect it sideways.
     const float dx=rock->x-ship->x,dy=rock->y-ship->y,d=std::max(1.0f,vlong(dx,dy));
     const float retained=std::sqrt(std::clamp(solved.residualDamage/std::max(.001f,solved.rawDamage),.02f,1.0f));
     const float wx=rock->vx*retained,wy=rock->vy*retained;
@@ -143,29 +177,28 @@ static void sfLegacyFieldStep(void (*hurt)(int,float))
   auto *ship=owner==0 ? Spritej1 : Spritej2;
   if (ship->pv<=0) continue;
   const float diameter=sfKineticShipDiameter(ship),rockRadius=std::max(rock->w,rock->h)*.5f;
-  const float outer=diameter*SF_KINETIC_OUTER_RADIUS_DIAMETERS+rockRadius;
-  const float inner=diameter*SF_KINETIC_INNER_RADIUS_DIAMETERS+rockRadius;
   const auto raw=sfKineticRockSolution(rock,ship,owner);
-  const float multiplier=hurt ? SF_KINETIC_COOP_DAMAGE_MULTIPLIER : 1.0f;
-  if(rock->kineticStage==0 && raw.suggestedLayer==SfKineticLayer::Outer &&
-     sfKineticSegmentDistance(fromX,fromY,rock->x,rock->y,ship->x,ship->y)<=outer) {
+  const float travelled=sfKineticSegmentDistance(fromX,fromY,rock->x,rock->y,ship->x,ship->y);
+  const float outer=diameter*raw.maxRadiusShipDiameters+rockRadius;
+  const float inner=diameter*sfKineticInnerRadiusShipDiameters(raw)+rockRadius;
+  if(rock->kineticStage==0 && raw.suggestedLayer==SfKineticLayer::Outer && travelled<=outer) {
       rock->kineticStage=1;
-      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Outer,raw,multiplier)) continue;
+      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Outer,raw)) continue;
   }
   if(rock->pv<=0) continue;
-  if(rock->kineticStage<2 && raw.suggestedLayer!=SfKineticLayer::None &&
-     sfKineticSegmentDistance(fromX,fromY,rock->x,rock->y,ship->x,ship->y)<=inner) {
+  if(rock->kineticStage<2 && raw.selectedRange>0 && travelled<=inner) {
       rock->kineticStage=2;
-      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Inner,raw,multiplier)) continue;
+      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Inner,raw)) continue;
   }
   if(rock->pv<=0) continue;
   const float hullRadius=std::max(ship->sw,ship->sh)*.52f+rockRadius;
-  const bool hullHit=colee(ship,rock) ||
-      sfKineticSegmentDistance(fromX,fromY,rock->x,rock->y,ship->x,ship->y)<=hullRadius;
+  const bool hullHit=colee(ship,rock) || travelled<=hullRadius;
   if(!hullHit) continue;
   sfFieldCollisionSound=true;sfFieldImpact(rock,ship);
-  sfKineticTriggerPulse(owner,SfKineticLayer::Inner,.42f);
-  sfKineticEmitRedDust(owner,3,diameter*.62f);
+  sfKineticEmitRedDust(owner,3,diameter*.45f);
+  SDL_Log("KINETIC_IMPACT owner=%d massFactor=%.5f relativeSpeed=%.3f impactSpeed=%.3f rawDamage=%.5f residualDamage=%.5f selectedRange=%d maxRadius=%.3f energyCost=0",
+      owner,raw.massFactor,raw.relativeSpeed,raw.impactSpeed,raw.rawDamage,raw.rawDamage,
+      raw.selectedRange,diameter*raw.maxRadiusShipDiameters);
   if (hurt) hurt(owner,raw.rawDamage);
   else ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,raw.rawDamage));
   rock->pv=0;

@@ -77,3 +77,6 @@ Contract: reuse campaign scenic atlas in classic; select classic scenes from 100
 
 ## D-140-14 — Bouclier cinétique (03/10/2026)
 Contrat: deux modes, vitesse relative vectorielle, masse linéaire, v², deux couches, énergie nrj partagée à faible coût, dégâts résiduels vers le bouclier énergétique, boss cinétique uniquement en charge, PV régénérés selon réserve avec bonus proche de 100 %, aucun merge/release sans Fab.
+
+## D-140-15 — ordre canonique Fab (03/10/2026)
+Remplace les réglages cinétiques incompatibles de D-140-14: BOTH modes, aucun ×15 cinétique, dégâts masse×vitesse d'impact² avec faible plancher masse, champs compacts dépendant de la vitesse, vagues transitoires, coût réserve ×0.00001, rouge réactif, blanc physiquement intangible, aucune merge/release avant test téléphone.

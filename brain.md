@@ -218,3 +218,6 @@ Un seul cœur de bouclier sert désormais les deux modes : nrj=0 = 100% protecti
 
 ## 2026-10-03 — D-140-14 kinetic shield
 Shared two-layer kinetic physics now uses relative vector speed, linear mass and speed squared before the existing energy shield. The kinetic field spends the common nrj reserve efficiently; hull regeneration rewards near-full reserve. Boss kinetics are charge-only.
+
+## 2026-10-03 — D-140-15 kinetic rebalance
+Fab supersedes D-140-14 kinetic tuning in BOTH classic and coop/campaign: kinetic damage has no coop x15, slow impacts are genuinely weak, interception distance grows continuously with relative speed, waves expand from the ship then disappear, energy cost is previous shared cost ×0.00001, red dust is perturbed but white resource dust is never physically deflected. Non-kinetic coop attacks keep their validated ×15.

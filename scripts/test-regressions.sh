@@ -8,6 +8,7 @@ python3 "$sf_repo/scripts/prepare-assets.py" --output "$sf_test_dir/resources/as
 python3 "$sf_repo/tests/test_assets.py"
 python3 "$sf_repo/tests/test_release.py"
 python3 "$sf_repo/tests/test_scenic_integration.py"
+python3 "$sf_repo/tests/test_kinetic_integration.py"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/scenic_mix_regressions.cpp" -o "$sf_test_dir/scenic-mix"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/kinetic_regressions.cpp" -o "$sf_test_dir/kinetic"
 "$sf_test_dir/kinetic"

@@ -566,7 +566,7 @@ static void sfUpdateTurrets(float dt)
 
 static void sfTacticsReset()
 {
-    sfPilot=SfPilot{}; sfObserved={}; sfPickupGlow={}; sfTurrets={}; sfKineticPulses={};
+    sfPilot=SfPilot{}; sfObserved={}; sfPickupGlow={}; sfTurrets={}; sfKineticWaves.clear(); sfKineticWaveSerial=0;
     sfSceneSeconds=0; sfTacticsLastTick=0;sfFieldRemainder=0;
     sfFieldCollisionSound=sfFieldMiningSound=false;
     for (int i=0;i<SF_TURRET_COUNT;++i) {
@@ -627,25 +627,22 @@ static void sfTacticalRing(SDL_Renderer *renderer,tupl center,float radius,SDL_C
 
 static void sfDrawKineticEffects(SDL_Renderer *renderer)
 {
-    if (!renderer || sfUiScreen!=SF_UI_GAME) return;
+    if (!renderer || sfUiScreen!=SF_UI_GAME || sfKineticWaves.empty()) return;
     SDL_BlendMode previous;SDL_GetRenderDrawBlendMode(renderer,&previous);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
-    for(int owner=0;owner<2;++owner) {
-        const auto *ship=owner==0 ? Spritej1 : Spritej2;
+    for(const auto &wave:sfKineticWaves) {
+        if(wave.owner<0 || wave.owner>1 || !sfKineticWaveAlive(wave)) continue;
+        const auto *ship=wave.owner==0 ? Spritej1 : Spritej2;
         if(!ship || ship->pv<=0) continue;
-        const auto &pulse=sfKineticPulses[owner];
         const float diameter=std::max(1.0f,std::max({ship->sw,ship->sh,ship->w,ship->h}));
-        const SDL_Color team=owner==0 ? SDL_Color{255,188,96,255} : SDL_Color{96,210,255,255};
-        if(pulse.outer>0) {
-  const float drift=(1.0f-pulse.outer)*diameter*.04f;
-  sfTacticalRing(renderer,tupl(ship->x,ship->y),diameter*SF_KINETIC_OUTER_RADIUS_DIAMETERS+drift,
-      SDL_Color{team.r,team.g,team.b,Uint8(150*pulse.outer)});
-        }
-        if(pulse.inner>0) {
-  const float drift=(1.0f-pulse.inner)*diameter*.025f;
-  sfTacticalRing(renderer,tupl(ship->x,ship->y),diameter*SF_KINETIC_INNER_RADIUS_DIAMETERS+drift,
-      SDL_Color{team.r,team.g,team.b,Uint8(175*pulse.inner)});
-        }
+        const float radius=sfKineticWaveRadiusAt(wave,diameter,wave.age);
+        if(radius<=0) continue;
+        const float p=sfKineticWaveProgressAt(wave,wave.age);
+        const float envelope=std::sin(float(PI)*p)*wave.strength;
+        if(envelope<=.01f) continue;
+        const SDL_Color team=wave.owner==0 ? SDL_Color{255,188,96,255} : SDL_Color{96,210,255,255};
+        sfTacticalRing(renderer,tupl(ship->x,ship->y),radius,
+            SDL_Color{team.r,team.g,team.b,Uint8(std::clamp(190.0f*envelope,0.0f,220.0f))});
     }
     SDL_SetRenderDrawBlendMode(renderer,previous);
 }

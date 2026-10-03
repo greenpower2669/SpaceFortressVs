@@ -135,3 +135,14 @@ Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128
 - [ ] Phone visual validation by Fab.
 
 - [x] D-140-14 shared kinetic shield: velocity-squared impacts, two layers, charge-only boss kinetics, red-dust ripple, reserve-driven PV regeneration; verify native + Android CI.
+
+## D-140-15 — Boucliers cinétiques v2
+- [x] Deux modes: classique + coop/campagne sur le même cœur.
+- [x] Retirer ×15 des astéroïdes et charges cinétiques uniquement.
+- [x] Faible vitesse = faible dégât; petite composante masse résiduelle.
+- [x] Interception compacte et variable avec la vitesse; très lent passe.
+- [x] Vagues individuelles centre→rayon max→disparition, plusieurs simultanées possibles.
+- [x] Coût énergétique cinétique = ancien coût ×0.00001.
+- [x] Poussière rouge vibrée/déviée; poussière blanche jamais déviée.
+- [x] Logs KINETIC_IMPACT/WAVE/DUST.
+- [ ] Validation ressenti téléphone Fab avant toute merge/release.

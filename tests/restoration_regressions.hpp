@@ -69,11 +69,11 @@ static void testKineticFieldAndHullRegen()
     setupCampaign();sfFixResetAsteroidField();sfFieldRemainder=0;
     Spritej1->setxywh(390,500,100,100);Spritej1->sw=Spritej1->sh=100;Spritej1->startup();
     Spritej2->setxywh(700,1500,100,100);Spritej1->pv=1000;Spritej1->nrj=0;sfObserved[0].velocity.set(0,0);
-    const float outer=100*SF_KINETIC_OUTER_RADIUS_DIAMETERS;
+    const float outer=100*SF_KINETIC_MAX_SHIELD_DIAMETER*.5f;
     auto *fast=new sprite;fast->setv(390,500-outer-16,20,20,0,22,1);fast->w=fast->h=fast->sw=fast->sh=20;fast->pv=1;sa1.push_back(fast);
     for(int i=0;i<7;++i){auto *d=new sprite;d->setv(40+i*95,80,10,10,0,0,1);d->w=d->h=d->sw=d->sh=10;d->pv=1;sa1.push_back(d);}
     sfLegacyFieldStep(sfCoopAsteroidHurt);
-    assert(Spritej1->pv==1000 && Spritej1->nrj>0 && sfKineticPulses[0].outer>0 && !particulesr.empty());
+    assert(Spritej1->pv==1000 && Spritej1->nrj>0 && !sfKineticWaves.empty() && !particulesr.empty());
     bool fragmented=false;for(auto *r:sa1) if(r->kineticStage>=1 && r->w<20) fragmented=true;assert(fragmented);
 
     setupCampaign();sfFixResetAsteroidField();sfFieldRemainder=0;
@@ -92,7 +92,7 @@ static void testKineticFieldAndHullRegen()
     sfCoop.position=tupl(390,420);sfCoop.motion.valid=true;sfCoop.motion.velocity.set(0,sfArenaW*1.2f);sfObserved[0].velocity.set(0,0);
     sfCoop.chargeActive=true;sfCoop.chargeTime=.30f;sfCoop.chargeHit={false,false};
     sfCoopBossContact(0,1.0f/60);const float afterHeat=Spritej1->nrj,afterPv=Spritej1->pv;
-    assert(sfCoop.chargeHit[0] && afterHeat>0 && sfKineticPulses[0].outer>0);
+    assert(sfCoop.chargeHit[0] && afterHeat>0 && !sfKineticWaves.empty());
     sfCoopBossContact(0,1.0f/60);assert(Spritej1->nrj==afterHeat && Spritej1->pv==afterPv);
     std::puts("PASS: shared kinetic layers, velocity damage, charge gating and reserve-driven hull regeneration");
 }
@@ -218,14 +218,14 @@ static void testCoopIncomingDamageMultiplier()
         auto *dummy=new sprite;dummy->setv(40+i*95,80,10,10,0,0,1);dummy->pv=1;sa1.push_back(dummy);
     }
     const float asteroidLegacyDamage=impact->w*impact->h*.05f;
-    const float asteroidExpected=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*sfShieldDamage(asteroidLegacyDamage,25);
+    const float asteroidExpected=sfShieldDamage(asteroidLegacyDamage*SF_KINETIC_MASS_DAMAGE_FLOOR,25);
     // Exercise the real field collision callback before sfCoopResources()
     // performs its intentional dust pickup/recovery pass, which would mask the
     // exact impact-only PV/heat delta we are measuring here.
     sfLegacyFieldStep(sfCoopAsteroidHurt);
     assert(std::abs((1000.0f-Spritej1->pv)-asteroidExpected)<.01f && Spritej1->nrj>25);
 
-    // D-140-11: Fab asks for another x3 over the verified x5 => x15 total.
+    // D-140-11 x15 remains only for the validated NON-KINETIC coop attack/contact paths.
     assert(SF_COOP_INCOMING_DAMAGE_MULTIPLIER==15.0f);
 
     // A wounded boss may recover historical white dust itself.
