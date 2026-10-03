@@ -4,6 +4,7 @@ on:
     branches: [fix/gameplay-campaign-200]
     paths:
       - scripts/apply-kinetic-audio-danger.py
+      - tests/test_kinetic_integration.py
       - .github/workflows/kinetic-audio-danger.yml
 permissions:
   contents: write
