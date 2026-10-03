@@ -133,3 +133,5 @@ Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128
 - [x] Continuous boss travel toward safe edges.
 - [x] Native regressions and generated classic compile.
 - [ ] Phone visual validation by Fab.
+
+- [x] D-140-14 shared kinetic shield: velocity-squared impacts, two layers, charge-only boss kinetics, red-dust ripple, reserve-driven PV regeneration; verify native + Android CI.

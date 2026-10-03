@@ -157,7 +157,7 @@ sf_replace_region("projectile rendering without physics mutations" "for(auto e:t
 sf_patch_once("orange shot count" "tirj1-=1;" "tirj1=std::max(0,tirj1-1);")
 sf_patch_once("blue shot count" "tirj2-=1;" "tirj2=std::max(0,tirj2-1);")
 sf_patch_once("single IA movement" "\tSpritej1->unctrl();" "\tif (!setia) Spritej1->unctrl();")
-sf_patch_once("visible turret effects" " SDL_RenderPresent(renderer);" " sfDrawTacticalEffects(renderer);\n SDL_RenderPresent(renderer);")
+sf_patch_once("visible turret effects" " SDL_RenderPresent(renderer);" " sfDrawTacticalEffects(renderer);\n sfDrawKineticEffects(renderer);\n SDL_RenderPresent(renderer);")
 sf_patch_once("classic campaign scenic map"
     "SDL_RenderCopy(renderer, imgfondjup, NULL, &texrfondjup);"
     "SDL_RenderCopy(renderer, imgfondjup, NULL, &texrfondjup);\n            sfRmDrawClassicScenicMap(renderer);")
@@ -193,7 +193,7 @@ endif()
 string(SUBSTRING "${sf_foreground_tail}" 0 ${sf_foreground_length} sf_foreground_block)
 sf_replace_region("foreground relocation" "${sf_foreground_begin}" " sfDrawTacticalEffects(renderer);" "")
 sf_patch_once("cooperative frame dispatch" "sfTacticsBeginFrame(renderer);"
-    "${sf_foreground_block}\n sfTacticsBeginFrame(renderer);\n if (sfCampaignFrame(renderer)) {\n sfCoopPlaySounds(tir1,tir2,explo1,explo2,entre);\n SDL_RenderPresent(renderer);\n continue;\n }\n")
+    "${sf_foreground_block}\n sfTacticsBeginFrame(renderer);\n if (sfCampaignFrame(renderer)) {\n sfCoopPlaySounds(tir1,tir2,explo1,explo2,entre);\n sfDrawKineticEffects(renderer);\n SDL_RenderPresent(renderer);\n continue;\n }\n")
 sf_patch_once("cooperative simulation ownership" "if (!sfGameReady || apap || setgui) continue;"
     "if (!sfGameReady || apap || setgui || sfIsCoop()) continue;")
 

@@ -215,3 +215,6 @@ Un seul cœur de bouclier sert désormais les deux modes : nrj=0 = 100% protecti
 - Boss body receives only a subtle RGB correction; historical 0/4/8/20 tentacle counts remain.
 - Boss travel expands continuously from centre-biased to near safe arena edges by encounter 200.
 - src/main.cpp remains historical and untouched; classic hook is generated through prepare-legacy-source.cmake.
+
+## 2026-10-03 — D-140-14 kinetic shield
+Shared two-layer kinetic physics now uses relative vector speed, linear mass and speed squared before the existing energy shield. The kinetic field spends the common nrj reserve efficiently; hull regeneration rewards near-full reserve. Boss kinetics are charge-only.

@@ -237,3 +237,5 @@ DUEL Android généré + COOP → sfApplyShieldImpact → protection linéaire �
 
 ### D-140-13 scenic architecture
 `scenic_mix.hpp` → 20 bases → 100 mixed candidates → campaign 200 / classic shuffled bag. Campaign: `sfDrawCampaignSpace(encounter)` + `sfBossTravelProgress`. Classic: `sfRmSyncUiEngineState` selects once on GAME entry; generated legacy source calls `sfRmDrawClassicScenicMap` after historical backdrop layers.
+
+- D-140-14: kinetic_shield.hpp -> ship_energy.hpp -> legacy_field_runtime.hpp (classic+coop); campaign_runtime.hpp adds charge-only boss kinetics; tactical renderer shows transient two-ring ripples.

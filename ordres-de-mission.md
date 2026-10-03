@@ -74,3 +74,6 @@ Même modèle de bouclier dans les deux modes : protection = réserve restante ;
 
 ## D-140-13 — MAP MIX / PROGRESSION VISUELLE
 Contract: reuse campaign scenic atlas in classic; select classic scenes from 100 candidates without replacement before refill; derive candidates by mixing 20 stable base identities; use subtle planet and boss RGB filtering; progress blue→green→red continuously over 200 campaign encounters; progressively widen boss travel from centre toward safe edges. Preserve `src/main.cpp`, no main merge, no release before Fab validation.
+
+## D-140-14 — Bouclier cinétique (03/10/2026)
+Contrat: deux modes, vitesse relative vectorielle, masse linéaire, v², deux couches, énergie nrj partagée à faible coût, dégâts résiduels vers le bouclier énergétique, boss cinétique uniquement en charge, PV régénérés selon réserve avec bonus proche de 100 %, aucun merge/release sans Fab.

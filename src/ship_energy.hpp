@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <cmath>
+#include "kinetic_shield.hpp"
 
 // Historical nrj measures spent energy/heat: 0 is full, 50 is exhausted.
 // Clamp mutations as well as the display; an impact must not create an
@@ -19,8 +20,6 @@ static void sfAddShipHeat(sprite *ship,float amount)
 
 static SDL_Rect sfEnergyMarkerRect(float heat,SDL_Rect full,const SDL_Rect &gun)
 {
-    // The crystal travels only between the full-energy anchor and the gun.
-    // Interpolate centres, so animation/asset dimensions cannot shift its limit.
     const float spent=sfShipHeat(heat)/SF_MAX_SHIP_HEAT;
     const float gunX=gun.x+(gun.w-full.w)*.5f;
     const float gunY=gun.y+(gun.h-full.h)*.5f;
@@ -29,7 +28,6 @@ static SDL_Rect sfEnergyMarkerRect(float heat,SDL_Rect full,const SDL_Rect &gun)
     return full;
 }
 
-// Shared historical main-weapon cost, including the full-reserve missile.
 static bool sfSpendMainEnergy(sprite *ship)
 {
     sfAddShipHeat(ship,1);
@@ -73,4 +71,9 @@ static float sfApplyShieldContinuousImpact(sprite *ship,float incomingPerSecond,
         remaining-=slice;
     }
     return total;
+}
+static void sfRegenerateHull(sprite *ship,float dt)
+{
+    if (!ship || ship->pv<=0 || ship->pv>=1000 || dt<=0) return;
+    ship->pv=std::min(1000.0f,ship->pv+sfHullRegenPerSecond(sfShipHeat(ship->nrj))*dt);
 }

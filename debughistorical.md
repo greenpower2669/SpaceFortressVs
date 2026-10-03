@@ -233,3 +233,6 @@ Le ressenti incohérent venait de spent² en coop, d’une usure fixe +2, et des
 
 ## D-140-13 — Repetition visuelle campagne/classique
 Cause: campaign scenery was indexed with boss 0..49, so difficulty blocks 51..200 repeated visual families; classic had no campaign-atlas scene rotation. Fix: full encounter scenic model plus 100-candidate no-replacement classic bag. Historical `src/main.cpp` is not edited.
+
+## D-140-14
+Audit proved asteroid vx/vy affected movement but not historical damage (area-only). Repair routes relative velocity through a shared kinetic resolver while preserving src/main.cpp and the ordinary boss-contact path outside explicit charges.

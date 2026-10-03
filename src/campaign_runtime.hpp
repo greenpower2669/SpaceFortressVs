@@ -19,6 +19,7 @@ struct SfCoopState {
     SfCoopPhase phase=SfCoopPhase::Intro;
     int boss=0,encounter=0,volley=0,revives=3,phaseNumber=0;
     float time=0,phaseTime=0,health=900,attack=1,warning=0,hit=0;
+    float chargeTime=0,chargeCooldown=4.5f,chargeOffsetX=0,chargeOffsetY=0;
     tupl position;
     SfMotionSample motion;
     std::array<SfCoopControl,2> controls{};
@@ -29,6 +30,8 @@ struct SfCoopState {
     std::array<float,2> cooldown{},invulnerable{},reviveProgress{};
     std::array<unsigned,2> shotSequence{};
     std::array<float,2> redDustCooldown{};
+    std::array<bool,2> chargeHit{};
+    bool chargeActive=false;
     std::vector<SfCoopShot> shots;
     std::vector<SfCoopBeam> beams;
     std::vector<SfCoopWave> waves;
@@ -85,6 +88,7 @@ static void sfCoopEmit(tupl origin,float angle,float speed,int owner,float damag
     if (owner>=0) sfCoop.soundShot[owner]=true;
 }
 static constexpr float SF_COOP_INCOMING_DAMAGE_MULTIPLIER = 15.0f;
+static_assert(SF_COOP_INCOMING_DAMAGE_MULTIPLIER==SF_KINETIC_COOP_DAMAGE_MULTIPLIER,"coop multiplier must be applied exactly once");
 static constexpr float SF_COOP_BOSS_DUST_HEAL_FRACTION = .0015f;
 static constexpr float SF_COOP_RED_DUST_HEAT = .08f;
 static constexpr float SF_COOP_RED_DUST_ARMED_PV = 560.0f;
@@ -311,10 +315,34 @@ static bool sfCoopFire(int owner)
     return true;
 }
 
+static constexpr float SF_COOP_CHARGE_DURATION=.90f;
+static bool sfCoopChargeImpactActive()
+{
+    if(!sfCoop.chargeActive) return false;
+    const float phase=sfCoop.chargeTime/SF_COOP_CHARGE_DURATION;
+    return phase>=.08f && phase<=.62f;
+}
 static void sfCoopBossContact(int owner,float dt)
 {
     auto *ship=sfCoopShip(owner);
     if (ship->pv<=0 || sfCoop.phase!=SfCoopPhase::Combat || dt<=0) return;
+    if(sfCoop.chargeActive) {
+        // A charge is a single kinetic event. Do not stack historical contact
+        // damage on top of it during outbound or recovery travel.
+        if(!sfCoopChargeImpactActive() || sfCoop.chargeHit[owner]) return;
+        const float dx=sfCoop.position.x-ship->x,dy=sfCoop.position.y-ship->y,d=std::max(1.0f,vlong(dx,dy));
+        const auto raw=sfResolveKinetic(SF_KINETIC_BOSS_BASE_DAMAGE,sfKineticBossMass(sfCoop.encounter),
+  {sfCoop.motion.velocity.vx,sfCoop.motion.velocity.vy},
+  {sfObserved[owner].velocity.vx,sfObserved[owner].velocity.vy},dx/d,dy/d,sfKineticReferenceSpeed(sfArenaW));
+        const SfKineticLayer layer=raw.suggestedLayer==SfKineticLayer::Outer ? SfKineticLayer::Outer : SfKineticLayer::Inner;
+        const auto solved=sfApplyKineticLayer(raw,layer,sfKineticEnergyFraction(ship->nrj),SF_COOP_INCOMING_DAMAGE_MULTIPLIER);
+        sfAddShipHeat(ship,solved.heatCost);
+        const float incoming=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*solved.residualDamage;
+        ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));
+        sfKineticTriggerPulse(owner,layer,1.0f);sfCoopEmitRedDust(owner,6);
+        sfCoop.chargeHit[owner]=true;sfCoop.soundHit=true;
+        return;
+    }
     const float incomingPerSecond=SF_COOP_INCOMING_DAMAGE_MULTIPLIER*650.0f;
     ship->pv=std::max(0.0f,ship->pv-sfApplyShieldContinuousImpact(ship,incomingPerSecond,dt));
     sfCoop.soundHit=true;sfCoopEmitRedDust(owner,2);
@@ -530,7 +558,7 @@ static void sfCoopWin()
     if (sfActiveMode==SF_COOP_AI && sfCoop.names[0].empty()) sfCoop.names[0]="ORION IA";
 }
 
-static tupl sfCoopBossPosition(float time)
+static tupl sfCoopBossBasePosition(float time)
 {
     const auto &b=sfCoopProfile();
     const float progress=sfBossTravelProgress(sfCoop.encounter);
@@ -555,18 +583,61 @@ static tupl sfCoopBossPosition(float time)
     return tupl(sfArenaW*(.5f+spanX*x),sfArenaH*(.5f+spanY*y));
 }
 
+
+static void sfCoopStartCharge()
+{
+    if(sfCoop.chargeActive || sfCoop.phase!=SfCoopPhase::Combat) return;
+    int target=(sfCoop.volley+sfCoop.encounter)&1;
+    if(sfCoopShip(target)->pv<=0) target=1-target;
+    if(sfCoopShip(target)->pv<=0) return;
+    const float p=sfBossTravelProgress(sfCoop.encounter);
+    const auto base=sfCoopBossBasePosition(sfCoop.time);
+    const auto future=sfShipGhost(target).intercept(base,sfArenaW*(.70f+.45f*p),.55f);
+    const float minX=sfArenaW*(.34f-.26f*p),maxX=sfArenaW*(.66f+.26f*p);
+    const float minY=sfArenaH*(.30f-.20f*p),maxY=sfArenaH*(.70f+.20f*p);
+    const float tx=std::clamp(future.x,minX,maxX),ty=std::clamp(future.y,minY,maxY);
+    sfCoop.chargeOffsetX=tx-base.x;sfCoop.chargeOffsetY=ty-base.y;
+    sfCoop.chargeTime=0;sfCoop.chargeHit={false,false};sfCoop.chargeActive=true;
+}
+static void sfCoopUpdateCharge(float dt)
+{
+    if(sfCoop.chargeActive) {
+        sfCoop.chargeTime+=dt;
+        if(sfCoop.chargeTime>=SF_COOP_CHARGE_DURATION) {
+  sfCoop.chargeActive=false;sfCoop.chargeTime=0;sfCoop.chargeOffsetX=sfCoop.chargeOffsetY=0;
+  sfCoop.chargeHit={false,false};
+  sfCoop.chargeCooldown=8.0f-3.0f*sfBossTravelProgress(sfCoop.encounter);
+        }
+        return;
+    }
+    sfCoop.chargeCooldown-=dt;
+    if(sfCoop.chargeCooldown<=0) sfCoopStartCharge();
+}
+static tupl sfCoopBossPosition(float time)
+{
+    auto base=sfCoopBossBasePosition(time);
+    if(!sfCoop.chargeActive) return base;
+    const float phase=std::clamp(sfCoop.chargeTime/SF_COOP_CHARGE_DURATION,0.0f,1.0f);
+    const float envelope=phase<.55f ? phase/.55f : (1.0f-phase)/.45f;
+    const float radius=sfCoopBossRadius();
+    base.x=std::clamp(base.x+sfCoop.chargeOffsetX*envelope,radius,sfArenaW-radius);
+    base.y=std::clamp(base.y+sfCoop.chargeOffsetY*envelope,radius+sfArenaH*.105f,sfArenaH-radius-sfArenaH*.105f);
+    return base;
+}
+
 static void sfCoopTick(float dt)
 {
     if (sfCoop.phase!=SfCoopPhase::Combat) return;
     sfCoop.time+=dt;sfCoop.hit=std::max(0.0f,sfCoop.hit-dt);
     const auto &boss=sfCoopProfile();
+    sfCoopUpdateCharge(dt);
     sfCoop.position=sfCoopBossPosition(sfCoop.time);
     sfCoop.motion.observe(sfCoop.position,dt);
     sfCoop.phaseNumber=sfCoop.health>boss.health*.65f ? 0 : sfCoop.health>boss.health*.3f ? 1 : 2;
     sfCoopMovePlayers(dt);sfCoopDefences(dt);
     sfCoop.attack-=dt;
-    sfCoop.warning=sfCoop.attack<.65f ? 1-sfCoop.attack/.65f : 0;
-    if (sfCoop.attack<=0) {
+    sfCoop.warning=sfCoop.chargeActive ? 0 : (sfCoop.attack<.65f ? 1-sfCoop.attack/.65f : 0);
+    if (!sfCoop.chargeActive && sfCoop.attack<=0) {
         int pattern=boss.family;
         if ((sfCoop.phaseNumber>0 || boss.difficulty>=2) && sfCoop.volley%2) pattern=(boss.family+boss.tier+sfCoop.phaseNumber+boss.difficulty+1)%10;
         sfCoopPattern(pattern);

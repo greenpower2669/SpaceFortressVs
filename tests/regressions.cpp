@@ -296,7 +296,7 @@ int main(int argc,char **argv)
     testCampaignRendering(std::getenv("SPACEFORTRESS_CAMPAIGN_PREVIEW"));
     testDuelStyleRoundTrip();testShipBreathing();testCoopHumanAim();testUnknownSaveWithBackup(campaignDirectory);
     testSaveRecoveryPreservation(campaignDirectory);
-    testNoHumanAutofire();testPassiveCoopTurrets();testSharedLinearShieldModel();testCollectedBonusAndShield();testRealCoopField();
+    testNoHumanAutofire();testPassiveCoopTurrets();testSharedLinearShieldModel();testKineticFieldAndHullRegen();testCollectedBonusAndShield();testRealCoopField();
     testCoopDifficultyChain();testCoopIncomingDamageMultiplier();testCoopHudAndMissile();
     testDurableV1Migration(campaignDirectory);testDifficultySelection();testDifficultyGameplay();
     testDifficultyRendering(std::getenv("SPACEFORTRESS_DIFFICULTY_PREVIEW"));
