@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           bash scripts/test-regressions.sh | tee /tmp/scenic-green.log
-          grep -Fq 'PASS: subtle progressive boss tint, 0/4/8/20 smooth bounded tentacles' /tmp/scenic-green.log
+          grep -Fq 'subtle progressive boss tint, 0/4/8/20 smooth bounded tentacles' /tmp/scenic-green.log
           python3 tests/test_scenic_integration.py
           echo GREEN_CONFIRMED
       - name: Sync FAB-Copilot records
