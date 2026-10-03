@@ -1,0 +1,71 @@
+name: Kinetic rebalance RED GREEN
+
+on:
+  push:
+    branches:
+      - fix/gameplay-campaign-200
+    paths:
+      - .github/workflows/kinetic-rebalance.yml
+
+permissions:
+  contents: write
+
+jobs:
+  kinetic-rebalance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v5
+        with:
+          ref: fix/gameplay-campaign-200
+          fetch-depth: 0
+
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
+
+      - name: RED kinetic contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/apply-kinetic-rebalance.py --red
+          g++ -std=c++17 -O1 -I src tests/kinetic_rebalance_red.cpp -o /tmp/kinetic-red
+          set +e
+          /tmp/kinetic-red
+          red_cpp=$?
+          python3 tests/test_kinetic_rebalance_red.py
+          red_py=$?
+          set -e
+          if [ "$red_cpp" -eq 0 ] || [ "$red_py" -eq 0 ]; then
+            echo "RED gate failed: old implementation unexpectedly satisfies a new contract"
+            exit 1
+          fi
+          echo "RED confirmed: old kinetic behavior violates both new numeric and integration contracts"
+
+      - name: GREEN apply kinetic rebalance
+        run: |
+          set -euo pipefail
+          python3 scripts/apply-kinetic-rebalance.py --apply
+          g++ -std=c++17 -O1 -I src tests/kinetic_regressions.cpp -o /tmp/kinetic-green
+          /tmp/kinetic-green
+          python3 tests/test_kinetic_integration.py
+
+      - name: Full native regression suite
+        run: |
+          set -euo pipefail
+          bash scripts/test-regressions.sh
+          test "$(git hash-object src/main.cpp)" = "835059a0ecfe0f74708068b3259cad5db1cdb579"
+          git diff --check
+
+      - name: Commit verified gameplay and living memories
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "greenpower2669"
+          git config user.email "80179295+greenpower2669@users.noreply.github.com"
+          git add src/kinetic_shield.hpp src/legacy_field_runtime.hpp src/tactical_runtime.hpp src/campaign_runtime.hpp
+          git add tests/kinetic_regressions.cpp tests/test_kinetic_integration.py scripts/test-regressions.sh
+          git add brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md
+          git commit -m "fix: rebalance kinetic shields in both modes"
+          git push origin HEAD:fix/gameplay-campaign-200
