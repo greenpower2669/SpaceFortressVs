@@ -1,3 +1,4 @@
+# rerun after real inward-contact asteroid fixture
 name: Kinetic balance v3 diagnostic
 on:
   push:
