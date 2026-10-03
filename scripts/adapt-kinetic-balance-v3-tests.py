@@ -39,10 +39,10 @@ literal('tests/restoration_regressions.hpp',
     sfCollectDust();
     assert(Spritej1->nrj==0 && std::abs(Spritej1->pv-904.0f)<.02f);''')
 
-# Direct asteroid test uses a real moving contact and the shared normalized kinetic solver.
+# Direct asteroid test starts just above the hull and moves inward through it.
 literal('tests/restoration_regressions.hpp',
 '''    auto *impact=new sprite;impact->setv(390,400,20,20,0,0,1);impact->pv=1;sa1.push_back(impact);''',
-'''    auto *impact=new sprite;impact->setv(390,400,20,20,0,0,1);impact->vx=0;impact->vy=10;impact->kineticStage=2;impact->pv=1;sa1.push_back(impact);''')
+'''    auto *impact=new sprite;impact->setv(390,390,20,20,0,0,1);impact->vx=0;impact->vy=10;impact->kineticStage=2;impact->pv=1;sa1.push_back(impact);''')
 literal('tests/restoration_regressions.hpp',
 '''    const float asteroidLegacyDamage=impact->w*impact->h*.05f;
     const float asteroidExpected=sfShieldDamage(asteroidLegacyDamage*SF_KINETIC_MASS_DAMAGE_FLOOR,25);''',
