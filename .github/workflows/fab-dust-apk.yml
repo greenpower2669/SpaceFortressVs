@@ -1,0 +1,328 @@
+name: Fab x15 dust APK
+
+on:
+  push:
+    branches:
+      - fix/gameplay-campaign-200
+    paths:
+      - .github/workflows/fab-dust-apk.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout campaign branch
+        uses: actions/checkout@v5
+        with:
+          ref: fix/gameplay-campaign-200
+          fetch-depth: 0
+
+      - name: Linux regression dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
+          bash scripts/fetch-sdl.sh
+
+      - name: RED - add requested regression expectations
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('tests/restoration_regressions.hpp')
+          text=path.read_text()
+          old='    std::puts("PASS: coop incoming damage is exactly x5 after shield for both pilots/modes, boss specials, contact and asteroid callback");'
+          assert text.count(old)==1
+          new=r'''    // D-140-11: Fab asks for another x3 over the verified x5 => x15 total.
+              assert(SF_COOP_INCOMING_DAMAGE_MULTIPLIER==15.0f);
+
+              // A wounded boss may recover historical white dust itself.
+              setupCampaign();
+              const float bossMax=sfCoopProfile().health;
+              sfCoop.health=bossMax-100;
+              auto *bossDust=new parts(sfCoop.position.x,sfCoop.position.y);bossDust->pv=600;particules.push_back(bossDust);
+              const float bossBefore=sfCoop.health;
+              sfCoopProjectiles(0);
+              assert(bossDust->pv==0 && sfCoop.health>bossBefore && sfCoop.health<=bossMax);
+
+              // Only selected boss ammunition families 1/2/3 may pick white dust up.
+              for(int kind:{1,2,3}) {
+                  setupCampaign();
+                  const float maxHealth=sfCoopProfile().health;sfCoop.health=maxHealth-100;
+                  Spritej1->setxywh(sfArenaW*.85f,sfArenaH*.15f,100,100);
+                  Spritej2->setxywh(sfArenaW*.85f,sfArenaH*.85f,100,100);
+                  auto *dust=new parts(80,80);dust->pv=600;particules.push_back(dust);
+                  sfCoopEmit(tupl(80,80),0,0,-1,10,kind);
+                  const float before=sfCoop.health;sfCoopProjectiles(0);
+                  assert(dust->pv==0 && sfCoop.health>before);
+              }
+              setupCampaign();
+              sfCoop.health=sfCoopProfile().health-100;
+              Spritej1->setxywh(sfArenaW*.85f,sfArenaH*.15f,100,100);
+              Spritej2->setxywh(sfArenaW*.85f,sfArenaH*.85f,100,100);
+              auto *ordinaryDust=new parts(80,80);ordinaryDust->pv=600;particules.push_back(ordinaryDust);
+              sfCoopEmit(tupl(80,80),0,0,-1,10,0);
+              const float ordinaryBefore=sfCoop.health;sfCoopProjectiles(0);
+              assert(ordinaryDust->pv>0 && sfCoop.health==ordinaryBefore);
+
+              // A boss hit makes red dust. Armed red dust never heals PV/energy: it adds heat,
+              // i.e. weakens the shield, and leaves PV untouched by the pickup itself.
+              setupCampaign();Spritej1->pv=3000;Spritej1->nrj=50;sfCoop.invulnerable[0]=0;
+              const auto redBefore=particulesr.size();sfCoopHurt(0,10);
+              assert(particulesr.size()>redBefore);
+              setupCampaign();sfFieldRemainder=-1;
+              Spritej1->pv=900;Spritej1->nrj=10;
+              auto *red=new parts(Spritej1->x,Spritej1->y);red->pv=550;particulesr.push_back(red);
+              const float pvBeforeRed=Spritej1->pv,heatBeforeRed=Spritej1->nrj;
+              sfCoopResources(0);
+              assert(Spritej1->pv==pvBeforeRed && Spritej1->nrj>heatBeforeRed && red->pv==0);
+
+              std::puts("PASS: coop incoming damage is x15 and white/red dust economy is active for boss, special ammo and shields");'''
+          path.write_text(text.replace(old,new))
+          PY
+          set +e
+          bash scripts/test-regressions.sh > /tmp/red.log 2>&1
+          code=$?
+          set -e
+          tail -80 /tmp/red.log
+          if [ "$code" -eq 0 ]; then
+            echo 'RED gate failed: new expectations unexpectedly passed before implementation.' >&2
+            exit 1
+          fi
+          grep -q 'SF_COOP_INCOMING_DAMAGE_MULTIPLIER==15.0f' /tmp/red.log || {
+            echo 'RED gate failed for an unexpected reason.' >&2
+            exit 1
+          }
+          echo 'RED confirmed: old x5 runtime rejects the new x15 contract.'
+
+      - name: GREEN - apply x15 and dust gameplay
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              count=text.count(old)
+              if count!=1:
+                  raise SystemExit(f'{label}: expected 1 match, got {count}')
+              return text.replace(old,new,1)
+
+          path=Path('src/campaign_runtime.hpp')
+          text=path.read_text()
+          text=replace_once(text,
+              '    std::array<unsigned,2> shotSequence{};\n',
+              '    std::array<unsigned,2> shotSequence{};\n    std::array<float,2> redDustCooldown{};\n',
+              'red dust cooldown state')
+
+          old='static constexpr float SF_COOP_INCOMING_DAMAGE_MULTIPLIER = 5.0f;\n\n'
+          new=r'''static constexpr float SF_COOP_INCOMING_DAMAGE_MULTIPLIER = 15.0f;
+          static constexpr float SF_COOP_BOSS_DUST_HEAL_FRACTION = .0015f;
+          static constexpr float SF_COOP_RED_DUST_HEAT = .08f;
+          static constexpr float SF_COOP_RED_DUST_ARMED_PV = 560.0f;
+
+          static void sfCoopEmitRedDust(int owner,int count)
+          {
+              if (owner<0 || owner>1 || count<=0 || sfCoop.phase!=SfCoopPhase::Combat || sfCoop.redDustCooldown[owner]>0) return;
+              auto *ship=sfCoopShip(owner);
+              const float ring=sfCoopShipRadius()*1.18f;
+              for(int i=0;i<count && particulesr.size()<1000;++i) {
+                  const float angle=(i+.5f)*2*float(PI)/count+owner*.37f;
+                  auto *dust=new parts(ship->x+std::cos(angle)*ring,ship->y+std::sin(angle)*ring);
+                  dust->pv=600;
+                  dust->vx+=std::cos(angle)*sfArenaW*.65f;
+                  dust->vy+=std::sin(angle)*sfArenaW*.65f;
+                  particulesr.push_back(dust);
+              }
+              sfCoop.redDustCooldown[owner]=.16f;
+          }
+
+          static void sfCoopEnemyCollectWhiteDust()
+          {
+              if (sfCoop.phase!=SfCoopPhase::Combat) return;
+              const float maximum=sfCoopProfile().health;
+              if (sfCoop.health>=maximum-.001f) return; // Never waste ore at full boss health.
+              for(auto *dust:particules) {
+                  if (dust->pv<=0) continue;
+                  const tupl dustPosition(dust->x,dust->y);
+                  float nearest=std::numeric_limits<float>::max();
+                  bool enemyWins=false;
+                  // Players retain a fair claim: the closest eligible collector wins.
+                  for(int owner=0;owner<2;++owner) {
+                      const auto *ship=sfCoopShip(owner);
+                      if (ship->pv<=0) continue;
+                      const float distance=vlong(dust->x-ship->x,dust->y-ship->y);
+                      if (distance<ship->sh*.5f && distance<nearest) nearest=distance;
+                  }
+                  const float bossDistance=vlong(dust->x-sfCoop.position.x,dust->y-sfCoop.position.y);
+                  if (bossDistance<sfCoopBossRadius()*.90f && bossDistance<nearest) {
+                      nearest=bossDistance;enemyWins=true;
+                  }
+                  for(const auto &shot:sfCoop.shots) {
+                      if (shot.owner>=0 || shot.life<=0 || shot.kind<1 || shot.kind>3) continue;
+                      const float distance=sfSegmentDistance(shot.previous,shot.position,dustPosition);
+                      const float pickup=std::max(shot.radius*2.5f,sfArenaW*.012f);
+                      if (distance<pickup && distance<nearest) {nearest=distance;enemyWins=true;}
+                  }
+                  if (!enemyWins) continue;
+                  const float value=std::clamp(dust->pv/600.0f,0.0f,1.0f);
+                  sfCoop.health=std::min(maximum,sfCoop.health+maximum*SF_COOP_BOSS_DUST_HEAL_FRACTION*value);
+                  dust->pv=0;
+              }
+          }
+
+          static void sfCoopCollectRedDust()
+          {
+              if (sfCoop.phase!=SfCoopPhase::Combat) return;
+              for(auto *dust:particulesr) {
+                  if (dust->pv<=0 || dust->pv>SF_COOP_RED_DUST_ARMED_PV) continue;
+                  const float value=std::clamp(dust->pv/600.0f,0.0f,1.0f);
+                  for(int owner=0;owner<2;++owner) {
+                      auto *ship=sfCoopShip(owner);
+                      if (ship->pv<=0) continue;
+                      if (vlong(dust->x-ship->x,dust->y-ship->y)>=sfCoopShipRadius()*.82f) continue;
+                      // Red dust is hostile: no PV/energy recharge. More nrj means less shield reserve.
+                      sfAddShipHeat(ship,SF_COOP_RED_DUST_HEAT*value);
+                      dust->pv=0;
+                      break;
+                  }
+              }
+          }
+
+          '''
+          text=replace_once(text,old,new,'x15 constants/helpers')
+          text=replace_once(text,
+              '    sfAddShipHeat(ship,2); sfCoop.invulnerable[owner]=.38f;\n    sfCoop.soundHit=true;\n',
+              '    sfAddShipHeat(ship,2); sfCoop.invulnerable[owner]=.38f;\n    sfCoop.soundHit=true;sfCoopEmitRedDust(owner,6);\n',
+              'projectile hit red dust')
+          text=replace_once(text,
+              '    ship->pv=std::max(0.0f,ship->pv-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*650.0f*spent*spent*dt);\n    sfCoop.soundHit=true;\n',
+              '    ship->pv=std::max(0.0f,ship->pv-SF_COOP_INCOMING_DAMAGE_MULTIPLIER*650.0f*spent*spent*dt);\n    sfCoop.soundHit=true;sfCoopEmitRedDust(owner,2);\n',
+              'boss contact red dust')
+          text=replace_once(text,
+              '        auto *ship=sfCoopShip(owner); auto &control=sfCoop.controls[owner];\n        ship->vib(sfCoop.time);\n',
+              '        auto *ship=sfCoopShip(owner); auto &control=sfCoop.controls[owner];\n        sfCoop.redDustCooldown[owner]=std::max(0.0f,sfCoop.redDustCooldown[owner]-dt);\n        ship->vib(sfCoop.time);\n',
+              'red dust cooldown tick')
+          text=replace_once(text,
+              '    sfCoop.waves.erase(std::remove_if(sfCoop.waves.begin(),sfCoop.waves.end(),[](const auto &w){return w.radius>sfArenaH*1.2f;}),sfCoop.waves.end());\n}\n\nstatic void sfCoopBonus(float dt)\n',
+              '    sfCoop.waves.erase(std::remove_if(sfCoop.waves.begin(),sfCoop.waves.end(),[](const auto &w){return w.radius>sfArenaH*1.2f;}),sfCoop.waves.end());\n    sfCoopEnemyCollectWhiteDust();\n}\n\nstatic void sfCoopBonus(float dt)\n',
+              'enemy white dust collection')
+          text=replace_once(text,
+              'static void sfCoopResources(float dt)\n{\n    sfLegacyFieldFrame(dt,sfCoopAsteroidHurt);\n}\n',
+              'static void sfCoopResources(float dt)\n{\n    sfLegacyFieldFrame(dt,sfCoopAsteroidHurt);\n    sfCoopCollectRedDust();\n}\n',
+              'red dust shield hazard')
+          path.write_text(text)
+
+          # Existing regressions must stay non-lethal now that x5 becomes x15.
+          path=Path('tests/restoration_regressions.hpp')
+          text=path.read_text()
+          text=replace_once(text,
+              '    assert(Spritej1->pv==1000 && Spritej2->pv==500);\n',
+              '    assert(Spritej1->pv==1000 && Spritej2->pv==0);\n',
+              'shield x15 clamp')
+          text=replace_once(text,
+              '        setupCampaign();auto *ship=Spritej1;ship->pv=1000;ship->nrj=0;\n',
+              '        setupCampaign();auto *ship=Spritej1;ship->pv=5000;ship->nrj=0;\n',
+              'contact nonlethal start')
+          text=replace_once(text,
+              '        const float actualLoss=1000.0f-ship->pv;\n',
+              '        const float actualLoss=5000.0f-ship->pv;\n',
+              'contact nonlethal delta')
+          text=replace_once(text,
+              '        ship->pv=1000;ship->nrj=heat;other->pv=1000;other->nrj=0;\n',
+              '        ship->pv=3000;ship->nrj=heat;other->pv=1000;other->nrj=0;\n',
+              'direct hit nonlethal start')
+          text=replace_once(text,
+              '        assert(std::abs((1000.0f-ship->pv)-expected)<.01f);\n',
+              '        assert(std::abs((3000.0f-ship->pv)-expected)<.01f);\n',
+              'direct hit x15 delta')
+          path.write_text(text)
+
+          stamp='''\n\n## D-140-11 — dégâts ×15 et économie de poussières\nFab demande ×3 supplémentaire sur le ×5 validé : multiplicateur coop total ×15 après protection du bouclier. Les poussières blanches historiques peuvent soigner un boss blessé lorsqu'il les touche ; les munitions boss spéciales kind 1/2/3 peuvent aussi les ramasser et transmettre le soin. Le collecteur éligible le plus proche gagne et un boss à pleine vie ne consomme pas la poussière. Les impacts boss sur un vaisseau génèrent des poussières rouges ; elles ne rendent ni PV ni énergie et, après armement, ajoutent seulement un peu de chaleur `nrj`, donc usent le bouclier. Les collisions d'astéroïdes conservent leur émission rouge historique. `src/main.cpp` reste intact.\n'''
+          for name in ['brain.md','brainmap.md','debughistorical.md','ordres-de-mission.md']:
+              p=Path(name);t=p.read_text()
+              if '## D-140-11 — dégâts ×15 et économie de poussières' not in t:
+                  p.write_text(t+stamp)
+          p=Path('todo.md');t=p.read_text()
+          if 'D-140-11 — dégâts ×15 et poussières' not in t:
+              p.write_text(t+'''\n\n## D-140-11 — dégâts ×15 et poussières\n- [x] Passer le multiplicateur entrant coop de ×5 à ×15 après bouclier.\n- [x] Autoriser boss blessé et munitions spéciales kind 1/2/3 à récupérer les poussières blanches pour soigner le boss.\n- [x] Générer des poussières rouges sur impacts boss ; aucune recharge, légère usure du bouclier via chaleur.\n- [x] Préserver les poussières rouges historiques des collisions d'astéroïdes et `src/main.cpp`.\n- [ ] CI fraîche + APK/AAB de test.\n- [ ] Validation téléphone Fab.\n''')
+          PY
+
+      - name: GREEN - full runtime regressions
+        shell: bash
+        run: bash scripts/test-regressions.sh
+
+      - name: Commit tested gameplay and synchronized memories
+        id: code
+        shell: bash
+        run: |
+          git config user.name 'greenpower2669'
+          git config user.email '80179295+greenpower2669@users.noreply.github.com'
+          git add src/campaign_runtime.hpp tests/restoration_regressions.hpp brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md
+          git commit -m 'balance: add x15 damage and hostile dust economy'
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          git push origin HEAD:fix/gameplay-campaign-200
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Android 16 SDK, NDK and CMake
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            'platforms;android-36' \
+            'build-tools;36.0.0' \
+            'ndk;28.2.13676358' \
+            'cmake;3.22.1'
+
+      - name: Gradle 9.6
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+
+      - name: Build installable APK and AAB
+        shell: bash
+        run: |
+          gradle -p android --stacktrace :app:assembleDebug :app:bundleRelease 2>&1 | tee android-build.log
+          python3 scripts/package-release.py
+          ls -lh dist/release
+
+      - name: Upload APK and AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpaceFortressVs-x15-dust-APK-AAB-${{ github.run_id }}
+          path: dist/release/*
+          if-no-files-found: error
+
+      - name: Record proof and remove one-shot workflow
+        if: success()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          sha='${{ steps.code.outputs.sha }}'
+          run=os.environ['GITHUB_RUN_ID']
+          proof=f'''\n\n### Preuve fraîche D-140-11\nSHA de code testé : `{sha}`. Workflow `{run}` : test RED confirmé sur l'ancien ×5, régressions GREEN complètes, build Android APK+AAB réussi. Artefact du run : `SpaceFortressVs-x15-dust-APK-AAB-{run}`. Aucun merge main ni release ; validation téléphone reste à Fab.\n'''
+          for name in ['brain.md','brainmap.md','debughistorical.md','ordres-de-mission.md']:
+              p=Path(name);p.write_text(p.read_text()+proof)
+          p=Path('todo.md');t=p.read_text().replace('- [ ] CI fraîche + APK/AAB de test.','- [x] CI fraîche + APK/AAB de test sur `'+sha+'`, workflow `'+run+'`.')
+          p.write_text(t+proof)
+          PY
+          git rm .github/workflows/fab-dust-apk.yml
+          git add brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md .github/workflows/fab-dust-apk.yml
+          git commit -m 'docs: record verified x15 dust APK run [skip ci]'
+          git push origin HEAD:fix/gameplay-campaign-200
