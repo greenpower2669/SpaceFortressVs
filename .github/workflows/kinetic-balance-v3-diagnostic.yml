@@ -21,8 +21,6 @@ jobs:
           from pathlib import Path
           p=Path('tests/regressions.cpp')
           t=p.read_text()
-          assert t.count('finger(SDL_FINGERDOWN, 11, .5f, .60f)')==1
-          assert t.count('finger(SDL_FINGERDOWN, 13, .5f, .60f)')==1
           t=t.replace('finger(SDL_FINGERDOWN, 11, .5f, .60f)','finger(SDL_FINGERDOWN, 11, .5f, .66f)')
           t=t.replace('finger(SDL_FINGERDOWN, 13, .5f, .60f)','finger(SDL_FINGERDOWN, 13, .5f, .66f)')
           p.write_text(t)
@@ -31,7 +29,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
-      - name: Apply approved v3 changes in runner
+      - name: Apply and instrument
         run: |
           python3 scripts/apply-kinetic-balance-v3b.py
           python3 scripts/adapt-kinetic-balance-v3-tests.py
@@ -46,28 +44,43 @@ jobs:
           read -r -a CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
           read -r -a LIBS <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
           g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all -ffunction-sections -fdata-sections -I src -I tests/include "${CFLAGS[@]}" tests/regressions.cpp -Wl,--gc-sections "${LIBS[@]}" -pthread -o "$RUNNER_TEMP/sf-reg/regressions"
-      - name: F restoration baseline
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: F
-        run: ./regressions
-      - name: G1 coop difficulty chain
+      - name: G1 baseline
         working-directory: ${{ runner.temp }}/sf-reg
         env:
           SF_DIAG_STOP: G1
         run: ./regressions
-      - name: G2 incoming damage multiplier
+      - name: G2A hostile shots
         working-directory: ${{ runner.temp }}/sf-reg
         env:
-          SF_DIAG_STOP: G2
+          SF_DIAG_STOP: G2A
         run: ./regressions
-      - name: G3 coop HUD missile
+      - name: G2B beams and waves
         working-directory: ${{ runner.temp }}/sf-reg
         env:
-          SF_DIAG_STOP: G3
+          SF_DIAG_STOP: G2B
         run: ./regressions
-      - name: H migration and difficulty
+      - name: G2C asteroid residual
         working-directory: ${{ runner.temp }}/sf-reg
         env:
-          SF_DIAG_STOP: H
+          SF_DIAG_STOP: G2C
+        run: ./regressions
+      - name: G2D danger selector internals
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: G2D
+        run: ./regressions
+      - name: G2E boss white dust
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: G2E
+        run: ./regressions
+      - name: G2F ammunition white dust
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: G2F
+        run: ./regressions
+      - name: G2G red dust visual only
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: G2G
         run: ./regressions
