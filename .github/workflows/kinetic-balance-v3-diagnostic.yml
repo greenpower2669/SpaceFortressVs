@@ -1,4 +1,4 @@
-# rerun after real inward-contact asteroid fixture
+# final post-G2 diagnostic
 name: Kinetic balance v3 diagnostic
 on:
   push:
@@ -45,43 +45,18 @@ jobs:
           read -r -a CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
           read -r -a LIBS <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
           g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all -ffunction-sections -fdata-sections -I src -I tests/include "${CFLAGS[@]}" tests/regressions.cpp -Wl,--gc-sections "${LIBS[@]}" -pthread -o "$RUNNER_TEMP/sf-reg/regressions"
-      - name: G1 baseline
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: G1
-        run: ./regressions
-      - name: G2A hostile shots
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: G2A
-        run: ./regressions
-      - name: G2B beams and waves
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: G2B
-        run: ./regressions
-      - name: G2C asteroid residual
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: G2C
-        run: ./regressions
-      - name: G2D danger selector internals
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: G2D
-        run: ./regressions
-      - name: G2E boss white dust
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: G2E
-        run: ./regressions
-      - name: G2F ammunition white dust
-        working-directory: ${{ runner.temp }}/sf-reg
-        env:
-          SF_DIAG_STOP: G2F
-        run: ./regressions
-      - name: G2G red dust visual only
+      - name: G2 all incoming damage and dust
         working-directory: ${{ runner.temp }}/sf-reg
         env:
           SF_DIAG_STOP: G2G
+        run: ./regressions
+      - name: G3 coop HUD missile
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: G3
+        run: ./regressions
+      - name: H migration and difficulty
+        working-directory: ${{ runner.temp }}/sf-reg
+        env:
+          SF_DIAG_STOP: H
         run: ./regressions
