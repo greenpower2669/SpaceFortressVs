@@ -20,7 +20,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
       - name: Apply kinetic balance v3
         run: |
-          sed -i 's/inline constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR/constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR/g' scripts/apply-kinetic-balance-v3.py
+          sed -i 's/inline constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR/constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR/g; s/inline constexpr float SF_KINETIC_ENERGY_COST_SCALE/constexpr float SF_KINETIC_ENERGY_COST_SCALE/g' scripts/apply-kinetic-balance-v3.py
           python3 scripts/apply-kinetic-balance-v3.py
       - name: Targeted GREEN
         run: |
