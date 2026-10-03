@@ -19,7 +19,9 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
       - name: Apply kinetic balance v3
-        run: python3 scripts/apply-kinetic-balance-v3.py
+        run: |
+          sed -i 's/inline constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR/constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR/g' scripts/apply-kinetic-balance-v3.py
+          python3 scripts/apply-kinetic-balance-v3.py
       - name: Targeted GREEN
         run: |
           python3 tests/test_balance_v3_integration.py
