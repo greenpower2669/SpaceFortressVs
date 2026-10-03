@@ -1,0 +1,49 @@
+name: Repair kinetic applicator
+
+on:
+  push:
+    branches:
+      - fix/gameplay-campaign-200
+    paths:
+      - .github/workflows/kinetic-bootstrap.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/gameplay-campaign-200
+          fetch-depth: 0
+      - name: Repair YAML block indentation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/kinetic-apply.yml')
+          lines=p.read_text().splitlines()
+          out=[]
+          inside=False
+          for line in lines:
+              if line == '        run: |' and not inside:
+                  inside=True
+                  out.append(line)
+                  continue
+              if inside and line.startswith('      - name: Full native regression suite'):
+                  inside=False
+              if inside and line.strip():
+                  indent=len(line)-len(line.lstrip(' '))
+                  if indent < 10:
+                      line='          '+line
+              out.append(line)
+          p.write_text('\n'.join(out)+'\n')
+          PY
+          git diff --check
+          git config user.name "greenpower2669"
+          git config user.email "80179295+greenpower2669@users.noreply.github.com"
+          git add .github/workflows/kinetic-apply.yml
+          git commit -m "chore: fix kinetic applicator yaml" || exit 0
+          git push origin HEAD:fix/gameplay-campaign-200
