@@ -1,0 +1,32 @@
+name: Kinetic surge debug
+
+on:
+  push:
+    branches:
+      - fix/gameplay-campaign-200
+    paths:
+      - .github/workflows/kinetic-surge-debug.yml
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/gameplay-campaign-200
+      - name: Install SDL quietly
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev >/dev/null
+      - name: Apply and show compact regression failure
+        shell: bash
+        run: |
+          set -u
+          python3 scripts/apply-kinetic-surge.py
+          set +e
+          bash scripts/test-regressions.sh > /tmp/regression.log 2>&1
+          status=$?
+          set -e
+          echo "REGRESSION_STATUS=$status"
+          tail -n 140 /tmp/regression.log
+          exit $status
