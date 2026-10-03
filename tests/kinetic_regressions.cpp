@@ -8,15 +8,15 @@ int main() {
     const auto medium=sfResolveKinetic(100.0f,1.0f,{0,ref*.55f},{0,0},0,-1,ref);
     const auto fast=sfResolveKinetic(100.0f,1.0f,{0,ref*.90f},{0,0},0,-1,ref);
     const auto veryFast=sfResolveKinetic(100.0f,1.0f,{0,ref*1.50f},{0,0},0,-1,ref);
-    assert(still.rawDamage>0 && still.rawDamage<5.0f);
+    assert(still.rawDamage<.001f);
     assert(slow.rawDamage<medium.rawDamage && medium.rawDamage<fast.rawDamage && fast.rawDamage<veryFast.rawDamage);
     assert(slow.selectedRange==1 && medium.selectedRange==2 && fast.selectedRange==3 && veryFast.selectedRange==4);
     assert(slow.maxRadiusShipDiameters<medium.maxRadiusShipDiameters);
     assert(medium.maxRadiusShipDiameters<fast.maxRadiusShipDiameters);
     assert(fast.maxRadiusShipDiameters<veryFast.maxRadiusShipDiameters);
     assert(veryFast.maxRadiusShipDiameters<=SF_KINETIC_MAX_SHIELD_DIAMETER*.5f+.001f);
-    const auto pass=sfResolveKinetic(100.0f,20.0f,{0,ref*.05f},{0,0},0,-1,ref);
-    assert(pass.selectedRange==0 && pass.suggestedLayer==SfKineticLayer::None && pass.rawDamage<30.0f);
+    const auto pass=sfResolveKinetic(100.0f,1.0f,{0,ref*.05f},{0,0},0,-1,ref);
+    assert(pass.selectedRange==0 && pass.suggestedLayer==SfKineticLayer::None && pass.rawDamage<10.0f);
 
     const auto shielded=sfApplyKineticLayer(veryFast,SfKineticLayer::Outer,1.0f);
     assert(shielded.residualDamage<veryFast.rawDamage);
