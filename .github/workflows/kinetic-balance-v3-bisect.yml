@@ -1,0 +1,101 @@
+name: Kinetic balance v3 regression bisect
+on:
+  push:
+    branches: [fix/gameplay-campaign-200]
+    paths:
+      - .github/workflows/kinetic-balance-v3-bisect.yml
+permissions:
+  contents: read
+jobs:
+  bisect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Restore canonical regression input
+        run: |
+          git fetch origin 1459be010968e59d2860070f4a390ca3c327940f --depth=1
+          git show 1459be010968e59d2860070f4a390ca3c327940f:tests/regressions.cpp > tests/regressions.cpp
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tests/regressions.cpp')
+          t=p.read_text()
+          assert t.count('finger(SDL_FINGERDOWN, 11, .5f, .60f)')==1
+          assert t.count('finger(SDL_FINGERDOWN, 13, .5f, .60f)')==1
+          t=t.replace('finger(SDL_FINGERDOWN, 11, .5f, .60f)','finger(SDL_FINGERDOWN, 11, .5f, .66f)')
+          t=t.replace('finger(SDL_FINGERDOWN, 13, .5f, .60f)','finger(SDL_FINGERDOWN, 13, .5f, .66f)')
+          p.write_text(t)
+          PY
+      - name: Install SDL dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
+      - name: Apply approved v3 changes and adapted legacy assertions
+        run: |
+          python3 scripts/apply-kinetic-balance-v3b.py
+          python3 scripts/adapt-kinetic-balance-v3-tests.py
+      - name: Inject diagnostic checkpoints
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tests/regressions.cpp')
+          t=p.read_text()
+          checkpoints = [
+            ('testScenicRendering();', 'A'),
+            ('testRaidsAndDefence();', 'B'),
+            ('testEnergyFeedback(); testProjectileFeedback();', 'C'),
+            ('testCampaignRendering(std::getenv("SPACEFORTRESS_CAMPAIGN_PREVIEW"));', 'D'),
+            ('testSaveRecoveryPreservation(campaignDirectory);', 'E'),
+            ('testNoHumanAutofire();testPassiveCoopTurrets();testSharedLinearShieldModel();testKineticFieldAndHullRegen();testCollectedBonusAndShield();testRealCoopField();', 'F'),
+            ('testCoopDifficultyChain();testCoopIncomingDamageMultiplier();testCoopHudAndMissile();', 'G'),
+            ('testDifficultyRendering(std::getenv("SPACEFORTRESS_DIFFICULTY_PREVIEW"));', 'H'),
+          ]
+          for needle, tag in checkpoints:
+              assert t.count(needle)==1, (tag, t.count(needle))
+              replacement = needle + f'\n    if (const char *stop=std::getenv("SF_DIAG_STOP"); stop && std::string(stop)=="{tag}") return 0;'
+              t=t.replace(needle, replacement, 1)
+          p.write_text(t)
+          PY
+      - name: Prepare test assets
+        run: |
+          rm -rf "$RUNNER_TEMP/sf-reg"
+          mkdir -p "$RUNNER_TEMP/sf-reg/resources/assets"
+          python3 scripts/prepare-assets.py --output "$RUNNER_TEMP/sf-reg/resources/assets"
+      - name: Compile checkpointed full SDL regression binary
+        run: |
+          read -r -a CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
+          read -r -a LIBS <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
+          g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all -ffunction-sections -fdata-sections -I src -I tests/include "${CFLAGS[@]}" tests/regressions.cpp -Wl,--gc-sections "${LIBS[@]}" -pthread -o "$RUNNER_TEMP/sf-reg/regressions"
+      - name: A - base input textures scenic
+        working-directory: ${{ runner.temp }}/sf-reg
+        env: { SF_DIAG_STOP: A }
+        run: ./regressions
+      - name: B - tactical and raids
+        working-directory: ${{ runner.temp }}/sf-reg
+        env: { SF_DIAG_STOP: B }
+        run: ./regressions
+      - name: C - feedback
+        working-directory: ${{ runner.temp }}/sf-reg
+        env: { SF_DIAG_STOP: C }
+        run: ./regressions
+      - name: D - campaign core
+        working-directory: ${{ runner.temp }}/sf-reg
+        env: { SF_DIAG_STOP: D }
+        run: ./regressions
+      - name: E - maintenance saves ships
+        working-directory: ${{ runner.temp }}/sf-reg
+        env: { SF_DIAG_STOP: E }
+        run: ./regressions
+      - name: F - restoration kinetic and field
+        working-directory: ${{ runner.temp }}/sf-reg
+        env: { SF_DIAG_STOP: F }
+        run: ./regressions
+      - name: G - coop difficulty damage HUD
+        working-directory: ${{ runner.temp }}/sf-reg
+        env: { SF_DIAG_STOP: G }
+        run: ./regressions
+      - name: H - durable migration and difficulty
+        working-directory: ${{ runner.temp }}/sf-reg
+        env: { SF_DIAG_STOP: H }
+        run: ./regressions
