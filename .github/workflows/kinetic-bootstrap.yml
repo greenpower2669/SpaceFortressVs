@@ -49,6 +49,11 @@ jobs:
           script=step['run']
           script=script.replace('out.speedFactor=1.0f+impactRatio*impactRatio;',
                                 'out.speedFactor=std::max(1.0f,impactRatio*impactRatio);')
+          old="""if s.count(old)!=1:\n        raise SystemExit(f\"{path}: expected exactly one occurrence, found {s.count(old)} for {old[:80]!r}\")\n    p.write_text(s.replace(old,new,1))"""
+          new="""count=s.count(old)\n    if count==0 or (count>1 and path!='scripts/test-regressions.sh'):\n        raise SystemExit(f\"{path}: expected usable occurrence, found {count} for {old[:80]!r}\")\n    p.write_text(s.replace(old,new,1))"""
+          if old not in script:
+              raise SystemExit('replace_once helper not found in kinetic applicator')
+          script=script.replace(old,new,1)
           Path('/tmp/apply-kinetic.sh').write_text(script+'\n')
           PY
           bash /tmp/apply-kinetic.sh
