@@ -27,6 +27,16 @@ static SDL_Event finger(Uint32 type,SDL_FingerID id,float x,float y)
     SDL_Event e{};e.tfinger.type=type;e.tfinger.fingerId=id;e.tfinger.x=x;e.tfinger.y=y;return e;
 }
 
+static SDL_Event backEvent()
+{
+    SDL_Event e{};e.type=SDL_KEYDOWN;e.key.keysym.sym=SDLK_AC_BACK;return e;
+}
+
+static SDL_Event tapRect(SDL_Rect r,SDL_FingerID id=51)
+{
+    return finger(SDL_FINGERDOWN,id,float(r.x+r.w/2)/780.0f,float(r.y+r.h/2)/1680.0f);
+}
+
 static void tapTarget(SDL_FingerID id=31)
 {
     const SDL_Rect r=sfTutorialTargetRect(780,1680);
@@ -88,6 +98,59 @@ static void testIndividualAndIsolation()
     delete rock;sa1.pop_back();
 }
 
+static void testHelpTutorialBackStack()
+{
+    sfTutorialExit();
+    sfHelpState=SfHelpState{};
+    sfHelpOpen(SF_UI_HOME,false);
+    sfFixRequestedScreen.store(SF_UI_HELP);
+    sfUiScreen=SF_UI_HELP;setgui=true;
+    sfFixConsumedFingers.clear();
+
+    auto open=tapRect(sfHelpHubButtonRect(3,780,1680),61);
+    sfFixHandleEvent(&open);
+    assert(open.type==SDL_USEREVENT);
+    assert(sfTutorialState.active && sfTutorialState.selecting);
+    assert(sfHelpState.open && !sfHelpState.tutorialRequested);
+    assert(sfFixRequestedScreen.load()==SF_UI_HELP);
+
+    auto up=finger(SDL_FINGERUP,61,.5f,.5f);sfFixHandleEvent(&up);assert(up.type==SDL_USEREVENT);
+    auto back=backEvent();sfFixHandleEvent(&back);
+    assert(back.type==SDL_USEREVENT);
+    assert(!sfTutorialState.active && sfHelpState.open);
+    assert(sfFixRequestedScreen.load()==SF_UI_HELP);
+
+    auto backAgain=backEvent();sfFixHandleEvent(&backAgain);sfFixApplyUiRequests();
+    assert(backAgain.type==SDL_USEREVENT);
+    assert(!sfHelpState.open && sfUiScreen==SF_UI_HOME);
+}
+
+static void testLiveHelpTutorialBackStackPreservesGame()
+{
+    sfTutorialExit();
+    sfHelpState=SfHelpState{};
+    sfSelectedMode=sfActiveMode=SF_DUEL_AI;
+    sfFixRequestedIa.store(true);
+    sfFixRequestedScreen.store(SF_UI_GAME);
+    sfUiScreen=SF_UI_GAME;setgui=false;
+    sfFixConsumedFingers.clear();
+    Spritej1->pv=777;Spritej1->nrj=16;Spritej1->x=222;Spritej1->y=333;
+
+    auto help=tapRect(sfHelpGameButtonRect(780,1680),71);sfFixHandleEvent(&help);sfFixApplyUiRequests();
+    assert(sfUiScreen==SF_UI_HELP && sfHelpState.fromLiveGame);
+    auto helpUp=finger(SDL_FINGERUP,71,.5f,.5f);sfFixHandleEvent(&helpUp);
+
+    auto open=tapRect(sfHelpHubButtonRect(3,780,1680),72);sfFixHandleEvent(&open);
+    assert(sfTutorialState.active && sfHelpState.open && sfHelpState.fromLiveGame);
+    auto openUp=finger(SDL_FINGERUP,72,.5f,.5f);sfFixHandleEvent(&openUp);
+
+    auto back=backEvent();sfFixHandleEvent(&back);
+    assert(!sfTutorialState.active && sfHelpState.open && sfUiScreen==SF_UI_HELP);
+    auto backAgain=backEvent();sfFixHandleEvent(&backAgain);sfFixApplyUiRequests();
+    assert(sfUiScreen==SF_UI_GAME && !sfHelpState.open && !setgui);
+    assert(Spritej1->pv==777 && Spritej1->nrj==16 && Spritej1->x==222 && Spritej1->y==333);
+}
+
 static void testLayouts()
 {
     for(auto size:{SDL_Point{360,780},SDL_Point{780,360}}) {
@@ -104,7 +167,8 @@ static void testLayouts()
 
 int main()
 {
-    testAllSequence();testIndividualAndIsolation();testLayouts();
-    std::puts("PASS: tutorial follows 11 guided modules, remains isolated and fits portrait/landscape");
+    testAllSequence();testIndividualAndIsolation();testHelpTutorialBackStack();
+    testLiveHelpTutorialBackStackPreservesGame();testLayouts();
+    std::puts("PASS: tutorial follows 11 guided modules, stays isolated and returns through help correctly");
     return 0;
 }
