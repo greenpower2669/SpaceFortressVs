@@ -34,16 +34,29 @@ assert 'kinetic_ready.wav' in tactical
 assert 'kinetic_release.wav' in tactical
 assert 'sfKineticRainbowColor' in tactical
 
-# Boss danger is a start-screen setting, defaults to x10, and never re-enters kinetic damage.
+# Danger is a start-screen setting, defaults to ROCK N ROLL / x10 internally,
+# and non-kinetic hostile damage uses the single canonical helper.
 assert (root/'src/boss_danger.hpp').exists()
 boss=(root/'src/boss_danger.hpp').read_text()
-assert '1.0f,5.0f,10.0f,15.0f,20.0f' in boss.replace(' ','')
-assert 'sfBossDangerIndex=2' in boss.replace(' ','')
-assert 'sfBossDangerMultiplier()' in coop
+compact=boss.replace(' ','').replace('\n','')
+assert '1.0f,5.0f,10.0f,15.0f,20.0f,25.0f,30.0f,35.0f,40.0f' in compact
+assert 'sfBossDangerIndex=2' in compact
+assert 'sfApplyHostileDanger(damage)' in coop
+assert 'sfApplyHostileDanger(650.0f)' in coop
 assert 'SF_COOP_INCOMING_DAMAGE_MULTIPLIER = 15.0f' not in coop
 assert 'DANGER BOSS' in ui
+
+# Kinetic residual/contact and asteroid paths must stay outside danger scaling.
+contact=coop[coop.index('static void sfCoopBossContact'):coop.index('static void sfCoopAsteroidHurt')]
+assert 'const float incoming=solved.residualDamage;' in contact
+assert 'sfApplyHostileDanger(solved.residualDamage)' not in contact
+asteroid=coop[coop.index('static void sfCoopAsteroidHurt'):coop.index('static void sfCoopMovePlayers')]
+assert 'const float incoming=legacyDamage;' in asteroid
+assert 'sfApplyHostileDanger' not in asteroid
+assert 'sfApplyHostileDanger' not in kinetic
+assert 'sfApplyHostileDanger' not in field
 
 for name in ('kinetic_charge.wav','kinetic_ready.wav','kinetic_release.wav'):
     assert (root/'assets'/'sounds'/name).exists(), name
 
-print('PASS: two-second vulnerable kinetic surge, audio, rainbow feedback and boss danger selector are wired')
+print('PASS: two-second vulnerable kinetic surge, audio, rainbow feedback and hostile danger stay correctly separated')
