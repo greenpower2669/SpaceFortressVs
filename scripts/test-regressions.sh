@@ -38,6 +38,10 @@ g++ -std=c++17 -O1 -g -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "
     "${sf_sdl_cflags[@]}" "$sf_repo/tests/help_live_regressions.cpp" \
     -Wl,--gc-sections "${sf_sdl_libs[@]}" -pthread -o "$sf_test_dir/help-live"
 (cd "$sf_test_dir" && ./help-live)
+g++ -std=c++17 -O1 -g -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "$sf_repo/tests/include" \
+    "${sf_sdl_cflags[@]}" "$sf_repo/tests/tutorial_regressions.cpp" \
+    -Wl,--gc-sections "${sf_sdl_libs[@]}" -pthread -o "$sf_test_dir/tutorial"
+(cd "$sf_test_dir" && ./tutorial)
 g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all \
     -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "$sf_repo/tests/include" \
     "${sf_sdl_cflags[@]}" "$sf_repo/tests/regressions.cpp" \
