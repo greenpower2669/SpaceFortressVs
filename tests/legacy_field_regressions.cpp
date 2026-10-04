@@ -110,8 +110,9 @@ static void interactions()
     sfTacticsReset();clearField();Spritej1->pv=Spritej2->pv=0;
     for(int i=0;i<8;++i) fieldRock(60+i*90,100,20);
     fieldRock(380,840,100);fieldRock(400,840,100);
+    const int collisionDust=2*sfKineticWhiteDustParticleCount(100.0f*100.0f,sfArenaH,SfKineticDustCause::AsteroidCollision);
     sfLegacyFieldFrame(1.0f/60,nullptr);
-    assert(sa1.size()==24 && incra1==24 && particules.size()==29);
+    assert(sa1.size()==24 && incra1==24 && int(particules.size())==collisionDust);
     assert(!explos.empty());
     int children=0;for(const auto *rock:sa1) if(rock->w==50) {++children;assert(rock->timer!=0);}
     assert(children==16); // Four historical bursts; newborns wait for the next step.
@@ -138,7 +139,7 @@ static void interactions()
         assert(Spritej1->pv<1000 && Spritej1->nrj>40 && !particulesr.empty() && !explos.empty());
     }
     sfTacticsReset();clearField();
-    std::puts("PASS: shared real field fragments into 16 children, mines once, emits/collects ore and applies ship collisions in duel/coop");
+    std::puts("PASS: shared real field fragments into 16 children, mines once, emits/collects proportional ore and applies ship collisions in duel/coop");
 }
 
 static void fullField()
