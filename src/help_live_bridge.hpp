@@ -11,6 +11,7 @@ static void sfHelpLiveFinishClose()
 {
     const bool resume=sfHelpState.fromLiveGame && sfHelpState.returnScreen==SF_UI_GAME;
     const int returnScreen=sfHelpState.returnScreen;
+    if(sfTutorialState.active) sfTutorialExit();
     sfHelpState.open=false;
     sfHelpState.closeRequested=false;
     sfHelpState.tutorialRequested=false;
@@ -59,6 +60,10 @@ static void sfHelpLiveHandleHelpEvent(SDL_Event *event)
         const int width=std::max(1,int(tw));
         const int height=std::max(1,int(th));
         sfHelpHandleTap(event->tfinger.x,event->tfinger.y,width,height);
+        if(sfHelpState.tutorialRequested) {
+            sfHelpState.tutorialRequested=false;
+            sfTutorialOpenSelector();
+        }
         event->type=SDL_USEREVENT;
     } else if(event->type==SDL_FINGERMOTION || event->type==SDL_FINGERUP) {
         event->type=SDL_USEREVENT;
@@ -93,6 +98,10 @@ static void SpaceFortressHelpLive_HandleEvent(SDL_Event *event)
         event->type=SDL_USEREVENT;
         return;
     }
+
+    // Tutorial is a child of the help screen. It owns fresh input while active,
+    // but its BACK/X only exits the tutorial so the help hub remains underneath.
+    if(sfTutorialState.active && sfTutorialHandleEvent(event)) return;
 
     const int requested=sfFixRequestedScreen.load();
     if(requested==SF_UI_HELP && sfHelpState.open) {
@@ -137,6 +146,15 @@ static void SpaceFortressHelpLive_RenderPresent(SDL_Renderer *renderer)
 {
     if(!renderer) return;
     sfFixApplyUiRequests();
+    if(sfTutorialState.active) {
+        const Uint64 now=SDL_GetTicks64();
+        const float dt=sfTutorialLastTick ? float(now-sfTutorialLastTick)*.001f : 0.0f;
+        sfTutorialLastTick=now;
+        sfTutorialTick(dt);
+        sfTutorialDraw(renderer);
+        SDL_RenderPresent(renderer);
+        return;
+    }
     if(sfUiScreen==SF_UI_HELP && sfHelpState.open) {
         sfHelpDrawActive(renderer);
         SDL_RenderPresent(renderer);
