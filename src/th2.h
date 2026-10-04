@@ -71,3 +71,7 @@ void th2()
 #include <legacy_field_primitives.hpp>
 #include <legacy_field_runtime.hpp>
 #include <campaign_runtime.hpp>
+
+// The final help bridge is intentionally last: it needs the fully defined
+// campaign state to pause/resume a live match without restarting it.
+#include <help_live_bridge.hpp>
