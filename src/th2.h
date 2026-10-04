@@ -44,6 +44,7 @@ void th2()
 // 2026 UI shim: procedural start/help screens and input interception.
 // Included here (after t.hpp in main.cpp) so SDL and sprite are already defined.
 #include <start_ui.hpp>
+#include <help_runtime.hpp>
 
 // 2026 remaster runtime: gear gesture, VFX and occasional shooting stars.
 #include <remaster_runtime.hpp>
