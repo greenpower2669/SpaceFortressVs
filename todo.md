@@ -4,15 +4,17 @@
 
 Branche : `feature/in-game-help-tutorial-danger-9`
 Spec : `docs/superpowers/specs/2026-10-04-in-game-help-tutorial-danger-9-design.md`
+Plan : `docs/superpowers/plans/2026-10-04-in-game-help-tutorial-danger-9.md`
 
 ### Design / méthode
 
 - [x] Besoin joueur clarifié.
 - [x] Architecture choisie : profil danger + centre d'aide + tutoriel sandbox séparés.
 - [x] Design écrit et commité.
-- [ ] Fab relit/valide la spec écrite.
-- [ ] Écrire le plan d'implémentation détaillé.
-- [ ] Exécuter en TDD.
+- [x] Fab a validé la spec écrite et demandé l'implémentation.
+- [x] Plan d'implémentation TDD détaillé écrit et commité.
+- [ ] Fab valide le plan / choisit le mode d'exécution.
+- [ ] Exécuter le plan en TDD.
 
 ### Danger 9 niveaux
 
@@ -26,10 +28,10 @@ Spec : `docs/superpowers/specs/2026-10-04-in-game-help-tutorial-danger-9-design.
 
 ### IA classique
 
-- [ ] Identifier précisément le point de création des tirs IA sans modifier `src/main.cpp` si une couche runtime peut porter le comportement.
+- [x] Point de création/avancement des tirs identifié dans `tactical_runtime.hpp`; dommages Android classic passent par la copie générée `prepare-legacy-source.cmake`.
 - [ ] Calculer une interception à partir position/vitesse cible + vitesse projectile.
 - [ ] Appliquer erreur/anticipation selon le niveau.
-- [ ] Garantir vecteur projectile constant après création.
+- [ ] Garantir vecteur projectile ordinaire constant après création.
 - [ ] Appliquer dégâts/cadence/vitesse uniquement à l'IA adverse.
 
 ### Aide `?`
