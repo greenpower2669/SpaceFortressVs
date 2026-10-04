@@ -26,6 +26,7 @@ enti *iago=new enti,*iago1=new enti,*iacalc=new enti,*iatake=new enti;
 int main()
 {
     assert(sfHelpState.format==SfHelpFormat::Animated);
+    assert(sfHelpAnimationsEnabled());
     assert(sfHelpPageCount(SfHelpFormat::Quick)>=6);
     assert(sfHelpPageCount(SfHelpFormat::Detailed)>=9);
     assert(sfHelpPageCount(SfHelpFormat::Animated)==sfHelpPageCount(SfHelpFormat::Detailed));
@@ -34,12 +35,16 @@ int main()
     assert(sfHelpState.open && sfHelpState.returnScreen==SF_UI_HOME && !sfHelpState.fromLiveGame);
     sfHelpSelectFormat(SfHelpFormat::Quick);
     assert(sfHelpState.format==SfHelpFormat::Quick && sfHelpState.page==0);
+    assert(!sfHelpAnimationsEnabled());
     sfHelpNext();assert(sfHelpState.page==1);
     sfHelpPrevious();assert(sfHelpState.page==0);
     sfHelpCloseRequest();assert(sfHelpState.closeRequested);
     // Preference survives close/re-open within the process.
     sfHelpState.open=false;sfHelpState.closeRequested=false;
     sfHelpOpen(SF_UI_HOME,false);assert(sfHelpState.format==SfHelpFormat::Quick);
+    assert(!sfHelpAnimationsEnabled());
+    sfHelpSelectFormat(SfHelpFormat::Detailed);assert(!sfHelpAnimationsEnabled());
+    sfHelpSelectFormat(SfHelpFormat::Animated);assert(sfHelpAnimationsEnabled());
 
     for(auto size:{SDL_Point{360,780},SDL_Point{780,360}}) {
         const auto button=sfHelpGameButtonRect(size.x,size.y);
@@ -59,6 +64,6 @@ int main()
         SDL_DestroyRenderer(renderer);SDL_FreeSurface(surface);
     }
 
-    std::puts("PASS: help defaults animated, keeps player choice, navigates and renders with asset fallback");
+    std::puts("PASS: help defaults animated, keeps player choice, separates static and animated formats, and renders with asset fallback");
     return 0;
 }
