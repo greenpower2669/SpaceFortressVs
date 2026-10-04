@@ -1,4 +1,4 @@
-name: Kinetic balance v3 final diagnostic
+name: Kinetic balance v3 legacy diagnostic
 on:
   push:
     branches: [fix/gameplay-campaign-200]
@@ -7,86 +7,36 @@ on:
 permissions:
   contents: read
 jobs:
-  isolate:
+  isolate-legacy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
-      - name: Restore canonical regression source
-        run: |
-          git fetch origin 1459be010968e59d2860070f4a390ca3c327940f --depth=1
-          git show 1459be010968e59d2860070f4a390ca3c327940f:tests/regressions.cpp > tests/regressions.cpp
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('tests/regressions.cpp')
-          t=p.read_text()
-          t=t.replace('finger(SDL_FINGERDOWN, 11, .5f, .60f)','finger(SDL_FINGERDOWN, 11, .5f, .66f)')
-          t=t.replace('finger(SDL_FINGERDOWN, 13, .5f, .60f)','finger(SDL_FINGERDOWN, 13, .5f, .66f)')
-          p.write_text(t)
-          PY
       - name: Install SDL dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
-      - name: Apply candidate gameplay and adapted tests
-        run: |
-          python3 scripts/apply-kinetic-balance-v3b.py
-          python3 scripts/adapt-kinetic-balance-v3-tests.py
-      - name: Prepare assets
+      - name: Apply candidate gameplay
+        run: python3 scripts/apply-kinetic-balance-v3b.py
+      - name: Prepare generated compatibility source
         run: |
           rm -rf "$RUNNER_TEMP/sf-reg"
           mkdir -p "$RUNNER_TEMP/sf-reg/resources/assets"
           python3 scripts/prepare-assets.py --output "$RUNNER_TEMP/sf-reg/resources/assets"
-      - name: Python assets
-        run: python3 tests/test_assets.py
-      - name: Python release
-        run: python3 tests/test_release.py
-      - name: Python scenic integration
-        run: python3 tests/test_scenic_integration.py
-      - name: Python kinetic integration
-        run: python3 tests/test_kinetic_integration.py
-      - name: Python kinetic surge integration
-        run: python3 tests/test_kinetic_surge_integration.py
-      - name: Python kinetic balance v3 integration
-        run: python3 tests/test_balance_v3_integration.py
-      - name: C++ kinetic surge
-        run: |
-          g++ -std=c++17 -O1 -I src tests/kinetic_surge_regressions.cpp -o "$RUNNER_TEMP/sf-reg/kinetic-surge"
-          "$RUNNER_TEMP/sf-reg/kinetic-surge"
-      - name: C++ kinetic balance v3
-        run: |
-          g++ -std=c++17 -O1 -I src tests/kinetic_balance_v3_regressions.cpp -o "$RUNNER_TEMP/sf-reg/kinetic-balance-v3"
-          "$RUNNER_TEMP/sf-reg/kinetic-balance-v3"
-      - name: C++ scenic mix
-        run: |
-          g++ -std=c++17 -O1 -I src tests/scenic_mix_regressions.cpp -o "$RUNNER_TEMP/sf-reg/scenic-mix"
-          "$RUNNER_TEMP/sf-reg/scenic-mix"
-      - name: C++ kinetic shared model
-        run: |
-          g++ -std=c++17 -O1 -I src tests/kinetic_regressions.cpp -o "$RUNNER_TEMP/sf-reg/kinetic"
-          "$RUNNER_TEMP/sf-reg/kinetic"
-      - name: C++ campaign format
-        run: |
-          g++ -std=c++17 -O1 -ffunction-sections -fdata-sections -I src tests/campaign_format_regressions.cpp -Wl,--gc-sections -o "$RUNNER_TEMP/sf-reg/campaign-format"
-          "$RUNNER_TEMP/sf-reg/campaign-format"
-      - name: C++ full SDL regressions
-        run: |
-          read -r -a CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
-          read -r -a LIBS <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
-          g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all -ffunction-sections -fdata-sections -I src -I tests/include "${CFLAGS[@]}" tests/regressions.cpp -Wl,--gc-sections "${LIBS[@]}" -pthread -o "$RUNNER_TEMP/sf-reg/regressions"
-          (cd "$RUNNER_TEMP/sf-reg" && ./regressions)
-      - name: Generate Android compatibility source
-        run: |
           (cd "$RUNNER_TEMP/sf-reg" && cmake -DREPO_ROOT="$GITHUB_WORKSPACE" -P "$GITHUB_WORKSPACE/scripts/prepare-legacy-source.cmake")
-          grep -Fq "::setw(static_cast<float>(DM.w));seth(DM.h);" "$RUNNER_TEMP/sf-reg/generated/main_android_compat.cpp"
-      - name: Android compatibility syntax
-        run: |
-          read -r -a CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
-          g++ -std=c++17 -D__ANDROID__ -Werror=return-type -fsyntax-only -I src -I tests/include "${CFLAGS[@]}" "$RUNNER_TEMP/sf-reg/generated/main_android_compat.cpp"
-      - name: C++ legacy field regressions
+      - name: Compile legacy field regression binary
         run: |
           read -r -a CFLAGS <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
           read -r -a LIBS <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
           g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all -ffunction-sections -fdata-sections -I src -I tests/include -I "$RUNNER_TEMP/sf-reg/generated" "${CFLAGS[@]}" tests/legacy_field_regressions.cpp -Wl,--gc-sections "${LIBS[@]}" -pthread -o "$RUNNER_TEMP/sf-reg/legacy-field-regressions"
-          (cd "$RUNNER_TEMP/sf-reg" && ./legacy-field-regressions)
+      - name: Legacy visibility
+        run: (cd "$RUNNER_TEMP/sf-reg" && ./legacy-field-regressions visibility)
+      - name: Legacy classic render
+        run: (cd "$RUNNER_TEMP/sf-reg" && ./legacy-field-regressions classic-render)
+      - name: Legacy mining
+        run: (cd "$RUNNER_TEMP/sf-reg" && ./legacy-field-regressions mining)
+      - name: Legacy trajectories
+        run: (cd "$RUNNER_TEMP/sf-reg" && ./legacy-field-regressions trajectories)
+      - name: Legacy interactions
+        run: (cd "$RUNNER_TEMP/sf-reg" && ./legacy-field-regressions interactions)
+      - name: Legacy full field
+        run: (cd "$RUNNER_TEMP/sf-reg" && ./legacy-field-regressions full-field)
