@@ -41,10 +41,10 @@ g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recove
 grep -Fq "::setw(static_cast<float>(DM.w));seth(DM.h);" "$sf_test_dir/generated/main_android_compat.cpp"
 grep -Fq "sfClassicIncomingNonKinetic(e,Spritej2,misspvminus(Spritej2))" "$sf_test_dir/generated/main_android_compat.cpp"
 grep -Fq "sfClassicIncomingNonKinetic(e,Spritej2,pvminus(Spritej2))" "$sf_test_dir/generated/main_android_compat.cpp"
-if grep -F "asteroid linear shield hull" "$sf_test_dir/generated/main_android_compat.cpp" | grep -Fq "sfClassicIncomingNonKinetic"; then
-    echo "danger helper leaked into asteroid path" >&2
-    exit 1
-fi
+# The generated translation unit must contain exactly the two non-kinetic blue
+# hull call sites above. A third direct call would mean danger leaked into
+# asteroid/kinetic or another unintended damage path.
+test "$(grep -Fc 'sfClassicIncomingNonKinetic(' "$sf_test_dir/generated/main_android_compat.cpp")" -eq 2
 g++ -std=c++17 -D__ANDROID__ -Werror=return-type -fsyntax-only -I "$sf_repo/src" \
     -I "$sf_repo/tests/include" "${sf_sdl_cflags[@]}" \
     "$sf_test_dir/generated/main_android_compat.cpp"
