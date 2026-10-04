@@ -30,6 +30,10 @@ g++ -std=c++17 -O1 -g -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "
     "${sf_sdl_cflags[@]}" "$sf_repo/tests/classic_danger_regressions.cpp" \
     -Wl,--gc-sections "${sf_sdl_libs[@]}" -pthread -o "$sf_test_dir/classic-danger"
 (cd "$sf_test_dir" && ./classic-danger)
+g++ -std=c++17 -O1 -g -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "$sf_repo/tests/include" \
+    "${sf_sdl_cflags[@]}" "$sf_repo/tests/help_runtime_regressions.cpp" \
+    -Wl,--gc-sections "${sf_sdl_libs[@]}" -pthread -o "$sf_test_dir/help-runtime"
+(cd "$sf_test_dir" && ./help-runtime)
 g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all \
     -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "$sf_repo/tests/include" \
     "${sf_sdl_cflags[@]}" "$sf_repo/tests/regressions.cpp" \
@@ -41,9 +45,6 @@ g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recove
 grep -Fq "::setw(static_cast<float>(DM.w));seth(DM.h);" "$sf_test_dir/generated/main_android_compat.cpp"
 grep -Fq "sfClassicIncomingNonKinetic(e,Spritej2,misspvminus(Spritej2))" "$sf_test_dir/generated/main_android_compat.cpp"
 grep -Fq "sfClassicIncomingNonKinetic(e,Spritej2,pvminus(Spritej2))" "$sf_test_dir/generated/main_android_compat.cpp"
-# The generated translation unit must contain exactly the two non-kinetic blue
-# hull call sites above. A third direct call would mean danger leaked into
-# asteroid/kinetic or another unintended damage path.
 test "$(grep -Fc 'sfClassicIncomingNonKinetic(' "$sf_test_dir/generated/main_android_compat.cpp")" -eq 2
 g++ -std=c++17 -D__ANDROID__ -Werror=return-type -fsyntax-only -I "$sf_repo/src" \
     -I "$sf_repo/tests/include" "${sf_sdl_cflags[@]}" \
