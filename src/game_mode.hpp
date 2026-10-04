@@ -7,6 +7,8 @@ static bool sfModeHasAi(int mode) { return mode==SF_DUEL_AI || mode==SF_COOP_AI;
 static void sfCampaignStart();
 static void sfCampaignRestoreDuelShips();
 static void sfCampaignSuspend();
+static bool sfCampaignPauseForHelp();
+static void sfCampaignResumeFromHelp();
 static bool sfCampaignHandleEvent(SDL_Event *event);
 static void sfCampaignDrawHall(SDL_Renderer *renderer);
 static void sfCampaignDrawSelect(SDL_Renderer *renderer);
