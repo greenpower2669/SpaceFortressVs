@@ -8,15 +8,17 @@ main=(root/'src/main.cpp').read_text()
 assert 'SF_KINETIC_COOP_DAMAGE_MULTIPLIER' not in k
 assert 'SF_KINETIC_COOP_DAMAGE_MULTIPLIER' not in c
 assert 'static_assert(SF_COOP_INCOMING_DAMAGE_MULTIPLIER' not in c
-# Non-kinetic coop attacks use the player-selected boss danger multiplier.
-assert 'const float incoming=sfBossDangerMultiplier()*damage;' in c
-assert 'const float incomingPerSecond=sfBossDangerMultiplier()*650.0f;' in c
+# Non-kinetic coop attacks use the single canonical hostile-danger helper.
+assert 'const float incoming=sfApplyHostileDanger(damage);' in c
+assert 'const float incomingPerSecond=sfApplyHostileDanger(650.0f);' in c
 assert 'SF_COOP_INCOMING_DAMAGE_MULTIPLIER' not in c
-# Kinetic asteroid and boss charge paths never use the boss danger multiplier.
+# Kinetic asteroid and boss charge paths never use hostile-danger scaling.
 assert 'static void sfCoopAsteroidHurt' in c and 'const float incoming=legacyDamage;' in c
 charge=c[c.index('static void sfCoopBossContact'):c.index('static void sfCoopAsteroidHurt')]
-assert 'sfBossDangerMultiplier()*solved.residualDamage' not in charge
+assert 'sfApplyHostileDanger(solved.residualDamage)' not in charge
 assert 'const float incoming=solved.residualDamage;' in charge
+asteroid=c[c.index('static void sfCoopAsteroidHurt'):]
+assert 'sfApplyHostileDanger(legacyDamage)' not in asteroid
 # Both classic and coop share the legacy field resolver; no permanent pulse rings remain.
 assert 'sfLegacyFieldFrame' in l and 'sfKineticTryLayer' in l
 assert 'sfKineticWaves' in t and 'sfKineticWaveRadiusAt' in t
