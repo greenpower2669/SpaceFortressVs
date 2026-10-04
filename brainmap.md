@@ -1,11 +1,10 @@
 # brainmap.md — SpaceFortressVs
 
-## Carte rapide de reprise — état livré 1.4.0
+## Carte rapide de reprise
 
-### Où reprendre
+### Base livrée 1.4.0
 
 - Dépôt : `greenpower2669/SpaceFortressVs`
-- Branche active après livraison : `main`
 - Release : `v1.4.0`
 - SHA publié : `98da8a01175d5091f487232f65872e92d213b321`
 - Merge : `c50088092744d18ce50f3ef484a2d706aa76a276`
@@ -13,16 +12,29 @@
 - Validation téléphone Fab : APK OK le 4/10/2026
 - Archive détaillée : `docs/archive/2026-10-spacefortress-v1.4.0-history.md`
 
-## Architecture utile
+### Mission active
+
+- Branche : `feature/in-game-help-tutorial-danger-9`
+- Spec : `docs/superpowers/specs/2026-10-04-in-game-help-tutorial-danger-9-design.md`
+- État : design écrit, avant plan d'implémentation/code.
+
+## Architecture utile existante
 
 ### Historique protégé
 - `src/main.cpp` — source historique ; blob `835059a0ecfe0f74708068b3259cad5db1cdb579`.
 
-### HOME / modes
+### HOME / modes / aide
 - `src/game_mode.hpp` — duel / coop.
-- `src/boss_danger.hpp` — niveaux HOME et multiplicateurs internes.
-- `src/start_ui.hpp` — affichage HOME.
-- `src/remaster_ai_fix.hpp` — interception tactile HOME / lancement.
+- `src/boss_danger.hpp` — actuellement 5 niveaux ; doit devenir source unique du profil 9 niveaux.
+- `src/start_ui.hpp` — HOME + aide statique actuelle ; futur point d'entrée du centre `?`.
+- `src/remaster_ai_fix.hpp` — interception tactile HOME/jeu ; futur routage pause/aide.
+
+### Mission prévue
+- nouveau runtime aide : RAPIDE / DÉTAILLÉ / ANIMÉ ;
+- nouveau runtime tutoriel sandbox ;
+- profil danger 9 niveaux partagé ;
+- adaptation IA classique : anticipation au départ seulement, projectile droit ensuite ;
+- adaptation coop/campagne pour cadence/vitesse/anticipation non cinétiques.
 
 ### Campagne 200
 - `src/campaign_runtime.hpp` — combat coop campagne, boss, HUD, dégâts.
@@ -31,7 +43,7 @@
 - `src/campaign_save.hpp` — sauvegardes v1/v2, migration, Hall of Fame.
 
 ### Énergie
-- `src/ship_energy.hpp` — `nrj=0` plein, `nrj=50` épuisé, cadence/précision/bouclier.
+- `src/ship_energy.hpp` — `nrj=0` plein, `nrj=50` épuisé.
 - `src/tactical_runtime.hpp` — poussière blanche, HUD, rendu tactique.
 
 ### Cinétique
@@ -39,44 +51,38 @@
 - `src/legacy_field_runtime.hpp` — astéroïdes historiques, collisions, fragmentation, poussières.
 - `src/remaster_runtime.hpp` — intégration classique/remaster et audio cinétique.
 
-## Flux canoniques
+## Danger canon pour la mission
+
+1. `MOU DU GENOU` ×1
+2. `CHILL` ×5
+3. `ROCK N ROLL` ×10
+4. `DUR A CUIRE` ×15
+5. `MACHINE DE GUERRE` ×20
+6. `SANS PITIE` ×25
+7. `CAUCHEMAR` ×30
+8. `APOCALYPSE` ×35
+9. `FIN DU MONDE` ×40 — défaut
+
+HOME affiche les noms, pas les coefficients. Cadence max prévue ×2.50, vitesse projectile max ×1.80. Les tirs classiques ordinaires anticipent avant création puis conservent un vecteur constant.
+
+## Flux canoniques à préserver
 
 ### Astéroïde
 `masse relative` → `vitesse relative` → `fermeture` → max 250 PV bruts → couches cinétiques → bouclier historique → coque.
 
-Jamais de multiplicateur danger boss sur ce flux.
-
-### Boss non cinétique
-projectile / rayon / vague / contact ordinaire → `sfBossDangerMultiplier()` → bouclier historique → PV.
+Jamais de multiplicateur danger sur ce flux.
 
 ### Poussières
-- blanche : énergie jusqu'à `nrj=0`, puis soin ; non déviée ;
-- rouge : visuelle seulement, aucune mutation gameplay.
+- blanche : énergie jusqu'à `nrj=0`, puis soin ;
+- rouge : visuelle seulement.
 
 ### Surcharge
 2e doigt maintenu → 0..2 s champ ×2 + arc-en-ciel + son → à 2 s état prêt + champ cinétique OFF → relâchement = purge + son décharge.
 
-## Danger HOME
-
-1. `MOU DU GENOU` ×1
-2. `CHILL` ×5
-3. `ROCK N ROLL` ×10 — défaut
-4. `DUR A CUIRE` ×15
-5. `MACHINE DE GUERRE` ×20
-
-Les coefficients ne sont pas affichés. Le tap du sélecteur ne lance jamais le combat.
-
 ## Tests / livraison
 
 - `scripts/test-regressions.sh`
-- `tests/kinetic_regressions.cpp`
-- `tests/kinetic_surge_regressions.cpp`
-- `tests/kinetic_balance_v3_regressions.cpp`
-- `tests/legacy_field_regressions.cpp`
-- `tests/regressions.cpp`
-- `scripts/package-release.py`
-- `scripts/publish-release.py`
+- régressions cinétiques + legacy field + campagne
+- futurs tests dédiés aide / tutoriel / danger / interception IA
 
-Dernière preuve de `main` : workflow `37181486670`, tout GREEN jusqu'au packaging.
-
-Pour l'historique des bugs, anciennes valeurs, essais et séquences de diagnostic, lire l'archive dédiée plutôt que d'élargir cette carte.
+Aucun merge/release avant validation complète de Fab.
