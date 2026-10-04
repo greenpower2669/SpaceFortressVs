@@ -1,159 +1,70 @@
-# SpaceFortressVs 1.4.x — lot correctif validé et en vérification
+# todo.md — SpaceFortressVs
 
-## Lot autorisé par Fab
-- [x] D-140-01 : corriger l’initialisation W dans la copie Android générée sans modifier main.cpp.
-- [x] D-140-02 : rendu missile historique distinct du plasma.
-- [x] D-140-04 : HUD boss dédoublé, vert→rouge ; PV/énergie pilotes sur leurs côtés ; joueur haut à 180°.
-- [x] D-140-03 : réduire la recharge de bouclier excessive via minerai.
-- [x] D-140-06 : contact boss continu, énergie puis PV.
-- [x] D-140-08 : cadence + précision initiale liées à l’énergie, sans auto-tir ni guidage ordinaire.
-- [x] D-140-09 : impacts astéroïdes successifs non masqués par i-frame projectile, chaleur de surface historique.
-- [x] D-140-05 : attribution séparée des tirs tourelles ; aucun buff PV boss arbitraire.
-- [x] D-140-07 : préserver prédiction initiale et trajectoire rectiligne des tirs ordinaires.
+## Priorité actuelle — 4 octobre 2026
 
-## Vérifications à obtenir
-- [x] CI complète fraîche sur `fbb1ff92907821217ff94d847d9f2bbf4683636d` : workflow 36266178070.
-- [x] Régression rendu réel astéroïde classique : PASS.
-- [x] Missile/HUD + recréation renderer : PASS.
-- [x] Cadence/dispersion, tir refusé sans coût, trajectoire rectiligne : PASS.
-- [x] Contact boss à 30/60/120 Hz : PASS.
-- [x] Collision astéroïde et récupération minerai : PASS.
-- [x] Build APK/AAB + packaging : PASS. Certificat debug `19e25032...` différent de la v1.3.1 publiée.
-- [ ] Essai téléphone Fab après livraison : vérifier astéroïdes visibles, missile, HUD miroir et nouvel équilibre.
+### À faire maintenant
 
-## Validation physique connue
-- [x] Joueur bas : tir au tap RAS.
-- [x] Joueur haut : contrôle/tir RAS.
-- [ ] Quatre doigts réellement simultanés à confirmer à deux joueurs.
+- [ ] Revalider Android sur le HEAD contenant la réorganisation des mémoires et les notes 1.4.0 actualisées.
+- [ ] Vérifier que le `-build.json` produit pointe vers ce SHA exact.
+- [ ] Publier la release GitHub **v1.4.0** avec APK, AAB, manifest de build et `SHA256SUMS` issus de ce même SHA.
+- [ ] Vérifier la release publique : tag, cible, assets, tailles et digests.
+- [ ] Ensuite seulement fusionner `fix/gameplay-campaign-200` dans `main`.
+- [ ] La fusion doit conserver les 5 commits uniques de `main` comme deuxième histoire de merge ; aucun écrasement de l'historique.
+- [ ] Vérifier `main` après fusion avec une exécution fraîche.
+- [ ] Synchroniser une dernière fois les 4 mémoires avec le SHA de release et le SHA final de `main`.
 
-## Historique précédent
+### Validation téléphone après livraison
 
-# SpaceFortressVs 1.3.1 — lot correctif
+- [ ] Le sélecteur de danger HOME passe bien par les 5 noms et ne lance pas le combat lorsqu'on le touche.
+- [ ] `ROCK N ROLL` est bien la difficulté par défaut.
+- [ ] Les dégâts astéroïdes sont cohérents : pas de dégât inventé à vitesse nulle, gros impact de référence plafonné à 250 PV bruts avant protections.
+- [ ] La poussière rouge est purement visuelle.
+- [ ] La poussière blanche recharge d'abord complètement l'énergie puis soigne.
+- [ ] Toutes les vagues sont lisibles centre→extérieur.
+- [ ] Surcharge : 2 s de charge, arc-en-ciel, son prêt, fenêtre vulnérable sans bouclier cinétique, puis purge au relâchement.
+- [ ] Relâchement avant 2 s : pas de purge complète, tap/tir conservé.
+- [ ] Stabilité coop / classique, veille-reprise, son et performances.
 
-- [x] Restaurer l'état complet des vaisseaux après la coop ; respiration
-  discrète à taille nominale, sans croissance cumulative ni changement de collision.
-- [x] Séparer tirs humains rectilignes et visée prédictive d'Orion en coop.
-- [x] Protéger les sauvegardes inconnues avec secours valide, les changements
-  après chargement et les octets corrompus ; écritures primaire/secours atomiques.
-- [x] Corriger la largeur de visibilité des astéroïdes et le minage en paysage
-  dans le source généré, sans modifier le main.cpp historique.
-- [x] Observer le champ historique à 30/60/120 Hz : 20 graines × 5 minutes,
-  deux orientations. Répartition équilibrée pour les trajectoires seules.
-- [x] Intégrer les deux PNG originaux de main (74c94c1), sans transformation.
-  Tourelle.png anime uniquement l'accueil ; le bonus est présent mais inactif.
-- [x] Borner les textes de l'accueil aussi par la hauteur en paysage.
-- [x] Vérifier les régressions natives/UBSan, les six tests Python et le
-  source Android généré. Contrôler le rendu de l'accueil et ses textures.
-- [x] Préparer version 1.3.1/code 9, noms APK/AAB, icône inchangée et vérification
-  octet pour octet des nouveaux PNG dans les deux paquets.
-- [x] Confirmer le build APK/AAB 1.3.1 et sa livraison GitHub : run 35503643572,
-  commit dcf80af, release v1.3.1 publiée avec empreintes vérifiées.
-- [x] Comparer les certificats APK : celui de la 1.3.1 publiée diffère de la 1.3.0.
-  Une mise à jour directe sur l'installation existante est impossible avec cet APK.
-- [ ] Retrouver la clé de signature de l'installation 1.3.0 et configurer une
-  signature pérenne pour les mises à jour. Le workflow debug ne conserve pas sa
-  clé. Ne pas désinstaller ni effacer les données Android pour contourner le refus.
-- [ ] Essais téléphone : champ complet avec collisions/minage/fragmentation,
-  animation, clavier, multitouch, son, reprise, performances, équilibre humain.
-- [ ] Suite : 200 rencontres (50 identités × 4 difficultés), migration v2,
-  mobilité/tactiques des boss et bonus temporaire. Valider l'ordre des difficultés.
-- [ ] Bonus_de_tourelles.png est RGB avec damier intégré : convenir du détourage
-  avant son activation en jeu ; original conservé.
+## Terminé — lot campagne 200 / kinetic balance v3
 
-Plan et preuves : docs/maintenance-1.3.1.md et docs/delivery.md. Release publiée :
-https://github.com/greenpower2669/SpaceFortressVs/releases/tag/v1.3.1
+- [x] Campagne 200 : 50 boss × 4 difficultés.
+- [x] Migration sauvegardes v1→v2 et Hall of Fame.
+- [x] Signatures visuelles difficultés 0/4/8/20 tentacules + auras.
+- [x] Rendu astéroïdes Android restauré sans modifier `src/main.cpp`.
+- [x] Missile coop visuellement distinct.
+- [x] HUD coop double orientation + vie boss.
+- [x] Tirs ordinaires non guidés en vol ; prédiction initiale IA conservée.
+- [x] Cadence/précision liées à la réserve historique.
+- [x] Contact boss non cinétique rendu fortement dépendant du danger choisi.
+- [x] Astéroïdes et charges explicites séparés du multiplicateur danger boss.
+- [x] Modèle cinétique linéaire masse × vitesse relative × fermeture.
+- [x] Suppression du plancher de dégâts cinétiques.
+- [x] Dégât brut astéroïde de référence plafonné à 250 PV.
+- [x] Couches cinétiques empêchent une double collision coque dans la même étape.
+- [x] Poussière rouge rendue strictement visuelle.
+- [x] Poussière blanche : énergie d'abord, soin ensuite.
+- [x] Vagues centre→extérieur renforcées visuellement.
+- [x] Surcharge 2 doigts : 2 s, ×2 pendant charge, arc-en-ciel, sons, vulnérabilité après armement, purge au relâchement.
+- [x] Danger HOME : `MOU DU GENOU`, `CHILL`, `ROCK N ROLL`, `DUR A CUIRE`, `MACHINE DE GUERRE`.
+- [x] Défaut danger = ×10 / `ROCK N ROLL`.
+- [x] Suite complète Python + C++ + SDL/UBSan + compat Android + legacy field verte sur le build de référence `b56b883d2499fb41c4bd26cb39e067c527201f28`.
+- [x] Gradle APK/AAB + packaging de référence verts : workflow `37166112893`.
 
-## Historique 1.3.0
+## Artefacts de référence avant republication
 
-- [x] Récupérer la campagne complète et les trois atlas originaux.
-- [x] Vérifier les cibles futures des IA/tourelles et la poursuite à 30/60/120 fps.
-- [x] Vérifier 50 monstres animés, 50 planètes et six décors de nébuleuses.
-- [x] Vérifier coop locale/IA, progression, noms et Hall of Fame persistant.
-- [x] Corriger les dimensions en paysage et les minerais après collision.
-- [x] Rejouer les régressions SDL/UBSan, les six tests Python et la compilation
-  syntaxique du source Android généré ; contrôler les rendus portrait/paysage.
-- [x] Ajouter une icône Android adaptative et conserver les noms APK/AAB versionnés.
-- [x] Extraire les deux ZIP avec GitHub Actions sur main (commit 9ab4179), puis
-  intégrer les 12 PNG manquants à la branche 1.3.0, sans modifier le traitement
-  Base64. Les 21 PNG et les quatre ressources de l'icône ont été comparés.
-- [x] Corriger le blocage SDK : demander platform-tools sans le paquet tools
-  introuvable ; ne pas masquer un échec précoce par un journal de build absent.
-- [x] Vérifier la compilation APK/AAB et la publication GitHub de v1.3.0.
-  Build et publication réussis : run 35470197812, commit 7ce2c94.
-  Les tests de régression natifs et Python, la signature APK et les empreintes
-  des fichiers publiés ont été vérifiés. Le build de la PR a également réussi.
-- [ ] Essai sur téléphone : toucher simultané, clavier, son, reprise Android,
-  performances et équilibrage avec deux joueurs humains.
+- APK : `SpaceFortressVs-1.4.0.apk`
+  - taille : 87 675 757 octets
+  - SHA-256 : `ff64f6a4a9a6b6ddbeea347d708e38b2b43e0d10ce9865205c415f717e9bcb66`
+- AAB : `SpaceFortressVs-1.4.0-unsigned.aab`
+  - taille : 85 168 535 octets
+  - SHA-256 : `4e2f8b2f6a0c671095598b03ea9a1825ce9555aa839cdf9a748fe311c7dbb4ae`
+- Ces artefacts prouvent l'état `b56b883d…`, mais la release à publier doit être reconstruite après cette réorganisation afin que son manifest corresponde exactement au SHA publié.
 
-Livraison publiée : https://github.com/greenpower2669/SpaceFortressVs/releases/tag/v1.3.0
-APK signé avec la clé de test Android ; AAB non signé. Le Hall of Fame reste
-local au téléphone. Ne pas effacer les données de l'application pour le conserver.
+## Interdits
 
-
-## D-140-10 — dégâts entrants coop ×5
-- [x] Appliquer ×5 après bouclier aux attaques boss, au contact boss et aux astéroïdes.
-- [x] Préserver énergie, i-frames, dégâts sortants, PV boss, mode classique et `src/main.cpp`.
-- [x] Ajouter les régressions deux pilotes / coop locale+IA / nrj 0-25-50 / spéciaux boss / 30-60-120 Hz / callback astéroïdes / clamp zéro.
-- [x] CI fraîche sur `7e624256d8f50d07a63e92c9c3851ff2b6048ace` : workflow 36940059444, 58 PASS, build APK/AAB et packaging vérifiés.
-- [ ] Validation téléphone Fab du nouvel équilibre.
-
-- [x] Diagnostiquer CI 36939207044 : échec limité au test astéroïde contaminé par la récupération de poussière après callback.
-- [x] Isoler le callback réel via `sfLegacyFieldStep(sfCoopAsteroidHurt)` sans modifier le gameplay.
-- [x] Diagnostiquer CI 36939614317 : surface de test erronée car `setv()` randomise historiquement la hauteur ; utiliser la surface réellement créée.
-
-
-## D-140-11 — dégâts ×15 et poussières
-- [x] Passer le multiplicateur entrant coop de ×5 à ×15 après bouclier.
-- [x] Autoriser boss blessé et munitions spéciales kind 1/2/3 à récupérer les poussières blanches pour soigner le boss.
-- [x] Générer des poussières rouges sur impacts boss ; aucune recharge, légère usure du bouclier via chaleur.
-- [x] Préserver les poussières rouges historiques des collisions d'astéroïdes et `src/main.cpp`.
-- [x] CI fraîche + APK/AAB de test sur `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`, workflow `37095128530`.
-- [ ] Validation téléphone Fab.
-
-
-### Preuve fraîche D-140-11 APK
-Gameplay testé : `23d0e3e1354dec2cadf7b40c7a4f10a8b751a585`. Workflow `37095128530` : régressions complètes GREEN puis build Android APK+AAB réussi. Artefact : `SpaceFortressVs-x15-dust-APK-AAB-37095128530`. Le premier essai avait échoué uniquement sur la validation d'un wrapper Gradle tiers SDL téléchargé trop tôt ; l'ordre CI a été corrigé sans changement gameplay. Aucun merge `main`, aucune release ; validation téléphone reste à Fab.
-
-
-## D-140-12 — bouclier linéaire deux modes
-- [x] Cœur commun duel + coop sans modifier src/main.cpp.
-- [x] Protection linéaire 100/90/80/.../0 %.
-- [x] Usure 10/20/30/.../100 % selon réserve pré-impact.
-- [x] Poussière blanche pleine = 0.25 nrj (~0.5%).
-- [x] Contact boss stable 30/60/120 via intégration interne.
-- [ ] CI Android fraîche + APK/AAB.
-- [ ] Validation téléphone Fab dans les deux modes.
-
-
-## D-140-13 scenic progression
-- [x] 20 base identities / 100 mixed candidates.
-- [x] Classic no-repeat shuffled 100-scene bag.
-- [x] Campaign full 0..199 scenery and RGB progression.
-- [x] Subtle boss/planet colour correction.
-- [x] Continuous boss travel toward safe edges.
-- [x] Native regressions and generated classic compile.
-- [ ] Phone visual validation by Fab.
-
-- [x] D-140-14 shared kinetic shield: velocity-squared impacts, two layers, charge-only boss kinetics, red-dust ripple, reserve-driven PV regeneration; verify native + Android CI.
-
-## D-140-15 — Boucliers cinétiques v2
-- [x] Deux modes: classique + coop/campagne sur le même cœur.
-- [x] Retirer ×15 des astéroïdes et charges cinétiques uniquement.
-- [x] Faible vitesse = faible dégât; petite composante masse résiduelle.
-- [x] Interception compacte et variable avec la vitesse; très lent passe.
-- [x] Vagues individuelles centre→rayon max→disparition, plusieurs simultanées possibles.
-- [x] Coût énergétique cinétique = ancien coût ×0.00001.
-- [x] Poussière rouge vibrée/déviée; poussière blanche jamais déviée.
-- [x] Logs KINETIC_IMPACT/WAVE/DUST.
-- [ ] Validation ressenti téléphone Fab avant toute merge/release.
-
-## Kinetic surge / two-finger field — 2026-10-03
-- Canon shared by classic + coop: maximum kinetic field diameter = 2.0 ship diameters.
-- Short second-finger tap keeps firing; long hold (0.35 s) enters a transparent visible surge.
-- Surge doubles kinetic dissipation for at most 2.0 s. Release after activation purges every asteroid inside the max kinetic zone into historical white resource dust.
-- White dust is never physically deflected by kinetic waves; red dust remains reactive.
-- Normal absorption waves are more transparent; surge aura shows inner + outer circles.
-- Classic hull dimensions remain historical; only the kinetic field diameter expands.
-- No main merge/release before Fab phone validation.
-
-- [ ] TEST TELEPHONE: confirmer synchro son charge 2.00 s, signal prêt, coupure visuelle/protection après 2 s, déflagration au relâchement, irisation lisible et sélecteur DANGER BOSS x1/x5/x10/x15/x20.
+- [ ] Ne pas forcer `main` en remplaçant son histoire.
+- [ ] Ne pas publier des binaires d'un SHA différent du `target_commitish` de la release.
+- [ ] Ne pas retoucher `src/main.cpp` pour ces sujets.
+- [ ] Ne pas appliquer le danger boss aux chemins cinétiques.
+- [ ] Ne pas redonner de gameplay à la poussière rouge.
+- [ ] Ne pas conseiller de désinstaller l'application ou d'effacer ses données à cause de la signature debug différente.
