@@ -52,10 +52,10 @@ static void sfBossDangerAdjust(int direction)
 # Linear asteroid kinetic law: largest reference asteroid at reference max speed/full closing = 250 PV (25%).
 literal('src/kinetic_shield.hpp',
         'constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR = .01f;\n',
-        'constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR = .01f; // legacy compatibility only; no damage floor\nconstexpr float SF_KINETIC_ASTEROID_MAX_HULL_DAMAGE = 250.0f;\n')
+        'constexpr float SF_KINETIC_ASTEROID_MAX_HULL_DAMAGE = 250.0f; // 25% of the canonical 1000 PV hull.\n')
 sub('src/kinetic_shield.hpp',
     r'''    const float impactRatio=out\.impactSpeed/referenceSpeed;\n    out\.relativeRatio=out\.relativeSpeed/referenceSpeed;\n    out\.massFactor=std::max\(0\.0f,massFactor\);\n    // .*?\n    out\.speedFactor=SF_KINETIC_MASS_DAMAGE_FLOOR\+impactRatio\*impactRatio;\n    out\.rawDamage=std::max\(0\.0f,baseDamage\)\*out\.massFactor\*out\.speedFactor;''',
-    '''    out.relativeRatio=out.relativeSpeed/referenceSpeed;\n    out.massFactor=std::max(0.0f,massFactor);\n    const float speedRatio=std::clamp(out.relativeRatio,0.0f,1.0f);\n    const float closingFactor=out.relativeSpeed>.0001f\n        ? std::clamp(out.impactSpeed/out.relativeSpeed,0.0f,1.0f) : 0.0f;\n    // Canon: linear mass x relative speed x actual inward/closing component.\n    out.speedFactor=speedRatio*closingFactor;\n    out.rawDamage=std::max(0.0f,baseDamage)*out.massFactor*out.speedFactor;''')
+    '''    out.relativeRatio=out.relativeSpeed/referenceSpeed;\n    out.massFactor=std::clamp(massFactor,0.0f,1.0f);\n    const float speedRatio=std::clamp(out.relativeRatio,0.0f,1.0f);\n    const float closingFactor=out.relativeSpeed>.0001f\n        ? std::clamp(out.impactSpeed/out.relativeSpeed,0.0f,1.0f) : 0.0f;\n    // Canon: linear mass x relative speed x actual inward/closing component.\n    out.speedFactor=speedRatio*closingFactor;\n    out.rawDamage=std::max(0.0f,baseDamage)*out.massFactor*out.speedFactor;''')
 
 # Shared asteroid resolver: mass normalized 0..1, same law classic + coop.
 literal('src/legacy_field_runtime.hpp',
@@ -73,13 +73,10 @@ literal('src/legacy_field_runtime.hpp',
 '''  if(rock->kineticStage==0 && raw.suggestedLayer==SfKineticLayer::Outer && travelled<=outer) {\n      rock->kineticStage=1;\n      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Outer,raw)) continue;\n  }\n  if(rock->pv<=0) continue;\n  if(rock->kineticStage<2 && raw.selectedRange>0 && travelled<=inner) {\n      rock->kineticStage=2;\n      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Inner,raw)) continue;\n  }\n''',
 '''  bool interacted=false;\n  if(rock->kineticStage==0 && raw.suggestedLayer==SfKineticLayer::Outer && travelled<=outer) {\n      rock->kineticStage=1;\n      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Outer,raw,&interacted)) continue;\n      if(interacted) continue;\n  }\n  if(rock->pv<=0) continue;\n  interacted=false;\n  if(rock->kineticStage<2 && raw.selectedRange>0 && travelled<=inner) {\n      rock->kineticStage=2;\n      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Inner,raw,&interacted)) continue;\n      if(interacted) continue;\n  }\n''')
 
-# Red dust is visual-only: remove coop heat constants/collector/call. Its wave motion remains in legacy_field_runtime.
+# Red dust is visual-only. Keep the compatibility hook, but it mutates no gameplay state.
 sub('src/campaign_runtime.hpp',r'\nstatic constexpr float SF_COOP_RED_DUST_HEAT = \.08f;\nstatic constexpr float SF_COOP_RED_DUST_ARMED_PV = 560\.0f;','')
-sub('src/campaign_runtime.hpp',r'\nstatic void sfCoopCollectRedDust\(\)\n\{.*?\n\}\n\nstatic void sfCoopHurt', '\nstatic void sfCoopHurt', flags=re.S)
-text=read('src/campaign_runtime.hpp')
-text2,n=re.subn(r'\n\s*sfCoopCollectRedDust\(\);','',text)
-if n<1: raise AssertionError('campaign_runtime.hpp: no red dust collector call found')
-write('src/campaign_runtime.hpp',text2)
+sub('src/campaign_runtime.hpp',r'\nstatic void sfCoopCollectRedDust\(\)\n\{.*?\n\}\n\nstatic void sfCoopHurt',
+'''\nstatic void sfCoopCollectRedDust()\n{\n    // Visual tracer only. Motion/deflection is owned by the shared kinetic field.\n}\n\nstatic void sfCoopHurt''', flags=re.S)
 
 # White dust: exact full energy first (nrj -> 0), then strong hull healing on subsequent dust.
 literal('src/tactical_runtime.hpp','static void sfCollectDust()\n{',
@@ -99,7 +96,6 @@ literal('src/tactical_runtime.hpp',
 literal('src/start_ui.hpp',
 '''    const std::string dangerText = std::string("< DANGER BOSS : X") +\n        std::to_string(int(sfBossDangerMultiplier())) + " >";''',
 '''    const std::string dangerText = std::string("< DANGER BOSS : ") + sfBossDangerName() + " >";''')
-# Any older start_ui handler also cycles a single step if present.
 text=read('src/start_ui.hpp').replace('sfBossDangerAdjust(x < .5f ? -1 : 1);','sfBossDangerNext();')
 write('src/start_ui.hpp',text)
 literal('src/remaster_ai_fix.hpp',
