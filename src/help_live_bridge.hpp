@@ -78,7 +78,18 @@ static void SpaceFortressHelpLive_HandleEvent(SDL_Event *event)
 
     if((event->type==SDL_FINGERMOTION || event->type==SDL_FINGERUP) &&
        sfFixConsumedFingers.count(event->tfinger.fingerId)) {
-        if(event->type==SDL_FINGERUP) sfFixConsumedFingers.erase(event->tfinger.fingerId);
+        if(event->type==SDL_FINGERUP) {
+            const SDL_FingerID fid=event->tfinger.fingerId;
+            sfFixConsumedFingers.erase(fid);
+            // Preserve the historical gear-release cleanup even when the
+            // final help router owns the consumed finger's FINGERUP.
+            if(sfFixGear1Down && sfFixGear1Finger==fid) {
+                sfFixGear1Down=false;sfFixGear1Finger=0;
+            }
+            if(sfFixGear2Down && sfFixGear2Finger==fid) {
+                sfFixGear2Down=false;sfFixGear2Finger=0;
+            }
+        }
         event->type=SDL_USEREVENT;
         return;
     }
