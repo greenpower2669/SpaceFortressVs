@@ -92,3 +92,19 @@ Remplace les réglages cinétiques incompatibles de D-140-14: BOTH modes, aucun 
 
 ## AVENANT 2026-10-03 — SURCHARGE AUDIO + DANGER BOSS
 Canon validé Fab: charge 2e doigt exactement 2 s, champ x2 irisé pendant la charge; à 2 s son prêt et bouclier cinétique OFF jusqu’au relâchement; relâchement chargé = son de déflagration + purge astéroïdes. Trois sons originaux synthétiques intégrés. Dégâts boss non cinétiques: défaut x10, sélection accueil x1/x5/x10/x15/x20. Le cinétique reste hors multiplicateur boss. Classique et coop homogènes. Aucun merge main/release sans validation téléphone.
+
+## HELP-TUTORIAL-DANGER9 — 2026-10-04 — CODE GREEN / TÉLÉPHONE EN ATTENTE
+
+Fab a validé la spec puis le plan TDD du lot `feature/help-tutorial-danger-9-canon`.
+
+Contrat canonique :
+- `?` accueil + en jeu ; reprise de la même partie sans reset ;
+- aide `RAPIDE` / `DETAILLE` / `ANIME`, avec `ANIME` par défaut et seul format animé ;
+- tutoriel séparé, guidé, sandbox sans progression ni sauvegarde ;
+- 9 dangers : `MOU DU GENOU` ×1, `CHILL` ×5, `ROCK N ROLL` ×10 défaut, `DUR A CUIRE` ×15, `MACHINE DE GUERRE` ×20, `CA VA PIQUER` ×25, `SANS PITIE` ×30, `ENFER STELLAIRE` ×35, `APOCALYPSE` ×40 ; coefficients non affichés ;
+- multiplicateur uniquement sur dégâts hostiles non cinétiques concernés, y compris tirs IA hostiles en classique ; aucune modification cadence/vitesse/visée ; jamais sur astéroïdes/cinétique ;
+- `src/main.cpp` historique inchangé.
+
+Preuve code : SHA `d9520a0b674d7f21df37f982a444d625b523f8d9`, workflow `37236262962` (run 268) entièrement GREEN : régressions, APK, AAB, vérification, packaging. Artefact `SpaceFortressVs-1.4.0-release-files` id `11316375150`, digest `sha256:65d8a536339e48f8b5f95207a082215b0e306289171183f999824f807b1a59c5`. `publish-release` SKIPPED.
+
+Étape restante : validation physique sur téléphone par Fab. **Aucun merge `main` ni aucune release avant accord explicite de Fab.**

@@ -1,21 +1,17 @@
 # todo.md — SpaceFortressVs
 
-## État
+## Lot HELP / TUTORIEL / DANGER 9
 
-- [x] v1.4.0 livrée, fusionnée dans `main`, revalidée et confirmée OK sur téléphone par Fab.
-- [x] Historique du lot archivé dans `docs/archive/2026-10-spacefortress-v1.4.0-history.md`.
-
-## Prochaine mission
-
-- [ ] Partir de `main` sauf ordre contraire de Fab.
-- [ ] Lire seulement `brain.md` + `brainmap.md` au démarrage ; ouvrir `debughistorical.md` ou l'archive uniquement si nécessaire.
-- [ ] Créer une branche dédiée avant nouveau code conséquent.
-- [ ] Synchroniser les 4 mémoires vivantes sans y recopier logs, CI ou historique résolu.
+- [x] Code et régressions terminés sur `feature/help-tutorial-danger-9-canon`.
+- [x] APK + AAB vérifiés au SHA `d9520a0b674d7f21df37f982a444d625b523f8d9`, workflow `37236262962` GREEN.
+- [x] `src/main.cpp` absent du diff.
+- [ ] Fab : test téléphone du `?`, des 3 formats, du tuto, de la reprise d’une partie et des 9 dangers.
+- [ ] Vérifier sur téléphone que le danger classique modifie les tirs IA hostiles mais jamais le cinétique.
+- [ ] Après validation explicite de Fab seulement : décider merge `main` puis éventuelle release.
 
 ## Invariants
 
+- [ ] `ROCK N ROLL` reste le défaut ×10 interne ; coefficients cachés aux joueurs.
+- [ ] Danger = dégâts non cinétiques uniquement ; aucune modification cadence/vitesse/visée.
+- [ ] `nrj=0` plein / `nrj=50` épuisé ; rouge sans gameplay.
 - [ ] `src/main.cpp` historique protégé.
-- [ ] `nrj=0` plein / `nrj=50` épuisé.
-- [ ] Danger boss jamais appliqué au cinétique.
-- [ ] Poussière rouge sans gameplay.
-- [ ] Ne jamais contourner une signature Android différente par effacement des données.

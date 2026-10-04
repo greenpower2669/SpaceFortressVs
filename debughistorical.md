@@ -1,16 +1,17 @@
 # debughistorical.md — SpaceFortressVs
 
-## Pièges prouvés à garder en mémoire
+## Pièges prouvés
 
-Historique détaillé : `docs/archive/2026-10-spacefortress-v1.4.0-history.md`.
+Archives : `docs/archive/2026-10-spacefortress-v1.4.0-history.md` et `docs/archive/2026-10-spacefortress-help-tutorial-danger9-history.md`.
 
-- **Android / astéroïdes invisibles** : confusion `std::setw` / `fablib::setw(W)` dans la source Android générée. Corriger la copie générée, pas `src/main.cpp`.
-- **Énergie inversée par rapport à l'intuition** : `nrj=0` plein, `nrj=50` épuisé.
-- **Cinétique v3** : aucun plancher de dégâts ; vitesse nulle = zéro dégât cinétique inventé ; danger boss exclu des chemins cinétiques.
-- **Double impact interdit** : une interaction réelle avec une couche cinétique ne doit pas retomber sur une collision coque complète dans la même étape.
-- **Poussières** : rouge = visuel uniquement ; blanche = recharge puis soin et n'est pas déviée.
-- **Surcharge** : 2 s ; pendant charge champ ×2 ; une fois armée, champ OFF jusqu'au relâchement ; relâchement armé = purge.
-- **HOME** : le sélecteur de danger ne doit jamais lancer le combat ; `ROCK N ROLL` = défaut ×10 interne.
-- **Signature Android** : une signature de test différente n'autorise jamais à conseiller désinstallation ou effacement des données.
+- **Android / astéroïdes invisibles** : confusion `std::setw` / `fablib::setw(W)` ; corriger la copie générée, pas `src/main.cpp`.
+- **Énergie** : `nrj=0` plein, `nrj=50` épuisé.
+- **Cinétique** : aucun dégât inventé à vitesse nulle ; danger hostile exclu de tous les chemins cinétiques ; éviter tout double impact couche+coque.
+- **Poussières** : rouge visuelle uniquement ; blanche recharge puis soin et reste physiquement libre.
+- **Surcharge** : le tuto doit compter le vrai maintien jusqu’à 2 s ; ne pas plafonner le temps cumulé à 0,25 s. Armé = champ OFF jusqu’au relâchement.
+- **Danger** : utiliser le helper canonique sur le non-cinétique ; les tests ne doivent pas exiger une ancienne expression directe du multiplicateur.
+- **Aide en jeu** : `help_live_bridge.hpp` reste le routeur final ; il doit consommer le doigt du `?` et conserver l’état vivant avant reprise.
+- **Formats aide** : RAPIDE/DETAILLE = schémas fixes ; ANIME = horloge live. `help_format_bridge.hpp` isole cette différence.
+- **Signature Android** : ne jamais conseiller désinstallation/effacement des données comme contournement.
 
-Tout bug clôturé, ancien SHA, logs CI, essais abandonnés et anciennes valeurs restent dans l'archive/Git et ne doivent pas être recopiés ici.
+Anciens SHA, logs et essais résolus restent dans les archives/Git, pas ici.
