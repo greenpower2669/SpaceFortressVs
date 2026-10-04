@@ -31,6 +31,14 @@ class CampaignDangerIntegration(unittest.TestCase):
         self.assertNotIn("sfApplyHostileDanger", asteroid)
         self.assertNotIn("sfBossDangerMultiplier", asteroid)
 
+    def test_danger_does_not_change_attack_generation_or_player_fire(self):
+        pattern = body("static void sfCoopPattern(int pattern)", "static float sfCoopRisk(tupl position,tuplv velocity)")
+        fire = body("static bool sfCoopFire(int owner)", "static constexpr float SF_COOP_CHARGE_DURATION")
+        tick = body("static void sfCoopTick(float dt)", "static void sfCampaignStart()")
+        for section in (pattern, fire, tick):
+            self.assertNotIn("sfBossDanger", section)
+            self.assertNotIn("sfApplyHostileDanger", section)
+
 
 if __name__ == "__main__":
     unittest.main()
