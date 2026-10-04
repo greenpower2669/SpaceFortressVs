@@ -73,10 +73,13 @@ literal('src/legacy_field_runtime.hpp',
 '''  if(rock->kineticStage==0 && raw.suggestedLayer==SfKineticLayer::Outer && travelled<=outer) {\n      rock->kineticStage=1;\n      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Outer,raw)) continue;\n  }\n  if(rock->pv<=0) continue;\n  if(rock->kineticStage<2 && raw.selectedRange>0 && travelled<=inner) {\n      rock->kineticStage=2;\n      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Inner,raw)) continue;\n  }\n''',
 '''  bool interacted=false;\n  if(rock->kineticStage==0 && raw.suggestedLayer==SfKineticLayer::Outer && travelled<=outer) {\n      rock->kineticStage=1;\n      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Outer,raw,&interacted)) continue;\n      if(interacted) continue;\n  }\n  if(rock->pv<=0) continue;\n  interacted=false;\n  if(rock->kineticStage<2 && raw.selectedRange>0 && travelled<=inner) {\n      rock->kineticStage=2;\n      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Inner,raw,&interacted)) continue;\n      if(interacted) continue;\n  }\n''')
 
-# Red dust is visual-only. Keep the compatibility hook, but it mutates no gameplay state.
+# Red dust is visual-only: no coop gameplay collector/call. Its wave motion remains in legacy_field_runtime.
 sub('src/campaign_runtime.hpp',r'\nstatic constexpr float SF_COOP_RED_DUST_HEAT = \.08f;\nstatic constexpr float SF_COOP_RED_DUST_ARMED_PV = 560\.0f;','')
-sub('src/campaign_runtime.hpp',r'\nstatic void sfCoopCollectRedDust\(\)\n\{.*?\n\}\n\nstatic void sfCoopHurt',
-'''\nstatic void sfCoopCollectRedDust()\n{\n    // Visual tracer only. Motion/deflection is owned by the shared kinetic field.\n}\n\nstatic void sfCoopHurt''', flags=re.S)
+sub('src/campaign_runtime.hpp',r'\nstatic void sfCoopCollectRedDust\(\)\n\{.*?\n\}\n\nstatic void sfCoopHurt', '\nstatic void sfCoopHurt', flags=re.S)
+text=read('src/campaign_runtime.hpp')
+text2,n=re.subn(r'\n\s*sfCoopCollectRedDust\(\);','',text)
+if n<1: raise AssertionError('campaign_runtime.hpp: no red dust collector call found')
+write('src/campaign_runtime.hpp',text2)
 
 # White dust: exact full energy first (nrj -> 0), then strong hull healing on subsequent dust.
 literal('src/tactical_runtime.hpp','static void sfCollectDust()\n{',
