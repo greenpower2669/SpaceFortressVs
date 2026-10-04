@@ -57,6 +57,19 @@ literal('tests/restoration_regressions.hpp',
         '    assert(Spritej1->pv==pvBeforeRed && Spritej1->nrj>heatBeforeRed && red->pv==0);',
         '    assert(Spritej1->pv==pvBeforeRed && Spritej1->nrj==heatBeforeRed && red->pv>0);')
 
+# Legacy field interaction must exercise a real inward asteroid impact, not a stationary overlap.
+# Coop must also use the kinetic asteroid callback, never the boss/non-kinetic multiplier path.
+literal('tests/legacy_field_regressions.cpp',
+'''        Spritej1->setxywh(390,840,100,100);Spritej1->nrj=40;Spritej1->pv=1000;Spritej2->pv=0;
+        fieldRock(390,840,100);
+        sfLegacyFieldFrame(1.0f/60,coop ? sfCoopHurt : nullptr);
+        assert(Spritej1->pv<1000 && Spritej1->nrj>40 && !particulesr.empty() && !explos.empty());''',
+'''        Spritej1->setxywh(390,840,100,100);Spritej1->nrj=40;Spritej1->pv=1000;Spritej2->pv=0;
+        auto *impact=fieldRock(390,790,100);
+        impact->vy=sfKineticReferenceSpeed(sfArenaW)/60.0f;impact->kineticStage=2;
+        sfLegacyFieldFrame(1.0f/60,coop ? sfCoopAsteroidHurt : nullptr);
+        assert(Spritej1->pv<1000 && Spritej1->nrj>40 && !particulesr.empty() && !explos.empty());''')
+
 # Keep v3 contracts in every future full regression run.
 literal('scripts/test-regressions.sh',
 '''python3 "$sf_repo/tests/test_kinetic_integration.py"
