@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 //#include <fb.h>
 #define ppi 3.141592653589793238462643383 
 //float rt = ppi/180;
@@ -72,6 +73,7 @@ float vlongz(float va,float vaa,float vaaa){
 
 float vtan(float va,float vaa){
     float tang=sqrt((va*va)+(vaa*vaa));
+    if (tang == 0.0f) return 0.0f;
     float rep=va/tang;    
     return rep;
 }// plus vtan tupl plus loin
@@ -86,8 +88,8 @@ float conv360(float cx,float cy){
     float rep=0;
     float vx=cx;
     float vy=cy;
-    float ax= acos(cx)*180/pi;
-	float ay=asin(cy)*180/pi;
+    float ax= acos(std::clamp(cx, -1.0f, 1.0f))*180/pi;
+	float ay=asin(std::clamp(cy, -1.0f, 1.0f))*180/pi;
     if (vx>=0 and vy>=0)
     rep=ay;
     if (vx<0 and vy>=0)
@@ -245,7 +247,7 @@ class tuplvt
    float vyt;//t pour trigo 0-1 à tangente =1
    float forcet;//sauvegarde du coef vectoriel 
   public: 
-  tuplvt(){vxt=0;vyt=0;}
+  tuplvt(){vxt=0;vyt=0;forcet=0;}
   tuplvt(float vxti,float vyti,float forceti){
     vxt=vxti;vyt=vyti;forcet=forceti;}
     
@@ -260,7 +262,7 @@ class vecteurs: public tuplv, public anglef
   vecteurs(){vx=0;vy=0;}
   vecteurs(float vxi,float vxy){
        vx=vxi;
-       vy=vxi;
+       vy=vxy;
        forcet=vlong(vx,vy);
        vxt=vtan(vx,vy);
        vyt=vtan(vy,vx);
