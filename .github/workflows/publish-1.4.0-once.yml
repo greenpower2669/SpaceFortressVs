@@ -1,0 +1,49 @@
+name: Publish SpaceFortressVs 1.4.0 once
+
+on:
+  push:
+    branches:
+      - fix/gameplay-campaign-200
+    paths:
+      - .github/workflows/publish-1.4.0-once.yml
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout publisher script
+        uses: actions/checkout@v5
+
+      - name: Download exact verified release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: SpaceFortressVs-1.4.0-release-files
+          path: dist/release
+          github-token: ${{ github.token }}
+          run-id: 37180765011
+
+      - name: Verify artifact provenance and checksums
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('dist/release/SpaceFortressVs-1.4.0-build.json')
+          data=json.loads(p.read_text())
+          assert data['commit']=='98da8a01175d5091f487232f65872e92d213b321', data['commit']
+          assert data['version']=='1.4.0', data['version']
+          print('Verified release manifest commit', data['commit'])
+          PY
+          (cd dist/release && sha256sum --check SHA256SUMS)
+
+      - name: Publish v1.4.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: 98da8a01175d5091f487232f65872e92d213b321
+        shell: bash
+        run: GITHUB_SHA="$TARGET_SHA" python3 scripts/publish-release.py
