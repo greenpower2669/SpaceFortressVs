@@ -1,54 +1,27 @@
 # brain.md — SpaceFortressVs
 
-## État canonique courant — 4 octobre 2026
+## État canonique vivant
 
-- Dépôt : `greenpower2669/SpaceFortressVs`.
-- Branche livrée : `main`.
-- Version : **1.4.0**, versionCode **10**.
-- Release publique : **v1.4.0**.
-- SHA exact publié : `98da8a01175d5091f487232f65872e92d213b321`.
-- Merge réel à deux parents dans `main` : `c50088092744d18ce50f3ef484a2d706aa76a276`.
-- Dernier SHA de code/documentation vérifié sur `main` : `a30ca6ed4b4679ad9bd69ba8a145f602e9e3cb8b`.
-- Workflow `main` : `37181486670` — GREEN complet.
-- Fab confirme l'APK **OK sur téléphone** le 4 octobre 2026.
-- `src/main.cpp` historique reste inchangé, blob `835059a0ecfe0f74708068b3259cad5db1cdb579`.
-
-Archive détaillée du lot : `docs/archive/2026-10-spacefortress-v1.4.0-history.md`.
+- Branche courante : `main`.
+- Version livrée et validée téléphone par Fab : **v1.4.0**.
+- Détails de livraison, SHA, CI, anciens bugs et décisions : `docs/archive/2026-10-spacefortress-v1.4.0-history.md`.
+- `src/main.cpp` est la référence historique et reste protégé ; lire le code réel avant toute modification.
 
 ## Canon gameplay à préserver
 
-- Campagne : 200 affrontements = 50 boss × 4 difficultés.
-- `nrj=0` = réserve pleine ; `nrj=50` = réserve épuisée.
-- Poussière blanche : recharge jusqu'à `nrj=0`, puis soin fort.
-- Poussière rouge : **visuelle uniquement**, zéro effet gameplay.
-- Danger HOME visible par noms : `MOU DU GENOU`, `CHILL`, `ROCK N ROLL`, `DUR A CUIRE`, `MACHINE DE GUERRE`; défaut `ROCK N ROLL` = ×10 interne.
-- Chaque clic sur le sélecteur change uniquement le niveau ; seul `LANCER LA PARTIE` démarre le combat.
-- Le danger boss ne s'applique qu'aux attaques/contact non cinétiques du boss.
-- Astéroïdes : loi linéaire masse × vitesse relative × fermeture, référence max 250 PV bruts.
-- Toutes les vagues cinétiques naissent au centre et progressent vers l'extérieur.
-- Surcharge deux doigts : 2,00 s ; ×2 pendant charge ; irisation + son ; après 2 s bouclier cinétique OFF jusqu'au relâchement ; relâchement prêt = purge.
+- Campagne : **200 affrontements = 50 boss × 4 difficultés**.
+- Énergie historique : `nrj=0` = plein ; `nrj=50` = épuisé.
+- Poussière blanche : recharge jusqu'à `nrj=0`, puis soigne la coque.
+- Poussière rouge : **visuelle uniquement**, aucun effet gameplay.
+- Danger HOME : `MOU DU GENOU` ×1, `CHILL` ×5, `ROCK N ROLL` ×10 par défaut, `DUR A CUIRE` ×15, `MACHINE DE GUERRE` ×20. Il ne s'applique qu'aux attaques/contact **non cinétiques** du boss.
+- Astéroïdes : dégâts cinétiques linéaires `masse × vitesse relative × fermeture`, référence maximale 250 PV bruts avant protections, aucun dégât inventé à vitesse nulle.
+- Les vagues cinétiques partent du centre vers l'extérieur.
+- Surcharge 2 doigts : charge 2 s ; champ ×2 + irisation + son pendant la charge ; après armement le bouclier cinétique est OFF jusqu'au relâchement ; relâchement armé = purge.
 
-## Discipline permanente
+## Discipline
 
-- Fab décide et teste ; Astra analyse ; Sol code/teste/build.
-- Toujours lire le code réel avant modification.
-- Préserver `src/main.cpp` historique.
-- Garder synchronisés `brain.md`, `brainmap.md`, `debughistorical.md`, `todo.md`.
-- `ordres-de-mission.md` reste le contrat de mission.
-- Utiliser l'archive et l'historique Git pour les détails anciens plutôt que regonfler la mémoire vivante.
+- Fab décide et valide sur téléphone ; Astra analyse ; Sol code/teste/build.
+- `ordres-de-mission.md` est le contrat de mission actif.
+- Garder `brain.md`, `brainmap.md`, `debughistorical.md`, `todo.md` courts et synchronisés.
+- Ne remettre dans les mémoires vivantes ni anciens logs, ni longues preuves CI, ni historique résolu : utiliser l'archive ou Git.
 - Ne jamais conseiller désinstallation/effacement des données pour contourner une signature Android différente.
-
-## Livraison 1.4.0
-
-APK publié :
-- `SpaceFortressVs-1.4.0.apk`
-- 87 675 758 octets
-- SHA-256 `158bb86b07f353fcaeade3b65b522abf94f88e83feff2ab343f43d01d411d1d9`
-- certificat `22943f8846ebaf3191d011b1d947883d66ff6f25e566c3a966b98f879f070172`
-
-AAB publié :
-- `SpaceFortressVs-1.4.0-unsigned.aab`
-- 85 168 535 octets
-- SHA-256 `4e2f8b2f6a0c671095598b03ea9a1825ce9555aa839cdf9a748fe311c7dbb4ae`
-
-La signature diffère de la v1.3.1 ; APK CI de test uniquement.
