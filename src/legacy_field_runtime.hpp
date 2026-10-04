@@ -40,6 +40,118 @@ static SfKineticSolution sfKineticRockSolution(const sprite *rock,const sprite *
         {rock->vx*60.0f,rock->vy*60.0f},{sfObserved[owner].velocity.vx,sfObserved[owner].velocity.vy},
         dx/d,dy/d,sfKineticReferenceSpeed(sfArenaW));
 }
+
+enum class SfKineticDustCause { SurgePurge, AsteroidCollision, KineticField };
+struct SfKineticRedDustFlashColor { int r=255,g=220,b=45,a=255; };
+struct SfKineticRedDustResponse {
+    SfKineticDustMotion motion{};
+    bool consumed=false;
+    float flashStrength=0;
+};
+struct SfKineticDustFlash {
+    float x=0,y=0,age=0,duration=.14f,intensity=1,progress=0;
+};
+static std::vector<SfKineticDustFlash> sfKineticDustFlashes;
+
+static float sfKineticWhiteDustYieldFraction(SfKineticDustCause cause)
+{
+    return cause==SfKineticDustCause::SurgePurge ? 1.0f : .10f;
+}
+static int sfKineticWhiteDustParticleCount(float asteroidArea,float arenaHeight,SfKineticDustCause cause)
+{
+    const float area=std::max(0.0f,asteroidArea);
+    if(area<=0) return 0;
+    const float referenceYield=29.0f*area/sfKineticReferenceArea(arenaHeight);
+    return std::max(1,int(std::lround(referenceYield*sfKineticWhiteDustYieldFraction(cause))));
+}
+static SfKineticRedDustFlashColor sfKineticRedDustFlashColor(float progress,float intensity)
+{
+    progress=std::clamp(progress,0.0f,1.0f);
+    intensity=std::clamp(intensity,0.0f,1.0f);
+    float g,b;
+    if(progress<.5f) {
+        const float t=progress*2.0f;
+        g=220.0f+(120.0f-220.0f)*t;
+        b=45.0f +(18.0f-45.0f)*t;
+    } else {
+        const float t=(progress-.5f)*2.0f;
+        g=120.0f+(28.0f-120.0f)*t;
+        b=18.0f +(28.0f-18.0f)*t;
+    }
+    SfKineticRedDustFlashColor out;
+    out.r=int(190.0f+65.0f*intensity);
+    out.g=int(g*(.55f+.45f*intensity));
+    out.b=int(b*(.55f+.45f*intensity));
+    out.a=int(120.0f+135.0f*intensity);
+    return out;
+}
+static SfKineticRedDustResponse sfKineticRespondRedDust(float vx,float vy,float normalX,float normalY,
+                                                         float strength,float variation,float arenaWidth)
+{
+    SfKineticRedDustResponse out;
+    out.motion=sfKineticRespondDust(false,vx,vy,normalX,normalY,strength,variation,arenaWidth);
+    if(!out.motion.deflected) return out;
+    variation=std::clamp(variation,0.0f,1.0f);
+    out.flashStrength=std::clamp(.62f+.38f*strength,0.0f,1.0f);
+    // Canon: most red matter is consumed; a small deterministic fraction survives.
+    out.consumed=variation<.78f;
+    return out;
+}
+static void sfKineticRecordDustFlash(float x,float y,float intensity,float progress)
+{
+    if(sfKineticDustFlashes.size()>=96) sfKineticDustFlashes.erase(sfKineticDustFlashes.begin());
+    SfKineticDustFlash flash;flash.x=x;flash.y=y;flash.intensity=std::clamp(intensity,0.0f,1.0f);
+    flash.progress=std::clamp(progress,0.0f,1.0f);sfKineticDustFlashes.push_back(flash);
+}
+static void sfKineticAdvanceDustFlashes(float dt)
+{
+    for(auto &flash:sfKineticDustFlashes) flash.age+=std::max(0.0f,dt);
+    sfKineticDustFlashes.erase(std::remove_if(sfKineticDustFlashes.begin(),sfKineticDustFlashes.end(),
+        [](const auto &flash){return flash.age>=flash.duration;}),sfKineticDustFlashes.end());
+}
+static void sfKineticRedImpactVisual(float x,float y,float intensity)
+{
+    if(explos.size()>=256) return;
+    const float size=std::max(2.0f,sfArenaH*(.0038f+.0022f*std::clamp(intensity,0.0f,1.0f)));
+    explos.push_back(new eexpl("pous",x,y,size,std::max(2.0f,size*.34f),0,0));
+}
+static int sfKineticEmitWhiteDust(const sprite *rock,SfKineticDustCause cause,float incidentVx,float incidentVy)
+{
+    if(!rock) return 0;
+    const int wanted=sfKineticWhiteDustParticleCount(std::max(0.0f,rock->w*rock->h),sfArenaH,cause);
+    const bool stationary=cause==SfKineticDustCause::SurgePurge;
+    const float speed=vlong(incidentVx,incidentVy);
+    const float tangentX=speed>.0001f ? -incidentVy/speed : 0.0f;
+    const float tangentY=speed>.0001f ?  incidentVx/speed : 0.0f;
+    const float baseScale=1000.0f; // parts::update converts its velocity back with a 0.001 factor.
+    int emitted=0;
+    for(int i=0;i<wanted && particules.size()<1000;++i) {
+        const float phase=wanted>1 ? float(i)/float(wanted-1) : .5f;
+        const float angle=(i+.5f)*2.0f*float(PI)/std::max(1,wanted);
+        const float radius=.16f*std::max(rock->w,rock->h)*(stationary ? .42f : .22f);
+        auto *dust=new parts(rock->x+std::cos(angle)*radius,rock->y+std::sin(angle)*radius);
+        dust->pv=600;
+        if(stationary) {
+            dust->vx=0;dust->vy=0;
+        } else {
+            const float spread=(phase-.5f)*.24f*speed*baseScale;
+            dust->vx=incidentVx*baseScale+tangentX*spread;
+            dust->vy=incidentVy*baseScale+tangentY*spread;
+        }
+        particules.push_back(dust);++emitted;
+    }
+    return emitted;
+}
+static bool sfKineticDestroyAsteroid(sprite *rock,SfKineticDustCause cause)
+{
+    if(!rock || rock->pv<=0) return false;
+    const float vx=rock->vx,vy=rock->vy;
+    const int emitted=sfKineticEmitWhiteDust(rock,cause,vx,vy);
+    rock->pv=0;
+    SDL_Log("KINETIC_WHITE_DUST cause=%d emitted=%d area=%.3f incident=(%.3f,%.3f)",
+        int(cause),emitted,rock->w*rock->h,vx,vy);
+    return true;
+}
 static void sfKineticEmitRedDust(int owner,int count,float ring)
 {
     if(owner<0 || owner>1 || count<=0) return;
@@ -65,9 +177,8 @@ static int sfKineticPurgeAsteroids(int owner)
         if(!rock || rock->pv<=0) continue;
         const float rockRadius=std::max(rock->w,rock->h)*.5f;
         if(vlong(rock->x-ship->x,rock->y-ship->y)>radius+rockRadius) continue;
-        partsforiw(rock,ship); // Historical white resource dust: never deflected by the field.
         sfFieldImpact(rock,ship);
-        rock->pv=0;++purged;
+        if(sfKineticDestroyAsteroid(rock,SfKineticDustCause::SurgePurge)) ++purged;
     }
     if(purged>0) {
         sfKineticTriggerWave(owner,SF_KINETIC_MAX_SHIELD_DIAMETER*.5f,1.0f);
@@ -102,13 +213,24 @@ static void sfKineticUpdateEffects(float dt)
             if(d<shellMin || d>shellMax) {++index;continue;}
             const float beforeVx=dust->vx,beforeVy=dust->vy;
             const float variation=.5f+.5f*std::sin(index*1.73f+wave.serial*.61f+d*.019f);
-            const auto response=sfKineticRespondDust(false,dust->vx,dust->vy,dx/d,dy/d,wave.strength,variation,sfArenaW);
-            dust->vx=response.vx;dust->vy=response.vy;
-            const float wobble=std::sin(wave.serial*.77f+index*1.31f+progress*18.0f)*diameter*.018f*wave.strength;
-            dust->x+=(-dy/d)*wobble;dust->y+=(dx/d)*wobble;
+            const auto response=sfKineticRespondRedDust(dust->vx,dust->vy,dx/d,dy/d,wave.strength,variation,sfArenaW);
+            const auto color=sfKineticRedDustFlashColor(progress,response.flashStrength);
+            (void)color;
+            sfKineticRecordDustFlash(dust->x,dust->y,response.flashStrength,progress);
+            sfKineticRedImpactVisual(dust->x,dust->y,response.flashStrength);
+            if(response.consumed) {
+                dust->pv=0;
+            } else {
+                dust->vx=response.motion.vx;dust->vy=response.motion.vy;
+                dust->pv=std::max(dust->pv,560.0f/std::max(.001f,k0));
+                const float wobble=std::sin(wave.serial*.77f+index*1.31f+progress*18.0f)*diameter*.018f*wave.strength;
+                dust->x+=(-dy/d)*wobble;dust->y+=(dx/d)*wobble;
+            }
             if(!wave.loggedRed) {
-                SDL_Log("KINETIC_DUST type=red vibrated=%s deflected=%s velocityBefore=(%.3f,%.3f) velocityAfter=(%.3f,%.3f)",
-                    response.vibrated?"true":"false",response.deflected?"true":"false",beforeVx,beforeVy,dust->vx,dust->vy);
+                SDL_Log("KINETIC_DUST type=red consumed=%s flash=(%d,%d,%d) vibrated=%s deflected=%s velocityBefore=(%.3f,%.3f) velocityAfter=(%.3f,%.3f)",
+                    response.consumed?"true":"false",color.r,color.g,color.b,
+                    response.motion.vibrated?"true":"false",response.motion.deflected?"true":"false",
+                    beforeVx,beforeVy,response.motion.vx,response.motion.vy);
                 wave.loggedRed=true;
             }
             ++index;
@@ -123,6 +245,7 @@ static void sfKineticUpdateEffects(float dt)
         }
     }
     sfKineticAdvanceWaves(dt);
+    sfKineticAdvanceDustFlashes(dt);
 }
 static bool sfKineticFragmentRock(sprite *rock,const sprite *ship,int owner,SfKineticLayer layer,
                         const SfKineticSolution &solution)
@@ -132,7 +255,8 @@ static bool sfKineticFragmentRock(sprite *rock,const sprite *ship,int owner,SfKi
     const int nextStage=layer==SfKineticLayer::Outer ? 1 : 2;
     const float scale=1.0f/std::sqrt(float(count));
     const float smallest=sfArenaH/260.0f;
-    if(std::max(rock->w,rock->h)*scale<smallest) {rock->pv=0;return true;}
+    if(std::max(rock->w,rock->h)*scale<smallest)
+        return sfKineticDestroyAsteroid(rock,SfKineticDustCause::KineticField);
     if(sa1.size()+count>200) return false;
     const float shipVx=sfObserved[owner].velocity.vx,shipVy=sfObserved[owner].velocity.vy;
     const float relX=rock->vx*60.0f-shipVx,relY=rock->vy*60.0f-shipVy;
@@ -158,7 +282,7 @@ static bool sfKineticFragmentRock(sprite *rock,const sprite *ship,int owner,SfKi
             rock->vx,rock->vy,fragment->vx,fragment->vy);
         sa1.push_back(fragment);
     }
-    rock->pv=0;return true;
+    return sfKineticDestroyAsteroid(rock,SfKineticDustCause::KineticField);
 }
 static bool sfKineticTryLayer(sprite *rock,sprite *ship,int owner,SfKineticLayer layer,
                     const SfKineticSolution &raw,bool *interacted=nullptr)
@@ -238,15 +362,17 @@ static void sfLegacyFieldStep(void (*hurt)(int,float))
         for(size_t j=i+1;j<rocks.size() && a->pv>0;++j) {
   auto *b=rocks[j];
   if (b->pv<=0 || a->timer || b->timer || !(inxy(a)||inxy(b)) || !colee(a,b)) continue;
-  partsforiw(a,b);sfFieldCollisionSound=true;sfFieldImpact(a,b,true);
+  sfFieldCollisionSound=true;sfFieldImpact(a,b,true);
   const float h1=std::sqrt(a->w*a->h),h2=std::sqrt(b->w*b->h);
   if (std::min(h1,h2)>0 && std::max(h1,h2)/std::min(h1,h2)<1.05f) {
       for(int burst=0;burst<4 && sa1.size()+4<=200;++burst) eclats(a,b);
-      a->pv=b->pv=0;
+      sfKineticDestroyAsteroid(a,SfKineticDustCause::AsteroidCollision);
+      sfKineticDestroyAsteroid(b,SfKineticDustCause::AsteroidCollision);
   } else {
       auto *large=h1>h2 ? a : b;auto *small=h1>h2 ? b : a;
       large->w+=small->w*.01f;large->h+=small->h*.01f;
-      large->sw=large->w;large->sh=large->h;small->pv=0;
+      large->sw=large->w;large->sh=large->h;
+      sfKineticDestroyAsteroid(small,SfKineticDustCause::AsteroidCollision);
   }
         }
     }
