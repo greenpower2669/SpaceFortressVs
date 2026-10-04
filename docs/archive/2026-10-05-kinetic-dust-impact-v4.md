@@ -6,7 +6,7 @@ Mission Fab : poussières blanches produites par destruction d’astéroïdes et
 
 - Base : `feature/help-tutorial-danger-9-canon` @ `76bab7bac571df6f42f4ae76011fc61ab2b0c8ee`.
 - Branche dédiée : `feature/kinetic-dust-impact-v4`.
-- `src/main.cpp` historique protégé ; blob de référence `835059a0ecfe31cf46833ea6c065a2381a7277c3`.
+- `src/main.cpp` historique protégé ; blob de référence `835059a0ecfe0f74708068b3259cad5db1cdb579`.
 - Aucun merge `main`, aucune release.
 
 ## Audit réel
@@ -37,11 +37,16 @@ Alignement du test legacy avec le nouveau rendement proportionnel de collision :
 
 Workflow Android `37241618498`, job `111551304971` : régressions, compilation Android, APK, AAB, vérification et packaging réussis ; étape `publish-release` SKIPPED.
 
-Artefact CI :
-- nom : `SpaceFortressVs-Android-444` ;
-- id : `6545681985` ;
-- taille archive : `27011213` octets ;
-- digest : `sha256:399dcf6808a83fe4071ab91d2b9b9d2465c0a6e2c6f5950824482687a936fd6e`.
+Artefact CI vérifié :
+- nom : `SpaceFortressVs-1.4.0-release-files` ;
+- id : `11317688487` ;
+- taille archive : `169116583` octets ;
+- digest : `sha256:3571fc53e4a6cb2ce8c0c5793bcccae219eaa0905cf509efa541a9cd44789cf0`.
+
+Artefact diagnostic séparé :
+- nom : `SpaceFortressVs-1.4.0-android-build-log` ;
+- id : `11317698504` ;
+- digest : `sha256:3c87acb9fc0829bdc002c0c7b25dc99b30ddc51b1ab01ae7ca63bc04a23bca53`.
 
 ## Canon implémenté
 
