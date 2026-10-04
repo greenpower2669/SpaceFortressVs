@@ -533,6 +533,9 @@ static void sfUpdatePilot(float dt)
     }
 }
 
+inline constexpr float SF_WHITE_DUST_ENERGY_RESTORE = 1.0f;
+inline constexpr float SF_WHITE_DUST_FULL_ENERGY_HEAL = 4.0f;
+
 static void sfCollectDust()
 {
     if (!sfRoundActive()) return;
@@ -548,9 +551,10 @@ static void sfCollectDust()
         }
         if (winner) {
             const float value=std::clamp(dust->pv*k0/600,0.0f,1.0f);
-            // nrj is depletion/heat: a lower value means MORE available energy.
-            winner->nrj=sfShipHeat(sfShipHeat(winner->nrj)-.25f*value);
-            winner->pv=std::min(1000.0f,winner->pv+.30f*value);
+            // nrj is depletion/heat: 0 means a genuinely full reserve.
+            const float heatBefore=sfShipHeat(winner->nrj);
+            if (heatBefore>0) winner->nrj=sfShipHeat(heatBefore-SF_WHITE_DUST_ENERGY_RESTORE*value);
+            else winner->pv=std::min(1000.0f,winner->pv+SF_WHITE_DUST_FULL_ENERGY_HEAL*value);
             dust->pv=0; sfPickupGlow[owner]=.65f;
         }
     }
@@ -706,6 +710,15 @@ static void sfTacticalRainbowRing(SDL_Renderer *renderer,tupl center,float radiu
     }
 }
 
+static Uint8 sfKineticWaveFrontAlpha(float progress,float strength)
+{
+    progress=std::clamp(progress,0.0f,1.0f);
+    strength=std::clamp(strength,0.0f,1.0f);
+    const float birth=std::clamp(progress/.055f,0.0f,1.0f);
+    const float fade=std::pow(std::max(0.0f,1.0f-progress),.55f);
+    return Uint8(std::clamp(245.0f*birth*fade*(.50f+.50f*strength),0.0f,245.0f));
+}
+
 static void sfDrawKineticEffects(SDL_Renderer *renderer)
 {
     if (!renderer || sfUiScreen!=SF_UI_GAME) return;
@@ -733,11 +746,19 @@ static void sfDrawKineticEffects(SDL_Renderer *renderer)
         const float radius=sfKineticWaveRadiusAt(wave,diameter,wave.age);
         if(radius<=0) continue;
         const float p=sfKineticWaveProgressAt(wave,wave.age);
-        const float envelope=std::sin(float(PI)*p)*wave.strength;
-        if(envelope<=.01f) continue;
-        const SDL_Color team=wave.owner==0 ? SDL_Color{255,188,96,255} : SDL_Color{96,210,255,255};
-        sfTacticalRing(renderer,tupl(ship->x,ship->y),radius,
-            SDL_Color{team.r,team.g,team.b,Uint8(std::clamp(105.0f*envelope,0.0f,135.0f))});
+        const Uint8 frontAlpha=sfKineticWaveFrontAlpha(p,wave.strength);
+        if(frontAlpha<3) continue;
+        if(sfKineticSurgeVisible(wave.owner)) {
+            const float phase=std::fmod(float(SDL_GetTicks64())*.00042f+wave.owner*.17f+p*.55f,1.0f);
+            sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),radius,phase,frontAlpha);
+            sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-3.0f),phase+.16f,Uint8(frontAlpha*.72f));
+            sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-6.0f),phase+.31f,Uint8(frontAlpha*.38f));
+        } else {
+            const SDL_Color team=wave.owner==0 ? SDL_Color{255,188,96,255} : SDL_Color{96,210,255,255};
+            sfTacticalRing(renderer,tupl(ship->x,ship->y),radius,SDL_Color{team.r,team.g,team.b,frontAlpha});
+            sfTacticalRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-3.0f),SDL_Color{team.r,team.g,team.b,Uint8(frontAlpha*.68f)});
+            sfTacticalRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-6.0f),SDL_Color{255,255,255,Uint8(frontAlpha*.30f)});
+        }
     }
     SDL_SetRenderDrawBlendMode(renderer,previous);
 }

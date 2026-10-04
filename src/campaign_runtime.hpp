@@ -88,8 +88,6 @@ static void sfCoopEmit(tupl origin,float angle,float speed,int owner,float damag
     if (owner>=0) sfCoop.soundShot[owner]=true;
 }
 static constexpr float SF_COOP_BOSS_DUST_HEAL_FRACTION = .0015f;
-static constexpr float SF_COOP_RED_DUST_HEAT = .08f;
-static constexpr float SF_COOP_RED_DUST_ARMED_PV = 560.0f;
 
 static void sfCoopEmitRedDust(int owner,int count)
 {
@@ -138,24 +136,6 @@ static void sfCoopEnemyCollectWhiteDust()
         const float value=std::clamp(dust->pv/600.0f,0.0f,1.0f);
         sfCoop.health=std::min(maximum,sfCoop.health+maximum*SF_COOP_BOSS_DUST_HEAL_FRACTION*value);
         dust->pv=0;
-    }
-}
-
-static void sfCoopCollectRedDust()
-{
-    if (sfCoop.phase!=SfCoopPhase::Combat) return;
-    for(auto *dust:particulesr) {
-        if (dust->pv<=0 || dust->pv>SF_COOP_RED_DUST_ARMED_PV) continue;
-        const float value=std::clamp(dust->pv/600.0f,0.0f,1.0f);
-        for(int owner=0;owner<2;++owner) {
-            auto *ship=sfCoopShip(owner);
-            if (ship->pv<=0) continue;
-            if (vlong(dust->x-ship->x,dust->y-ship->y)>=sfCoopShipRadius()*.82f) continue;
-            // Red dust is hostile: no PV/energy recharge. More nrj means less shield reserve.
-            sfAddShipHeat(ship,SF_COOP_RED_DUST_HEAT*value);
-            dust->pv=0;
-            break;
-        }
     }
 }
 
@@ -545,7 +525,6 @@ static void sfCoopBonus(float dt)
 static void sfCoopResources(float dt)
 {
     sfLegacyFieldFrame(dt,sfCoopAsteroidHurt);
-    sfCoopCollectRedDust();
 }
 
 static void sfCoopWin()

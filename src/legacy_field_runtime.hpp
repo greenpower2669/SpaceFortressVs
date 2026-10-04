@@ -35,8 +35,8 @@ static SfKineticSolution sfKineticRockSolution(const sprite *rock,const sprite *
 {
     const float dx=rock->x-ship->x,dy=rock->y-ship->y,d=std::max(1.0f,vlong(dx,dy));
     const float area=std::max(1.0f,rock->w*rock->h);
-    const float refArea=sfKineticReferenceArea(sfArenaH);
-    return sfResolveKinetic(refArea*.05f,sfKineticMassFactorFromArea(area,sfArenaH),
+    const float massRelative=std::clamp(sfKineticMassFactorFromArea(area,sfArenaH),0.0f,1.0f);
+    return sfResolveKinetic(SF_KINETIC_ASTEROID_MAX_HULL_DAMAGE,massRelative,
         {rock->vx*60.0f,rock->vy*60.0f},{sfObserved[owner].velocity.vx,sfObserved[owner].velocity.vy},
         dx/d,dy/d,sfKineticReferenceSpeed(sfArenaW));
 }
@@ -161,10 +161,12 @@ static bool sfKineticFragmentRock(sprite *rock,const sprite *ship,int owner,SfKi
     rock->pv=0;return true;
 }
 static bool sfKineticTryLayer(sprite *rock,sprite *ship,int owner,SfKineticLayer layer,
-                    const SfKineticSolution &raw)
+                    const SfKineticSolution &raw,bool *interacted=nullptr)
 {
+    if(interacted) *interacted=false;
     const auto solved=sfApplyKineticLayer(raw,layer,sfKineticEnergyFraction(ship->nrj),sfKineticSurgePower(owner));
     if(solved.dissipationFraction<=.001f) return false;
+    if(interacted) *interacted=true;
     sfAddShipHeat(ship,solved.energyCost);
     const float strength=std::clamp(.28f+solved.dissipationFraction*.72f,0.0f,1.0f);
     sfKineticTriggerWave(owner,raw.maxRadiusShipDiameters,strength);
@@ -204,14 +206,18 @@ static void sfLegacyFieldStep(void (*hurt)(int,float))
   const float travelled=sfKineticSegmentDistance(fromX,fromY,rock->x,rock->y,ship->x,ship->y);
   const float outer=diameter*raw.maxRadiusShipDiameters+rockRadius;
   const float inner=diameter*sfKineticInnerRadiusShipDiameters(raw)+rockRadius;
+  bool interacted=false;
   if(rock->kineticStage==0 && raw.suggestedLayer==SfKineticLayer::Outer && travelled<=outer) {
       rock->kineticStage=1;
-      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Outer,raw)) continue;
+      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Outer,raw,&interacted)) continue;
+      if(interacted) continue;
   }
   if(rock->pv<=0) continue;
+  interacted=false;
   if(rock->kineticStage<2 && raw.selectedRange>0 && travelled<=inner) {
       rock->kineticStage=2;
-      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Inner,raw)) continue;
+      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Inner,raw,&interacted)) continue;
+      if(interacted) continue;
   }
   if(rock->pv<=0) continue;
   const float hullRadius=std::max(ship->sw,ship->sh)*.52f+rockRadius;

@@ -242,12 +242,14 @@ static void sfFixHandleEvent(SDL_Event *event)
             const float y = event->tfinger.y;
 
             if (requestedScreen == SF_UI_HOME) {
-                if (y >= 0.39f && y <= 0.52f) {
+                if (y >= 0.39f && y <= 0.505f) {
                     sfSelectedMode=(sfSelectedMode+1)%4;
                     sfFixRequestedIa.store(sfModeHasAi(sfSelectedMode));
-                } else if (y >= 0.545f && y <= 0.69f) {
+                } else if (y >= 0.515f && y <= 0.60f) {
+                    sfBossDangerNext();
+                } else if (y >= 0.615f && y <= 0.715f) {
                     sfFixLaunchPending.store(true);
-                } else if (y >= 0.71f && y <= 0.85f) {
+                } else if (y >= 0.735f && y <= 0.85f) {
                     sfFixRequestedScreen.store(SF_UI_HELP);
                 }
             } else if (requestedScreen == SF_UI_HELP && y >= 0.86f) {

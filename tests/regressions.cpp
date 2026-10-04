@@ -1,42 +1,57 @@
-#include <algorithm>
-#include <array>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_mixer.h>
 #include <cassert>
 #include <cmath>
 #include <cstdio>
-#include <cstring>
-#include <filesystem>
 #include <fstream>
-#include <iterator>
-#include <list>
 #include <string>
-#include <vector>
 
-#define main spacefortress_original_main
-#include "../src/main.cpp"
-#undef main
+// Load native SDL's platform definitions first. Only game shims take their
+// Android path; rendering and image decoding still use the real SDL libraries.
+#define __ANDROID__ 1
+#include "t.hpp"
+#include "th2.h"
 
-#include "../src/remaster_stability.hpp"
-#include "../src/remaster_runtime.hpp"
-#include "../src/start_ui.hpp"
-#include "../src/legacy_field_primitives.hpp"
-#include "../src/kinetic_shield.hpp"
-#include "../src/ship_energy.hpp"
-#include "../src/scenic_progression.hpp"
-#include "../src/remaster_visual_restore.hpp"
-#include "../src/tactical_runtime.hpp"
-#include "../src/campaign_runtime.hpp"
-#include "../src/remaster_ai_fix.hpp"
+bool setgui = true, setia = false, sdlstarted = true;
+float k0 = 1;
+float tw = 780, th = 1680;
+int tirj1 = 0, tirj2 = 0, incra1 = 0;
+std::list<sprite*> sa1;
+std::list<sprite*> entitiesj1, entitiesj2, burnsj1, burnsj2;
+std::list<parts*> particules, particulesr;
+std::list<eexpl*> explos;
+bool tirjz=false, tirj1z=false, tirj2z=false;
+sprite *Spritej1 = new sprite, *Spritej2 = new sprite;
+sprite *loosej1 = new sprite, *loosej2 = new sprite;
+sprite *rouage1 = new sprite, *rouage2 = new sprite, *Suiveur = new sprite;
+enti *iago = new enti, *iago1 = new enti, *iacalc = new enti, *iatake = new enti;
+
+#include "tactics_regressions.hpp"
+#include "feedback_regressions.hpp"
+#include "campaign_regressions.hpp"
+#include "maintenance_regressions.hpp"
 #include "restoration_regressions.hpp"
+#include "difficulty_regressions.hpp"
 
-static SDL_Event finger(Uint32 type,SDL_FingerID id,float x,float y)
+static SDL_Event finger(Uint32 type, SDL_FingerID id, float x, float y)
 {
-    SDL_Event event{};event.type=type;event.tfinger.type=type;event.tfinger.fingerId=id;event.tfinger.x=x;event.tfinger.y=y;return event;
+    SDL_Event e{};
+    e.tfinger.type = type; e.tfinger.fingerId = id;
+    e.tfinger.x = x; e.tfinger.y = y;
+    return e;
 }
 
 static void testVectors()
 {
-    vecteurs zero(0, 0);
-    assert(std::isfinite(zero.angle) && std::isfinite(zero.vxt) && std::isfinite(zero.vyt));
+    vecteurs v;
+    v.setvi();
+    assert(std::isfinite(v.angle) && v.force == 0 && v.vxt == 0 && v.vyt == 0);
+    v.vx = 3; v.vy = 4; v.setvi();
+    assert(std::abs(v.force - 5) < 0.0001f);
+    assert(std::abs(v.angle - 53.1301f) < 0.001f);
+    v.vx = 0; v.vy = 0; v.setvi();
+    assert(std::isfinite(v.angle) && v.force == 0);
     vecteurs distinct(3, 4);
     assert(distinct.vx == 3 && distinct.vy == 4);
     assert(std::isfinite(conv360(1.0000001f, 0)));
@@ -98,35 +113,201 @@ static void testInput()
     back.type = SDL_KEYDOWN; sfFixHandleEvent(&back); sfFixApplyUiRequests();
     assert(sfUiScreen == SF_UI_HOME);
     sfFixRequestedScreen.store(SF_UI_GAME);
+    rouage1->x = .2f * tw; rouage1->y = .2f * th * 1.09f;
+    rouage2->x = .8f * tw; rouage2->y = .8f * th * 1.09f;
+    rouage1->w = rouage1->h = rouage2->w = rouage2->h = 40;
+    auto gear = finger(SDL_FINGERDOWN, 21, .2f, .2f);
+    sfFixHandleEvent(&gear); assert(sfFixGear1Down);
+    auto up = finger(SDL_FINGERUP, 21, .2f, .2f);
+    sfFixHandleEvent(&up); assert(!sfFixGear1Down && up.type == SDL_USEREVENT);
+    gear = finger(SDL_FINGERDOWN, 21, .2f, .2f); sfFixHandleEvent(&gear);
+    SDL_Event paused{}; paused.type = SDL_APP_DIDENTERBACKGROUND;
+    Spritej2->ctrl = true; Spritej2->id = 42; Spritej2->vx = 7;
+    sfFixHandleEvent(&paused);
     sfFixApplyUiRequests();
-    std::puts("PASS: home/help touches are consumed and deferred launch/back sequencing is deterministic");
+    assert(!sfFixGear1Down && sfFixConsumedFingers.empty());
+    assert(!Spritej2->ctrl && Spritej2->id == 100 && Spritej2->vx == 0);
+    auto other = finger(SDL_FINGERDOWN, 22, .8f, .8f);
+    sfFixHandleEvent(&other); assert(sfFixRequestedScreen.load() == SF_UI_GAME);
+    gear = finger(SDL_FINGERDOWN, 23, .2f, .2f); sfFixHandleEvent(&gear);
+    assert(sfFixRequestedScreen.load() == SF_UI_HOME);
+    std::puts("PASS: Android Back, deferred launch, multitouch and gear cancellation");
 }
 
-static void testHomeDifficultySelectorDoesNotLaunch()
+static void testTextures()
 {
-    sfFixRequestedScreen.store(SF_UI_HOME);
-    sfFixLaunchPending.store(false);
-    sfBossDangerIndex=2;
-    auto danger = finger(SDL_FINGERDOWN, 14, .5f, .56f);
-    sfFixHandleEvent(&danger);
-    assert(sfBossDangerIndex==3);
-    assert(!sfFixLaunchPending.load());
-    sfFixApplyUiRequests();
-    assert(sfUiScreen==SF_UI_HOME && setgui);
-    auto up=finger(SDL_FINGERUP,14,.5f,.56f);sfFixHandleEvent(&up);
-    std::puts("PASS: difficulty selector cycles one step and never starts a battle");
+    auto *surface = SDL_CreateRGBSurfaceWithFormat(0, 256, 256, 32, SDL_PIXELFORMAT_RGBA32);
+    auto *renderer = SDL_CreateSoftwareRenderer(surface);
+    auto *otherSurface = SDL_CreateRGBSurfaceWithFormat(0, 32, 32, 32, SDL_PIXELFORMAT_RGBA32);
+    auto *otherRenderer = SDL_CreateSoftwareRenderer(otherSurface);
+    assert(surface && renderer && otherSurface && otherRenderer);
+    auto *otherSun = IMG_LoadTexture(otherRenderer, "resources/assets/pict/suno.png");
+    assert(otherSun);
+    for (int cycle = 0; cycle < 12; ++cycle) {
+        auto *sun = IMG_LoadTexture(renderer, "./resources/assets/pict/suno.png");
+        assert(sun && SpaceFortress_IsSunTexture(sun));
+        auto *jupiter = IMG_LoadTexture(renderer, "./resources/assets/pict/jupsoeur4.png");
+        assert(jupiter && SpaceFortress_IsPlanetTexture(jupiter));
+        auto *gear = IMG_LoadTexture(renderer, "resources/assets/pict/rouage.png");
+        assert(gear);
+        sfUiScreen = SF_UI_GAME;
+        rouage1->x = 40; rouage1->y = 40; rouage2->x = 200; rouage2->y = 200;
+        SDL_Rect dst{20, 20, 40, 40};
+        assert(SDL_RenderCopy(renderer, gear, nullptr, &dst) == 0);
+        sfRmEnsureTextures(renderer);
+        assert(sfFinalGearOrangeTexture && sfRmMuzzleStrip);
+        sfUiDrawHomeDecorations(renderer,256,256,float(cycle));
+        assert(sfUiHomeTextures.size()==1 && sfUiHomeTextures.front().turret);
+        SDL_DestroyRenderer(renderer);
+        assert(sfUiHomeTextures.empty());
+        assert(!SpaceFortress_TextureIn(SpaceFortressSunTextures, sun));
+        assert(!SpaceFortress_TextureIn(SpaceFortressPlanetTextures, jupiter));
+        assert(!sfFinalGearOrangeTexture && !sfRmMuzzleStrip);
+        assert(SpaceFortress_IsSunTexture(otherSun));
+        renderer = SDL_CreateSoftwareRenderer(surface); assert(renderer);
+    }
+    // Corrupt a mapped file only inside the disposable assembled test directory.
+    const char *name = "resources/assets/pict/remaster/heart_blue.png";
+    std::ifstream input(name, std::ios::binary);
+    std::string bytes((std::istreambuf_iterator<char>(input)), {}); input.close();
+    { std::ofstream damaged(name, std::ios::binary); damaged << "broken PNG"; }
+    auto *fallback = IMG_LoadTexture(renderer, "./resources/assets/pict/coeurbl.png");
+    assert(fallback);
+    SDL_DestroyTexture(fallback);
+    { std::ofstream restore(name, std::ios::binary); restore.write(bytes.data(), bytes.size()); }
+    SDL_DestroyRenderer(renderer); SDL_DestroyRenderer(otherRenderer);
+    SDL_FreeSurface(surface); SDL_FreeSurface(otherSurface);
+    assert(SpaceFortressSunTextures.empty());
+    assert(SpaceFortressPlanetTextures.empty());
+    std::puts("PASS: 12 renderer recreations, isolated texture ownership and corrupt-image fallback");
 }
 
-int main()
+static void testScenicRendering()
 {
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER,"software");
-    SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER);
-    IMG_Init(IMG_INIT_PNG);
-    testVectors();
-    testLegacyCrashes();
-    testInput();
-    testHomeDifficultySelectorDoesNotLaunch();
-    runRestorationRegressions();
-    IMG_Quit();SDL_Quit();
+    const int oldW = WIDTH, oldH = HEIGHT;
+    const char *paths[] = {"resources/assets/pict/suno.png",
+                          "resources/assets/pict/jupsoeur4.png"};
+    const SDL_Point screens[] = {{720, 1560}, {1080, 2340}, {640, 360}};
+    sfUiScreen = SF_UI_GAME;
+    for (const auto &screen : screens) {
+        auto *surface = SDL_CreateRGBSurfaceWithFormat(0, screen.x, screen.y, 32,
+                                                       SDL_PIXELFORMAT_RGBA32);
+        auto *renderer = SDL_CreateSoftwareRenderer(surface);
+        assert(surface && renderer);
+        // Reproduce the mismatch from main.cpp: world bounds exceed display.
+        WIDTH = screen.x * 11 / 10; HEIGHT = screen.y * 11 / 10;
+        for (int index = 0; index < 2; ++index) {
+            auto *texture = IMG_LoadTexture(renderer, paths[index]);
+            assert(texture);
+            int w = 0, h = 0;
+            SDL_QueryTexture(texture, nullptr, nullptr, &w, &h);
+            assert(w == 768 && h == 768); // Reject the old cropped thumbnails.
+            SDL_ScaleMode scale{}; SDL_BlendMode blend{};
+            assert(SDL_GetTextureScaleMode(texture, &scale) == 0);
+            assert(SDL_GetTextureBlendMode(texture, &blend) == 0);
+            assert(scale == SDL_ScaleModeLinear && blend == SDL_BLENDMODE_BLEND);
+            const SDL_Rect positions[] = {
+                {-HEIGHT, -HEIGHT, HEIGHT, HEIGHT},
+                {HEIGHT / 2, HEIGHT / 2, HEIGHT, HEIGHT}};
+            for (const auto &position : positions) {
+                SDL_SetRenderDrawColor(renderer, 11, 19, 31, 255);
+                SDL_RenderClear(renderer);
+                assert(SDL_RenderCopy(renderer, texture, nullptr, &position) == 0);
+                std::vector<Uint8> pixels(screen.x * screen.y * 4);
+                assert(SDL_RenderReadPixels(renderer, nullptr, SDL_PIXELFORMAT_RGBA32,
+                    pixels.data(), screen.x * 4) == 0);
+                int minX = screen.x, minY = screen.y, maxX = -1, maxY = -1, count = 0;
+                for (int y = 0; y < screen.y; ++y) {
+                    for (int x = 0; x < screen.x; ++x) {
+                        const auto *p = &pixels[(y * screen.x + x) * 4];
+                        if (std::abs(int(p[0]) - 11) + std::abs(int(p[1]) - 19) +
+                            std::abs(int(p[2]) - 31) <= 24) continue;
+                        minX = std::min(minX, x); maxX = std::max(maxX, x);
+                        minY = std::min(minY, y); maxY = std::max(maxY, y); ++count;
+                    }
+                }
+                assert(count > 1000);
+                // Test rendered pixels, not only the helper's rectangle: a
+                // clipped planet or a square source cannot pass these checks.
+                assert(minX > 2 && minY > 2 && maxX < screen.x - 3 && maxY < screen.y - 3);
+                const int bw = maxX - minX + 1, bh = maxY - minY + 1;
+                assert(std::abs(bw - bh) < std::max(bw, bh) / 10);
+                const float coverage = float(count) / (bw * bh);
+                assert(coverage > .60f && coverage < .87f);
+            }
+        }
+        SDL_DestroyRenderer(renderer); SDL_FreeSurface(surface);
+    }
+    WIDTH = oldW; HEIGHT = oldH;
+    std::puts("PASS: full round Sun/Jupiter pixels inside portrait and landscape screens");
+}
+
+static void writeScenicPreview(const char *path)
+{
+    if (!path) return;
+    const int width = 709, height = 1536;
+    auto *surface = SDL_CreateRGBSurfaceWithFormat(0, width, height, 32, SDL_PIXELFORMAT_RGBA32);
+    auto *renderer = SDL_CreateSoftwareRenderer(surface);
+    assert(surface && renderer);
+    sfUiScreen = SF_UI_GAME;
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    auto *galaxy = IMG_LoadTexture(renderer, "resources/assets/pict/fond4hlz.png");
+    auto *sun = IMG_LoadTexture(renderer, "resources/assets/pict/suno.png");
+    auto *jupiter = IMG_LoadTexture(renderer, "resources/assets/pict/jupsoeur4.png");
+    assert(galaxy && sun && jupiter);
+    SDL_Rect background{0, 0, width * 11 / 10, height * 11 / 10};
+    SDL_Rect solar{-330, -145, 840, 840}, jovian{840, 840, 1680, 1680};
+    assert(SDL_RenderCopy(renderer, galaxy, nullptr, &background) == 0);
+    assert(SDL_RenderCopy(renderer, sun, nullptr, &solar) == 0);
+    assert(SDL_RenderCopy(renderer, jupiter, nullptr, &jovian) == 0);
+    SDL_RenderFlush(renderer);
+    assert(IMG_SavePNG(surface, path) == 0);
+    SDL_DestroyRenderer(renderer); SDL_FreeSurface(surface);
+}
+
+int main(int argc,char **argv)
+{
+    assert(SDL_Init(SDL_INIT_TIMER) == 0);
+    if (argc==2) {
+        const std::string test=argv[1];
+        if (test=="--difficulty") {testDifficultyRendering(std::getenv("SPACEFORTRESS_DIFFICULTY_PREVIEW"));return 0;}
+        if (test=="--restore-field") {testRealCoopField();return 0;}
+        if (test=="--restore-input") {testNoHumanAutofire();return 0;}
+        if (test=="--restore-turrets") {testPassiveCoopTurrets();return 0;}
+        if (test=="--ship-style") {testDuelStyleRoundTrip();return 0;}
+        if (test=="--ship-breathing") {testShipBreathing();return 0;}
+        if (test=="--coop-aim") {testCoopHumanAim();return 0;}
+        if (test=="--save-protection" || test=="--save-recovery") {
+            char directory[]="/tmp/spacefortress-protection-XXXXXX";assert(mkdtemp(directory));
+            if (test=="--save-protection") testUnknownSaveWithBackup(directory);
+            else testSaveRecoveryPreservation(directory);
+            return 0;
+        }
+        return 2;
+    }
+    testVectors(); testLegacyCrashes(); testInput(); testTextures(); testScenicRendering();
+    testTacticalPilot(); testTacticalTurrets(); testJupiterMotion();
+    testRaidsAndDefence();
+    testEnergyFeedback(); testProjectileFeedback();
+    char campaignDirectory[]="/tmp/spacefortress-campaign-XXXXXX";
+    assert(mkdtemp(campaignDirectory));
+    testVelocityGhosts();testCampaignPersistence(campaignDirectory);testCoopGameplay();testCoopArenaBounds();testCoopCollisionMinerals();testCampaignEntryAndFights();testCampaignProgression();
+    testCampaignRendering(std::getenv("SPACEFORTRESS_CAMPAIGN_PREVIEW"));
+    testDuelStyleRoundTrip();testShipBreathing();testCoopHumanAim();testUnknownSaveWithBackup(campaignDirectory);
+    testSaveRecoveryPreservation(campaignDirectory);
+    testNoHumanAutofire();testPassiveCoopTurrets();testSharedLinearShieldModel();testKineticFieldAndHullRegen();testCollectedBonusAndShield();testRealCoopField();
+    testCoopDifficultyChain();testCoopIncomingDamageMultiplier();testCoopHudAndMissile();
+    testDurableV1Migration(campaignDirectory);testDifficultySelection();testDifficultyGameplay();
+    testDifficultyRendering(std::getenv("SPACEFORTRESS_DIFFICULTY_PREVIEW"));
+    sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
+    writeScenicPreview(std::getenv("SPACEFORTRESS_SCENIC_PREVIEW"));
+    writeTurretPreview(std::getenv("SPACEFORTRESS_TURRET_PREVIEW"));
+    writeFeedbackPreview(std::getenv("SPACEFORTRESS_HUD_PREVIEW"));
+    sfTacticsReset(); sfFixResetAsteroidField();
+    delete Spritej1; delete Spritej2; delete loosej1; delete loosej2;
+    delete rouage1; delete rouage2; delete Suiveur;
+    delete iago; delete iago1; delete iacalc; delete iatake;
+    SDL_Quit();
     return 0;
 }

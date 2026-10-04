@@ -12,7 +12,7 @@ constexpr float SF_KINETIC_FAST_SPEED_RATIO = .72f;
 constexpr float SF_KINETIC_VERY_FAST_SPEED_RATIO = 1.10f;
 constexpr float SF_KINETIC_OUTER_DISSIPATION = .94f;
 constexpr float SF_KINETIC_INNER_DISSIPATION = .78f;
-constexpr float SF_KINETIC_MASS_DAMAGE_FLOOR = .01f;
+constexpr float SF_KINETIC_ASTEROID_MAX_HULL_DAMAGE = 250.0f; // 25% of the canonical 1000 PV hull.
 constexpr float SF_KINETIC_ENERGY_COST_SCALE = .00001f; // 0.001% of the previous cost.
 constexpr float SF_KINETIC_MIN_SHIELD_DIAMETER = 1.05f;
 constexpr float SF_KINETIC_MAX_SHIELD_DIAMETER = 2.0f;
@@ -171,11 +171,13 @@ static SfKineticSolution sfResolveKinetic(float baseDamage,float massFactor,
     out.impactSpeed=std::max(0.0f,-(rvx*ux+rvy*uy));
     out.tangentSpeed=std::sqrt(std::max(0.0f,out.relativeSpeed*out.relativeSpeed-out.impactSpeed*out.impactSpeed));
     referenceSpeed=std::max(1.0f,referenceSpeed);
-    const float impactRatio=out.impactSpeed/referenceSpeed;
     out.relativeRatio=out.relativeSpeed/referenceSpeed;
-    out.massFactor=std::max(0.0f,massFactor);
-    // Small mass-only floor avoids a mathematically exact zero, but slow bodies now stay genuinely weak.
-    out.speedFactor=SF_KINETIC_MASS_DAMAGE_FLOOR+impactRatio*impactRatio;
+    out.massFactor=std::clamp(massFactor,0.0f,1.0f);
+    const float speedRatio=std::clamp(out.relativeRatio,0.0f,1.0f);
+    const float closingFactor=out.relativeSpeed>.0001f
+        ? std::clamp(out.impactSpeed/out.relativeSpeed,0.0f,1.0f) : 0.0f;
+    // Canon: linear mass x relative speed x actual inward/closing component.
+    out.speedFactor=speedRatio*closingFactor;
     out.rawDamage=std::max(0.0f,baseDamage)*out.massFactor*out.speedFactor;
     out.residualDamage=out.rawDamage;
     out.selectedRange=sfKineticSelectedRange(out.relativeRatio);

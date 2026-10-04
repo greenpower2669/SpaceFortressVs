@@ -57,9 +57,9 @@ static void testSharedLinearShieldModel()
         assert(std::abs(ship.nrj-std::min(50.0f,c.heat+10.0f*c.wear))<.001f);
     }
     setupTactics();Spritej1->nrj=30;Spritej1->pv=900;
-    for(int i=0;i<29;++i) {auto *dust=new parts(Spritej1->x,Spritej1->y);dust->pv=600;particules.push_back(dust);}
+    for(int i=0;i<31;++i) {auto *dust=new parts(Spritej1->x,Spritej1->y);dust->pv=600;particules.push_back(dust);}
     sfCollectDust();
-    assert(std::abs(Spritej1->nrj-22.75f)<.02f && Spritej1->pv>908.0f && Spritej1->pv<=909.0f);
+    assert(Spritej1->nrj==0 && std::abs(Spritej1->pv-904.0f)<.02f);
     std::puts("PASS: linear shield and white dust share one core across duel and coop");
 }
 
@@ -84,13 +84,13 @@ static void testKineticFieldAndHullRegen()
     Spritej1->setxywh(390,500,100,100);Spritej1->sw=Spritej1->sh=100;Spritej1->startup();Spritej1->pv=1000;Spritej1->nrj=50;
     auto *slow=new sprite;slow->setv(390,500,20,20,0,0,1);slow->w=slow->h=slow->sw=slow->sh=20;slow->kineticStage=2;slow->pv=1;sa1.push_back(slow);
     for(int i=0;i<7;++i){auto *d=new sprite;d->setv(40+i*95,80,10,10,0,0,1);d->w=d->h=d->sw=d->sh=10;d->pv=1;sa1.push_back(d);}
-    sfLegacyFieldStep(sfCoopAsteroidHurt);assert(Spritej1->pv<1000);
+    sfLegacyFieldStep(sfCoopAsteroidHurt);assert(Spritej1->pv==1000);
 
     setupTactics();sfFixResetAsteroidField();sfFieldRemainder=0;
     Spritej1->setxywh(390,500,100,100);Spritej1->sw=Spritej1->sh=100;Spritej1->startup();Spritej1->pv=1000;Spritej1->nrj=50;
     auto *classic=new sprite;classic->setv(390,500,20,20,0,0,1);classic->w=classic->h=classic->sw=classic->sh=20;classic->kineticStage=2;classic->pv=1;sa1.push_back(classic);
     for(int i=0;i<7;++i){auto *d=new sprite;d->setv(40+i*95,80,10,10,0,0,1);d->w=d->h=d->sw=d->sh=10;d->pv=1;sa1.push_back(d);}
-    sfLegacyFieldStep(nullptr);assert(Spritej1->pv<1000);
+    sfLegacyFieldStep(nullptr);assert(Spritej1->pv==1000);
 
     setupCampaign();Spritej1->pv=3000;Spritej1->nrj=0;Spritej1->setxywh(390,650,100,100);Spritej1->sw=Spritej1->sh=100;Spritej1->startup();
     sfCoop.position=tupl(390,420);sfCoop.motion.valid=true;sfCoop.motion.velocity.set(0,sfArenaW*1.2f);sfObserved[0].velocity.set(0,0);
@@ -190,9 +190,9 @@ static void testCoopDifficultyChain()
 
     setupCampaign();Spritej1->setxywh(390,300,100,100);Spritej2->setxywh(700,1500,100,100);
     Spritej1->nrj=30;Spritej1->pv=900;
-    for(int i=0;i<29;++i) {auto *dust=new parts(390,300);dust->pv=600;particules.push_back(dust);}
+    for(int i=0;i<31;++i) {auto *dust=new parts(390,300);dust->pv=600;particules.push_back(dust);}
     sfCollectDust();
-    assert(std::abs(Spritej1->nrj-22.75f)<.02f && Spritej1->pv<=909);
+    assert(Spritej1->nrj==0 && std::abs(Spritej1->pv-904.0f)<.02f);
     std::puts("PASS: energy lowers cadence/accuracy, boss contact is continuous, rocks bypass shot i-frames and ore no longer resets the shield");
 }
 
@@ -237,12 +237,11 @@ static void testCoopIncomingDamageMultiplier()
     setupCampaign();sfFixResetAsteroidField();sfFieldRemainder=0;
     Spritej1->setxywh(390,400,100,100);Spritej2->setxywh(700,1500,100,100);
     Spritej1->pv=1000;Spritej1->nrj=25;
-    auto *impact=new sprite;impact->setv(390,400,20,20,0,0,1);impact->pv=1;sa1.push_back(impact);
+    auto *impact=new sprite;impact->setv(390,390,20,20,0,0,1);impact->vx=0;impact->vy=10;impact->kineticStage=2;impact->pv=1;sa1.push_back(impact);
     for(int i=0;i<7;++i) {
         auto *dummy=new sprite;dummy->setv(40+i*95,80,10,10,0,0,1);dummy->pv=1;sa1.push_back(dummy);
     }
-    const float asteroidLegacyDamage=impact->w*impact->h*.05f;
-    const float asteroidExpected=sfShieldDamage(asteroidLegacyDamage*SF_KINETIC_MASS_DAMAGE_FLOOR,25);
+    const float asteroidExpected=sfShieldDamage(sfKineticRockSolution(impact,Spritej1,0).rawDamage,25);
     // Exercise the real field collision callback before sfCoopResources()
     // performs its intentional dust pickup/recovery pass, which would mask the
     // exact impact-only PV/heat delta we are measuring here.
@@ -285,8 +284,7 @@ static void testCoopIncomingDamageMultiplier()
     const float ordinaryBefore=sfCoop.health;sfCoopProjectiles(0);
     assert(ordinaryDust->pv>0 && sfCoop.health==ordinaryBefore);
 
-    // A boss hit makes red dust. Armed red dust never heals PV/energy: it adds heat,
-    // i.e. weakens the shield, and leaves PV untouched by the pickup itself.
+    // A boss hit makes red dust. Red dust is strictly visual: no PV, reserve or shield mutation.
     setupCampaign();Spritej1->pv=3000;Spritej1->nrj=50;sfCoop.invulnerable[0]=0;
     const auto redBefore=particulesr.size();sfCoopHurt(0,10);
     assert(particulesr.size()>redBefore);
@@ -295,7 +293,7 @@ static void testCoopIncomingDamageMultiplier()
     auto *red=new parts(Spritej1->x,Spritej1->y);red->pv=550;particulesr.push_back(red);
     const float pvBeforeRed=Spritej1->pv,heatBeforeRed=Spritej1->nrj;
     sfCoopResources(0);
-    assert(Spritej1->pv==pvBeforeRed && Spritej1->nrj>heatBeforeRed && red->pv==0);
+    assert(Spritej1->pv==pvBeforeRed && Spritej1->nrj==heatBeforeRed && red->pv>0);
 
     std::puts("PASS: coop boss danger is configurable x1/x5/x10/x15/x20 while kinetic and dust economy stay separate");
 }

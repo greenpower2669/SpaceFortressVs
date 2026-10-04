@@ -342,8 +342,7 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
         static_cast<int>(width * 0.80f), static_cast<int>(height * 0.075f)
     };
     sfUiPanel(renderer, danger, 8, 24, 45, 235, 110, 95);
-    const std::string dangerText = std::string("< DANGER BOSS : X") +
-        std::to_string(int(sfBossDangerMultiplier())) + " >";
+    const std::string dangerText = std::string("< DANGER BOSS : ") + sfBossDangerName() + " >";
     sfUiCenteredText(renderer,width,danger.y+(danger.h-7*base)/2,
                      dangerText.c_str(),base,255,225,205);
 
@@ -476,7 +475,7 @@ static void sfUiHandleFingerDown(const SDL_TouchFingerEvent &finger)
         if (y >= 0.39f && y <= 0.505f) {
             setia = !setia;
         } else if (y >= 0.515f && y <= 0.60f) {
-            sfBossDangerAdjust(x < .5f ? -1 : 1);
+            sfBossDangerNext();
         } else if (y >= 0.61f && y <= 0.715f) {
             sfUiStartMatch();
         } else if (y >= 0.73f && y <= 0.85f) {

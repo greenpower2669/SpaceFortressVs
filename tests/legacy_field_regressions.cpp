@@ -132,8 +132,9 @@ static void interactions()
         sfActiveMode=sfSelectedMode=coop ? SF_COOP_LOCAL : SF_DUEL_LOCAL;
         sfCoop.phase=SfCoopPhase::Combat;sfCoop.invulnerable={};
         Spritej1->setxywh(390,840,100,100);Spritej1->nrj=40;Spritej1->pv=1000;Spritej2->pv=0;
-        fieldRock(390,840,100);
-        sfLegacyFieldFrame(1.0f/60,coop ? sfCoopHurt : nullptr);
+        auto *impact=fieldRock(390,790,100);
+        impact->vy=sfKineticReferenceSpeed(sfArenaW)/60.0f;impact->kineticStage=2;
+        sfLegacyFieldFrame(1.0f/60,coop ? sfCoopAsteroidHurt : nullptr);
         assert(Spritej1->pv<1000 && Spritej1->nrj>40 && !particulesr.empty() && !explos.empty());
     }
     sfTacticsReset();clearField();
