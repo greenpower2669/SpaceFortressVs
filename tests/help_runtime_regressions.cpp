@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
+#include <algorithm>
 #include <cassert>
 #include <cstdio>
 #include <vector>
@@ -21,15 +22,6 @@ sprite *Spritej1=new sprite,*Spritej2=new sprite;
 sprite *loosej1=new sprite,*loosej2=new sprite;
 sprite *rouage1=new sprite,*rouage2=new sprite,*Suiveur=new sprite;
 enti *iago=new enti,*iago1=new enti,*iacalc=new enti,*iatake=new enti;
-
-static int nonBlack(SDL_Surface *surface)
-{
-    std::vector<Uint32> pixels(surface->w*surface->h);
-    assert(SDL_RenderReadPixels(SDL_GetRenderer(surface),nullptr,SDL_PIXELFORMAT_RGBA32,
-        pixels.data(),surface->w*4)==0);
-    const Uint32 black=SDL_MapRGBA(surface->format,0,0,0,255);
-    int count=0;for(auto pixel:pixels) if(pixel!=black) ++count;return count;
-}
 
 int main()
 {
