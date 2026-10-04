@@ -30,13 +30,11 @@ int main()
     sfBossDangerAdjust(1);
     assert(sfBossDangerIndex==1);
 
-    sfBossDangerIndex=0;
-    assert(std::fabs(sfApplyHostileDanger(2.0f)-2.0f)<0.0001f);
-    sfBossDangerIndex=2;
-    assert(std::fabs(sfApplyHostileDanger(2.0f)-20.0f)<0.0001f);
-    sfBossDangerIndex=8;
-    assert(std::fabs(sfApplyHostileDanger(2.0f)-80.0f)<0.0001f);
+    for(int i=0;i<SF_BOSS_DANGER_COUNT;++i) {
+        sfBossDangerIndex=i;
+        assert(std::fabs(sfApplyHostileDanger(2.0f)-2.0f*expectedLevels[i])<0.0001f);
+    }
 
-    std::puts("PASS: nine named danger levels, ROCK N ROLL default, hidden damage helper");
+    std::puts("PASS: nine named danger levels, ROCK N ROLL default, full x1..x40 damage matrix");
     return 0;
 }
