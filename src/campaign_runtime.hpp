@@ -109,13 +109,12 @@ static void sfCoopEnemyCollectWhiteDust()
 {
     if (sfCoop.phase!=SfCoopPhase::Combat) return;
     const float maximum=sfCoopProfile().health;
-    if (sfCoop.health>=maximum-.001f) return; // Never waste ore at full boss health.
+    if (sfCoop.health>=maximum-.001f) return;
     for(auto *dust:particules) {
         if (dust->pv<=0) continue;
         const tupl dustPosition(dust->x,dust->y);
         float nearest=std::numeric_limits<float>::max();
         bool enemyWins=false;
-        // Players retain a fair claim: the closest eligible collector wins.
         for(int owner=0;owner<2;++owner) {
             const auto *ship=sfCoopShip(owner);
             if (ship->pv<=0) continue;
@@ -143,7 +142,7 @@ static void sfCoopHurt(int owner,float damage)
 {
     auto *ship=sfCoopShip(owner);
     if (ship->pv<=0 || sfCoop.invulnerable[owner]>0 || sfCoop.phase!=SfCoopPhase::Combat) return;
-    const float incoming=sfBossDangerMultiplier()*damage;
+    const float incoming=sfApplyHostileDanger(damage);
     ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));
     sfCoop.invulnerable[owner]=.38f;
     sfCoop.soundHit=true;sfCoopEmitRedDust(owner,6);
@@ -316,7 +315,7 @@ static void sfCoopBossContact(int owner,float dt)
         if(raw.suggestedLayer!=SfKineticLayer::None)
             solved=sfApplyKineticLayer(raw,raw.suggestedLayer,sfKineticEnergyFraction(ship->nrj),sfKineticSurgePower(owner));
         sfAddShipHeat(ship,solved.energyCost);
-        const float incoming=solved.residualDamage; // Never apply coop x15 to kinetic damage.
+        const float incoming=solved.residualDamage; // Never apply hostile danger to kinetic damage.
         ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));
         const float strength=std::clamp(.25f+solved.dissipationFraction*.75f,0.0f,1.0f);
         if(raw.maxRadiusShipDiameters>0) {
@@ -331,7 +330,7 @@ static void sfCoopBossContact(int owner,float dt)
         sfCoop.chargeHit[owner]=true;sfCoop.soundHit=true;
         return;
     }
-    const float incomingPerSecond=sfBossDangerMultiplier()*650.0f;
+    const float incomingPerSecond=sfApplyHostileDanger(650.0f);
     ship->pv=std::max(0.0f,ship->pv-sfApplyShieldContinuousImpact(ship,incomingPerSecond,dt));
     sfCoop.soundHit=true;sfCoopEmitRedDust(owner,2);
 }
@@ -339,7 +338,7 @@ static void sfCoopAsteroidHurt(int owner,float legacyDamage)
 {
     auto *ship=sfCoopShip(owner);
     if (ship->pv<=0 || sfCoop.phase!=SfCoopPhase::Combat) return;
-    const float incoming=legacyDamage; // Kinetic asteroid damage is shared with classic: no coop x15.
+    const float incoming=legacyDamage; // Kinetic asteroid damage is shared with classic: no hostile danger multiplier.
     ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,incoming));
     sfCoop.soundHit=true;
 }
@@ -570,7 +569,6 @@ static tupl sfCoopBossBasePosition(float time)
     return tupl(sfArenaW*(.5f+spanX*x),sfArenaH*(.5f+spanY*y));
 }
 
-
 static void sfCoopStartCharge()
 {
     if(sfCoop.chargeActive || sfCoop.phase!=SfCoopPhase::Combat) return;
@@ -734,8 +732,6 @@ static SDL_Rect sfAtlasRect(SDL_Texture *texture,int index,int columns,int rows)
 }
 static SDL_Rect sfBossAtlasRect(SDL_Texture *texture,int index)
 {
-    // Measured gutters: the painted sheet is not a mathematically uniform grid.
-    // Use its actual cells for both animated meshes and mission thumbnails.
     constexpr int columns[]{0,177,343,503,672,846,1025,1202,1392,1578,1774};
     constexpr int rows[]{0,156,332,511,693,887};
     int width,height;SDL_QueryTexture(texture,nullptr,nullptr,&width,&height);
@@ -755,8 +751,6 @@ static void sfCoopDisc(SDL_Renderer *renderer,float x,float y,float radius,SDL_C
 }
 static std::string sfDisplayText(const std::string &input)
 {
-    // Display Latin names with the existing high-contrast font; originals are
-    // retained losslessly in the save. Unsupported scripts use a visible '?'.
     std::string result;
     for (size_t i=0;i<input.size();++i) {
         const unsigned char c=input[i];
@@ -1242,7 +1236,6 @@ static bool sfCampaignHandleEvent(SDL_Event *event)
     if (game && sfCoop.phase==SfCoopPhase::Name) {
         if (event->type==SDL_TEXTINPUT) {
             auto &name=sfCoop.names[sfCoop.nameField];
-            // Preserve spaces while typing; trim only on validation.
             std::string combined=name+event->text.text;
             int characters=0;size_t end=0;
             for (;end<combined.size();++end) if ((static_cast<unsigned char>(combined[end])&0xc0)!=0x80 && ++characters>24) break;
