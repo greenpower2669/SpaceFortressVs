@@ -2,16 +2,17 @@
 
 ## Priorité actuelle — 4 octobre 2026
 
-### À faire maintenant
+### Livraison / intégration
 
-- [ ] Revalider Android sur le HEAD contenant la réorganisation des mémoires et les notes 1.4.0 actualisées.
-- [ ] Vérifier que le `-build.json` produit pointe vers ce SHA exact.
-- [ ] Publier la release GitHub **v1.4.0** avec APK, AAB, manifest de build et `SHA256SUMS` issus de ce même SHA.
-- [ ] Vérifier la release publique : tag, cible, assets, tailles et digests.
-- [ ] Ensuite seulement fusionner `fix/gameplay-campaign-200` dans `main`.
-- [ ] La fusion doit conserver les 5 commits uniques de `main` comme deuxième histoire de merge ; aucun écrasement de l'historique.
-- [ ] Vérifier `main` après fusion avec une exécution fraîche.
-- [ ] Synchroniser une dernière fois les 4 mémoires avec le SHA de release et le SHA final de `main`.
+- [x] Réorganiser et synchroniser `brain.md`, `brainmap.md`, `debughistorical.md`, `todo.md`.
+- [x] Revalider Android sur le HEAD de publication `98da8a01175d5091f487232f65872e92d213b321`.
+- [x] Vérifier que le `-build.json` pointe vers ce SHA exact.
+- [x] Publier la release GitHub **v1.4.0** avec APK, AAB, manifest de build et `SHA256SUMS` de ce même SHA.
+- [x] Vérifier la release publique : tag, cible, assets, tailles et digests.
+- [x] Fusionner `fix/gameplay-campaign-200` dans `main` sans écraser les 5 commits uniques de l'ancien `main`.
+- [x] Créer un vrai merge à deux parents : `c50088092744d18ce50f3ef484a2d706aa76a276`.
+- [ ] Vérifier Android sur le `main` fusionné et documenté avec une exécution fraîche.
+- [ ] Inscrire le SHA/workflow GREEN final de `main` dans les quatre mémoires.
 
 ### Validation téléphone après livraison
 
@@ -35,7 +36,7 @@
 - [x] HUD coop double orientation + vie boss.
 - [x] Tirs ordinaires non guidés en vol ; prédiction initiale IA conservée.
 - [x] Cadence/précision liées à la réserve historique.
-- [x] Contact boss non cinétique rendu fortement dépendant du danger choisi.
+- [x] Contact boss non cinétique dépend du danger choisi.
 - [x] Astéroïdes et charges explicites séparés du multiplicateur danger boss.
 - [x] Modèle cinétique linéaire masse × vitesse relative × fermeture.
 - [x] Suppression du plancher de dégâts cinétiques.
@@ -47,20 +48,20 @@
 - [x] Surcharge 2 doigts : 2 s, ×2 pendant charge, arc-en-ciel, sons, vulnérabilité après armement, purge au relâchement.
 - [x] Danger HOME : `MOU DU GENOU`, `CHILL`, `ROCK N ROLL`, `DUR A CUIRE`, `MACHINE DE GUERRE`.
 - [x] Défaut danger = ×10 / `ROCK N ROLL`.
-- [x] Suite complète Python + C++ + SDL/UBSan + compat Android + legacy field verte sur le build de référence `b56b883d2499fb41c4bd26cb39e067c527201f28`.
-- [x] Gradle APK/AAB + packaging de référence verts : workflow `37166112893`.
 
-## Artefacts de référence avant republication
+## Release publique v1.4.0
 
-- APK : `SpaceFortressVs-1.4.0.apk`
-  - taille : 87 675 757 octets
-  - SHA-256 : `ff64f6a4a9a6b6ddbeea347d708e38b2b43e0d10ce9865205c415f717e9bcb66`
-- AAB : `SpaceFortressVs-1.4.0-unsigned.aab`
-  - taille : 85 168 535 octets
-  - SHA-256 : `4e2f8b2f6a0c671095598b03ea9a1825ce9555aa839cdf9a748fe311c7dbb4ae`
-- Ces artefacts prouvent l'état `b56b883d…`, mais la release à publier doit être reconstruite après cette réorganisation afin que son manifest corresponde exactement au SHA publié.
+- URL : `https://github.com/greenpower2669/SpaceFortressVs/releases/tag/v1.4.0`
+- cible : `98da8a01175d5091f487232f65872e92d213b321`
+- workflow Android : `37180765011`
+- APK : 87 675 758 octets — SHA-256 `158bb86b07f353fcaeade3b65b522abf94f88e83feff2ab343f43d01d411d1d9`
+- AAB : 85 168 535 octets — SHA-256 `4e2f8b2f6a0c671095598b03ea9a1825ce9555aa839cdf9a748fe311c7dbb4ae`
+- build manifest : SHA-256 `ff450cbb9808c4080eef08ede519b26c9f04d404d3802eeffba82626b52022d9`
+- `SHA256SUMS` : SHA-256 `d40a98a69f0d5ffbd6b9d8b90b1759de5395225d491f69ab3263ff3ea1c1b77f`
+- certificat APK : `22943f8846ebaf3191d011b1d947883d66ff6f25e566c3a966b98f879f070172`
+- signature différente de v1.3.1 : APK de test uniquement.
 
-## Interdits
+## Interdits permanents
 
 - [ ] Ne pas forcer `main` en remplaçant son histoire.
 - [ ] Ne pas publier des binaires d'un SHA différent du `target_commitish` de la release.

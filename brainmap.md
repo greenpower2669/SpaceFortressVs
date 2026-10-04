@@ -2,23 +2,26 @@
 
 ## Carte rapide de reprise — 4 octobre 2026
 
-### Dépôt / branches
+### État Git / livraison
 
 - Dépôt : `greenpower2669/SpaceFortressVs`
-- Branche campagne : `fix/gameplay-campaign-200`
-- Branche cible finale : `main`
-- `main` et la branche campagne sont historiquement divergentes.
-  - merge-base : `57b401a341dc07ed6ebe2c790a7ab96f389c1e27`
-  - `main` possède 5 commits uniques.
-  - campagne possède 184 commits d'avance.
-- Règle de fusion finale : créer un vrai merge conservant les deux parents ; l'arbre fonctionnel doit rester celui de la branche campagne vérifiée, sauf conflit prouvé nécessitant une résolution explicite.
+- Version publique : **v1.4.0**
+- Release : `https://github.com/greenpower2669/SpaceFortressVs/releases/tag/v1.4.0`
+- Commit de release : `98da8a01175d5091f487232f65872e92d213b321`
+- Workflow Android de release : `37180765011` — GREEN complet.
+- Merge `main` : `c50088092744d18ce50f3ef484a2d706aa76a276`
+- Parents du merge :
+  1. ancien `main` `45e43f9146010dd945a492393f7e44be2026ad7a`
+  2. branche campagne nettoyée `098b88302ecf29654ae9a6c7d18a8352e7a1e5e8`
+- Les 5 commits uniques de l'ancien `main` sont conservés.
+- Vérification Android du `main` final : à exécuter avant clôture.
 
 ## Sources et responsabilités
 
 ### Historique
 - `src/main.cpp`
   - source historique de référence ; ne pas réécrire.
-  - blob canonique vérifié : `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+  - blob canonique : `835059a0ecfe0f74708068b3259cad5db1cdb579`.
 
 ### Modes / accueil
 - `src/game_mode.hpp` : modes duel/coop.
@@ -30,7 +33,7 @@
 - `src/campaign_runtime.hpp`
   - combat coop campagne ;
   - contact boss, projectiles, charges, HUD, sauvegarde du résultat ;
-  - multiplicateur danger appliqué seulement aux chemins non cinétiques.
+  - multiplicateur danger seulement sur les chemins non cinétiques.
 - `src/boss_catalog.hpp` : 50 identités.
 - `src/boss_difficulty_visuals.hpp` : signature visuelle 0/4/8/20 tentacules + auras.
 - `src/campaign_save.hpp` : formats v1/v2, migration et Hall of Fame.
@@ -49,7 +52,7 @@
   - modèle physique partagé ;
   - masse, vitesse relative, fermeture, couches ;
   - surcharge deux doigts 2 s + état armé vulnérable ;
-  - événements de charge/prêt/décharge.
+  - événements charge/prêt/décharge.
 - `src/legacy_field_runtime.hpp`
   - astéroïdes réels du champ historique ;
   - interception par couches cinétiques ;
@@ -64,7 +67,7 @@
 ### Astéroïde → vaisseau
 
 `astéroïde historique`
-→ calcul masse relative 0..1
+→ masse relative 0..1
 → vitesse relative
 → composante réellement fermante
 → dégâts bruts max 250 PV à référence complète
@@ -75,7 +78,7 @@
 
 Interdits :
 - aucun × danger boss ;
-- aucun plancher artificiel de dégâts ;
+- aucun plancher artificiel ;
 - aucune double collision coque dans la même étape après interaction de couche.
 
 ### Charge explicite boss → vaisseau
@@ -98,7 +101,7 @@ projectile / rayon / vague / contact non cinétique
 ### Poussière blanche
 
 collecte
-→ si `nrj > 0` : recharge la réserve jusqu'à 0
+→ si `nrj > 0` : recharge jusqu'à 0
 → sinon : soin PV fort
 → disparition de la particule collectée
 
@@ -146,19 +149,26 @@ L'interface n'affiche pas le coefficient.
 - `tests/regressions.cpp`
 - `scripts/test-regressions.sh`
 
-Dernière validation complète connue avant cette réorganisation : workflow Android `37166112893`, HEAD `b56b883d2499fb41c4bd26cb39e067c527201f28`, succès complet.
-
 ## Packaging / release
 
 - `android/version.properties` : 1.4.0 / code 10.
 - `scripts/package-release.py` : vérifie manifest, ARM64, archives, PNG, certificat, SHA.
-- `scripts/publish-release.py` : refuse de remplacer une autre cible ou un asset différent ; crée d'abord un draft, vérifie les digests, puis publie.
-- `docs/releases/1.4.0.md` : source des notes publiques de release.
-- Release v1.4.0 encore à publier après la nouvelle vérification du HEAD mémoire.
+- `scripts/publish-release.py` : publication protégée par provenance du manifest et digests.
+- `docs/releases/1.4.0.md` : notes publiques de la release.
+- Workflow one-shot de publication supprimé après usage.
+
+### Artefacts publics v1.4.0
+
+- APK : 87 675 758 octets — `158bb86b07f353fcaeade3b65b522abf94f88e83feff2ab343f43d01d411d1d9`
+- AAB : 85 168 535 octets — `4e2f8b2f6a0c671095598b03ea9a1825ce9555aa839cdf9a748fe311c7dbb4ae`
+- build manifest : `ff450cbb9808c4080eef08ede519b26c9f04d404d3802eeffba82626b52022d9`
+- `SHA256SUMS` : `d40a98a69f0d5ffbd6b9d8b90b1759de5395225d491f69ab3263ff3ea1c1b77f`
+- certificat APK : `22943f8846ebaf3191d011b1d947883d66ff6f25e566c3a966b98f879f070172`
+- certificat différent de v1.3.1 : APK de test uniquement.
 
 ## Invariants de livraison
 
-- Pas de publication d'un artefact dont le manifest `-build.json` ne pointe pas vers le SHA exact du workflow de publication.
-- Pas de merge `main` avant release publique vérifiée.
-- Après merge : lancer une vérification fraîche de `main`.
-- APK 1.4.0 signé debug avec certificat différent de v1.3.1 : test uniquement, ne pas effacer les données Android.
+- Pas de publication d'un artefact dont le manifest ne pointe pas vers le SHA ciblé.
+- Un merge historique divergent se fait à deux parents, jamais par force-push.
+- `main` doit recevoir une vérification fraîche après fusion.
+- APK debug à signature différente : ne pas effacer les données Android.
