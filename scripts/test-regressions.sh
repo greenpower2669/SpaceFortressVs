@@ -26,6 +26,10 @@ g++ -std=c++17 -O1 -ffunction-sections -fdata-sections -I "$sf_repo/src" \
 "$sf_test_dir/campaign-format"
 read -r -a sf_sdl_cflags <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
 read -r -a sf_sdl_libs <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
+g++ -std=c++17 -O1 -g -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "$sf_repo/tests/include" \
+    "${sf_sdl_cflags[@]}" "$sf_repo/tests/classic_danger_regressions.cpp" \
+    -Wl,--gc-sections "${sf_sdl_libs[@]}" -pthread -o "$sf_test_dir/classic-danger"
+(cd "$sf_test_dir" && ./classic-danger)
 g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recover=all \
     -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "$sf_repo/tests/include" \
     "${sf_sdl_cflags[@]}" "$sf_repo/tests/regressions.cpp" \
