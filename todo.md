@@ -1,17 +1,20 @@
 # todo.md — SpaceFortressVs
 
-## Lot HELP / TUTORIEL / DANGER 9
+## Mission poussières cinétiques — validation téléphone
 
-- [x] Code et régressions terminés sur `feature/help-tutorial-danger-9-canon`.
-- [x] APK + AAB vérifiés au SHA `d9520a0b674d7f21df37f982a444d625b523f8d9`, workflow `37236262962` GREEN.
-- [x] `src/main.cpp` absent du diff.
-- [ ] Fab : test téléphone du `?`, des 3 formats, du tuto, de la reprise d’une partie et des 9 dangers.
-- [ ] Vérifier sur téléphone que le danger classique modifie les tirs IA hostiles mais jamais le cinétique.
-- [ ] Après validation explicite de Fab seulement : décider merge `main` puis éventuelle release.
+- [x] Branche dédiée `feature/kinetic-dust-impact-v4` créée depuis `76bab7bac571df6f42f4ae76011fc61ab2b0c8ee`.
+- [x] TDD RED puis GREEN ; gameplay figé `8f2ee5ed61372f2647ae7284abdf9a0df7d8ebbf`.
+- [x] `scripts/test-regressions.sh` + APK + AAB + packaging GREEN sur workflow `37241618498`.
+- [ ] Fab : vérifier purge armée 2 s → beaucoup de blanc proportionnel, quasi statique.
+- [ ] Fab : vérifier collision astéroïde↔astéroïde → nettement moins de blanc (10 %), projeté dans la course de l’objet détruit.
+- [ ] Fab : vérifier destruction par champ normal → même ordre 10 %, sans double émission.
+- [ ] Fab : vérifier rouge au champ → impacts locaux jaune/orange/rouge, majorité consumée, quelques survivants repoussés de façon cohérente.
+- [ ] Fab : vérifier que le blanc se collecte toujours énergie puis soin et n’est pas repoussé par les vagues.
+- [ ] Échantillon téléphone aide/tuto/Danger 9/campagne 200 si souhaité.
 
-## Invariants
+## Invariants avant intégration
 
-- [ ] `ROCK N ROLL` reste le défaut ×10 interne ; coefficients cachés aux joueurs.
-- [ ] Danger = dégâts non cinétiques uniquement ; aucune modification cadence/vitesse/visée.
-- [ ] `nrj=0` plein / `nrj=50` épuisé ; rouge sans gameplay.
-- [ ] `src/main.cpp` historique protégé.
+- [x] Aucun équilibrage des dégâts modifié dans cette mission.
+- [x] Rouge sans soin/recharge/dégât/danger.
+- [x] Aucun merge `main`, aucune release.
+- [ ] Après validation explicite de Fab seulement : décider merge puis éventuelle release.

@@ -2,16 +2,17 @@
 
 ## Pièges prouvés
 
-Archives : `docs/archive/2026-10-spacefortress-v1.4.0-history.md` et `docs/archive/2026-10-spacefortress-help-tutorial-danger9-history.md`.
+Archives : `docs/archive/2026-10-spacefortress-v1.4.0-history.md`, `docs/archive/2026-10-spacefortress-help-tutorial-danger9-history.md` et `docs/archive/2026-10-05-kinetic-dust-impact-v4.md`.
 
-- **Android / astéroïdes invisibles** : confusion `std::setw` / `fablib::setw(W)` ; corriger la copie générée, pas `src/main.cpp`.
+- **Android / astéroïdes invisibles** : confusion `std::setw` / `fablib::setw(W)` ; corriger la copie générée, jamais `src/main.cpp`.
 - **Énergie** : `nrj=0` plein, `nrj=50` épuisé.
-- **Cinétique** : aucun dégât inventé à vitesse nulle ; danger hostile exclu de tous les chemins cinétiques ; éviter tout double impact couche+coque.
-- **Poussières** : rouge visuelle uniquement ; blanche recharge puis soin et reste physiquement libre.
-- **Surcharge** : le tuto doit compter le vrai maintien jusqu’à 2 s ; ne pas plafonner le temps cumulé à 0,25 s. Armé = champ OFF jusqu’au relâchement.
-- **Danger** : utiliser le helper canonique sur le non-cinétique ; les tests ne doivent pas exiger une ancienne expression directe du multiplicateur.
-- **Aide en jeu** : `help_live_bridge.hpp` reste le routeur final ; il doit consommer le doigt du `?` et conserver l’état vivant avant reprise.
-- **Formats aide** : RAPIDE/DETAILLE = schémas fixes ; ANIME = horloge live. `help_format_bridge.hpp` isole cette différence.
+- **Cinétique** : aucun dégât inventé à vitesse nulle ; Danger HOME exclu ; éviter tout double impact couche+coque.
+- **Destruction / blanc** : toute destruction cinétique productrice de ressource passe par le helper canonique et son garde `pv>0` ; ne jamais réintroduire purge + collision + fragmentation comme émissions cumulatives.
+- **Minage** : reste un chemin historique séparé ; ne pas l’assimiler à une destruction cinétique 10/100 %.
+- **Blanc** : recharge puis soin et reste physiquement libre ; aucune déviation par vague.
+- **Rouge** : réaction cinétique visuelle/mouvement seulement ; ne jamais toucher PV, énergie, danger ou équilibrage depuis ce chemin.
+- **Surcharge** : maintien réel 2 s ; champ ×2 pendant charge, OFF une fois armé, purge au relâchement.
+- **Aide en jeu** : `help_live_bridge.hpp` consomme le doigt du `?` et conserve l’état vivant avant reprise.
 - **Signature Android** : ne jamais conseiller désinstallation/effacement des données comme contournement.
 
-Anciens SHA, logs et essais résolus restent dans les archives/Git, pas ici.
+Anciens SHA, rouges intermédiaires, logs et essais résolus restent dans les archives/Git, pas ici.
