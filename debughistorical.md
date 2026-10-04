@@ -1,6 +1,6 @@
 # debughistorical.md — SpaceFortressVs
 
-## Résumé des causes prouvées — état livré 1.4.0
+## Résumé des causes prouvées — base livrée 1.4.0
 
 Archive complète : `docs/archive/2026-10-spacefortress-v1.4.0-history.md`.
 
@@ -11,34 +11,22 @@ Archive complète : `docs/archive/2026-10-spacefortress-v1.4.0-history.md`.
 
 ### Énergie
 - Convention historique : `nrj=0` plein, `nrj=50` épuisé.
-- Toute lecture future doit préserver ce sens.
 
 ### Cinétique v3
-- Ancien problème : plancher artificiel + dépendance quadratique de vitesse.
 - Canon : `250 × masseRelative × vitesseRelativeNormalisée × fermeture`.
 - Masse/vitesse bornées, aucun plancher.
 - Vitesse nulle = aucun dégât cinétique inventé.
-- Danger boss exclu des chemins cinétiques.
-
-### Dernier faux rouge historique
-- `legacy_field_regressions` simulait un astéroïde immobile posé sur la coque et exigeait des dégâts.
-- Test corrigé en impact réellement entrant et passage par `sfCoopAsteroidHurt`.
-- La suite complète est ensuite devenue GREEN.
+- Danger exclu des chemins cinétiques.
 
 ### Poussières
-- Rouge : ancienne chaleur/recharge supprimée ; visuelle uniquement.
+- Rouge : visuelle uniquement.
 - Blanche : recharge jusqu'à `nrj=0`, puis soin ; non déviée.
 
 ### Surcharge
 - Charge 2,00 s.
 - Pendant charge : champ ×2 + irisation + son.
-- Après 2 s tant que le doigt reste posé : bouclier cinétique OFF, vulnérabilité volontaire.
+- Après 2 s tant que le doigt reste posé : bouclier cinétique OFF.
 - Relâchement prêt : purge ; relâchement précoce : pas de purge complète.
-
-### HOME danger boss
-- Affichage par noms : `MOU DU GENOU`, `CHILL`, `ROCK N ROLL`, `DUR A CUIRE`, `MACHINE DE GUERRE`.
-- Défaut `ROCK N ROLL` = ×10 interne.
-- Sélecteur et lancement sont tactiquement séparés.
 
 ### Livraison / merge
 - Release `v1.4.0` publiée depuis `98da8a01175d5091f487232f65872e92d213b321`.
@@ -46,7 +34,18 @@ Archive complète : `docs/archive/2026-10-spacefortress-v1.4.0-history.md`.
 - `main` revalidé sur `a30ca6ed4b4679ad9bd69ba8a145f602e9e3cb8b`, workflow `37181486670` GREEN complet.
 - Fab confirme l'APK OK sur téléphone le 4/10/2026.
 
-### Signature Android
-- APK 1.4.0 publié : certificat `22943f8846ebaf3191d011b1d947883d66ff6f25e566c3a966b98f879f070172`.
-- v1.3.1 : `8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868`.
-- Différents : APK CI de test ; ne jamais conseiller de supprimer l'installation ou les données pour contourner cette incompatibilité.
+## Mission active — points à ne pas perdre pendant l'implémentation
+
+Branche : `feature/in-game-help-tutorial-danger-9`.
+Spec : `docs/superpowers/specs/2026-10-04-in-game-help-tutorial-danger-9-design.md`.
+
+- Le danger historique 5 niveaux est remplacé par 9 niveaux ; défaut futur `FIN DU MONDE` ×40.
+- En classique, l'IA doit anticiper la trajectoire du joueur **avant le tir**, puis le projectile ordinaire doit rester droit avec un vecteur vitesse constant.
+- Ne jamais convertir l'amélioration d'anticipation en guidage après lancement.
+- Cadence et vitesse augmentent avec le danger mais restent plafonnées (×2.50 et ×1.80).
+- Le danger ne doit jamais contaminer les astéroïdes ou charges cinétiques.
+- Le centre d'aide ouvert pendant une partie doit geler la simulation et consommer ses événements tactiles.
+- Le tutoriel doit avoir un état sandbox séparé : aucune statistique, sauvegarde, progression ou entité de vraie partie ne doit être mutée.
+- Les illustrations animées réutilisent les assets existants et des primitives SDL ; pas de nouvelles vidéos requises pour cette version.
+
+Ce bloc est une garde de régression pour le nouveau lot, pas un journal de bugs déjà observés.
