@@ -123,3 +123,9 @@ Contrat canonique :
 Preuve code : TDD RED `afbd28da13d81409d083ef7cc1f8a93010ceaec0` / workflow `37240892431`, puis GREEN au SHA gameplay `8f2ee5ed61372f2647ae7284abdf9a0df7d8ebbf` / workflow Android `37241618498` : régressions, APK, AAB, vérification et packaging réussis ; `publish-release` SKIPPED. Artefact `SpaceFortressVs-Android-444`, id `6545681985`, digest `sha256:399dcf6808a83fe4071ab91d2b9b9d2465c0a6e2c6f5950824482687a936fd6e`.
 
 Étape restante : validation physique des effets sur téléphone par Fab. **Aucun merge `main` ni aucune release avant accord explicite de Fab.**
+
+## ERRATUM KINETIC-DUST-IMPACT-V4 — 2026-10-05
+
+La ligne d’artefact ci-dessus était une erreur de recopie documentaire et ne modifie ni le code ni la validation GREEN.
+
+Métadonnée CI correcte pour le workflow `37241618498` / SHA gameplay `8f2ee5ed61372f2647ae7284abdf9a0df7d8ebbf` : artefact `SpaceFortressVs-1.4.0-release-files`, id `11317688487`, digest `sha256:3571fc53e4a6cb2ce8c0c5793bcccae219eaa0905cf509efa541a9cd44789cf0`. Le job `build-android` `111551304971` est `SUCCESS` et `publish-release` est `SKIPPED`.
