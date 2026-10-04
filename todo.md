@@ -1,34 +1,78 @@
 # todo.md — SpaceFortressVs
 
-## État après livraison 1.4.0 — 4 octobre 2026
+## Mission active — aide/tutoriel + danger 9
 
-### Clôturé
+Branche : `feature/in-game-help-tutorial-danger-9`
+Spec : `docs/superpowers/specs/2026-10-04-in-game-help-tutorial-danger-9-design.md`
 
-- [x] Campagne 200 livrée.
-- [x] Kinetic balance v3 livré.
-- [x] Danger boss HOME par noms livré.
-- [x] Poussière rouge visuelle uniquement.
-- [x] Poussière blanche : énergie puis soin.
-- [x] Vagues centre→extérieur.
-- [x] Surcharge deux doigts 2 s + vulnérabilité après armement + purge au relâchement.
-- [x] Release publique `v1.4.0` publiée depuis `98da8a01175d5091f487232f65872e92d213b321`.
-- [x] Merge réel à deux parents dans `main` : `c50088092744d18ce50f3ef484a2d706aa76a276`.
-- [x] `main` vérifié GREEN sur `a30ca6ed4b4679ad9bd69ba8a145f602e9e3cb8b`, workflow `37181486670`.
-- [x] APK confirmé OK sur téléphone par Fab.
-- [x] Historique détaillé déplacé dans `docs/archive/2026-10-spacefortress-v1.4.0-history.md`.
+### Design / méthode
 
-## Pour la prochaine mission
+- [x] Besoin joueur clarifié.
+- [x] Architecture choisie : profil danger + centre d'aide + tutoriel sandbox séparés.
+- [x] Design écrit et commité.
+- [ ] Fab relit/valide la spec écrite.
+- [ ] Écrire le plan d'implémentation détaillé.
+- [ ] Exécuter en TDD.
 
-- [ ] Partir de `main` sauf ordre contraire de Fab.
-- [ ] Lire `brain.md` + `brainmap.md` avant toute modification.
-- [ ] Lire l'archive uniquement si un ancien bug/décision doit être retrouvé.
-- [ ] Créer une branche dédiée avant nouveau code conséquent.
-- [ ] Ne pas modifier `src/main.cpp` historique sans preuve qu'aucune autre couche ne peut porter le correctif.
+### Danger 9 niveaux
 
-## Invariants
+- [ ] Étendre `boss_danger.hpp` à 9 profils.
+- [ ] Défaut = `FIN DU MONDE` ×40.
+- [ ] Ajouter cadence plafonnée jusqu'à ×2.50.
+- [ ] Ajouter vitesse projectile plafonnée jusqu'à ×1.80.
+- [ ] Ajouter paramètres d'anticipation/précision.
+- [ ] Garder les coefficients invisibles sur HOME.
+- [ ] Garder le sélecteur séparé du bouton lancement.
 
-- [ ] Ne pas appliquer le danger boss aux chemins cinétiques.
+### IA classique
+
+- [ ] Identifier précisément le point de création des tirs IA sans modifier `src/main.cpp` si une couche runtime peut porter le comportement.
+- [ ] Calculer une interception à partir position/vitesse cible + vitesse projectile.
+- [ ] Appliquer erreur/anticipation selon le niveau.
+- [ ] Garantir vecteur projectile constant après création.
+- [ ] Appliquer dégâts/cadence/vitesse uniquement à l'IA adverse.
+
+### Aide `?`
+
+- [ ] RAPIDE.
+- [ ] DÉTAILLÉ.
+- [ ] ANIMÉ avec assets existants + schémas SDL.
+- [ ] Accès HOME.
+- [ ] Accès en partie avec pause/reprise exacte.
+- [ ] Consommation complète des événements tactiles d'aide.
+
+### Tutoriel sandbox
+
+- [ ] Déplacement.
+- [ ] Tir.
+- [ ] Énergie + poussière blanche.
+- [ ] Coque/bouclier.
+- [ ] Astéroïdes/cinétique.
+- [ ] Surcharge deux doigts.
+- [ ] Esquive/tirs IA.
+- [ ] `TOUT FAIRE`.
+- [ ] Prouver qu'aucune sauvegarde/stat/progression réelle ne change.
+
+### Coop/campagne
+
+- [ ] Étendre danger aux cadence/vitesse/anticipation des attaques non cinétiques applicables.
+- [ ] Conserver exactement les chemins cinétiques hors danger.
+
+### Tests / build
+
+- [ ] RED ciblés danger 9.
+- [ ] RED ciblés interception IA et absence de guidage.
+- [ ] RED aide pause/reprise/inputs.
+- [ ] RED sandbox tutoriel.
+- [ ] GREEN ciblés.
+- [ ] Régressions complètes 1.4.0.
+- [ ] Build Android APK + AAB frais.
+- [ ] Test téléphone Fab.
+
+## Invariants permanents
+
+- [ ] Ne pas appliquer le danger aux chemins cinétiques.
 - [ ] Ne pas redonner de gameplay à la poussière rouge.
 - [ ] Conserver `nrj=0` plein / `nrj=50` épuisé.
-- [ ] Ne pas conseiller désinstallation/effacement des données pour contourner la signature Android.
-- [ ] Toute future release doit publier uniquement les binaires dont le `-build.json` pointe vers son SHA exact.
+- [ ] Préserver `src/main.cpp` historique sauf preuve et approbation explicites.
+- [ ] Pas de merge `main` ni release sans validation de Fab.
