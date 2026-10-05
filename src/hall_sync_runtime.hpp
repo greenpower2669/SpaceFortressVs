@@ -4,6 +4,7 @@
 #include "campaign_save.hpp"
 #include "hall_of_fame.hpp"
 #include "boss_danger.hpp"
+#include "hall_sync_transport.hpp"
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -13,6 +14,7 @@
 #include <ctime>
 #include <mutex>
 #include <random>
+#include <set>
 #include <string>
 #include <vector>
 #ifndef SF_HALL_SYNC_NO_SDL
@@ -137,12 +139,6 @@ static bool sfHallRuntimeReconcileAndSave()
     sfHallRuntimeState=std::move(next);return true;
 }
 
-static void sfHallSyncAfterLocalVictorySaved()
-{
-    sfHallRuntimeReconcileAndSave();
-}
-
-
 enum class SfHallSyncError { None, Offline, Timeout, Auth, Server, Protocol, NotConfigured };
 
 struct SfHallDisplayEntry {
@@ -171,11 +167,26 @@ inline std::vector<SfHallRemoteEntry> sfHallPageStage;
 inline bool sfHallLastCommittedHasMore=false;
 inline std::string sfHallLastCommittedNextCursor;
 
+inline std::mutex sfHallTransportMutex;
+inline SfHallTransport sfHallTransport;
+inline std::set<std::string> sfHallUploadsInFlight;
+inline bool sfHallSyncCycleActive=false;
+inline uint64_t sfHallSyncCycleSerial=0;
+inline uint64_t sfHallSyncActiveCycle=0;
+inline std::string sfHallGameVersion="1.4.0";
+
 static void sfHallResetPageStageForTests()
 {
     std::lock_guard<std::mutex> lock(sfHallRuntimeMutex);
     sfHallPageActive=false;sfHallPageCycle=0;sfHallPageRequestedCursor.clear();sfHallPageStage.clear();
     sfHallLastCommittedHasMore=false;sfHallLastCommittedNextCursor.clear();
+}
+
+static void sfHallResetOrchestrationForTests()
+{
+    std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+    sfHallTransport={};sfHallUploadsInFlight.clear();sfHallSyncCycleActive=false;
+    sfHallSyncCycleSerial=0;sfHallSyncActiveCycle=0;sfHallGameVersion="1.4.0";
 }
 
 static bool sfHallPersistRuntimeCopy(const SfHallSyncState &next)
@@ -271,4 +282,123 @@ static std::vector<SfHallDisplayEntry> sfHallBuildSnapshot(const SfCampaignSave 
         return false;
     });
     return out;
+}
+
+static void sfHallInstallTransport(SfHallTransport transport)
+{
+    std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+    sfHallTransport=std::move(transport);
+}
+
+static void sfHallSetGameVersion(const std::string &version)
+{
+    if(version.empty()) return;
+    std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+    sfHallGameVersion=version;
+}
+
+static void sfHallTransportUploadAccepted(const std::string &submissionId,const std::string &serverId)
+{
+    sfHallApplyUploadSuccess(submissionId,serverId);
+    std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+    sfHallUploadsInFlight.erase(submissionId);
+}
+
+static void sfHallTransportUploadFailed(const std::string &submissionId,SfHallSyncError error)
+{
+    sfHallApplyUploadFailure(submissionId,error);
+    std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+    sfHallUploadsInFlight.erase(submissionId);
+}
+
+static bool sfHallTransportRemoteEntry(uint64_t cycleId,const SfHallRemoteEntry &entry)
+{
+    return sfHallStageRemote(cycleId,entry);
+}
+
+static void sfHallDispatchSyncPage(uint64_t cycleId,const std::string &cursor)
+{
+    std::function<void(uint64_t,const std::string&,int)> dispatch;
+    {
+        std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+        if(!sfHallSyncCycleActive || sfHallSyncActiveCycle!=cycleId || !sfHallTransport.syncPage) return;
+        dispatch=sfHallTransport.syncPage;
+    }
+    if(!sfHallBeginPage(cycleId,cursor)){
+        std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+        if(sfHallSyncActiveCycle==cycleId) sfHallSyncCycleActive=false;
+        return;
+    }
+    try {dispatch(cycleId,cursor,100);}
+    catch (...) {sfHallFailPage(cycleId,cursor,SfHallSyncError::Protocol);std::lock_guard<std::mutex> lock(sfHallTransportMutex);if(sfHallSyncActiveCycle==cycleId) sfHallSyncCycleActive=false;}
+}
+
+static void sfHallTransportPageDone(uint64_t cycleId,const std::string &requestedCursor,const std::string &nextCursor,bool hasMore)
+{
+    if(!sfHallCommitPage(cycleId,requestedCursor,nextCursor,hasMore)){
+        std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+        if(sfHallSyncActiveCycle==cycleId) sfHallSyncCycleActive=false;
+        return;
+    }
+    if(hasMore){sfHallDispatchSyncPage(cycleId,nextCursor);return;}
+    std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+    if(sfHallSyncActiveCycle==cycleId) sfHallSyncCycleActive=false;
+}
+
+static void sfHallTransportPageFailed(uint64_t cycleId,const std::string &requestedCursor,SfHallSyncError error)
+{
+    sfHallFailPage(cycleId,requestedCursor,error);
+    std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+    if(sfHallSyncActiveCycle==cycleId) sfHallSyncCycleActive=false;
+}
+
+static void sfHallKickPendingUploads()
+{
+    std::vector<SfHallUploadRequest> work;
+    std::function<void(const SfHallUploadRequest&)> submit;
+    std::string version;
+    {
+        std::lock_guard<std::mutex> runtimeLock(sfHallRuntimeMutex);
+        if(!sfHallRuntimeReconcileAndSave()) return;
+    }
+    {
+        std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+        submit=sfHallTransport.submit;
+        version=sfHallGameVersion;
+        if(!submit){sfHallLastError=SfHallSyncError::NotConfigured;return;}
+        const auto pending=sfHallPendingUploads(sfCampaignSave,sfHallRuntimeState,version);
+        for(const auto &request:pending){
+            if(sfHallUploadsInFlight.insert(request.submissionId).second) work.push_back(request);
+        }
+    }
+    for(const auto &request:work){
+        try {submit(request);}
+        catch (...) {sfHallTransportUploadFailed(request.submissionId,SfHallSyncError::Protocol);}
+    }
+}
+
+static void sfHallSyncAfterLocalVictorySaved()
+{
+    sfHallKickPendingUploads();
+}
+
+static void sfHallSyncOnHallOpen()
+{
+    sfHallKickPendingUploads();
+    uint64_t cycleId=0;
+    std::string cursor;
+    {
+        std::lock_guard<std::mutex> runtimeLock(sfHallRuntimeMutex);
+        if(!sfHallRuntimeLoad()) return;
+        cursor=sfHallRuntimeState.cursor;
+    }
+    {
+        std::lock_guard<std::mutex> lock(sfHallTransportMutex);
+        if(sfHallSyncCycleActive) return;
+        if(!sfHallTransport.syncPage){sfHallLastError=SfHallSyncError::NotConfigured;return;}
+        sfHallSyncCycleActive=true;
+        sfHallSyncActiveCycle=++sfHallSyncCycleSerial;
+        cycleId=sfHallSyncActiveCycle;
+    }
+    sfHallDispatchSyncPage(cycleId,cursor);
 }

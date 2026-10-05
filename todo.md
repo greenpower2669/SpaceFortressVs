@@ -5,7 +5,7 @@
 - [x] Task 1 RED→GREEN ciblé : état/codec + stockage atomique.
 - [x] Task 2 RED→GREEN ciblé : UUID stable + réconciliation + payload.
 - [x] Task 3 RED→GREEN ciblé : ack/errors + pages/cursor + snapshot global/local.
-- [ ] Task 4 hooks automatiques post-victoire/Hall + faux transport + anti-concurrence.
+- [x] Task 4 hooks automatiques post-victoire/Hall + faux transport + anti-concurrence.
 - [ ] Task 5 client HTTPS Java + clé BuildConfig + tests.
 - [ ] Task 6 pont JNI.
 - [ ] Task 7 Hall global + local visible.

@@ -3,6 +3,8 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <tuple>
+#include <vector>
 #include <sys/stat.h>
 #include <unistd.h>
 #include "hall_sync.hpp"
@@ -106,7 +108,6 @@ static void unknown_future_version_is_preserved_and_blocked()
     assert(bytes=="SPACEFORTRESS_HALL_SYNC 99\nfuture-data\n");
 }
 
-
 static SfCampaignSave sample_campaign_with_victory(uint64_t id,int danger=9)
 {
     SfCampaignSave save;
@@ -163,7 +164,6 @@ static void two_victories_never_share_submission_id()
     assert(state.locals.at(50).submissionId!=state.locals.at(51).submissionId);
 }
 
-
 static void reset_runtime_for(const std::string &path,const SfHallSyncState &state={})
 {
     sfHallRuntimeState=state;
@@ -172,6 +172,7 @@ static void reset_runtime_for(const std::string &path,const SfHallSyncState &sta
     sfHallRuntimeError.clear();
     sfHallLastError=SfHallSyncError::None;
     sfHallResetPageStageForTests();
+    sfHallResetOrchestrationForTests();
 }
 
 static void upload_success_and_failures_preserve_pending_correctly()
@@ -215,7 +216,6 @@ static void paged_sync_commits_cursor_only_after_durable_merge()
     sfHallFailPage(7,"100",SfHallSyncError::Timeout);
     assert(sfHallRuntimeState.cursor=="100" && sfHallRuntimeState.globals.count("srv-2")==0);
 
-    // A durable-write refusal must also leave the committed cursor/cache intact.
     const std::string blocked=dir+"/blocked.dat";
     { std::ofstream out(blocked); out<<"SPACEFORTRESS_HALL_SYNC 99\nfuture\n"; }
     sfHallRuntimePath=blocked;
@@ -274,6 +274,83 @@ static void offline_snapshot_contains_global_and_local_without_duplicates()
     assert(snapshot.front().points>=snapshot.back().points);
 }
 
+static void automatic_orchestration_deduplicates_uploads_and_paginates_once()
+{
+    const std::string dir=temp_dir(),path=dir+"/hall-sync-v1.dat";
+    SfHallSyncState initial;initial.cursor="0";
+    std::string error;assert(sfHallSyncSaveFile(path,initial,error));
+    reset_runtime_for(path,initial);
+    sfCampaignSave=sample_campaign_with_victory(90,9);
+
+    std::vector<std::string> uploads;
+    std::vector<std::tuple<uint64_t,std::string,int>> pages;
+    SfHallTransport transport;
+    transport.submit=[&](const SfHallUploadRequest &r){uploads.push_back(r.submissionId);};
+    transport.syncPage=[&](uint64_t cycle,const std::string &cursor,int limit){pages.emplace_back(cycle,cursor,limit);};
+    sfHallInstallTransport(std::move(transport));
+
+    sfHallSyncOnHallOpen();
+    sfHallSyncOnHallOpen();
+    assert(uploads.size()==1);
+    assert(pages.size()==1);
+    assert(std::get<1>(pages[0])=="0" && std::get<2>(pages[0])==100);
+    const uint64_t cycle=std::get<0>(pages[0]);
+
+    auto remote=sample_remote();remote.id="srv-90";remote.submissionId=uploads[0];remote.serverRank=1;
+    assert(sfHallTransportRemoteEntry(cycle,remote));
+    sfHallTransportPageDone(cycle,"0","100",true);
+    assert(pages.size()==2 && std::get<1>(pages[1])=="100" && std::get<0>(pages[1])==cycle);
+    sfHallTransportPageDone(cycle,"100","200",false);
+    assert(!sfHallSyncCycleActive);
+    assert(sfHallRuntimeState.cursor=="200");
+}
+
+static void post_victory_upload_retries_only_after_callback_clears_inflight()
+{
+    const std::string dir=temp_dir(),path=dir+"/hall-sync-v1.dat";
+    SfHallSyncState initial;
+    std::string error;assert(sfHallSyncSaveFile(path,initial,error));
+    reset_runtime_for(path,initial);
+    sfCampaignSave=sample_campaign_with_victory(91,9);
+
+    std::vector<std::string> uploads;
+    int pages=0;
+    SfHallTransport transport;
+    transport.submit=[&](const SfHallUploadRequest &r){uploads.push_back(r.submissionId);};
+    transport.syncPage=[&](uint64_t,const std::string&,int){++pages;};
+    sfHallInstallTransport(std::move(transport));
+
+    sfHallSyncAfterLocalVictorySaved();
+    sfHallSyncAfterLocalVictorySaved();
+    assert(uploads.size()==1 && pages==0);
+    const std::string submission=uploads.front();
+    sfHallTransportUploadFailed(submission,SfHallSyncError::Offline);
+    assert(sfHallRuntimeState.locals.at(91).state==SfHallUploadState::Pending);
+    sfHallSyncAfterLocalVictorySaved();
+    assert(uploads.size()==2 && uploads[1]==submission);
+}
+
+static void page_failure_stops_chain_without_advancing_cursor()
+{
+    const std::string dir=temp_dir(),path=dir+"/hall-sync-v1.dat";
+    SfHallSyncState initial;initial.cursor="33";
+    std::string error;assert(sfHallSyncSaveFile(path,initial,error));
+    reset_runtime_for(path,initial);
+    sfCampaignSave={};
+
+    std::vector<std::tuple<uint64_t,std::string,int>> pages;
+    SfHallTransport transport;
+    transport.syncPage=[&](uint64_t cycle,const std::string &cursor,int limit){pages.emplace_back(cycle,cursor,limit);};
+    sfHallInstallTransport(std::move(transport));
+    sfHallSyncOnHallOpen();
+    assert(pages.size()==1 && sfHallSyncCycleActive);
+    const auto cycle=std::get<0>(pages.front());
+    sfHallTransportPageFailed(cycle,"33",SfHallSyncError::Timeout);
+    assert(!sfHallSyncCycleActive);
+    assert(sfHallRuntimeState.cursor=="33");
+    assert(sfHallLastError==SfHallSyncError::Timeout);
+}
+
 int main()
 {
     sync_state_round_trips_v1();
@@ -286,5 +363,8 @@ int main()
     paged_sync_commits_cursor_only_after_durable_merge();
     stale_callbacks_and_invalid_remote_entries_are_rejected();
     offline_snapshot_contains_global_and_local_without_duplicates();
+    automatic_orchestration_deduplicates_uploads_and_paginates_once();
+    post_victory_upload_retries_only_after_callback_clears_inflight();
+    page_failure_stops_chain_without_advancing_cursor();
     return 0;
 }

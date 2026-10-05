@@ -84,3 +84,7 @@ void th2()
 // The final help bridge is intentionally last: it needs the fully defined
 // campaign state to pause/resume a live match without restarting it.
 #include <help_live_bridge.hpp>
+
+// Automatic Hall sync observes final input routing after the help/campaign
+// bridge. It never adds network work to the renderer and leaves main.cpp intact.
+#include <hall_sync_ui_bridge.hpp>

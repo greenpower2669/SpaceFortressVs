@@ -10,7 +10,7 @@
 - Task 1 : état sync séparé + persistance atomique `hall-sync-v1.dat`.
 - Task 2 : UUID stable par victoire, réconciliation locale, payload typé; `danger=0` local-only.
 - Task 3 : ack upload idempotent, erreurs non destructives, pages stagées, cache/cursor durable, rejet callbacks obsolètes, snapshot global+local dédupliqué.
-- Hooks automatiques post-victoire/Hall restent à finaliser en Task 4.
+- Task 4 : transport injecté + anti-doublon in-flight + cycle paginé unique; victoire et entrée Hall déclenchent automatiquement la sync depuis la frontière d’événements, jamais depuis le renderer.
 - Clé jeu : jamais dans Git; injection build via `SPACEFORTRESS_HOF_API_KEY`; aucune clé admin dans l'APK.
 
 ## Hall local — invariants
