@@ -9,6 +9,8 @@
 ## Hall global sync v1
 - Architecture validée : local-first, cache global + scores locaux hors ligne, retry avec même `submissionId`, pagination `/sync`, progression locale indépendante.
 - Task 1 : modèle sync séparé + stockage atomique `hall-sync-v1.dat`, format versionné, cache/global/cursor hors sauvegarde campagne.
+- Task 2 : réconciliation locale, UUID stable par victoire, payload typé serveur; `danger=0` reste local-only.
+- Hook post-victoire + orchestration réseau doivent être finalisés en Task 4 avant validation fonctionnelle.
 - Clé jeu : jamais dans Git; injection build via `SPACEFORTRESS_HOF_API_KEY`; aucune clé admin dans l'APK.
 
 ## Hall local — invariants

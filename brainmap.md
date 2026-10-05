@@ -13,10 +13,12 @@ Ouverture Hall -> affichage immédiat local+cache -> retry pending -> `/sync?cur
 ## Fichiers sync
 - `src/hall_sync.hpp` : modèle/codec sync.
 - `src/hall_sync_storage.hpp` : persistance atomique séparée.
+- `src/hall_sync_runtime.hpp` : UUID stable, reconciliation, projection du payload.
 - `tests/hall_sync_regressions.cpp` : contrats TDD sync.
-- Futurs : `src/hall_sync_runtime.hpp`, `src/hall_sync_transport.hpp`, Java HTTPS, JNI.
+- Futurs : transport/orchestration, Java HTTPS, JNI, rendu fusionné.
 
 ## Protections
 - `src/main.cpp` lecture seule.
-- Campaign save v1/v2/v3 inchangé par le réseau.
-- Secret absent de Git; clé build uniquement.
+- Campaign save v1/v2/v3 indépendant du réseau.
+- `danger=0` non envoyé.
+- Clé de jeu absente de Git; injection build uniquement.

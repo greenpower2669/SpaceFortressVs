@@ -7,6 +7,11 @@
 #include <unistd.h>
 #include "hall_sync.hpp"
 #include "hall_sync_storage.hpp"
+char *SDL_GetPrefPath(const char*,const char*);
+void SDL_free(void*);
+constexpr int SF_COOP_LOCAL=2,SF_COOP_AI=3;
+#define SF_HALL_SYNC_NO_SDL 1
+#include "hall_sync_runtime.hpp"
 
 static std::string temp_dir()
 {
@@ -101,10 +106,70 @@ static void unknown_future_version_is_preserved_and_blocked()
     assert(bytes=="SPACEFORTRESS_HALL_SYNC 99\nfuture-data\n");
 }
 
+
+static SfCampaignSave sample_campaign_with_victory(uint64_t id,int danger=9)
+{
+    SfCampaignSave save;
+    SfFameEntry e;
+    e.id=id;e.boss=200;e.seconds=87;e.danger=danger;e.mode=SF_COOP_AI;e.date=1791217319;
+    e.names={"ORION IA","FAB","TEST1"};
+    save.fame.push_back(e);
+    return save;
+}
+
+static void fresh_local_victory_becomes_pending_and_id_is_stable()
+{
+    auto save=sample_campaign_with_victory(42);
+    SfHallSyncState state;
+    int generated=0;
+    auto factory=[&](uint64_t localId){++generated;return sfHallMakeSubmissionId(localId,0x1111222233334444ULL,0xaaaabbbbccccddddULL);};
+    assert(sfHallReconcileLocal(save,state,factory));
+    assert(state.locals.size()==1 && state.locals.at(42).state==SfHallUploadState::Pending);
+    const auto first=state.locals.at(42).submissionId;
+    assert(first.size()==36 && first[14]=='4' && (first[19]=='8'||first[19]=='9'||first[19]=='a'||first[19]=='b'));
+    assert(!sfHallReconcileLocal(save,state,factory));
+    assert(state.locals.size()==1 && state.locals.at(42).submissionId==first && generated==1);
+}
+
+static void danger_unknown_is_local_only_and_payload_maps_exactly()
+{
+    SfCampaignSave save=sample_campaign_with_victory(43,0);
+    SfHallSyncState state;
+    auto factory=[](uint64_t id){return sfHallMakeSubmissionId(id,1,2);};
+    assert(!sfHallReconcileLocal(save,state,factory));
+    assert(state.locals.empty());
+
+    save=sample_campaign_with_victory(44,9);
+    assert(sfHallReconcileLocal(save,state,factory));
+    auto requests=sfHallPendingUploads(save,state,"1.4.0");
+    assert(requests.size()==1);
+    const auto &r=requests.front();
+    assert(r.playerName=="TEST1");
+    assert(r.pilots[0]=="ORION IA" && r.pilots[1]=="FAB");
+    assert(r.boss==200 && r.encounter==200 && r.difficulty=="APOCALYPSE" && r.stars==9);
+    assert(r.durationMs==87000 && r.points==sfFamePoints(200,9,87));
+    assert(r.gameVersion=="1.4.0" && r.completedAtEpochSeconds==1791217319 && r.mode=="coop-ai");
+}
+
+static void two_victories_never_share_submission_id()
+{
+    auto save=sample_campaign_with_victory(50);
+    auto other=sample_campaign_with_victory(51).fame.front();
+    save.fame.push_back(other);
+    SfHallSyncState state;
+    auto factory=[](uint64_t id){return sfHallMakeSubmissionId(id,id*17,id*31);};
+    assert(sfHallReconcileLocal(save,state,factory));
+    assert(state.locals.size()==2);
+    assert(state.locals.at(50).submissionId!=state.locals.at(51).submissionId);
+}
+
 int main()
 {
     sync_state_round_trips_v1();
     partial_or_invalid_state_never_replaces_valid_state();
     unknown_future_version_is_preserved_and_blocked();
+    fresh_local_victory_becomes_pending_and_id_is_stable();
+    danger_unknown_is_local_only_and_payload_maps_exactly();
+    two_victories_never_share_submission_id();
     return 0;
 }
