@@ -25,6 +25,8 @@ g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/kinetic_regressions.cpp" -o
 g++ -std=c++17 -O1 -ffunction-sections -fdata-sections -I "$sf_repo/src" \
     "$sf_repo/tests/campaign_format_regressions.cpp" -Wl,--gc-sections -o "$sf_test_dir/campaign-format"
 "$sf_test_dir/campaign-format"
+g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/hall_sync_regressions.cpp" -o "$sf_test_dir/hall-sync"
+"$sf_test_dir/hall-sync"
 read -r -a sf_sdl_cflags <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
 read -r -a sf_sdl_libs <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
 g++ -std=c++17 -O1 -g -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "$sf_repo/tests/include" \
@@ -48,7 +50,6 @@ g++ -std=c++17 -O1 -g -D_GLIBCXX_DEBUG -fsanitize=undefined -fno-sanitize-recove
     "${sf_sdl_cflags[@]}" "$sf_repo/tests/regressions.cpp" \
     -Wl,--gc-sections "${sf_sdl_libs[@]}" -pthread -o "$sf_test_dir/regressions"
 (cd "$sf_test_dir" && ./regressions)
-# Compile exactly the generated compatibility source used by Android.
 (cd "$sf_test_dir" && cmake -DREPO_ROOT="$sf_repo" -P "$sf_repo/scripts/prepare-legacy-source.cmake")
 (cd "$sf_test_dir" && cmake -DREPO_ROOT="$sf_repo" -P "$sf_repo/scripts/patch-classic-danger.cmake")
 grep -Fq "::setw(static_cast<float>(DM.w));seth(DM.h);" "$sf_test_dir/generated/main_android_compat.cpp"
