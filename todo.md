@@ -9,7 +9,7 @@
 - [x] Task 5 client HTTPS Java + clé BuildConfig + tests protocole.
 - [x] Task 6 pont JNI Android, transport natif ↔ Java.
 - [x] Task 7 Hall fusionné global + local, statuts sync, aucun réseau au rendu.
-- [ ] Task 8 CI complète, APK/AAB, scan clé, docs finales.
+- [ ] Task 8 : attendre CI complète, corriger uniquement les échecs prouvés, vérifier `main.cpp`/secret, récupérer APK/AAB et finaliser docs.
 
 ## Validation téléphone encore ouverte
 - [ ] Hall Danger 1★/9★ sur nouvelles victoires.

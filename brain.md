@@ -12,6 +12,7 @@
 - Task 5 : protocole Java typé + HTTPS asynchrone, GET `/sync` public, POST avec clé BuildConfig injectée par `SPACEFORTRESS_HOF_API_KEY`, permission Internet, tests JSON sans vraie clé.
 - Task 6 : JNI Android relie transport natif ↔ Java sans parser JSON côté C++; callbacks gardent cycle/cursor et erreurs typées; build hôte reste sans JNI.
 - Task 7 : Hall lit uniquement un snapshot global-cache + local, déduplique serveur/téléphone, garde les pending visibles et affiche le statut de sync sans lancer de réseau depuis le rendu.
+- Task 8 en validation : CI doit tester natif + Java, construire sans clé, scanner le secret, puis construire l’APK/AAB avec le secret GitHub seulement s’il est configuré.
 - Clé jeu : jamais dans Git; aucune clé admin dans l'APK.
 
 ## Hall local — invariants

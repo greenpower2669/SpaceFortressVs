@@ -12,16 +12,13 @@
 - `/sync` -> Java HTTPS -> JNI callback typé -> stage/validation -> merge durable -> cursor -> page suivante si `hasMore`.
 - Hall -> snapshot en lecture seule : global cache + locaux, dédup serverId/submissionId, pending local conservé hors ligne.
 
-## Fichiers
-- `src/hall_sync*.hpp` : modèle, stockage, runtime, transport, hook événements.
-- `src/hall_of_fame_runtime.hpp` : rendu fusionné global + téléphone, aucune opération réseau.
-- `android/.../HallOfFameSyncProtocol.java` : JSON protocole serveur.
-- `android/.../HallOfFameSyncClient.java` : HTTPS async, timeouts, classification erreurs.
-- `android/app/src/main/cpp/hall_sync_jni.cpp` : pont natif/Java, aucune logique JSON.
-- `tests/hall_sync_regressions.cpp` + test Java : TDD natif/protocole.
-- Reste : validation CI/package/docs finales.
+## Validation finale
+- CI : regressions C++ + tests Java + compile Java.
+- Build sans clé obligatoire pour prouver le mode local/cache-only.
+- Scan `scripts/check-hall-secret.py` : fichier privé interdit dans Git et vraie clé recherchée sans jamais être imprimée.
+- Build téléphone : secret Actions `SPACEFORTRESS_HOF_API_KEY` injecté seulement au Gradle final s’il existe.
 
 ## Protections
 - `src/main.cpp` lecture seule; save campagne séparée du réseau.
 - `danger=0` non envoyé; global ne modifie jamais progression.
-- Vraie clé absente de Git/tests/logs; BuildConfig lit uniquement `SPACEFORTRESS_HOF_API_KEY`.
+- Vraie clé absente de Git/tests/logs; aucune clé admin dans l’APK.

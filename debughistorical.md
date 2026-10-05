@@ -12,6 +12,7 @@
 - Sync UI : observer les transitions à la frontière finale des événements, jamais depuis `sfCampaignDrawHall()`.
 - Hall rendu : points globaux viennent du serveur; points locaux de `sfFamePoints`; pending local sans rang serveur; danger 0 reste visible/inconnu.
 - HTTPS/JNI : Java seul encode/décode JSON; C++ reçoit des valeurs typées. Échec JNI doit dégrader vers local/cache, jamais faire crasher le jeu.
+- Secret CI : ne jamais afficher la valeur; test/build sans clé d’abord, scan exact en mémoire, puis build final avec secret Actions optionnel.
 - Clés : aucune vraie clé de jeu dans Git/logs/tests/mémoires; aucune clé admin dans l'APK.
 - Android astéroïdes : corriger copie générée, jamais `src/main.cpp`.
 - Énergie : `nrj=0` plein, `nrj=50` épuisé.
