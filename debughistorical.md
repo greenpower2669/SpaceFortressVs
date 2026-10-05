@@ -2,8 +2,11 @@
 
 ## Pièges prouvés
 
-Archives : `docs/archive/2026-10-spacefortress-v1.4.0-history.md`, `docs/archive/2026-10-spacefortress-help-tutorial-danger9-history.md` et `docs/archive/2026-10-05-kinetic-dust-impact-v4.md`.
+Archives : `docs/archive/2026-10-spacefortress-v1.4.0-history.md`, `docs/archive/2026-10-spacefortress-help-tutorial-danger9-history.md`, `docs/archive/2026-10-05-kinetic-dust-impact-v4.md` et `docs/archive/2026-10-05-hall-of-fame-danger9.md`.
 
+- **Hall / deux difficultés distinctes** : ne jamais déduire le Danger Boss HOME depuis l’affrontement ou la difficulté de campagne. `VIF/ENDURANT/VICIEUX/ULTIME` et les 9 Danger Boss sont deux systèmes différents.
+- **Hall / ancien historique** : les sauvegardes v1/v2 n’ont jamais stocké le Danger Boss. Leur `danger=0` signifie inconnu ; ne jamais reconstruire ou inventer 1..9 à partir du boss, du temps ou de l’ancien score.
+- **Hall / points** : utiliser le danger réellement sauvegardé et la formule Fab `|boss*(danger-minutes)| + boss*(danger-minutes)` ; les secondes sont la source du temps.
 - **Android / astéroïdes invisibles** : confusion `std::setw` / `fablib::setw(W)` ; corriger la copie générée, jamais `src/main.cpp`.
 - **Énergie** : `nrj=0` plein, `nrj=50` épuisé.
 - **Cinétique** : aucun dégât inventé à vitesse nulle ; Danger HOME exclu ; éviter tout double impact couche+coque.
