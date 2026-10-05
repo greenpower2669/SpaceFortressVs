@@ -7,7 +7,7 @@
 - [x] Task 3 RED→GREEN ciblé : ack/errors + pages/cursor + snapshot global/local.
 - [x] Task 4 hooks automatiques post-victoire/Hall + faux transport + anti-concurrence.
 - [x] Task 5 client HTTPS Java + clé BuildConfig + tests protocole.
-- [ ] Task 6 pont JNI.
+- [x] Task 6 pont JNI Android, transport natif ↔ Java.
 - [ ] Task 7 Hall global + local visible.
 - [ ] Task 8 CI complète, APK/AAB, scan clé, docs finales.
 - [ ] CI PR : valider toute la suite dès qu'un runner prend le workflow.
