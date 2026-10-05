@@ -7,7 +7,11 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <cstdio>
 #include <functional>
+#include <algorithm>
+#include <ctime>
+#include <mutex>
 #include <random>
 #include <string>
 #include <vector>
@@ -136,4 +140,135 @@ static bool sfHallRuntimeReconcileAndSave()
 static void sfHallSyncAfterLocalVictorySaved()
 {
     sfHallRuntimeReconcileAndSave();
+}
+
+
+enum class SfHallSyncError { None, Offline, Timeout, Auth, Server, Protocol, NotConfigured };
+
+struct SfHallDisplayEntry {
+    uint64_t localId=0;
+    std::string serverId;
+    std::string submissionId;
+    std::string playerName;
+    std::array<std::string,2> pilots{};
+    int boss=0;
+    int danger=0;
+    std::string difficulty;
+    long long durationMs=0;
+    int seconds=0;
+    int points=0;
+    int serverRank=0;
+    bool local=false;
+    bool pending=false;
+};
+
+inline std::mutex sfHallRuntimeMutex;
+inline SfHallSyncError sfHallLastError=SfHallSyncError::None;
+inline bool sfHallPageActive=false;
+inline uint64_t sfHallPageCycle=0;
+inline std::string sfHallPageRequestedCursor;
+inline std::vector<SfHallRemoteEntry> sfHallPageStage;
+inline bool sfHallLastCommittedHasMore=false;
+inline std::string sfHallLastCommittedNextCursor;
+
+static void sfHallResetPageStageForTests()
+{
+    std::lock_guard<std::mutex> lock(sfHallRuntimeMutex);
+    sfHallPageActive=false;sfHallPageCycle=0;sfHallPageRequestedCursor.clear();sfHallPageStage.clear();
+    sfHallLastCommittedHasMore=false;sfHallLastCommittedNextCursor.clear();
+}
+
+static bool sfHallPersistRuntimeCopy(const SfHallSyncState &next)
+{
+    if(sfHallRuntimePath.empty()){sfHallRuntimeError="SYNC STOCKAGE INDISPONIBLE";return false;}
+    if(!sfHallSyncSaveFile(sfHallRuntimePath,next,sfHallRuntimeError)) return false;
+    sfHallRuntimeState=next;
+    return true;
+}
+
+static void sfHallApplyUploadSuccess(const std::string &submissionId,const std::string &serverId)
+{
+    std::lock_guard<std::mutex> lock(sfHallRuntimeMutex);
+    if(submissionId.empty() || serverId.empty()){sfHallLastError=SfHallSyncError::Protocol;return;}
+    auto next=sfHallRuntimeState;
+    auto found=std::find_if(next.locals.begin(),next.locals.end(),[&](const auto &pair){return pair.second.submissionId==submissionId;});
+    if(found==next.locals.end()){sfHallLastError=SfHallSyncError::Protocol;return;}
+    if(found->second.state==SfHallUploadState::Acknowledged && found->second.serverId==serverId){sfHallLastError=SfHallSyncError::None;return;}
+    found->second.state=SfHallUploadState::Acknowledged;found->second.serverId=serverId;
+    if(sfHallPersistRuntimeCopy(next)) sfHallLastError=SfHallSyncError::None;
+    else sfHallLastError=SfHallSyncError::Protocol;
+}
+
+static void sfHallApplyUploadFailure(const std::string &submissionId,SfHallSyncError error)
+{
+    std::lock_guard<std::mutex> lock(sfHallRuntimeMutex);
+    const auto found=std::find_if(sfHallRuntimeState.locals.begin(),sfHallRuntimeState.locals.end(),[&](const auto &pair){return pair.second.submissionId==submissionId;});
+    if(found!=sfHallRuntimeState.locals.end()) sfHallLastError=error;
+}
+
+static bool sfHallBeginPage(uint64_t cycleId,const std::string &requestedCursor)
+{
+    std::lock_guard<std::mutex> lock(sfHallRuntimeMutex);
+    if(sfHallPageActive || requestedCursor!=sfHallRuntimeState.cursor) return false;
+    sfHallPageActive=true;sfHallPageCycle=cycleId;sfHallPageRequestedCursor=requestedCursor;sfHallPageStage.clear();
+    return true;
+}
+
+static bool sfHallStageRemote(uint64_t cycleId,const SfHallRemoteEntry &entry)
+{
+    std::lock_guard<std::mutex> lock(sfHallRuntimeMutex);
+    if(!sfHallPageActive || cycleId!=sfHallPageCycle || !sfHallRemoteValid(entry)) return false;
+    sfHallPageStage.push_back(entry);return true;
+}
+
+static bool sfHallCommitPage(uint64_t cycleId,const std::string &requestedCursor,const std::string &nextCursor,bool hasMore)
+{
+    std::lock_guard<std::mutex> lock(sfHallRuntimeMutex);
+    if(!sfHallPageActive || cycleId!=sfHallPageCycle || requestedCursor!=sfHallPageRequestedCursor || requestedCursor!=sfHallRuntimeState.cursor || nextCursor.empty()) return false;
+    auto next=sfHallRuntimeState;
+    for(const auto &entry:sfHallPageStage) next.globals[entry.id]=entry;
+    next.cursor=nextCursor;next.lastSuccessfulSync=std::time(nullptr);
+    if(!sfHallPersistRuntimeCopy(next)){
+        sfHallPageActive=false;sfHallPageStage.clear();sfHallLastError=SfHallSyncError::Protocol;return false;
+    }
+    sfHallPageActive=false;sfHallPageStage.clear();sfHallLastCommittedHasMore=hasMore;sfHallLastCommittedNextCursor=nextCursor;sfHallLastError=SfHallSyncError::None;
+    return true;
+}
+
+static void sfHallFailPage(uint64_t cycleId,const std::string &requestedCursor,SfHallSyncError error)
+{
+    std::lock_guard<std::mutex> lock(sfHallRuntimeMutex);
+    if(!sfHallPageActive || cycleId!=sfHallPageCycle || requestedCursor!=sfHallPageRequestedCursor) return;
+    sfHallPageActive=false;sfHallPageStage.clear();sfHallLastError=error;
+}
+
+static std::vector<SfHallDisplayEntry> sfHallBuildSnapshot(const SfCampaignSave &save,const SfHallSyncState &state)
+{
+    std::vector<SfHallDisplayEntry> out;
+    std::map<std::string,bool> remoteSubmission;
+    for(const auto &[id,e]:state.globals){
+        SfHallDisplayEntry d;d.serverId=e.id;d.submissionId=e.submissionId;d.playerName=e.playerName;d.pilots=e.pilots;
+        d.boss=e.boss;d.danger=e.stars;d.difficulty=e.difficulty;d.durationMs=e.durationMs;d.seconds=int(e.durationMs/1000);
+        d.points=e.points;d.serverRank=e.serverRank;d.local=false;d.pending=false;out.push_back(std::move(d));
+        if(!e.submissionId.empty()) remoteSubmission[e.submissionId]=true;
+    }
+    for(const auto &entry:save.fame){
+        const auto local=state.locals.find(entry.id);
+        if(local!=state.locals.end()){
+            const auto &record=local->second;
+            if(!record.serverId.empty() && state.globals.count(record.serverId)) continue;
+            if(!record.submissionId.empty() && remoteSubmission.count(record.submissionId)) continue;
+        }
+        SfHallDisplayEntry d;d.localId=entry.id;d.local=true;d.playerName=entry.names[2];d.pilots={entry.names[0],entry.names[1]};
+        d.boss=entry.boss;d.danger=entry.danger;d.difficulty=entry.danger>=1&&entry.danger<=9 ? SF_BOSS_DANGER_NAMES[entry.danger-1] : "DANGER INCONNU";
+        d.durationMs=static_cast<long long>(std::max(entry.seconds,0))*1000LL;d.seconds=std::max(entry.seconds,0);d.points=sfFamePoints(entry.boss,entry.danger,entry.seconds);
+        if(local!=state.locals.end()){d.submissionId=local->second.submissionId;d.serverId=local->second.serverId;d.pending=local->second.state==SfHallUploadState::Pending;}
+        out.push_back(std::move(d));
+    }
+    std::stable_sort(out.begin(),out.end(),[](const auto &a,const auto &b){
+        if(a.points!=b.points) return a.points>b.points;
+        if(a.durationMs!=b.durationMs) return a.durationMs<b.durationMs;
+        return false;
+    });
+    return out;
 }

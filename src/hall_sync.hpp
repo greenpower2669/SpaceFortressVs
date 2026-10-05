@@ -52,10 +52,11 @@ static bool sfHallSafeToken(const std::string &value,size_t max=256)
 static bool sfHallRemoteValid(const SfHallRemoteEntry &e)
 {
     return !e.id.empty() && sfHallSafeToken(e.id) && sfHallSafeToken(e.submissionId) &&
-           sfHallSafeToken(e.playerName,192) && sfHallSafeToken(e.pilots[0],192) && sfHallSafeToken(e.pilots[1],192) &&
-           e.boss>=1 && e.boss<=200 && sfHallSafeToken(e.difficulty,96) && e.durationMs>=0 &&
-           e.points>=0 && e.stars>=1 && e.stars<=9 && sfHallSafeToken(e.completedAt,96) &&
-           sfHallSafeToken(e.mode,64) && e.encounter>=1 && e.encounter<=200 && e.serverRank>=0;
+           !e.playerName.empty() && sfHallSafeToken(e.playerName,192) &&
+           !e.pilots[0].empty() && !e.pilots[1].empty() && sfHallSafeToken(e.pilots[0],192) && sfHallSafeToken(e.pilots[1],192) &&
+           e.boss>=1 && e.boss<=200 && !e.difficulty.empty() && sfHallSafeToken(e.difficulty,96) && e.durationMs>=0 &&
+           e.points>=0 && e.stars>=1 && e.stars<=9 && !e.completedAt.empty() && sfHallSafeToken(e.completedAt,96) &&
+           !e.mode.empty() && sfHallSafeToken(e.mode,64) && e.encounter>=1 && e.encounter<=200 && e.serverRank>=0;
 }
 
 static bool sfHallLocalValid(const SfHallLocalRecord &r)

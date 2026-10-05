@@ -1,19 +1,16 @@
 # todo.md — SpaceFortressVs
 
 ## Hall global sync v1
-- [x] Spec architecture validée par Fab.
-- [x] Plan TDD validé en exécution Native.
-- [x] Branche dédiée `feature/hall-of-fame-global-sync-v1`.
-- [x] Task 1 RED→GREEN ciblé : modèle/codec + stockage atomique sync.
-- [x] Task 2 RED→GREEN ciblé : UUID stable, réconciliation et payload typé.
-- [ ] Task 2/4 : brancher les hooks automatiques post-victoire + ouverture Hall.
-- [ ] Task 3 pages/cache/déduplication/snapshot offline.
-- [ ] Task 4 orchestration automatique + faux transport.
+- [x] Spec + plan TDD validés; branche dédiée.
+- [x] Task 1 RED→GREEN ciblé : état/codec + stockage atomique.
+- [x] Task 2 RED→GREEN ciblé : UUID stable + réconciliation + payload.
+- [x] Task 3 RED→GREEN ciblé : ack/errors + pages/cursor + snapshot global/local.
+- [ ] Task 4 hooks automatiques post-victoire/Hall + faux transport + anti-concurrence.
 - [ ] Task 5 client HTTPS Java + clé BuildConfig + tests.
 - [ ] Task 6 pont JNI.
 - [ ] Task 7 Hall global + local visible.
 - [ ] Task 8 CI complète, APK/AAB, scan clé, docs finales.
-- [ ] CI PR : valider la suite complète dès qu'un runner prend le workflow.
+- [ ] CI PR : valider toute la suite dès qu'un runner prend le workflow.
 
 ## Validation téléphone encore ouverte
 - [ ] Hall Danger 1★/9★ sur nouvelles victoires.

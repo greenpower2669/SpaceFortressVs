@@ -163,6 +163,117 @@ static void two_victories_never_share_submission_id()
     assert(state.locals.at(50).submissionId!=state.locals.at(51).submissionId);
 }
 
+
+static void reset_runtime_for(const std::string &path,const SfHallSyncState &state={})
+{
+    sfHallRuntimeState=state;
+    sfHallRuntimePath=path;
+    sfHallRuntimeLoaded=true;
+    sfHallRuntimeError.clear();
+    sfHallLastError=SfHallSyncError::None;
+    sfHallResetPageStageForTests();
+}
+
+static void upload_success_and_failures_preserve_pending_correctly()
+{
+    const std::string dir=temp_dir(), path=dir+"/hall-sync-v1.dat";
+    SfHallSyncState initial;
+    initial.locals.emplace(42,SfHallLocalRecord{42,"sub-42",SfHallUploadState::Pending,""});
+    std::string error; assert(sfHallSyncSaveFile(path,initial,error));
+    reset_runtime_for(path,initial);
+    sfHallApplyUploadFailure("sub-42",SfHallSyncError::Offline);
+    assert(sfHallRuntimeState.locals.at(42).state==SfHallUploadState::Pending);
+    sfHallApplyUploadFailure("sub-42",SfHallSyncError::Server);
+    assert(sfHallRuntimeState.locals.at(42).state==SfHallUploadState::Pending);
+    sfHallApplyUploadFailure("sub-42",SfHallSyncError::Auth);
+    assert(sfHallRuntimeState.locals.at(42).state==SfHallUploadState::Pending);
+    sfHallApplyUploadSuccess("sub-42","srv-42");
+    assert(sfHallRuntimeState.locals.at(42).state==SfHallUploadState::Acknowledged);
+    assert(sfHallRuntimeState.locals.at(42).serverId=="srv-42");
+    sfHallApplyUploadSuccess("sub-42","srv-42");
+    assert(sfHallRuntimeState.locals.at(42).serverId=="srv-42");
+    SfHallSyncState reloaded; assert(sfHallSyncLoadFile(path,reloaded,error));
+    assert(reloaded.locals.at(42).state==SfHallUploadState::Acknowledged);
+}
+
+static void paged_sync_commits_cursor_only_after_durable_merge()
+{
+    const std::string dir=temp_dir(), path=dir+"/hall-sync-v1.dat";
+    SfHallSyncState initial; initial.cursor="0";
+    std::string error; assert(sfHallSyncSaveFile(path,initial,error));
+    reset_runtime_for(path,initial);
+    auto one=sample_remote();
+    assert(sfHallBeginPage(7,"0"));
+    assert(sfHallStageRemote(7,one));
+    assert(sfHallCommitPage(7,"0","100",true));
+    assert(sfHallRuntimeState.cursor=="100" && sfHallRuntimeState.globals.size()==1);
+    assert(sfHallLastCommittedHasMore && sfHallLastCommittedNextCursor=="100");
+
+    auto two=one; two.id="srv-2"; two.submissionId="sub-2"; two.serverRank=4;
+    assert(sfHallBeginPage(7,"100"));
+    assert(sfHallStageRemote(7,two));
+    sfHallFailPage(7,"100",SfHallSyncError::Timeout);
+    assert(sfHallRuntimeState.cursor=="100" && sfHallRuntimeState.globals.count("srv-2")==0);
+
+    // A durable-write refusal must also leave the committed cursor/cache intact.
+    const std::string blocked=dir+"/blocked.dat";
+    { std::ofstream out(blocked); out<<"SPACEFORTRESS_HALL_SYNC 99\nfuture\n"; }
+    sfHallRuntimePath=blocked;
+    assert(sfHallBeginPage(8,"100"));
+    assert(sfHallStageRemote(8,two));
+    assert(!sfHallCommitPage(8,"100","200",false));
+    assert(sfHallRuntimeState.cursor=="100" && sfHallRuntimeState.globals.count("srv-2")==0);
+}
+
+static void stale_callbacks_and_invalid_remote_entries_are_rejected()
+{
+    const std::string dir=temp_dir(), path=dir+"/hall-sync-v1.dat";
+    SfHallSyncState initial; initial.cursor="10";
+    std::string error; assert(sfHallSyncSaveFile(path,initial,error));
+    reset_runtime_for(path,initial);
+    assert(sfHallBeginPage(50,"10"));
+    auto valid=sample_remote();
+    assert(!sfHallStageRemote(49,valid));
+    assert(!sfHallCommitPage(49,"10","20",false));
+    auto invalid=valid; invalid.id="";
+    assert(!sfHallStageRemote(50,invalid));
+    invalid=valid; invalid.stars=10;
+    assert(!sfHallStageRemote(50,invalid));
+    invalid=valid; invalid.points=-1;
+    assert(!sfHallStageRemote(50,invalid));
+    sfHallFailPage(50,"10",SfHallSyncError::Protocol);
+    assert(sfHallRuntimeState.cursor=="10" && sfHallRuntimeState.globals.empty());
+}
+
+static void offline_snapshot_contains_global_and_local_without_duplicates()
+{
+    SfCampaignSave save=sample_campaign_with_victory(70,9);
+    auto pending=sample_campaign_with_victory(71,1).fame.front(); pending.names[2]="LOCAL"; pending.seconds=20;
+    auto legacy=sample_campaign_with_victory(72,0).fame.front(); legacy.names[2]="OLD";
+    save.fame.push_back(pending); save.fame.push_back(legacy);
+    const int clearedBefore=save.cleared, selectedBefore=save.selected;
+
+    SfHallSyncState state;
+    state.locals.emplace(70,SfHallLocalRecord{70,"sub-70",SfHallUploadState::Acknowledged,"srv-70"});
+    state.locals.emplace(71,SfHallLocalRecord{71,"sub-71",SfHallUploadState::Pending,""});
+    auto remote=sample_remote(); remote.id="srv-70";remote.submissionId="sub-70";remote.playerName="TEST1";
+    state.globals.emplace(remote.id,remote);
+    auto other=sample_remote(); other.id="srv-other";other.submissionId="sub-other";other.points=9999;other.serverRank=1;
+    state.globals.emplace(other.id,other);
+
+    const auto snapshot=sfHallBuildSnapshot(save,state);
+    assert(save.cleared==clearedBefore && save.selected==selectedBefore);
+    int srv70=0,localPending=0,legacyCount=0,globalOther=0;
+    for(const auto &d:snapshot){
+        if(d.serverId=="srv-70") ++srv70;
+        if(d.localId==71 && d.pending && d.serverRank==0) ++localPending;
+        if(d.localId==72 && d.danger==0 && d.difficulty=="DANGER INCONNU") ++legacyCount;
+        if(d.serverId=="srv-other") ++globalOther;
+    }
+    assert(srv70==1 && localPending==1 && legacyCount==1 && globalOther==1);
+    assert(snapshot.front().points>=snapshot.back().points);
+}
+
 int main()
 {
     sync_state_round_trips_v1();
@@ -171,5 +282,9 @@ int main()
     fresh_local_victory_becomes_pending_and_id_is_stable();
     danger_unknown_is_local_only_and_payload_maps_exactly();
     two_victories_never_share_submission_id();
+    upload_success_and_failures_preserve_pending_correctly();
+    paged_sync_commits_cursor_only_after_durable_merge();
+    stale_callbacks_and_invalid_remote_entries_are_rejected();
+    offline_snapshot_contains_global_and_local_without_duplicates();
     return 0;
 }

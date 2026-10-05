@@ -7,17 +7,18 @@
 - `src/main.cpp` historique reste strictement protégé.
 
 ## Hall global sync v1
-- Architecture validée : local-first, cache global + scores locaux hors ligne, retry avec même `submissionId`, pagination `/sync`, progression locale indépendante.
-- Task 1 : modèle sync séparé + stockage atomique `hall-sync-v1.dat`, format versionné, cache/global/cursor hors sauvegarde campagne.
-- Task 2 : réconciliation locale, UUID stable par victoire, payload typé serveur; `danger=0` reste local-only.
-- Hook post-victoire + orchestration réseau doivent être finalisés en Task 4 avant validation fonctionnelle.
+- Task 1 : état sync séparé + persistance atomique `hall-sync-v1.dat`.
+- Task 2 : UUID stable par victoire, réconciliation locale, payload typé; `danger=0` local-only.
+- Task 3 : ack upload idempotent, erreurs non destructives, pages stagées, cache/cursor durable, rejet callbacks obsolètes, snapshot global+local dédupliqué.
+- Hooks automatiques post-victoire/Hall restent à finaliser en Task 4.
 - Clé jeu : jamais dans Git; injection build via `SPACEFORTRESS_HOF_API_KEY`; aucune clé admin dans l'APK.
 
 ## Hall local — invariants
-- Boss réel 1..200; Danger Boss HOME réel 1..9; ancien `danger=0` reste `DANGER INCONNU`.
+- Boss réel 1..200; Danger Boss HOME 1..9; ancien `danger=0` reste `DANGER INCONNU`.
 - Points : `|boss*(danger-minutes)| + boss*(danger-minutes)`; tri points décroissant puis temps croissant.
 - Sauvegarde campagne v3, v1/v2 toujours lisibles.
 
 ## Invariants permanents
-- Campagne, cinétique, poussières, aide/tuto et Danger 9 restent inchangés hors nécessité démontrée.
+- Progression campagne jamais modifiée par le global.
+- Campagne, cinétique, poussières, aide/tuto et Danger 9 restent protégés.
 - Validation finale téléphone Fab; aucun merge/release automatique.
