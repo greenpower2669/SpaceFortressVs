@@ -12,9 +12,13 @@
 #include <cerrno>
 #include <fcntl.h>
 
+extern int sfBossDangerIndex;
+
 struct SfFameEntry {
     uint64_t id=0;
-    int boss=0,score=0,seconds=0,danger=0,mode=SF_COOP_LOCAL;
+    int boss=0,score=0,seconds=0;
+    int danger=(sfBossDangerIndex>=0 && sfBossDangerIndex<9) ? sfBossDangerIndex+1 : 0;
+    int mode=SF_COOP_LOCAL;
     long long date=0;
     std::array<std::string,3> names{}; // orange, blue, team; retain UTF-8
 };
