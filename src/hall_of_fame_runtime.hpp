@@ -1,18 +1,20 @@
 #pragma once
 
 #include "hall_of_fame.hpp"
+#include "boss_danger.hpp"
 
 static void sfFameDrawStars(SDL_Renderer *renderer,int right,int centerY,int danger,int scale)
 {
-    const int count=std::clamp(danger,1,4);
-    scale=std::max(1,scale);
+    if (danger<1 || danger>9) return;
+    const int count=danger;
+    scale=std::max(2,scale);
     const int radius=3*scale,step=9*scale;
     const int first=right-(count-1)*step;
     SDL_SetRenderDrawColor(renderer,255,220,105,255);
     for (int i=0;i<count;++i) {
         const int cx=first+i*step;
-        for (int thickness=0;thickness<scale;++thickness) {
-            const int o=thickness-scale/2;
+        for (int thickness=0;thickness<2;++thickness) {
+            const int o=thickness;
             SDL_RenderDrawLine(renderer,cx-radius,centerY+o,cx+radius,centerY+o);
             SDL_RenderDrawLine(renderer,cx+o,centerY-radius,cx+o,centerY+radius);
             SDL_RenderDrawLine(renderer,cx-radius+1,centerY-radius+1+o,cx+radius-1,centerY+radius-1+o);
@@ -33,7 +35,7 @@ static void sfCampaignDrawHall(SDL_Renderer *renderer)
 
     std::vector<SfFameEntry> entries=sfCampaignSave.fame;
     std::stable_sort(entries.begin(),entries.end(),[](const auto &a,const auto &b){
-        return sfFameRanksBefore(a.boss,a.seconds,b.boss,b.seconds);
+        return sfFameRanksBefore(a.boss,a.danger,a.seconds,b.boss,b.danger,b.seconds);
     });
 
     const int perPage=height>=width ? 5 : 2,pages=std::max(1,int(entries.size()+perPage-1)/perPage);
@@ -49,14 +51,14 @@ static void sfCampaignDrawHall(SDL_Renderer *renderer)
         SDL_Rect panel{int(width*.07f),y,int(width*.86f),int(height*.52f/perPage)};
         sfUiPanel(renderer,panel,7,16,34,90,125,150);
         const int left=panel.x+12,w=panel.w-24,scale=std::max(2,std::min(width/240,panel.h/30));
-        const int danger=sfFameDanger(entry.boss),points=sfFamePoints(entry.boss,entry.seconds);
-        const char *difficulty=sfDifficultyNames[std::clamp(danger-1,0,3)];
+        const int danger=entry.danger,points=sfFamePoints(entry.boss,danger,entry.seconds);
+        const char *dangerName=(danger>=1 && danger<=9) ? SF_BOSS_DANGER_NAMES[danger-1] : "DANGER INCONNU";
 
         sfCoopText(renderer,left,y+8,std::to_string(index+1)+". "+entry.names[2],w,scale+1,{255,215,125,255});
-        sfCoopText(renderer,left,y+10+9*(scale+1),entry.names[0]+" + "+entry.names[1],w-int(45*scale),scale);
-        sfFameDrawStars(renderer,panel.x+panel.w-16-int(3*scale),y+13+12*(scale+1),danger,std::max(1,scale/2));
+        sfCoopText(renderer,left,y+10+9*(scale+1),entry.names[0]+" + "+entry.names[1],int(w*.55f),scale);
+        sfFameDrawStars(renderer,panel.x+panel.w-18,y+13+12*(scale+1),danger,scale);
         sfCoopText(renderer,left,y+14+18*(scale+1),
-            "BOSS "+std::to_string(entry.boss)+"  "+difficulty+"  "+sfFameTime(entry.seconds)+"  "+std::to_string(points)+" PTS",
+            "BOSS "+std::to_string(entry.boss)+"  "+dangerName+"  "+sfFameTime(entry.seconds)+"  "+std::to_string(points)+" PTS",
             w,scale,{120,220,220,255});
     }
 
