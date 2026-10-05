@@ -71,7 +71,15 @@ void th2()
 #include <classic_danger_runtime.hpp>
 #include <legacy_field_primitives.hpp>
 #include <legacy_field_runtime.hpp>
+
+// Preserve the campaign renderer byte-for-byte and replace only the visible
+// Hall of Fame entry point. start_ui.hpp already calls sfCampaignDrawHall()
+// through game_mode.hpp's forward declaration; the legacy body stays available
+// for regression archaeology under its explicit legacy name.
+#define sfCampaignDrawHall sfCampaignDrawHallLegacy
 #include <campaign_runtime.hpp>
+#undef sfCampaignDrawHall
+#include <hall_of_fame_runtime.hpp>
 
 // The final help bridge is intentionally last: it needs the fully defined
 // campaign state to pause/resume a live match without restarting it.
