@@ -7,6 +7,7 @@
 char *SDL_GetPrefPath(const char*,const char*);
 void SDL_free(void*);
 constexpr int SF_COOP_LOCAL=2,SF_COOP_AI=3;
+inline int sfBossDangerIndex=0;
 #include "campaign_save.hpp"
 #include "hall_of_fame.hpp"
 
@@ -23,8 +24,11 @@ int main() {
     SfCampaignSave old;std::istringstream in2(v2);assert(sfDecodeCampaign(in2,old));
     assert(old.fame.size()==1 && old.fame[0].danger==0);
 
-    // New saves persist the real 1..9 Danger Boss independently of encounter.
-    save.cleared=200;save.selected=199;save.victory.boss=200;save.victory.danger=9;
+    // A fresh victory captures the currently selected 1..9 Boss Danger.
+    sfBossDangerIndex=8;
+    save.victory={};
+    assert(save.victory.danger==9);
+    save.cleared=200;save.selected=199;save.victory.boss=200;
     std::istringstream roundtrip(sfEncodeCampaign(save));SfCampaignSave decoded;
     assert(sfDecodeCampaign(roundtrip,decoded));
     assert(decoded.selected==199 && decoded.cleared==200 && decoded.victory.boss==200);
