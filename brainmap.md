@@ -10,15 +10,16 @@
 - Upload 201/200 -> ack + serverId durable; erreurs -> pending conservé.
 - Ouverture Hall -> retry pending + un seul cycle `/sync` depuis le cursor durable, pages de 100.
 - `/sync` -> Java HTTPS -> JNI callback typé -> stage/validation -> merge durable -> cursor -> page suivante si `hasMore`.
-- Snapshot offline -> global cache + locaux, dédup par serverId puis submissionId.
+- Hall -> snapshot en lecture seule : global cache + locaux, dédup serverId/submissionId, pending local conservé hors ligne.
 
 ## Fichiers
 - `src/hall_sync*.hpp` : modèle, stockage, runtime, transport, hook événements.
+- `src/hall_of_fame_runtime.hpp` : rendu fusionné global + téléphone, aucune opération réseau.
 - `android/.../HallOfFameSyncProtocol.java` : JSON protocole serveur.
 - `android/.../HallOfFameSyncClient.java` : HTTPS async, timeouts, classification erreurs.
 - `android/app/src/main/cpp/hall_sync_jni.cpp` : pont natif/Java, aucune logique JSON.
 - `tests/hall_sync_regressions.cpp` + test Java : TDD natif/protocole.
-- Futur : rendu Hall fusionné puis validation/package.
+- Reste : validation CI/package/docs finales.
 
 ## Protections
 - `src/main.cpp` lecture seule; save campagne séparée du réseau.

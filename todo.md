@@ -8,12 +8,12 @@
 - [x] Task 4 hooks automatiques post-victoire/Hall + faux transport + anti-concurrence.
 - [x] Task 5 client HTTPS Java + clé BuildConfig + tests protocole.
 - [x] Task 6 pont JNI Android, transport natif ↔ Java.
-- [ ] Task 7 Hall global + local visible.
+- [x] Task 7 Hall fusionné global + local, statuts sync, aucun réseau au rendu.
 - [ ] Task 8 CI complète, APK/AAB, scan clé, docs finales.
-- [ ] CI PR : valider toute la suite dès qu'un runner prend le workflow.
 
 ## Validation téléphone encore ouverte
 - [ ] Hall Danger 1★/9★ sur nouvelles victoires.
+- [ ] Sync réelle serveur avec APK configuré.
 - [ ] Effets poussières cinétiques.
 
 ## Invariants
