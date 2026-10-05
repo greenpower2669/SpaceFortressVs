@@ -5,6 +5,11 @@ plugins {
 def gameVersion = new Properties()
 file("${rootProject.projectDir}/version.properties").withInputStream { gameVersion.load(it) }
 
+def hallApiKey = System.getenv('SPACEFORTRESS_HOF_API_KEY') ?: ''
+def javaStringLiteral = { String value ->
+    '"' + value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r') + '"'
+}
+
 android {
     namespace 'com.greenpower2669.spacefortressvs'
     compileSdk 36
@@ -16,6 +21,7 @@ android {
         targetSdk 36
         versionCode gameVersion.getProperty('VERSION_CODE').toInteger()
         versionName gameVersion.getProperty('VERSION_NAME')
+        buildConfigField 'String', 'HOF_API_KEY', javaStringLiteral(hallApiKey)
 
         ndk {
             abiFilters 'arm64-v8a'
@@ -27,6 +33,10 @@ android {
                 arguments '-DANDROID_STL=c++_shared'
             }
         }
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     buildTypes {
@@ -61,6 +71,11 @@ android {
             useLegacyPackaging = false
         }
     }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
 }
 
 // Prepare and validate actual PNG bytes, not just their base64 transport.

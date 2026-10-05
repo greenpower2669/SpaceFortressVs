@@ -18,10 +18,12 @@
 - `src/hall_sync_runtime.hpp` : réconciliation, payload, ack/errors, pages, snapshot + orchestration auto.
 - `src/hall_sync_transport.hpp` : interface transport injectée.
 - `src/hall_sync_ui_bridge.hpp` : hook final événements victoire/Hall, aucun réseau dans le renderer.
-- `tests/hall_sync_regressions.cpp` : TDD sync + anti-concurrence.
-- Futurs : Java HTTPS, JNI, rendu Hall fusionné.
+- `android/.../HallOfFameSyncProtocol.java` : JSON protocole serveur.
+- `android/.../HallOfFameSyncClient.java` : HTTPS async, timeouts, classification erreurs.
+- `tests/hall_sync_regressions.cpp` + test Java : TDD natif/protocole.
+- Futurs : JNI + rendu Hall fusionné.
 
 ## Protections
 - `src/main.cpp` lecture seule; save campagne séparée du réseau.
 - `danger=0` non envoyé; global ne modifie jamais progression.
-- Clé jeu absente de Git; injection build uniquement.
+- Vraie clé absente de Git/tests/logs; BuildConfig lit uniquement `SPACEFORTRESS_HOF_API_KEY`.

@@ -11,6 +11,7 @@
 - Sync : dédup global/local par serverId puis submissionId; pending local reste visible hors ligne.
 - Sync auto : aucun timer; opportunités = victoire locale durable, ouverture Hall, continuation `hasMore`; une seule pagination et un seul upload in-flight par `submissionId`.
 - Sync UI : observer les transitions à la frontière finale des événements, pas depuis `sfCampaignDrawHall()`.
+- HTTPS : jamais de clé/log Authorization; clé jeu injectée par env au build, GET sync public, POST authentifié, timeouts bornés.
 - Clés : aucune vraie clé de jeu dans Git/logs/tests/mémoires; aucune clé admin dans l'APK.
 - Android astéroïdes : corriger copie générée, jamais `src/main.cpp`.
 - Énergie : `nrj=0` plein, `nrj=50` épuisé.

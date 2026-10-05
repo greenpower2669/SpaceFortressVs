@@ -11,7 +11,8 @@
 - Task 2 : UUID stable par victoire, réconciliation locale, payload typé; `danger=0` local-only.
 - Task 3 : ack upload idempotent, erreurs non destructives, pages stagées, cache/cursor durable, rejet callbacks obsolètes, snapshot global+local dédupliqué.
 - Task 4 : transport injecté + anti-doublon in-flight + cycle paginé unique; victoire et entrée Hall déclenchent automatiquement la sync depuis la frontière d’événements, jamais depuis le renderer.
-- Clé jeu : jamais dans Git; injection build via `SPACEFORTRESS_HOF_API_KEY`; aucune clé admin dans l'APK.
+- Task 5 : protocole Java typé + HTTPS asynchrone, GET `/sync` public, POST avec clé BuildConfig injectée par `SPACEFORTRESS_HOF_API_KEY`, permission Internet, tests JSON sans vraie clé.
+- Clé jeu : jamais dans Git; aucune clé admin dans l'APK.
 
 ## Hall local — invariants
 - Boss réel 1..200; Danger Boss HOME 1..9; ancien `danger=0` reste `DANGER INCONNU`.
