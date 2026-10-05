@@ -28,7 +28,7 @@ int main() {
     sfBossDangerIndex=8;
     save.victory={};
     assert(save.victory.danger==9);
-    save.cleared=200;save.selected=199;save.victory.boss=200;
+    save.cleared=200;save.selected=199;save.victory.id=43;save.victory.boss=200;
     std::istringstream roundtrip(sfEncodeCampaign(save));SfCampaignSave decoded;
     assert(sfDecodeCampaign(roundtrip,decoded));
     assert(decoded.selected==199 && decoded.cleared==200 && decoded.victory.boss==200);
