@@ -12,8 +12,15 @@
 - Task 5 : protocole Java typé + HTTPS asynchrone, GET `/sync` public, POST avec clé BuildConfig injectée par `SPACEFORTRESS_HOF_API_KEY`, permission Internet, tests JSON sans vraie clé.
 - Task 6 : JNI Android relie transport natif ↔ Java sans parser JSON côté C++; callbacks gardent cycle/cursor et erreurs typées; build hôte reste sans JNI.
 - Task 7 : Hall lit uniquement un snapshot global-cache + local, déduplique serveur/téléphone, garde les pending visibles et affiche le statut de sync sans lancer de réseau depuis le rendu.
-- Task 8 en validation : CI doit tester natif + Java, construire sans clé, scanner le secret, puis construire l’APK/AAB avec le secret GitHub seulement s’il est configuré.
+- Task 8 : workflow `37372279557`, tentative 2, GREEN au HEAD code `c48d7b1af04139ef9e6f8bd3c28fbbfff616759b`; artifact configuré `11374640381`.
 - Clé jeu : jamais dans Git; aucune clé admin dans l'APK.
+
+## Audit téléphone SYNC NON CONFIGUREE — 2026-10-06
+- Le code et la tentative 2 configurée ne sont pas la cause du symptôme.
+- Cause racine prouvée : l’APK précédemment remis à Fab était l’ancien artifact sans clé (artifact `11369888063`, APK SHA-256 `d7a24c1f1f50b569f45bb79cf2ad75ef2be834cd9d8ed5a95b38fe6edb0c72fe`).
+- Le bon artifact de la tentative 2 est `11374640381`; son APK SHA-256 est `0ca76a074b8148578b95a5b10a1fd32fad41d1c27cb46454ff2cd15d2133ab87` et contient une configuration HOF non vide sans exposer la valeur.
+- Aucun correctif code ni rebuild n’est requis avant re-test téléphone avec cet APK exact.
+- Validation réelle POST/GET serveur reste à faire par vraie victoire Fab avec l’APK configuré.
 
 ## Hall local — invariants
 - Boss réel 1..200; Danger Boss HOME 1..9; ancien `danger=0` reste `DANGER INCONNU`.
