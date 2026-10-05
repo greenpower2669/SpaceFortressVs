@@ -22,7 +22,7 @@ static int sfFamePoints(int boss,int danger,int seconds)
     if (danger<1 || danger>9) return 0;
     const long long safeBoss=std::clamp(boss,1,200);
     const long long safeSeconds=std::max(seconds,0);
-    const long long scaled=safeBoss*(long long(danger)*60LL-safeSeconds);
+    const long long scaled=safeBoss*(static_cast<long long>(danger)*60LL-safeSeconds);
     return int((std::llabs(scaled)+scaled)/60LL);
 }
 
