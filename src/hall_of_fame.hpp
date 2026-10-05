@@ -6,32 +6,30 @@
 
 // Hall of Fame contract requested by Fab.
 // Saved boss numbers are real campaign encounters in the inclusive 1..200 range.
-static int sfFameDanger(int boss)
-{
-    return (std::clamp(boss,1,200)-1)/50+1;
-}
-
+// Danger is the REAL selected Boss Danger, persisted as 1..9. Zero means a
+// legacy entry created before danger persistence existed and must not be guessed.
 static std::string sfFameStars(int danger)
 {
-    return std::string(std::clamp(danger,1,4),'*');
+    if (danger<1 || danger>9) return "?";
+    return std::string(danger,'*');
 }
 
 // Canonical formula:
 // Points = |boss * (danger - minutes)| + boss * (danger - minutes)
 // Evaluate minutes from the recorded seconds so 2:30 means exactly 2.5 minutes.
-static int sfFamePoints(int boss,int seconds)
+static int sfFamePoints(int boss,int danger,int seconds)
 {
+    if (danger<1 || danger>9) return 0;
     const long long safeBoss=std::clamp(boss,1,200);
     const long long safeSeconds=std::max(seconds,0);
-    const long long danger=sfFameDanger(int(safeBoss));
-    const long long scaled=safeBoss*(danger*60LL-safeSeconds);
+    const long long scaled=safeBoss*(long long(danger)*60LL-safeSeconds);
     return int((std::llabs(scaled)+scaled)/60LL);
 }
 
-static bool sfFameRanksBefore(int bossA,int secondsA,int bossB,int secondsB)
+static bool sfFameRanksBefore(int bossA,int dangerA,int secondsA,int bossB,int dangerB,int secondsB)
 {
-    const int pointsA=sfFamePoints(bossA,secondsA);
-    const int pointsB=sfFamePoints(bossB,secondsB);
+    const int pointsA=sfFamePoints(bossA,dangerA,secondsA);
+    const int pointsB=sfFamePoints(bossB,dangerB,secondsB);
     if (pointsA!=pointsB) return pointsA>pointsB;
     if (secondsA!=secondsB) return secondsA<secondsB;
     return false; // stable_sort preserves the durable save order for exact ties.
