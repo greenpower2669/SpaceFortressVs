@@ -27,7 +27,7 @@ assert 's.heldSeconds>=SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS' in kinetic
 
 assert 'sfKineticPurgeAsteroids' in field
 assert 'SF_KINETIC_SURGE_BLAST_DIAMETER*.5f' in field
-assert 'sfKineticTriggerWave(owner,SF_KINETIC_SURGE_BLAST_DIAMETER*.5f,1.0f)' in field
+assert 'sfKineticTriggerWave(owner,SF_KINETIC_SURGE_BLAST_DIAMETER*.5f,1.0f,sfKineticEnergyFraction(ship->nrj))' in field
 
 # The same shared surge state drives classic duel and coop/campaign input paths.
 # AI duel keeps its owner-1 remaster path; local duel explicitly supports both owners.
