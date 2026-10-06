@@ -1,21 +1,35 @@
 # todo.md — SpaceFortressVs
 
-## État
+## Hall global sync v1
+- [x] Spec + plan TDD validés; branche dédiée.
+- [x] Tasks 1–7 : stockage, UUID/payload, pagination/cache, hooks, HTTPS Java, JNI, Hall fusionné.
+- [x] Task 8 : CI complète GREEN sur workflow `37372279557`, tentative 2; artifact configuré `11374640381`; secret absent de Git; `src/main.cpp` protégé.
+- [x] Incident de livraison `SYNC NON CONFIGUREE` expliqué : ancien APK sans clé remis par erreur.
+- [x] Fab a testé le bon APK configuré : `SYNC OK`, `GLOBAL 1 + LOCAL 0`.
 
-- [x] v1.4.0 livrée, fusionnée dans `main`, revalidée et confirmée OK sur téléphone par Fab.
-- [x] Historique du lot archivé dans `docs/archive/2026-10-spacefortress-v1.4.0-history.md`.
+## Mini-fix surcharge cinétique v2 — clôture release
+- [x] Design borné validé par Fab : délai visuel/x2 0,30 s, charge armée 2,00 s, blast/purge 3,0×, son EMP.
+- [x] TDD RED : workflow `37424970512` échoue sur la constante de délai absente, comme attendu.
+- [x] Implémenter seuil 0,30 s sans changer le champ normal 2,0×.
+- [x] Porter uniquement le blast/purge armé à 3,0×.
+- [x] Ajouter le transport du nouveau son EMP et son décodage contrôlé dans l’asset Android `kinetic_release.wav`.
+- [x] Garder la même logique CLASSIQUE + COOP et supprimer le sentinel RED temporaire.
+- [x] Corriger le checksum du transport EMP sans toucher au gameplay : SHA `43326ec5ba92d40b2378b0877775bce28d21b1b4`.
+- [x] CI Android complète GREEN : workflow `37427270384` / run 320.
+- [x] HEAD documentaire revérifié GREEN : workflow `37476092719` / run 321 au SHA `48eeb687d8cb60c91b28e70587b00fae3d8fe1ab`.
+- [x] `src/main.cpp` revérifié au blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- [x] APK configuré livré et validé par Fab sur téléphone.
+- [x] Validation téléphone Fab : appui <0,30 s sans irisation, charge 0,30–2 s, READY à 2 s, blast 3× + son EMP, gros astéroïdes purgés.
+- [x] Fab a donné l’ordre explicite : `release et merge main`.
+- [x] Préparer version `1.4.1` / `versionCode 11` et notes publiques.
+- [ ] CI fraîche de la préparation 1.4.1 GREEN.
+- [ ] Merge PR #5 vers `main`.
+- [ ] Publier et vérifier la Release `v1.4.1` avec APK/AAB/SHA256SUMS du commit de publication.
 
-## Prochaine mission
-
-- [ ] Partir de `main` sauf ordre contraire de Fab.
-- [ ] Lire seulement `brain.md` + `brainmap.md` au démarrage ; ouvrir `debughistorical.md` ou l'archive uniquement si nécessaire.
-- [ ] Créer une branche dédiée avant nouveau code conséquent.
-- [ ] Synchroniser les 4 mémoires vivantes sans y recopier logs, CI ou historique résolu.
+## Autres validations téléphone encore ouvertes
+- [ ] Hall Danger 1★/9★ sur nouvelles victoires si Fab veut les recontrôler.
+- [ ] Effets poussières cinétiques hors mini-fix v2.
 
 ## Invariants
-
-- [ ] `src/main.cpp` historique protégé.
-- [ ] `nrj=0` plein / `nrj=50` épuisé.
-- [ ] Danger boss jamais appliqué au cinétique.
-- [ ] Poussière rouge sans gameplay.
-- [ ] Ne jamais contourner une signature Android différente par effacement des données.
+- [x] `src/main.cpp` protégé.
+- [x] Autorisation Fab merge/release reçue pour le lot validé.

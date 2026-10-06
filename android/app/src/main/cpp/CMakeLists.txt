@@ -60,10 +60,12 @@ file(COPY "${THIRD_PARTY}/SDL_image/include/SDL_image.h" DESTINATION "${SDL2_COM
 file(COPY "${THIRD_PARTY}/SDL_mixer/include/SDL_mixer.h" DESTINATION "${SDL2_COMPAT}")
 
 include("${REPO_ROOT}/scripts/prepare-legacy-source.cmake")
+include("${REPO_ROOT}/scripts/patch-classic-danger.cmake")
 
 add_library(main SHARED
     "${ANDROID_MAIN}"
     "${CMAKE_CURRENT_LIST_DIR}/sdl_entry.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/hall_sync_jni.cpp"
 )
 
 target_include_directories(main PRIVATE

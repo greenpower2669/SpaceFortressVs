@@ -72,8 +72,43 @@ jobs:
           sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
           bash scripts/test-regressions.sh
 
+      - name: Java Hall protocol tests without a game key
+        shell: bash
+        env:
+          SPACEFORTRESS_HOF_API_KEY: ''
+        run: |
+          gradle -p android --stacktrace \
+            :app:testDebugUnitTest \
+            --tests com.greenpower2669.spacefortressvs.HallOfFameSyncProtocolTest \
+            :app:compileDebugJavaWithJavac
+
+      - name: Build local-only debug APK without a game key
+        shell: bash
+        env:
+          SPACEFORTRESS_HOF_API_KEY: ''
+        run: gradle -p android --stacktrace :app:assembleDebug
+
+      - name: Verify Hall secret hygiene
+        shell: bash
+        env:
+          SPACEFORTRESS_HOF_API_KEY: ${{ secrets.SPACEFORTRESS_HOF_API_KEY }}
+        run: python3 scripts/check-hall-secret.py
+
+      - name: Report Hall key configuration
+        shell: bash
+        env:
+          SPACEFORTRESS_HOF_API_KEY: ${{ secrets.SPACEFORTRESS_HOF_API_KEY }}
+        run: |
+          if [ -n "$SPACEFORTRESS_HOF_API_KEY" ]; then
+            echo "Hall API game key: configured for phone-test artifacts"
+          else
+            echo "Hall API game key: not configured; artifacts stay local/cache-only"
+          fi
+
       - name: Build installable APK and app bundles
         shell: bash
+        env:
+          SPACEFORTRESS_HOF_API_KEY: ${{ secrets.SPACEFORTRESS_HOF_API_KEY }}
         run: |
           set +e
           gradle -p android --stacktrace \

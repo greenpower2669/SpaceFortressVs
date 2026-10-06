@@ -92,3 +92,68 @@ Remplace les réglages cinétiques incompatibles de D-140-14: BOTH modes, aucun 
 
 ## AVENANT 2026-10-03 — SURCHARGE AUDIO + DANGER BOSS
 Canon validé Fab: charge 2e doigt exactement 2 s, champ x2 irisé pendant la charge; à 2 s son prêt et bouclier cinétique OFF jusqu’au relâchement; relâchement chargé = son de déflagration + purge astéroïdes. Trois sons originaux synthétiques intégrés. Dégâts boss non cinétiques: défaut x10, sélection accueil x1/x5/x10/x15/x20. Le cinétique reste hors multiplicateur boss. Classique et coop homogènes. Aucun merge main/release sans validation téléphone.
+
+## HELP-TUTORIAL-DANGER9 — 2026-10-04 — CODE GREEN / TÉLÉPHONE EN ATTENTE
+
+Fab a validé la spec puis le plan TDD du lot `feature/help-tutorial-danger-9-canon`.
+
+Contrat canonique :
+- `?` accueil + en jeu ; reprise de la même partie sans reset ;
+- aide `RAPIDE` / `DETAILLE` / `ANIME`, avec `ANIME` par défaut et seul format animé ;
+- tutoriel séparé, guidé, sandbox sans progression ni sauvegarde ;
+- 9 dangers : `MOU DU GENOU` ×1, `CHILL` ×5, `ROCK N ROLL` ×10 défaut, `DUR A CUIRE` ×15, `MACHINE DE GUERRE` ×20, `CA VA PIQUER` ×25, `SANS PITIE` ×30, `ENFER STELLAIRE` ×35, `APOCALYPSE` ×40 ; coefficients non affichés ;
+- multiplicateur uniquement sur dégâts hostiles non cinétiques concernés, y compris tirs IA hostiles en classique ; aucune modification cadence/vitesse/visée ; jamais sur astéroïdes/cinétique ;
+- `src/main.cpp` historique inchangé.
+
+Preuve code : SHA `d9520a0b674d7f21df37f982a444d625b523f8d9`, workflow `37236262962` (run 268) entièrement GREEN : régressions, APK, AAB, vérification, packaging. Artefact `SpaceFortressVs-1.4.0-release-files` id `11316375150`, digest `sha256:65d8a536339e48f8b5f95207a082215b0e306289171183f999824f807b1a59c5`. `publish-release` SKIPPED.
+
+Étape restante : validation physique sur téléphone par Fab. **Aucun merge `main` ni aucune release avant accord explicite de Fab.**
+
+## KINETIC-DUST-IMPACT-V4 — 2026-10-05 — CODE GREEN / TÉLÉPHONE EN ATTENTE
+
+Branche dédiée `feature/kinetic-dust-impact-v4` depuis `76bab7bac571df6f42f4ae76011fc61ab2b0c8ee`. Gameplay figé au SHA `8f2ee5ed61372f2647ae7284abdf9a0df7d8ebbf`.
+
+Contrat canonique :
+- purge armée 2 s : destruction astéroïde = 100 % du rendement blanc proportionnel à la taille/masse, poussière initialement quasi statique ;
+- destruction astéroïde↔astéroïde et destruction par champ cinétique normal : rendement blanc 10 %, proportionnel, projection suivant principalement le vecteur incident du détruit ;
+- une destruction réelle = une seule émission de poussière blanche ; minage historique séparé ;
+- poussière rouge au champ : réaction locale jaune→orange→rouge vif, majorité consumée en micro-flashes, petite fraction survivante déviée par vecteur incident + réaction locale du champ ;
+- aucun soin, recharge, dégât, danger ou équilibrage ajouté via le rouge ; cinétique v3, campagne 200, aide/tuto/Danger 9 et `src/main.cpp` restent protégés.
+
+Preuve code : TDD RED `afbd28da13d81409d083ef7cc1f8a93010ceaec0` / workflow `37240892431`, puis GREEN au SHA gameplay `8f2ee5ed61372f2647ae7284abdf9a0df7d8ebbf` / workflow Android `37241618498` : régressions, APK, AAB, vérification et packaging réussis ; `publish-release` SKIPPED. Artefact `SpaceFortressVs-Android-444`, id `6545681985`, digest `sha256:399dcf6808a83fe4071ab91d2b9b9d2465c0a6e2c6f5950824482687a936fd6e`.
+
+Étape restante : validation physique des effets sur téléphone par Fab. **Aucun merge `main` ni aucune release avant accord explicite de Fab.**
+
+## ERRATUM KINETIC-DUST-IMPACT-V4 — 2026-10-05
+
+La ligne d’artefact ci-dessus était une erreur de recopie documentaire et ne modifie ni le code ni la validation GREEN.
+
+Métadonnée CI correcte pour le workflow `37241618498` / SHA gameplay `8f2ee5ed61372f2647ae7284abdf9a0df7d8ebbf` : artefact `SpaceFortressVs-1.4.0-release-files`, id `11317688487`, digest `sha256:3571fc53e4a6cb2ce8c0c5793bcccae219eaa0905cf509efa541a9cd44789cf0`. Le job `build-android` `111551304971` est `SUCCESS` et `publish-release` est `SKIPPED`.
+
+## HALL GLOBAL — VALIDATION TÉLÉPHONE 2026-10-06
+
+Fab a testé l’APK configuré de l’artifact `11374640381`. Preuve téléphone : l’écran Hall affiche `SYNC OK` et `GLOBAL 1 + LOCAL 0`; l’entrée globale est récupérée et affichée. Le chemin runtime configuré est donc validé sur téléphone. Aucun secret n’est recopié dans les mémoires.
+
+## MINI-FIX SURCHARGE CINÉTIQUE V2 — 2026-10-06 — AUTORISÉ PAR FAB
+
+Fab demande un ajustement borné avant merge/release :
+- appui second doigt de 0 à moins de 0,30 s : comportement classique, aucun cercle irisé et puissance cinétique normale ×1 ; un relâchement court garde le tir historique ;
+- de 0,30 s à moins de 2,00 s : cercle irisé visible et dissipation de surcharge ×2 ;
+- à 2,00 s : état armé historique conservé, signal prêt et champ cinétique OFF jusqu’au relâchement ;
+- relâchement armé : purge réelle ET vague visuelle portées à 3,0 diamètres de vaisseau, afin d’englober aussi les gros astéroïdes ; le rendement blanc 100 % de la purge et l’intangibilité de la poussière blanche restent inchangés ;
+- le son de relâchement est ré-authored comme déflagration électromagnétique originale, empaquetée via un transport base64 validé au build ;
+- même logique partagée en CLASSIQUE et COOP/campagne ; aucun changement Hall, Danger, campagne ou `src/main.cpp`.
+
+TDD : RED prouvé par le workflow `37424970512` sur l’absence attendue du nouveau seuil `SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS`. GREEN complet Android + APK/AAB et validation téléphone restent obligatoires avant merge/release.
+
+## AUTORISATION FINALE FAB — 2026-10-06 — MERGE + RELEASE
+
+Après validation téléphone du mini-fix surcharge cinétique v2, Fab donne explicitement l’ordre : `Super, release et merge main`.
+
+Cette autorisation lève le verrou merge/release pour le lot courant uniquement, sous les conditions suivantes :
+- incrémenter la publication vers `1.4.1` / `versionCode 11`, car `v1.4.0` existe déjà et ne doit jamais être écrasée ;
+- ne modifier aucun gameplay supplémentaire ;
+- conserver `src/main.cpp` byte-for-byte inchangé ;
+- exiger une CI fraîche GREEN du commit de préparation 1.4.1 ;
+- merger la PR #5 vers `main` uniquement après cette preuve ;
+- publier ensuite la Release `v1.4.1` avec uniquement les artefacts vérifiés du commit de publication.

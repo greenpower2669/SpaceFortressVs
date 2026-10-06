@@ -25,6 +25,9 @@ int main() {
     assert(std::strcmp(sfBossDangerName(),"DUR A CUIRE")==0 && sfBossDangerMultiplier()==15.0f);
     sfBossDangerNext();
     assert(std::strcmp(sfBossDangerName(),"MACHINE DE GUERRE")==0 && sfBossDangerMultiplier()==20.0f);
+    // Nine-level selector: verify the true end wraps without coupling kinetic
+    // behavior to the number of named danger entries.
+    sfBossDangerIndex=8;
     sfBossDangerNext();
     assert(std::strcmp(sfBossDangerName(),"MOU DU GENOU")==0 && sfBossDangerMultiplier()==1.0f);
     return 0;

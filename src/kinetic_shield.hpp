@@ -19,7 +19,9 @@ constexpr float SF_KINETIC_MAX_SHIELD_DIAMETER = 2.0f;
 constexpr float SF_KINETIC_INNER_MAX_RADIUS_SHIP_DIAMETERS = .575f;
 constexpr float SF_KINETIC_BOSS_BASE_DAMAGE = 50.0f;
 constexpr float SF_KINETIC_WAVE_DURATION = .27f;
+constexpr float SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS = .30f;
 constexpr float SF_KINETIC_SURGE_HOLD_SECONDS = 2.0f;
+constexpr float SF_KINETIC_SURGE_BLAST_DIAMETER = 3.0f;
 constexpr float SF_KINETIC_SURGE_POWER_MULTIPLIER = 2.0f;
 
 struct SfKineticVector { float x=0,y=0; };
@@ -84,14 +86,14 @@ static float sfKineticSurgePower(int owner)
 {
     if(owner<0 || owner>1) return 1.0f;
     const auto &s=sfKineticSurges[owner];
-    if(!s.held) return 1.0f;
+    if(!s.held || s.heldSeconds<SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS) return 1.0f;
     return s.charged ? 0.0f : SF_KINETIC_SURGE_POWER_MULTIPLIER;
 }
 static bool sfKineticSurgeVisible(int owner)
 {
     if(owner<0 || owner>1) return false;
     const auto &s=sfKineticSurges[owner];
-    return s.held && !s.charged;
+    return s.held && !s.charged && s.heldSeconds>=SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS;
 }
 static bool sfKineticSurgeVulnerable(int owner)
 {

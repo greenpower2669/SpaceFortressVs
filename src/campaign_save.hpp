@@ -12,9 +12,13 @@
 #include <cerrno>
 #include <fcntl.h>
 
+extern int sfBossDangerIndex;
+
 struct SfFameEntry {
     uint64_t id=0;
-    int boss=0,score=0,seconds=0,mode=SF_COOP_LOCAL;
+    int boss=0,score=0,seconds=0;
+    int danger=(sfBossDangerIndex>=0 && sfBossDangerIndex<9) ? sfBossDangerIndex+1 : 0;
+    int mode=SF_COOP_LOCAL;
     long long date=0;
     std::array<std::string,3> names{}; // orange, blue, team; retain UTF-8
 };
@@ -45,21 +49,26 @@ static std::string sfCleanName(const std::string &input)
 static void sfWriteFame(std::ostream &out,const SfFameEntry &entry)
 {
     out<<entry.id<<' '<<entry.boss<<' '<<entry.score<<' '<<entry.seconds<<' '
-       <<entry.mode<<' '<<entry.date;
+       <<entry.danger<<' '<<entry.mode<<' '<<entry.date;
     for (const auto &name : entry.names) out<<' '<<std::quoted(name);
     out<<'\n';
 }
-static bool sfReadFame(std::istream &in,SfFameEntry &entry,int limit=200)
+static bool sfReadFame(std::istream &in,SfFameEntry &entry,int limit=200,int version=3)
 {
-    if (!(in>>entry.id>>entry.boss>>entry.score>>entry.seconds>>entry.mode>>entry.date)) return false;
+    if (!(in>>entry.id>>entry.boss>>entry.score>>entry.seconds)) return false;
+    if (version>=3) {
+        if (!(in>>entry.danger)) return false;
+    } else entry.danger=0;
+    if (!(in>>entry.mode>>entry.date)) return false;
     for (auto &name : entry.names) if (!(in>>std::quoted(name)) || name.size()>96) return false;
     return entry.id>0 && entry.boss>=1 && entry.boss<=limit && entry.score>=0 && entry.seconds>=0 &&
+           entry.danger>=0 && entry.danger<=9 &&
            (entry.mode==SF_COOP_LOCAL || entry.mode==SF_COOP_AI);
 }
 static std::string sfEncodeCampaign(const SfCampaignSave &save)
 {
     std::ostringstream out;
-    out<<"SPACEFORTRESS_CAMPAIGN 2\n"<<save.cleared<<' '<<save.selected<<' '<<save.pending<<' '<<save.fame.size()<<'\n';
+    out<<"SPACEFORTRESS_CAMPAIGN 3\n"<<save.cleared<<' '<<save.selected<<' '<<save.pending<<' '<<save.fame.size()<<'\n';
     for (const auto &name : save.names) out<<std::quoted(name)<<'\n';
     if (save.pending) sfWriteFame(out,save.victory);
     for (const auto &entry : save.fame) sfWriteFame(out,entry);
@@ -69,16 +78,16 @@ static bool sfDecodeCampaign(std::istream &in,SfCampaignSave &save)
 {
     SfCampaignSave candidate;
     std::string magic; int version,pending; size_t count;
-    if (!(in>>magic>>version) || magic!="SPACEFORTRESS_CAMPAIGN" || (version!=1 && version!=2)) return false;
+    if (!(in>>magic>>version) || magic!="SPACEFORTRESS_CAMPAIGN" || (version!=1 && version!=2 && version!=3)) return false;
     const int limit=version==1 ? 50 : 200;
     if (!(in>>candidate.cleared>>candidate.selected>>pending>>count) || candidate.cleared<0 ||
         candidate.cleared>limit || candidate.selected<0 || candidate.selected>=limit ||
         pending<0 || pending>1 || count>100000) return false;
     candidate.pending=pending;
     for (auto &name : candidate.names) if (!(in>>std::quoted(name)) || name.size()>96) return false;
-    if (candidate.pending && !sfReadFame(in,candidate.victory,limit)) return false;
+    if (candidate.pending && !sfReadFame(in,candidate.victory,limit,version)) return false;
     for (size_t i=0;i<count;++i) {
-        SfFameEntry entry; if (!sfReadFame(in,entry,limit)) return false;
+        SfFameEntry entry; if (!sfReadFame(in,entry,limit,version)) return false;
         candidate.fame.push_back(entry);
     }
     in>>std::ws;
@@ -105,7 +114,7 @@ static SfSaveFileState sfInspectCampaign(const std::string &path,SfCampaignSave 
     std::istringstream input(bytes);
     if (sfDecodeCampaign(input,save)) return SfSaveFileState::Valid;
     std::istringstream header(bytes);std::string magic;int version=0;
-    if (header>>magic>>version && magic=="SPACEFORTRESS_CAMPAIGN" && version!=1 && version!=2)
+    if (header>>magic>>version && magic=="SPACEFORTRESS_CAMPAIGN" && version!=1 && version!=2 && version!=3)
         return SfSaveFileState::Unknown;
     return SfSaveFileState::Invalid;
 }
@@ -115,7 +124,7 @@ static bool sfSyncCampaignDirectory(const std::string &path)
     const auto slash=path.find_last_of('/');
     const auto directory=slash==std::string::npos ? "." : slash==0 ? "/" : path.substr(0,slash);
     const int fd=::open(directory.c_str(),O_RDONLY|O_DIRECTORY);
-    if (fd<0) return false;
+    if(fd<0) return false;
     const bool ok=::fsync(fd)==0;::close(fd);return ok;
 }
 
