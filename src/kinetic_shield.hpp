@@ -19,6 +19,10 @@ constexpr float SF_KINETIC_MAX_SHIELD_DIAMETER = 2.0f;
 constexpr float SF_KINETIC_INNER_MAX_RADIUS_SHIP_DIAMETERS = .575f;
 constexpr float SF_KINETIC_BOSS_BASE_DAMAGE = 50.0f;
 constexpr float SF_KINETIC_WAVE_DURATION = .27f;
+constexpr float SF_KINETIC_LOW_ENERGY_WAVE_DURATION = .50f;
+constexpr float SF_KINETIC_ENERGY_FATIGUE_EXPONENT = 1.20f;
+constexpr float SF_KINETIC_LOW_ENERGY_WARNING_FRACTION = .10f;
+constexpr float SF_KINETIC_LOW_ENERGY_FLASH_HZ = 4.5f;
 constexpr float SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS = .30f;
 constexpr float SF_KINETIC_SURGE_HOLD_SECONDS = 2.0f;
 constexpr float SF_KINETIC_SURGE_BLAST_DIAMETER = 3.0f;
@@ -40,6 +44,7 @@ struct SfKineticWave {
     int owner=-1;
     unsigned serial=0;
     float age=0,duration=SF_KINETIC_WAVE_DURATION,maxRadiusShipDiameters=0,strength=0;
+    float energyFraction=1.0f;
     bool loggedMid=false,loggedRed=false,loggedWhite=false;
 };
 struct SfKineticDustMotion {
@@ -129,6 +134,11 @@ static float sfKineticEnergyFraction(float reserveSpent)
     if (std::isnan(reserveSpent)) return 0;
     return 1.0f-std::clamp(reserveSpent/50.0f,0.0f,1.0f);
 }
+static float sfKineticEffectiveEnergyFraction(float energyFraction)
+{
+    energyFraction=std::clamp(energyFraction,0.0f,1.0f);
+    return std::pow(energyFraction,SF_KINETIC_ENERGY_FATIGUE_EXPONENT);
+}
 static float sfHullRegenPerSecond(float reserveSpent)
 {
     const float energy=sfKineticEnergyFraction(reserveSpent);
@@ -191,11 +201,12 @@ static SfKineticSolution sfResolveKinetic(float baseDamage,float massFactor,
 static SfKineticSolution sfApplyKineticLayer(SfKineticSolution out,SfKineticLayer layer,float energyFraction,float powerMultiplier=1.0f)
 {
     energyFraction=std::clamp(energyFraction,0.0f,1.0f);
+    const float effectiveEnergy=sfKineticEffectiveEnergyFraction(energyFraction);
     powerMultiplier=std::clamp(powerMultiplier,0.0f,SF_KINETIC_SURGE_POWER_MULTIPLIER);
     const float maximum=layer==SfKineticLayer::Outer ? SF_KINETIC_OUTER_DISSIPATION :
                         layer==SfKineticLayer::Inner ? SF_KINETIC_INNER_DISSIPATION : 0.0f;
     out.appliedLayer=layer;
-    out.dissipationFraction=std::clamp(maximum*energyFraction*powerMultiplier,0.0f,.995f);
+    out.dissipationFraction=std::clamp(maximum*effectiveEnergy*powerMultiplier,0.0f,.995f);
     out.dissipatedDamage=out.rawDamage*out.dissipationFraction;
     out.residualDamage=out.rawDamage-out.dissipatedDamage;
     if(out.dissipatedDamage>0) {
@@ -204,12 +215,25 @@ static SfKineticSolution sfApplyKineticLayer(SfKineticSolution out,SfKineticLaye
     }
     return out;
 }
-static void sfKineticTriggerWave(int owner,float maxRadiusShipDiameters,float strength=1.0f)
+static float sfKineticWaveDurationForEnergy(float energyFraction)
+{
+    energyFraction=std::clamp(energyFraction,0.0f,1.0f);
+    return SF_KINETIC_WAVE_DURATION+
+        (SF_KINETIC_LOW_ENERGY_WAVE_DURATION-SF_KINETIC_WAVE_DURATION)*(1.0f-energyFraction);
+}
+static void sfKineticTriggerWave(int owner,float maxRadiusShipDiameters,float strength=1.0f,float energyFraction=-1.0f)
 {
     if(owner<0 || owner>1 || maxRadiusShipDiameters<=0) return;
     if(sfKineticWaves.size()>=24) sfKineticWaves.erase(sfKineticWaves.begin());
     SfKineticWave w;w.owner=owner;w.serial=++sfKineticWaveSerial;
     w.maxRadiusShipDiameters=maxRadiusShipDiameters;w.strength=std::clamp(strength,0.0f,1.0f);
+    // Legacy three-argument callers encode effective field strength as .28 + .72*x.
+    // New callers can pass the true energy fraction explicitly; the fallback keeps
+    // old diagnostics and tests deterministic without changing collision timing.
+    if(energyFraction<0)
+        energyFraction=std::clamp((w.strength-.28f)/.72f,0.0f,1.0f);
+    w.energyFraction=std::clamp(energyFraction,0.0f,1.0f);
+    w.duration=sfKineticWaveDurationForEnergy(w.energyFraction);
     sfKineticWaves.push_back(w);
 }
 static bool sfKineticWaveAlive(const SfKineticWave &wave)
