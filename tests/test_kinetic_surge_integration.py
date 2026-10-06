@@ -7,6 +7,7 @@ classic=(root/'src/remaster_runtime.hpp').read_text()
 coop=(root/'src/campaign_runtime.hpp').read_text()
 tactical=(root/'src/tactical_runtime.hpp').read_text()
 ui=(root/'src/start_ui.hpp').read_text()
+prepare=(root/'scripts/prepare-assets.py').read_text()
 
 assert 'SF_KINETIC_MAX_SHIELD_DIAMETER = 2.0f' in kinetic
 assert 'SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS = .30f' in kinetic
@@ -37,11 +38,14 @@ assert 'sfKineticSurgePower(owner)' in field
 assert 'powerMultiplier=std::clamp(powerMultiplier,0.0f,SF_KINETIC_SURGE_POWER_MULTIPLIER)' in kinetic
 
 # Shared packaged audio cues and iridescent charge feedback. The release cue is
-# re-authored as the EMP blast, so no extra playback path is needed.
+# re-authored as the EMP blast through the text-safe Android asset transport.
 assert 'kinetic_charge.wav' in tactical
 assert 'kinetic_ready.wav' in tactical
 assert 'kinetic_release.wav' in tactical
 assert 'sfKineticRainbowColor' in tactical
+assert (root/'assets/sounds/kinetic_release_emp.b64').exists()
+assert 'kinetic_release_emp.b64' in prepare
+assert "EMP_RELEASE_SHA256" in prepare
 
 # Danger is a start-screen setting, defaults to ROCK N ROLL / x10 internally,
 # and non-kinetic hostile damage uses the single canonical helper.
