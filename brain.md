@@ -56,3 +56,8 @@
 - Recharge passive COOP : demi-vie de chaleur 21 s, frame-independent, pour retrouver le rythme lent observé du classique historique au lieu du faux 60 Hz.
 - Boss COOP : champ fixe 55 %, rayon 1,08× boss, base cinétique 80 ; résiduel retire des PV au boss, sans Danger ; astéroïde détruit via la filière cinétique existante et flash de champ dédié.
 - Aucun merge/release avant validation téléphone Fab.
+
+
+## Suivi CI 341
+- L'implémentation compile et les nouveaux chemins boss tournent ; l'unique arrêt est l'ancien seuil COOP `abs(vx)<30`, incompatible avec la dispersion élargie voulue.
+- Correctif : adapter uniquement ce bornage de régression à `<120`, sans modifier le gameplay.

@@ -32,6 +32,6 @@
 - [x] Fab choisit un champ boss fixe moins puissant que joueurs ; lot fixe 55 %.
 - [x] TDD RED pour dispersion, recharge lente COOP et impact astéroïde boss : workflow `37539108268`.
 - [x] Implémentation minimale.
-- [ ] CI complète GREEN + APK test.
+- [ ] CI complète GREEN + APK test (CI 341 a seulement révélé l'ancien seuil `abs(vx)<30`; test adapté, rerun requis).
 - [ ] Validation téléphone Fab.
 - [ ] Aucun merge/release avant ordre explicite.
