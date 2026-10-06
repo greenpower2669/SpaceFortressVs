@@ -176,3 +176,24 @@ Protections :
 - Hall global, Danger 9, campagne 200, progression, sauvegardes et poussières hors périmètre ;
 - TDD obligatoire, CI complète APK/AAB + secret hygiene avant merge/release ;
 - ne jamais écraser v1.4.1.
+
+
+## SHOT-DISPERSION-ENERGY-BOSS-FIELD-V143 — 2026-10-06 — ORDRE FAB
+
+Constat téléphone confirmé par Fab :
+- en CLASSIQUE et COOP, la dispersion des tirs ordinaires est devenue absente ou imperceptible ;
+- les tirs doivent perdre en vitesse/efficacité et partir davantage au hasard à gauche/droite quand l'énergie baisse, puis rester rectilignes après le départ ;
+- la COOP recharge passivement beaucoup trop vite ;
+- Fab confirme que le CLASSIQUE possède historiquement une recharge passive lente dans `sprite::update()` (`nrj*=0.997`) et demande que la COOP retrouve un rythme lent comparable, sans supprimer cette recharge passive ;
+- les poussières blanches restent une récupération active distincte ;
+- en COOP/campagne, les boss doivent posséder un champ cinétique FIXE, moins puissant que celui des joueurs ;
+- un astéroïde entrant dans le champ du boss doit subir le champ et infliger au boss les dégâts cinétiques résiduels ; aucun multiplicateur Danger sur ces dégâts ;
+- champ boss proposé/canon du lot : dissipation fixe 55 %, donc inférieure au champ joueur plein (inner 78 %, outer 94 %) ;
+- l'impact peut détruire l'astéroïde en poussière blanche selon le rendement cinétique existant, sans modifier les règles de collecte boss déjà livrées.
+
+Protections :
+- nouvelle branche `fix/shot-dispersion-energy-boss-field-v143` depuis `main` `7722d806...` ;
+- TDD RED avant code ;
+- `src/main.cpp` byte-for-byte inchangé, blob `835059a0ecfe0f74708068b3259cad5db1cdb579` ;
+- Hall, Danger 9, campagne/progression/sauvegardes, surcharge 0,30/2 s et poussières hors points ci-dessus restent protégés ;
+- aucun merge main ni Release de ce nouveau lot sans validation/ordre explicite de Fab.

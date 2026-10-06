@@ -36,3 +36,13 @@
 - `src/main.cpp` ne doit jamais être modifié.
 - Hall, Danger 9, campagne 200, progression, sauvegardes et poussières hors ordre restent protégés.
 - Ne jamais écraser les assets d’une Release existante sous le même tag.
+
+
+## Mission active après v1.4.2 — dispersion / recharge / champ boss
+- Fab a corrigé l'audit : la recharge passive CLASSIQUE existe bien historiquement dans `src/mainv1.hpp::sprite::update()` avec `nrj*=0.997`; elle ne doit pas être supprimée.
+- Défaut COOP : `campaign_runtime.hpp` applique actuellement `.997^(60*dt)`, beaucoup plus rapide que le rythme observé du thread historique classique.
+- Objectif : recharge passive COOP lente (~ordre de grandeur classique), poussières blanches toujours récupération active.
+- Restaurer un spread initial aléatoire gauche/droite partagé : faible à pleine énergie, nettement plus large à faible énergie ; vol ensuite rectiligne.
+- Boss COOP : champ cinétique fixe 55 %, inférieur aux joueurs, dégâts astéroïdes résiduels réels sur PV boss, sans Danger.
+- Branche : `fix/shot-dispersion-energy-boss-field-v143`.
+- TDD RED en préparation ; aucun merge/release sans nouvelle validation Fab.

@@ -46,3 +46,11 @@ CLASSIQUE DUEL local :
 - Champ normal max 2,0 diamètres ; blast armé 3,0.
 - Hall, Danger 9, campagne 200, poussières et progression hors périmètre.
 - Ne jamais modifier `src/main.cpp`.
+
+
+## Lot v1.4.3 candidat — en travail
+- CLASSIQUE historique : passive recharge confirmée dans `sprite::update(): nrj*=0.997`.
+- COOP : remplacer le faux équivalent 60 Hz trop rapide par une recharge lente frame-independent.
+- Tirs : helper commun d'enveloppe de dispersion selon `nrj` + échantillon aléatoire symétrique ; CLASSIQUE `sfFireMain` et COOP `sfCoopFire`.
+- Boss : champ fixe 55 % autour du boss ; astéroïde entrant -> calcul masse/vitesse relative -> 55 % dissipé, résiduel sur santé boss -> destruction cinétique/poussière existante.
+- Pas de Danger sur le cinétique boss.

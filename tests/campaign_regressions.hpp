@@ -12,6 +12,35 @@ static void setupCampaign(int boss=0,bool ai=false)
     sfCampaignSave.pending=false;sfCampaignSave.selected=boss;sfCampaignSave.cleared=std::max(sfCampaignSave.cleared,boss);
     sfCampaignStart();sfCoop.phase=SfCoopPhase::Combat;
 }
+static void testCoopPassiveRechargeAndBossField()
+{
+    setupCampaign();sfCoop.position=tupl(sfArenaW*.5f,sfArenaH*.5f);
+    Spritej1->nrj=50;
+    const float oneSecond=sfCoopPassiveRechargeHeat(50.0f,1.0f);
+    assert(oneSecond<50.0f && oneSecond>47.0f);
+    for(int frame=0;frame<60;++frame) sfCoopMovePlayers(1.0f/60.0f);
+    assert(Spritej1->nrj<50.0f && Spritej1->nrj>47.0f);
+
+    assert(SF_COOP_BOSS_KINETIC_DISSIPATION>0.0f);
+    assert(SF_COOP_BOSS_KINETIC_DISSIPATION<SF_KINETIC_INNER_DISSIPATION);
+    sfFixResetAsteroidField();
+    const float bossRadius=sfCoopBossRadius();
+    auto *rock=new sprite;
+    rock->setxywh(sfCoop.position.x+bossRadius*.95f,sfCoop.position.y,
+                  sfArenaH*.09f,sfArenaH*.09f);
+    rock->pv=1;rock->vx=-sfKineticReferenceSpeed(sfArenaW)/60.0f;rock->vy=0;
+    sa1.push_back(rock);
+    const float before=sfCoop.health;
+    sfCoopResources(1.0f/60.0f);
+    assert(sfCoop.health<before);
+    assert(before-sfCoop.health>0.0f);
+    assert(rock->pv<=0);
+    assert(sfCoop.bossKineticFlash>0.0f);
+    sfFixResetAsteroidField();
+    sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
+    std::puts("PASS: coop passive recharge is slow; weaker fixed boss field absorbs part of asteroid impact and boss takes residual damage");
+}
+
 static void testVelocityGhosts()
 {
     for (int fps : {30,60,120}) for (int owner=0;owner<2;++owner) {

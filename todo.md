@@ -23,3 +23,15 @@
 - [x] `src/main.cpp` non modifié.
 - [x] Hall, Danger 9, campagne 200, progression et poussières hors périmètre.
 - [x] Aucune vraie clé Hall ajoutée à Git/logs/mémoires.
+
+
+## Mission dispersion / recharge / champ boss
+- [x] Audit : dispersion CLASSIQUE perdue car la copie Android remplace `tirerj1/2` historique par `sfFireMain` où le tir humain part avec X=0.
+- [x] Audit : dispersion COOP existe mais déterministe/faible et est masquée par la recharge passive trop rapide.
+- [x] Audit corrigé : recharge passive CLASSIQUE historique confirmée dans `sprite::update()`.
+- [x] Fab choisit un champ boss fixe moins puissant que joueurs ; lot fixe 55 %.
+- [ ] TDD RED pour dispersion, recharge lente COOP et impact astéroïde boss.
+- [ ] Implémentation minimale.
+- [ ] CI complète GREEN + APK test.
+- [ ] Validation téléphone Fab.
+- [ ] Aucun merge/release avant ordre explicite.
