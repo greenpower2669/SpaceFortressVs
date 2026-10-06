@@ -49,11 +49,21 @@ static void sfClassicDuelReleaseSurge(int owner)
     }
 }
 
+static void sfClassicDuelCancelOwnedSurges()
+{
+    for(int owner=0;owner<2;++owner) {
+        if(sfClassicDuelKineticFinger[owner]<0) continue;
+        sfKineticSurgeCancel(owner);
+        sfKineticAudioCancel(owner);
+        sfClassicDuelKineticFinger[owner]=-1;
+    }
+}
+
 static bool sfClassicDuelSurgeHandleEvent(const SDL_Event &event,int fingerId,float y)
 {
     sfClassicDuelSurgeClearStale();
     if(sfActiveMode!=SF_DUEL_LOCAL) {
-        sfClassicDuelKineticFinger={{-1,-1}};
+        sfClassicDuelCancelOwnedSurges();
         return false;
     }
 

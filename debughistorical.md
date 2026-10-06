@@ -31,3 +31,9 @@
 - RED initial : workflow `37517885303` / run 326 attendu en échec car le duel local owner 0 n’était pas encore câblé.
 - Les tests doivent vérifier : courbe 100/50/25/10/0, surcharge après courbe, durée 0,27→~0,50, deux owners duel, overlay warning, invariants Danger/Hall/COOP.
 - Avant merge/release : exiger une CI fraîche GREEN du HEAD final, secret hygiene, APK+AAB+packaging et blob `main.cpp` canonique.
+
+
+## Piège CI 335 — 2026-10-06
+- Un simple reset de `sfClassicDuelKineticFinger` en quittant le duel local fuit l'état `sfKineticSurges[owner]` et peut laisser charge/audio actifs dans le mode suivant.
+- Toujours annuler uniquement les owners effectivement possédés par le bridge local : `sfKineticSurgeCancel(owner)` + `sfKineticAudioCancel(owner)`.
+- Ne pas déduire l'énergie visuelle d'une vague depuis sa force : surcharge et couche peuvent fausser cette valeur. Capturer la vraie `sfKineticEnergyFraction(ship->nrj)` au déclenchement.

@@ -48,3 +48,10 @@ CLASSIQUE DUEL local :
 - Champ normal max 2,0 diamètres ; blast armé 3,0.
 - Hall, Danger 9, campagne 200, poussières et progression hors périmètre.
 - Publication v1.4.2 seulement après CI fraîche GREEN et revalidation du blob historique.
+
+
+## Fermeture avant v1.4.2 — CI 335
+- RED utile au HEAD `091299ef...` : cleanup duel hors mode et source d'énergie vraie des vagues.
+- Fix : `sfClassicDuelCancelOwnedSurges()` annule seulement les doigts secondaires possédés par le duel local.
+- Fix : `sfKineticTriggerWave(..., sfKineticEnergyFraction(ship->nrj))` sur impact et purge.
+- CI fraîche complète obligatoire avant intégration.

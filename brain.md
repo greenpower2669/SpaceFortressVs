@@ -38,3 +38,10 @@
 - Cible : `v1.4.2`, `versionCode 12`, uniquement après CI fraîche GREEN.
 - Fab a demandé une Release directe une fois le lot entièrement GREEN.
 - Ne jamais écraser v1.4.1 ; ne pas publier avant vérification `src/main.cpp` + artefacts + SHA256SUMS.
+
+
+## Correctif de fermeture TDD — CI 335
+- Le test ajouté au HEAD `091299ef...` a correctement détecté deux garanties manquantes avant release : annulation d'une charge duel locale lors d'un changement de mode, et capture explicite de la vraie réserve d'énergie dans chaque vague.
+- Correctif minimal : le bridge duel annule uniquement les surcharges qu'il possède ; les vagues impact/purge reçoivent directement `sfKineticEnergyFraction(ship->nrj)`.
+- Aucun changement Hall/campagne/Danger/poussières ; `src/main.cpp` reste protégé.
+- Nouvelle CI complète requise avant merge/release v1.4.2.

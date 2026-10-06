@@ -76,10 +76,10 @@ assert 'sfKineticEnergyFlashFactor' in visual
 assert 'sfDrawKineticEnergyWarningOverlay' in visual
 assert 'sfDrawKineticEnergyWarningOverlay(renderer)' in classic_patch
 assert '#include <kinetic_energy_visuals.hpp>' in th2
-# Android runtime waves must capture the true ship reserve, not re-infer it from
-# layer strength (which can be affected by surge/layer choice).
-assert '#define sfKineticTriggerWave(owner,radius,strength)' in th2
-assert 'sfKineticEnergyFraction' in th2
+# Android runtime waves capture the true ship reserve at the call site, rather
+# than re-inferring it from layer strength (which surge/layer choice can alter).
+assert 'sfKineticTriggerWave(owner,raw.maxRadiusShipDiameters,strength,sfKineticEnergyFraction(ship->nrj))' in field
+assert 'sfKineticTriggerWave(owner,SF_KINETIC_SURGE_BLAST_DIAMETER*.5f,1.0f,sfKineticEnergyFraction(ship->nrj))' in field
 
 # Danger is a start-screen setting, defaults to ROCK N ROLL / x10 internally,
 # and non-kinetic hostile damage uses the single canonical helper.

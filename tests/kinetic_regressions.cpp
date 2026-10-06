@@ -43,11 +43,13 @@ int main() {
     assert(red.vibrated && red.deflected && (red.vx!=12 || red.vy!=-5));
 
     sfKineticWaves.clear();sfKineticWaveSerial=0;
-    sfKineticTriggerWave(0,veryFast.maxRadiusShipDiameters,1.0f);
-    sfKineticTriggerWave(0,fast.maxRadiusShipDiameters,.28f);
+    sfKineticTriggerWave(0,veryFast.maxRadiusShipDiameters,1.0f,1.0f);
+    sfKineticTriggerWave(0,fast.maxRadiusShipDiameters,1.0f,.10f);
     assert(sfKineticWaves.size()==2);
     const auto fullWave=sfKineticWaves.front();
     const auto tiredWave=sfKineticWaves.back();
+    assert(std::abs(fullWave.energyFraction-1.0f)<.001f);
+    assert(std::abs(tiredWave.energyFraction-.10f)<.001f);
     assert(fullWave.duration>=.26f && fullWave.duration<=.30f);
     assert(tiredWave.duration>=.47f && tiredWave.duration<=.52f);
     assert(tiredWave.duration>fullWave.duration);

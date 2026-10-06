@@ -28,3 +28,11 @@
 - [x] `src/main.cpp` non modifié à ce stade.
 - [x] Hall, Danger 9, campagne 200, progression et poussières hors périmètre.
 - [x] Fab a autorisé une Release directe de ce lot une fois entièrement GREEN.
+
+
+## Fermeture v1.4.2
+- [x] CI 335 a détecté le cleanup duel / capture énergie manquants.
+- [x] Correctif minimal codé + tests renforcés.
+- [ ] Nouvelle CI Android complète GREEN.
+- [ ] Vérifier `src/main.cpp` au blob canonique.
+- [ ] Merge PR #6 puis publication v1.4.2 conformément à l'ordre Fab une fois GREEN.
