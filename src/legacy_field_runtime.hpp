@@ -171,7 +171,7 @@ static int sfKineticPurgeAsteroids(int owner)
     auto *ship=owner==0 ? Spritej1 : Spritej2;
     if(!ship || ship->pv<=0) return 0;
     const float diameter=sfKineticShipDiameter(ship);
-    const float radius=diameter*SF_KINETIC_MAX_SHIELD_DIAMETER*.5f;
+    const float radius=diameter*SF_KINETIC_SURGE_BLAST_DIAMETER*.5f;
     int purged=0;
     for(auto *rock:sa1) {
         if(!rock || rock->pv<=0) continue;
@@ -181,7 +181,7 @@ static int sfKineticPurgeAsteroids(int owner)
         if(sfKineticDestroyAsteroid(rock,SfKineticDustCause::SurgePurge)) ++purged;
     }
     if(purged>0) {
-        sfKineticTriggerWave(owner,SF_KINETIC_MAX_SHIELD_DIAMETER*.5f,1.0f);
+        sfKineticTriggerWave(owner,SF_KINETIC_SURGE_BLAST_DIAMETER*.5f,1.0f);
         sfKineticEmitRedDust(owner,std::min(12,3+purged),diameter*.46f);
         SDL_Log("KINETIC_PURGE owner=%d asteroids=%d maxRadius=%.3f",owner,purged,radius);
     }
@@ -271,8 +271,8 @@ static bool sfKineticFragmentRock(sprite *rock,const sprite *ship,int owner,SfKi
         float angle;
         if(i<penetrators) angle=baseAngle+(i-(penetrators-1)*.5f)*.16f;
         else {
-  const float side=(i&1) ? 1.0f : -1.0f;
-  angle=baseAngle+side*(.72f+.25f*(i-penetrators));
+            const float side=(i&1) ? 1.0f : -1.0f;
+            angle=baseAngle+side*(.72f+.25f*(i-penetrators));
         }
         const float relSpeed=solution.relativeSpeed*retained*(i<penetrators ? .82f : .62f);
         fragment->vx=(shipVx+std::cos(angle)*relSpeed)/60.0f;
@@ -323,63 +323,63 @@ static void sfLegacyFieldStep(void (*hurt)(int,float))
         rock->tout=inxy(rock) ? 0 : rock->tout+1;
         if (rock->tout>60*30) rock->pv=0;
         for (int owner=0;owner<2 && rock->pv>0;++owner) {
-  auto *ship=owner==0 ? Spritej1 : Spritej2;
-  if (ship->pv<=0) continue;
-  const float diameter=sfKineticShipDiameter(ship),rockRadius=std::max(rock->w,rock->h)*.5f;
-  const auto raw=sfKineticRockSolution(rock,ship,owner);
-  const float travelled=sfKineticSegmentDistance(fromX,fromY,rock->x,rock->y,ship->x,ship->y);
-  const float outer=diameter*raw.maxRadiusShipDiameters+rockRadius;
-  const float inner=diameter*sfKineticInnerRadiusShipDiameters(raw)+rockRadius;
-  bool interacted=false;
-  if(rock->kineticStage==0 && raw.suggestedLayer==SfKineticLayer::Outer && travelled<=outer) {
-      rock->kineticStage=1;
-      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Outer,raw,&interacted)) continue;
-      if(interacted) continue;
-  }
-  if(rock->pv<=0) continue;
-  interacted=false;
-  if(rock->kineticStage<2 && raw.selectedRange>0 && travelled<=inner) {
-      rock->kineticStage=2;
-      if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Inner,raw,&interacted)) continue;
-      if(interacted) continue;
-  }
-  if(rock->pv<=0) continue;
-  const float hullRadius=std::max(ship->sw,ship->sh)*.52f+rockRadius;
-  const bool hullHit=colee(ship,rock) || travelled<=hullRadius;
-  if(!hullHit) continue;
-  sfFieldCollisionSound=true;sfFieldImpact(rock,ship);
-  sfKineticEmitRedDust(owner,3,diameter*.45f);
-  SDL_Log("KINETIC_IMPACT owner=%d massFactor=%.5f relativeSpeed=%.3f impactSpeed=%.3f rawDamage=%.5f residualDamage=%.5f selectedRange=%d maxRadius=%.3f energyCost=0",
-      owner,raw.massFactor,raw.relativeSpeed,raw.impactSpeed,raw.rawDamage,raw.rawDamage,
-      raw.selectedRange,diameter*raw.maxRadiusShipDiameters);
-  if (hurt) hurt(owner,raw.rawDamage);
-  else ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,raw.rawDamage));
-  rock->pv=0;
+            auto *ship=owner==0 ? Spritej1 : Spritej2;
+            if (ship->pv<=0) continue;
+            const float diameter=sfKineticShipDiameter(ship),rockRadius=std::max(rock->w,rock->h)*.5f;
+            const auto raw=sfKineticRockSolution(rock,ship,owner);
+            const float travelled=sfKineticSegmentDistance(fromX,fromY,rock->x,rock->y,ship->x,ship->y);
+            const float outer=diameter*raw.maxRadiusShipDiameters+rockRadius;
+            const float inner=diameter*sfKineticInnerRadiusShipDiameters(raw)+rockRadius;
+            bool interacted=false;
+            if(rock->kineticStage==0 && raw.suggestedLayer==SfKineticLayer::Outer && travelled<=outer) {
+                rock->kineticStage=1;
+                if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Outer,raw,&interacted)) continue;
+                if(interacted) continue;
+            }
+            if(rock->pv<=0) continue;
+            interacted=false;
+            if(rock->kineticStage<2 && raw.selectedRange>0 && travelled<=inner) {
+                rock->kineticStage=2;
+                if(sfKineticTryLayer(rock,ship,owner,SfKineticLayer::Inner,raw,&interacted)) continue;
+                if(interacted) continue;
+            }
+            if(rock->pv<=0) continue;
+            const float hullRadius=std::max(ship->sw,ship->sh)*.52f+rockRadius;
+            const bool hullHit=colee(ship,rock) || travelled<=hullRadius;
+            if(!hullHit) continue;
+            sfFieldCollisionSound=true;sfFieldImpact(rock,ship);
+            sfKineticEmitRedDust(owner,3,diameter*.45f);
+            SDL_Log("KINETIC_IMPACT owner=%d massFactor=%.5f relativeSpeed=%.3f impactSpeed=%.3f rawDamage=%.5f residualDamage=%.5f selectedRange=%d maxRadius=%.3f energyCost=0",
+                owner,raw.massFactor,raw.relativeSpeed,raw.impactSpeed,raw.rawDamage,raw.rawDamage,
+                raw.selectedRange,diameter*raw.maxRadiusShipDiameters);
+            if (hurt) hurt(owner,raw.rawDamage);
+            else ship->pv=std::max(0.0f,ship->pv-sfApplyShieldImpact(ship,raw.rawDamage));
+            rock->pv=0;
         }
     }
     for(size_t i=0;i<rocks.size();++i) {
         auto *a=rocks[i];
         for(size_t j=i+1;j<rocks.size() && a->pv>0;++j) {
-  auto *b=rocks[j];
-  if (b->pv<=0 || a->timer || b->timer || !(inxy(a)||inxy(b)) || !colee(a,b)) continue;
-  sfFieldCollisionSound=true;sfFieldImpact(a,b,true);
-  const float h1=std::sqrt(a->w*a->h),h2=std::sqrt(b->w*b->h);
-  if (std::min(h1,h2)>0 && std::max(h1,h2)/std::min(h1,h2)<1.05f) {
-      for(int burst=0;burst<4 && sa1.size()+4<=200;++burst) eclats(a,b);
-      sfKineticDestroyAsteroid(a,SfKineticDustCause::AsteroidCollision);
-      sfKineticDestroyAsteroid(b,SfKineticDustCause::AsteroidCollision);
-  } else {
-      auto *large=h1>h2 ? a : b;auto *small=h1>h2 ? b : a;
-      large->w+=small->w*.01f;large->h+=small->h*.01f;
-      large->sw=large->w;large->sh=large->h;
-      sfKineticDestroyAsteroid(small,SfKineticDustCause::AsteroidCollision);
-  }
+            auto *b=rocks[j];
+            if (b->pv<=0 || a->timer || b->timer || !(inxy(a)||inxy(b)) || !colee(a,b)) continue;
+            sfFieldCollisionSound=true;sfFieldImpact(a,b,true);
+            const float h1=std::sqrt(a->w*a->h),h2=std::sqrt(b->w*b->h);
+            if (std::min(h1,h2)>0 && std::max(h1,h2)/std::min(h1,h2)<1.05f) {
+                for(int burst=0;burst<4 && sa1.size()+4<=200;++burst) eclats(a,b);
+                sfKineticDestroyAsteroid(a,SfKineticDustCause::AsteroidCollision);
+                sfKineticDestroyAsteroid(b,SfKineticDustCause::AsteroidCollision);
+            } else {
+                auto *large=h1>h2 ? a : b;auto *small=h1>h2 ? b : a;
+                large->w+=small->w*.01f;large->h+=small->h*.01f;
+                large->sw=large->w;large->sh=large->h;
+                sfKineticDestroyAsteroid(small,SfKineticDustCause::AsteroidCollision);
+            }
         }
     }
     if (!hurt) for(auto *list:{&entitiesj1,&entitiesj2}) for(auto *shot:*list) {
         if (shot->pv<=0) continue;
         for(auto *rock:rocks) if(rock->pv>0 && (colee(shot,rock)||sfShotCrosses(rock,shot))) {
-  sfMineAsteroid(rock,shot);break;
+            sfMineAsteroid(rock,shot);break;
         }
     }
     for(auto i=sa1.begin();i!=sa1.end();) {
@@ -398,10 +398,10 @@ static void sfLegacyFieldFrame(float dt,void (*hurt)(int,float))
     while(sfFieldRemainder+1e-6f>=1.0f/60) {
         sfFieldRemainder=std::max(0.0f,sfFieldRemainder-1.0f/60);sfLegacyFieldStep(hurt);
         if (hurt) {
-  for(auto *p:particules) p->update();for(auto *p:particulesr) p->update();sfCollectDust();
-  for(auto i=explos.begin();i!=explos.end();) {
-      (*i)->upexpl();if((*i)->pv<=0) {delete *i;i=explos.erase(i);} else ++i;
-  }
+            for(auto *p:particules) p->update();for(auto *p:particulesr) p->update();sfCollectDust();
+            for(auto i=explos.begin();i!=explos.end();) {
+                (*i)->upexpl();if((*i)->pv<=0) {delete *i;i=explos.erase(i);} else ++i;
+            }
         }
     }
     W=oldW;H=oldH;WIDTH=oldWidth;HEIGHT=oldHeight;k0=oldK;
