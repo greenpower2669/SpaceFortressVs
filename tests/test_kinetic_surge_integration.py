@@ -36,11 +36,11 @@ assert 'sfKineticSurgeVisible' in tactical
 assert 'sfKineticSurgePower(owner)' in field
 assert 'powerMultiplier=std::clamp(powerMultiplier,0.0f,SF_KINETIC_SURGE_POWER_MULTIPLIER)' in kinetic
 
-# Shared synthetic/packaged audio cues and iridescent charge feedback.
+# Shared packaged audio cues and iridescent charge feedback. The release cue is
+# re-authored as the EMP blast, so no extra playback path is needed.
 assert 'kinetic_charge.wav' in tactical
 assert 'kinetic_ready.wav' in tactical
 assert 'kinetic_release.wav' in tactical
-assert 'kinetic_emp_blast.wav' in tactical
 assert 'sfKineticRainbowColor' in tactical
 
 # Danger is a start-screen setting, defaults to ROCK N ROLL / x10 internally,
@@ -65,7 +65,7 @@ assert 'sfApplyHostileDanger' not in asteroid
 assert 'sfApplyHostileDanger' not in kinetic
 assert 'sfApplyHostileDanger' not in field
 
-for name in ('kinetic_charge.wav','kinetic_ready.wav','kinetic_release.wav','kinetic_emp_blast.wav'):
+for name in ('kinetic_charge.wav','kinetic_ready.wav','kinetic_release.wav'):
     assert (root/'assets'/'sounds'/name).exists(), name
 
-print('PASS: delayed classic-like short taps, 3x kinetic purge, EMP blast audio and shared two-second charge contract')
+print('PASS: delayed classic-like short taps, 3x kinetic purge, EMP release audio and shared two-second charge contract')
