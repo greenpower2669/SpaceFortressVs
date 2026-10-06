@@ -13,6 +13,7 @@ import zlib
 
 REPO = Path(__file__).resolve().parents[1]
 PACK_SHA256 = 'c0b9fd4f96b56cf7f5dcace9ff6d4f46327a06486bc9729308668009d278a185'
+EMP_RELEASE_SHA256 = 'e31b7479993b629116cf04238972355540a2c847268447f8f1bdd78c01a067be'
 # These two September 7 transports are already corrupt in Git. Use their
 # original artwork until a valid replacement is committed. Match exact bytes
 # so an unrelated future corruption still fails the build.
@@ -83,6 +84,18 @@ def assemble(source, output):
     output.mkdir(parents=True, exist_ok=True)
     shutil.copytree(source, output, dirs_exist_ok=True,
                     ignore=shutil.ignore_patterns('*.b64', '*.b64.*', '_asset_audit.txt'))
+
+    # Source transport stays text-safe in Git; the Android/package assembly
+    # restores the authored electromagnetic blast over the historical release cue.
+    emp_transport = source / 'sounds/kinetic_release_emp.b64'
+    if emp_transport.exists():
+        emp_release = base64.b64decode(''.join(emp_transport.read_text().split()), validate=True)
+        if hashlib.sha256(emp_release).hexdigest() != EMP_RELEASE_SHA256:
+            raise ValueError('EMP release WAV checksum mismatch')
+        if emp_release[:4] != b'RIFF' or emp_release[8:12] != b'WAVE':
+            raise ValueError('EMP release transport is not a WAV')
+        (output / 'sounds/kinetic_release.wav').write_bytes(emp_release)
+
     encoded = ''.join(p.read_text().strip() for p in sorted(source.glob('remaster_pack.b64.*')))
     if len(encoded) == 65163:
         encoded = encoded[:33411] + 'r' + encoded[33411:]
