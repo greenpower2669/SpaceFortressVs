@@ -1,35 +1,32 @@
 # todo.md — SpaceFortressVs
 
 ## Hall global sync v1
-- [x] Spec + plan TDD validés; branche dédiée.
-- [x] Tasks 1–7 : stockage, UUID/payload, pagination/cache, hooks, HTTPS Java, JNI, Hall fusionné.
-- [x] Task 8 : CI complète GREEN sur workflow `37372279557`, tentative 2; artifact configuré `11374640381`; secret absent de Git; `src/main.cpp` protégé.
-- [x] Incident de livraison `SYNC NON CONFIGUREE` expliqué : ancien APK sans clé remis par erreur.
-- [x] Fab a testé le bon APK configuré : `SYNC OK`, `GLOBAL 1 + LOCAL 0`.
+- [x] Spec + plan TDD validés.
+- [x] Stockage, UUID/payload, pagination/cache, hooks, HTTPS Java, JNI, Hall fusionné.
+- [x] Secret absent de Git; build configuré via `SPACEFORTRESS_HOF_API_KEY`.
+- [x] Validation téléphone : `SYNC OK`, `GLOBAL 1 + LOCAL 0`.
 
-## Mini-fix surcharge cinétique v2 — clôture release
-- [x] Design borné validé par Fab : délai visuel/x2 0,30 s, charge armée 2,00 s, blast/purge 3,0×, son EMP.
-- [x] TDD RED : workflow `37424970512` échoue sur la constante de délai absente, comme attendu.
-- [x] Implémenter seuil 0,30 s sans changer le champ normal 2,0×.
-- [x] Porter uniquement le blast/purge armé à 3,0×.
-- [x] Ajouter le transport du nouveau son EMP et son décodage contrôlé dans l’asset Android `kinetic_release.wav`.
-- [x] Garder la même logique CLASSIQUE + COOP et supprimer le sentinel RED temporaire.
-- [x] Corriger le checksum du transport EMP sans toucher au gameplay : SHA `43326ec5ba92d40b2378b0877775bce28d21b1b4`.
-- [x] CI Android complète GREEN : workflow `37427270384` / run 320.
-- [x] HEAD documentaire revérifié GREEN : workflow `37476092719` / run 321 au SHA `48eeb687d8cb60c91b28e70587b00fae3d8fe1ab`.
-- [x] `src/main.cpp` revérifié au blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
-- [x] APK configuré livré et validé par Fab sur téléphone.
-- [x] Validation téléphone Fab : appui <0,30 s sans irisation, charge 0,30–2 s, READY à 2 s, blast 3× + son EMP, gros astéroïdes purgés.
-- [x] Fab a donné l’ordre explicite : `release et merge main`.
-- [x] Préparer version `1.4.1` / `versionCode 11` et notes publiques.
-- [ ] CI fraîche de la préparation 1.4.1 GREEN.
-- [ ] Merge PR #5 vers `main`.
-- [ ] Publier et vérifier la Release `v1.4.1` avec APK/AAB/SHA256SUMS du commit de publication.
+## Mini-fix surcharge cinétique v2
+- [x] Délai visuel/x2 0,30 s.
+- [x] Charge armée 2,00 s et fenêtre vulnérable conservée.
+- [x] Blast/purge 3,0×.
+- [x] Son EMP original.
+- [x] CLASSIQUE + COOP identiques.
+- [x] TDD RED puis GREEN.
+- [x] Validation téléphone Fab.
 
-## Autres validations téléphone encore ouvertes
-- [ ] Hall Danger 1★/9★ sur nouvelles victoires si Fab veut les recontrôler.
-- [ ] Effets poussières cinétiques hors mini-fix v2.
+## Release v1.4.1
+- [x] Version `1.4.1` / versionCode `11`.
+- [x] CI préparation `37488788585` GREEN.
+- [x] PR #5 mergée vers `main`.
+- [x] CI `main` `37489724746` GREEN.
+- [x] Publication `37490579073` GREEN avec `publish-release` SUCCESS.
+- [x] Release publique `v1.4.1` vérifiée.
+- [x] `main` aligné sur le commit Release `450423c41c4cef6c348f49af698767016a0528fd`.
+- [x] `src/main.cpp` protégé au blob `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- [x] APK SHA-256 `4d4f10f324a0b9929397b14f79fb36f4faae9b48a8a027f9ce4fdc864c014da8`.
+- [x] AAB SHA-256 `5e20d2a5bae408237b6a25a06e87623809b4258f48392f745100dd77f34eb087`.
 
-## Invariants
-- [x] `src/main.cpp` protégé.
-- [x] Autorisation Fab merge/release reçue pour le lot validé.
+## Suite
+- [ ] Aucune mission active de code après v1.4.1.
+- [ ] Toute nouvelle évolution partira d’une branche dédiée depuis `main` après ordre Fab.
