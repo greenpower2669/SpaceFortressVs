@@ -60,3 +60,10 @@ CLASSIQUE DUEL local :
 - `tactical_runtime.hpp` : `sfMainShotSpreadEnvelope/Radians/RandomUnit` + spread humain classique.
 - `campaign_runtime.hpp` : spread COOP aléatoire partagé, recharge passive demi-vie 21 s, champ boss fixe 55 %, collision astéroïde→boss et anneau visuel.
 - TDD RED run 340 (`37539108268`) confirmé avant code.
+
+
+## CI 342 GREEN
+- Code candidat : `5c66e892...`.
+- Run `37540141916` entièrement GREEN ; artifact `11447494930`.
+- Phone à vérifier : spread gauche/droite à faible énergie en CLASSIQUE + COOP, recharge COOP lente, anneau boss + dégâts résiduels d'astéroïdes.
+- PR #7 reste draft ; pas de merge/release.

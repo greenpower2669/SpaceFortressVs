@@ -61,3 +61,14 @@
 ## Suivi CI 341
 - L'implémentation compile et les nouveaux chemins boss tournent ; l'unique arrêt est l'ancien seuil COOP `abs(vx)<30`, incompatible avec la dispersion élargie voulue.
 - Correctif : adapter uniquement ce bornage de régression à `<120`, sans modifier le gameplay.
+
+
+## CI 342 GREEN — candidat téléphone
+- HEAD code/test : `5c66e892374a0a3596e76e1f3eb4ef0b0d26028d`.
+- Workflow `37540141916` / run 342 : GREEN complet (régressions, Hall protocole, secret hygiene, APK, AAB, packaging).
+- Artifact : `11447494930`, digest ZIP `sha256:5167034c9d6428d8f92e43c141a6e1aab63369c0f7ac53f5fdb7c4cf76d54bec`.
+- APK test SHA-256 : `0eaf0b298858b4f934264daad1ae7dcd2d8b209b7a75b9a76c5f59656284eee2`.
+- AAB test SHA-256 : `f2075f73fe959208573566aed9caaa9fa4ca20435de40d322a0b5b428819b67b`.
+- `publish-release` SKIPPED. PR #7 reste draft. Aucun merge `main`, aucune Release.
+- `src/main.cpp` revérifié au blob canonique `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- Étape restante : validation téléphone Fab du ressenti dispersion/recharge et des collisions astéroïde→champ boss.
