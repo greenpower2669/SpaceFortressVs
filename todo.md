@@ -1,38 +1,25 @@
 # todo.md — SpaceFortressVs
 
 ## Livré
-- [x] Hall global v1 validé téléphone et publié dans v1.4.1.
+- [x] Hall global v1 validé téléphone.
 - [x] Surcharge cinétique v2 : 0,30 s / 2,00 s / blast 3,0× / EMP.
-- [x] Release publique `v1.4.1` vérifiée.
+- [x] Release publique `v1.4.1`.
+- [x] Fatigue cinétique `pow(energyFraction,1.20)`.
+- [x] Vagues visuelles 0,27→~0,50 s avec couleur équipe→orange→rouge et flash <10 %.
+- [x] Surcharge 2 s partagée pour les deux joueurs en CLASSIQUE DUEL.
+- [x] Cleanup ciblé des charges duel à la sortie du mode.
+- [x] Capture explicite de la vraie réserve d’énergie dans les vagues.
+- [x] PR #6 GREEN puis merge vers `main` au SHA `414b23cd2e787325b723fe7b0b6bd84fac02494b`.
+- [x] `src/main.cpp` vérifié au blob `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- [x] Publication `v1.4.2` GREEN via workflow `37530458354`.
+- [x] Release publique vérifiée avec APK/AAB/build.json/SHA256SUMS.
 
-## Mission active — v1.4.2 fatigue cinétique + duel classique
-- [x] Créer branche `feature/kinetic-energy-fatigue-duel-v142` depuis `main` `21b1ff3592ce6f531da58fad6c102049a313325d`.
-- [x] Ouvrir PR #6 en draft.
-- [x] TDD RED : workflow `37517885303` échoue comme prévu avant le câblage duel owner 0.
-- [x] Ajouter courbe d’efficacité `pow(energyFraction,1.20)`.
-- [x] Ajouter durée de vague visuelle ~0,27 s pleine → ~0,50 s vide.
-- [x] Ajouter warning visuel équipe→orange→rouge, flash rouge <10 %.
-- [x] Ajouter bridge CLASSIQUE DUEL local second doigt pour owner 0 et owner 1, sans toucher `src/main.cpp`.
-- [x] Garder DUEL IA et COOP sur leurs chemins existants.
-- [x] Tests de courbe/durée/owners/overlay ajoutés.
-- [ ] Obtenir une CI complète GREEN sur le HEAD code + docs.
-- [ ] Corriger uniquement les défauts démontrés par tests/CI.
-- [ ] Vérifier `src/main.cpp` blob `835059a0ecfe0f74708068b3259cad5db1cdb579`.
-- [ ] Préparer `VERSION_NAME=1.4.2`, `VERSION_CODE=12` et notes Release.
-- [ ] Relancer CI fraîche GREEN de préparation release.
-- [ ] Review finale PR #6 / secret hygiene / aucun changement Hall.
-- [ ] Merge PR #6 vers `main` après GREEN.
-- [ ] Publier `v1.4.2` avec APK/AAB/SHA256SUMS et vérifier la Release publique.
+## Release v1.4.2
+- [x] Tag/commit : `5c3bedbd592f7bf4c50b830d26d6a0da49048813`.
+- [x] APK SHA-256 : `b5604ba8f103a351e62beb0751893d6ffdcc0d9549d6c75cb2545ea061ea8282`.
+- [x] AAB SHA-256 : `4a996b60cc5bca9d874a7d2897c3ec83d095e3f5d9a989a192df3979647d74ea`.
 
 ## Invariants
-- [x] `src/main.cpp` non modifié à ce stade.
+- [x] `src/main.cpp` non modifié.
 - [x] Hall, Danger 9, campagne 200, progression et poussières hors périmètre.
-- [x] Fab a autorisé une Release directe de ce lot une fois entièrement GREEN.
-
-
-## Fermeture v1.4.2
-- [x] CI 335 a détecté le cleanup duel / capture énergie manquants.
-- [x] Correctif minimal codé + tests renforcés.
-- [ ] Nouvelle CI Android complète GREEN.
-- [ ] Vérifier `src/main.cpp` au blob canonique.
-- [ ] Merge PR #6 puis publication v1.4.2 conformément à l'ordre Fab une fois GREEN.
+- [x] Aucune vraie clé Hall ajoutée à Git/logs/mémoires.
