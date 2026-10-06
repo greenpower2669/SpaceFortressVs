@@ -14,9 +14,11 @@
 - [x] Porter uniquement le blast/purge armé à 3,0×.
 - [x] Ajouter le transport du nouveau son EMP et son décodage contrôlé dans l’asset Android `kinetic_release.wav`.
 - [x] Garder la même logique CLASSIQUE + COOP et supprimer le sentinel RED temporaire.
-- [ ] Obtenir une CI Android complète GREEN sur le HEAD final, avec APK+AAB, packaging et scan secret.
-- [ ] Vérifier `src/main.cpp` toujours au blob protégé.
-- [ ] Télécharger l’APK configuré du workflow final et vérifier son SHA-256.
+- [x] Corriger le checksum du transport EMP sans toucher au gameplay : SHA `43326ec5ba92d40b2378b0877775bce28d21b1b4`.
+- [x] CI Android complète GREEN : workflow `37427270384` / run 320, toutes étapes `build-android` réussies; `publish-release` SKIPPED.
+- [x] `src/main.cpp` revérifié au blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- [x] Artifact candidat disponible : `SpaceFortressVs-1.4.0-release-files`, id `11395476858`, digest `sha256:b1f6640c65d4d90237dc477df72212dcad46b63678faca6270deb584d7436cc3`.
+- [ ] Télécharger l’APK configuré du workflow final et vérifier son SHA-256 avant livraison à Fab.
 - [ ] Validation téléphone Fab : appui <0,30 s sans irisation, charge 0,30–2 s, READY à 2 s, blast 3× + son EMP, gros astéroïdes purgés.
 - [ ] Après validation seulement : merge `main` puis Release sur ordre explicite de Fab.
 
@@ -25,5 +27,5 @@
 - [ ] Effets poussières cinétiques hors mini-fix v2.
 
 ## Invariants
-- [x] `src/main.cpp` protégé jusque-là.
+- [x] `src/main.cpp` protégé.
 - [x] Aucun merge main / aucune release.

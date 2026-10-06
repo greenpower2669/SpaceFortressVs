@@ -23,3 +23,7 @@
 - Surcharge cinétique v2 : avant 0,30 s, la seconde touche doit rester visuellement classique et ne doit pas activer le multiplicateur x2; à partir de 0,30 s seulement, cercle irisé + x2.
 - Surcharge cinétique v2 : à 2 s, conserver l’état vulnérable/field OFF jusqu’au relâchement; ne pas déplacer ce seuil à 0,30 s.
 - EMP : `assets/sounds/kinetic_release_emp.b64` est un transport texte sûr; `prepare-assets.py` vérifie son SHA-256 puis remplace uniquement l’asset Android empaqueté `kinetic_release.wav`. Ne pas logger de données sensibles; ce son n’est pas secret.
+- Incident checksum EMP 2026-10-06 : une première tentative GREEN attendue a échoué à `Validate assets and runtime regressions` avec `EMP release WAV checksum mismatch`. Cause : checksum de transport erroné, pas gameplay. Correctif minimal au SHA `43326ec5ba92d40b2378b0877775bce28d21b1b4` : lier le transport EMP au checksum réellement vérifié, sans changer le comportement.
+- Preuve fraîche après correction checksum : workflow `37427270384` / run 320 entièrement GREEN pour `build-android`; régressions, tests protocole Hall, build local-only, scan secret, APK/AAB, vérification et packaging réussis; `publish-release` SKIPPED.
+- Artifact final candidat téléphone : id `11395476858`, digest `sha256:b1f6640c65d4d90237dc477df72212dcad46b63678faca6270deb584d7436cc3`.
+- `src/main.cpp` revérifié après ce lot au blob historique `835059a0ecfe0f74708068b3259cad5db1cdb579`.

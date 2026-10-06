@@ -21,13 +21,19 @@
 - Bon artifact configuré : `11374640381`; APK SHA-256 `0ca76a074b8148578b95a5b10a1fd32fad41d1c27cb46454ff2cd15d2133ab87`.
 - Le re-test du bon APK a donné `SYNC OK`; aucun patch réseau n’était requis.
 
-## Mini-fix surcharge cinétique v2 — en validation CI
+## Mini-fix surcharge cinétique v2 — CODE GREEN / téléphone à valider
 - Appui second doigt <0,30 s : pas de cercle irisé, puissance normale ×1; relâchement court reste un tir classique.
 - 0,30–2,00 s : surcharge visible ×2; à 2 s état armé et vulnérable jusqu’au relâchement.
 - Relâchement armé : purge + vague visuelle = diamètre 3,0× vaisseau; poussière blanche de purge reste au canon 100 %.
 - Son `kinetic_release.wav` ré-authored comme déflagration EMP originale via `assets/sounds/kinetic_release_emp.b64`, décodée et contrôlée par `prepare-assets.py`.
 - CLASSIQUE + COOP utilisent le même état de surcharge.
-- RED TDD prouvé par workflow `37424970512`; GREEN complet et test téléphone encore attendus.
+- TDD RED prouvé par workflow `37424970512`.
+- Correctif final code/asset : SHA `43326ec5ba92d40b2378b0877775bce28d21b1b4`.
+- Workflow Android `37427270384` / run 320 : GREEN complet (régressions, protocole Hall, build local-only, scan secret, APK, AAB, vérification et packaging).
+- Artifact téléphone candidat : `SpaceFortressVs-1.4.0-release-files`, id `11395476858`, digest `sha256:b1f6640c65d4d90237dc477df72212dcad46b63678faca6270deb584d7436cc3`.
+- `publish-release` est resté SKIPPED; aucune Release publiée.
+- `src/main.cpp` revérifié au blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- Étape restante : validation téléphone Fab du délai 0,30 s, charge 2 s, blast/purge 3×, gros astéroïdes et son EMP.
 
 ## Hall local — invariants
 - Boss réel 1..200; Danger Boss HOME 1..9; ancien `danger=0` reste `DANGER INCONNU`.

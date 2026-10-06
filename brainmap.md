@@ -16,7 +16,7 @@
 - Téléphone 2026-10-06 : `SYNC OK`, `GLOBAL 1 + LOCAL 0`; chaîne globale validée.
 - Incident de livraison clos : ne jamais reprendre l’ancien artifact sans clé `11369888063`.
 
-## Mini-fix surcharge cinétique v2
+## Mini-fix surcharge cinétique v2 — CODE GREEN
 Flux commun CLASSIQUE + COOP :
 - second doigt 0–<0,30 s -> puissance normale ×1, aucun cercle irisé, relâchement court = tir historique ;
 - 0,30–<2,00 s -> surcharge x2 et cercle irisé ;
@@ -24,7 +24,12 @@ Flux commun CLASSIQUE + COOP :
 - relâchement armé -> purge des astéroïdes et vague visuelle sur 3,0 diamètres de vaisseau ;
 - purge conserve 100 % de poussière blanche ; blanc reste physiquement intangible ;
 - `kinetic_release_emp.b64` -> `prepare-assets.py` -> `kinetic_release.wav` EMP pour l’APK.
-- TDD RED : workflow `37424970512`; GREEN Android et test téléphone encore attendus.
+- TDD RED : workflow `37424970512`.
+- Code/asset final : `43326ec5ba92d40b2378b0877775bce28d21b1b4`.
+- GREEN Android : workflow `37427270384` (run 320), toutes étapes build-android réussies; `publish-release` SKIPPED.
+- Artifact candidat téléphone : `11395476858`, `SpaceFortressVs-1.4.0-release-files`, digest `sha256:b1f6640c65d4d90237dc477df72212dcad46b63678faca6270deb584d7436cc3`.
+- `src/main.cpp` : blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- Reste à valider physiquement : délai visuel 0,30 s, charge/READY à 2 s, blast/purge réel 3×, gros astéroïdes, son EMP.
 
 ## Protections
 - Normal field max reste 2,0 diamètres; seul le blast armé passe à 3,0.
