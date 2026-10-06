@@ -54,3 +54,9 @@ CLASSIQUE DUEL local :
 - Tirs : helper commun d'enveloppe de dispersion selon `nrj` + échantillon aléatoire symétrique ; CLASSIQUE `sfFireMain` et COOP `sfCoopFire`.
 - Boss : champ fixe 55 % autour du boss ; astéroïde entrant -> calcul masse/vitesse relative -> 55 % dissipé, résiduel sur santé boss -> destruction cinétique/poussière existante.
 - Pas de Danger sur le cinétique boss.
+
+
+## Implémentation active
+- `tactical_runtime.hpp` : `sfMainShotSpreadEnvelope/Radians/RandomUnit` + spread humain classique.
+- `campaign_runtime.hpp` : spread COOP aléatoire partagé, recharge passive demi-vie 21 s, champ boss fixe 55 %, collision astéroïde→boss et anneau visuel.
+- TDD RED run 340 (`37539108268`) confirmé avant code.

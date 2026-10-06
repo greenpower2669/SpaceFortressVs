@@ -20,6 +20,7 @@ struct SfCoopState {
     int boss=0,encounter=0,volley=0,revives=3,phaseNumber=0;
     float time=0,phaseTime=0,health=900,attack=1,warning=0,hit=0;
     float chargeTime=0,chargeCooldown=4.5f,chargeOffsetX=0,chargeOffsetY=0;
+    float bossKineticFlash=0;
     tupl position;
     SfMotionSample motion;
     std::array<SfCoopControl,2> controls{};
@@ -267,9 +268,15 @@ static float sfCoopFireDelay(float heat)
 }
 static float sfCoopShotSpread(float heat,unsigned sequence,int owner)
 {
-    const float spent=sfShipHeat(heat)/SF_MAX_SHIP_HEAT;
-    const float envelope=.10f*std::pow(spent,1.25f);
-    return std::sin(sequence*2.39996323f+owner*1.173f)*envelope;
+    (void)sequence;(void)owner;
+    return sfMainShotSpreadRadians(heat,sfMainShotRandomUnit());
+}
+static constexpr float SF_COOP_PASSIVE_RECHARGE_HALF_LIFE_SECONDS=21.0f;
+static float sfCoopPassiveRechargeHeat(float heat,float dt)
+{
+    heat=sfShipHeat(heat);
+    if(dt<=0) return heat;
+    return sfShipHeat(heat*std::exp(-std::log(2.0f)*dt/SF_COOP_PASSIVE_RECHARGE_HALF_LIFE_SECONDS));
 }
 static bool sfCoopFire(int owner)
 {
@@ -363,7 +370,7 @@ static void sfCoopMovePlayers(float dt)
         ship->y=std::clamp(ship->y+control.velocity.vy*dt,sfArenaH*.105f+halfHeight,sfArenaH*.895f-halfHeight);
         ship->vx=ship->vy=0; ship->startup();
         sfObserved[owner].observe(tupl(ship->x,ship->y),dt);
-        ship->nrj=sfShipHeat(ship->nrj*std::pow(.997f,60*dt));
+        ship->nrj=sfCoopPassiveRechargeHeat(ship->nrj,dt);
         const float collision=sfCoopBossRadius()*.72f+radius;
         const float distance=vlong(ship->x-sfCoop.position.x,ship->y-sfCoop.position.y);
         if (distance<collision) {
@@ -521,9 +528,43 @@ static void sfCoopBonus(float dt)
     }
 }
 
+static constexpr float SF_COOP_BOSS_KINETIC_DISSIPATION=.55f;
+static constexpr float SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE=1.08f;
+static constexpr float SF_COOP_BOSS_ASTEROID_BASE_DAMAGE=80.0f;
+
+static bool sfCoopBossKineticAsteroidImpact(sprite *rock)
+{
+    if(!rock || rock->pv<=0 || sfCoop.phase!=SfCoopPhase::Combat || sfCoop.health<=0) return false;
+    const float dx=rock->x-sfCoop.position.x,dy=rock->y-sfCoop.position.y;
+    const float distance=std::max(1.0f,vlong(dx,dy));
+    const float fieldRadius=sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE;
+    const float rockRadius=std::max(rock->w,rock->h)*.5f;
+    if(distance>fieldRadius+rockRadius) return false;
+    const auto raw=sfResolveKinetic(SF_COOP_BOSS_ASTEROID_BASE_DAMAGE,
+        sfKineticMassFactorFromArea(std::max(0.0f,rock->w*rock->h),sfArenaH),
+        {rock->vx*60.0f,rock->vy*60.0f},
+        {sfCoop.motion.velocity.vx,sfCoop.motion.velocity.vy},
+        dx/distance,dy/distance,sfKineticReferenceSpeed(sfArenaW));
+    if(raw.rawDamage<=.001f) return false;
+    const float residual=raw.rawDamage*(1.0f-SF_COOP_BOSS_KINETIC_DISSIPATION);
+    sfCoop.health=std::max(0.0f,sfCoop.health-residual);
+    sfCoop.hit=std::max(sfCoop.hit,.10f);
+    sfCoop.bossKineticFlash=.34f;
+    sfFieldCollisionSound=true;
+    sfKineticDestroyAsteroid(rock,SfKineticDustCause::KineticField);
+    SDL_Log("BOSS_KINETIC_FIELD raw=%.3f dissipated=%.3f residual=%.3f hp=%.3f",
+        raw.rawDamage,raw.rawDamage*SF_COOP_BOSS_KINETIC_DISSIPATION,residual,sfCoop.health);
+    return true;
+}
+static void sfCoopBossKineticField()
+{
+    for(auto *rock:sa1) sfCoopBossKineticAsteroidImpact(rock);
+}
+
 static void sfCoopResources(float dt)
 {
     sfLegacyFieldFrame(dt,sfCoopAsteroidHurt);
+    sfCoopBossKineticField();
 }
 
 static void sfCoopWin()
@@ -615,6 +656,7 @@ static void sfCoopTick(float dt)
     if (sfCoop.phase!=SfCoopPhase::Combat) return;
     sfKineticAdvanceSurges(dt);sfKineticAudioUpdate();
     sfCoop.time+=dt;sfCoop.hit=std::max(0.0f,sfCoop.hit-dt);
+    sfCoop.bossKineticFlash=std::max(0.0f,sfCoop.bossKineticFlash-dt);
     const auto &boss=sfCoopProfile();
     sfCoopUpdateCharge(dt);
     sfCoop.position=sfCoopBossPosition(sfCoop.time);
@@ -1010,6 +1052,16 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
         const int radius=int(sfCoopBossRadius()*(1.1f+.14f*sfCoop.warning));
         sfUiCircle(renderer,int(sfCoop.position.x),int(sfCoop.position.y),radius,255,120,90);
         sfUiCircle(renderer,int(sfCoop.position.x),int(sfCoop.position.y),radius+2,255,170,100);
+    }
+    if(death==0) {
+        const int fieldRadius=int(sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE);
+        sfUiCircle(renderer,int(sfCoop.position.x),int(sfCoop.position.y),fieldRadius,145,95,215);
+        if(sfCoop.bossKineticFlash>0) {
+            const float pulse=sfCoop.bossKineticFlash/.34f;
+            const int extra=int((1.0f-pulse)*sfCoopBossRadius()*.16f);
+            sfUiCircle(renderer,int(sfCoop.position.x),int(sfCoop.position.y),fieldRadius+extra,255,120,245);
+            sfUiCircle(renderer,int(sfCoop.position.x),int(sfCoop.position.y),fieldRadius+extra+2,220,175,255);
+        }
     }
     sfDrawEncounterBoss(renderer,textures.bosses,sfCoop.encounter,sfCoop.position,sfCoopBossRadius(),
                sfCoop.time+sfCoop.phaseTime,sfCoop.hit,death);

@@ -141,6 +141,20 @@ static float sfMainShotSpeed(float heat)
     return (60-sfShipHeat(heat+1))*.4f*60*sfArenaW/780.0f;
 }
 
+static float sfMainShotSpreadEnvelope(float heat)
+{
+    const float spent=sfShipHeat(heat)/SF_MAX_SHIP_HEAT;
+    return .018f+.162f*std::pow(spent,1.25f);
+}
+static float sfMainShotSpreadRadians(float heat,float randomUnit)
+{
+    return std::clamp(randomUnit,-1.0f,1.0f)*sfMainShotSpreadEnvelope(heat);
+}
+static float sfMainShotRandomUnit()
+{
+    return (float(std::rand()%20001)-10000.0f)/10000.0f;
+}
+
 static float sfAsteroidRisk(tupl position, tuplv velocity, float radius)
 {
     float risk = 0;
@@ -260,25 +274,23 @@ static bool sfFireMain(int owner,const tupl *target=nullptr)
     sprite *ship=owner==0 ? Spritej1 : Spritej2;
     sprite *shot=sfMakeShot(owner);
     if (!shot) return false;
+    const float heatBefore=sfShipHeat(ship->nrj);
+    const float speed=sfMainShotSpeed(heatBefore);
     const bool missile=sfSpendMainEnergy(ship);
     shot->x=ship->x; shot->y=ship->y;
-    shot->vx=0;
-    shot->vy=(60-ship->nrj)*(owner==0 ? .4f : -.4f);
-    shot->shotImpactHeat=std::clamp(shot->vy*shot->vy*.005f,0.0f,3.0f);
-    shot->shotVelocityX=shot->vx*60*sfArenaW/780;
-    shot->shotVelocityY=shot->vy*60*sfArenaW/780;
-    if (target) {
-        const float distance=std::max(1.0f,vlong(target->x-ship->x,target->y-ship->y));
-        const float speed=std::abs(shot->shotVelocityY);
-        shot->shotVelocityX=(target->x-ship->x)/distance*speed;
-        shot->shotVelocityY=(target->y-ship->y)/distance*speed;
-    }
+    float angle=(owner==0 ? 1.0f : -1.0f)*float(PI)*.5f;
+    if (target) angle=std::atan2(target->y-ship->y,target->x-ship->x);
+    if (!missile && !target)
+        angle+=sfMainShotSpreadRadians(heatBefore,sfMainShotRandomUnit());
+    shot->shotVelocityX=std::cos(angle)*speed;
+    shot->shotVelocityY=std::sin(angle)*speed;
+    const float legacyAxisSpeed=speed*780.0f/(60.0f*std::max(1.0f,sfArenaW));
+    shot->shotImpactHeat=std::clamp(legacyAxisSpeed*legacyAxisSpeed*.005f,0.0f,3.0f);
     if (missile) {
         shot->name="miss";
         shot->shotVelocityX=0;
         shot->shotVelocityY=(owner==0 ? 1 : -1)*sfArenaW*.65f;
-        shot->vy=shot->shotVelocityY*sfFrameDt/std::max(.05f,k0);
-        shot->w=shot->sw*.5f; shot->vx=0; tirjz=true;
+        shot->w=shot->sw*.5f; tirjz=true;
     } else (owner==0 ? tirj1z : tirj2z)=true;
     shot->vx=shot->shotVelocityX*sfFrameDt/std::max(.05f,k0);
     shot->vy=shot->shotVelocityY*sfFrameDt/std::max(.05f,k0);

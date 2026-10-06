@@ -30,8 +30,8 @@
 - [x] Audit : dispersion COOP existe mais déterministe/faible et est masquée par la recharge passive trop rapide.
 - [x] Audit corrigé : recharge passive CLASSIQUE historique confirmée dans `sprite::update()`.
 - [x] Fab choisit un champ boss fixe moins puissant que joueurs ; lot fixe 55 %.
-- [ ] TDD RED pour dispersion, recharge lente COOP et impact astéroïde boss.
-- [ ] Implémentation minimale.
+- [x] TDD RED pour dispersion, recharge lente COOP et impact astéroïde boss : workflow `37539108268`.
+- [x] Implémentation minimale.
 - [ ] CI complète GREEN + APK test.
 - [ ] Validation téléphone Fab.
 - [ ] Aucun merge/release avant ordre explicite.
