@@ -129,3 +129,19 @@ Preuve code : TDD RED `afbd28da13d81409d083ef7cc1f8a93010ceaec0` / workflow `372
 La ligne d’artefact ci-dessus était une erreur de recopie documentaire et ne modifie ni le code ni la validation GREEN.
 
 Métadonnée CI correcte pour le workflow `37241618498` / SHA gameplay `8f2ee5ed61372f2647ae7284abdf9a0df7d8ebbf` : artefact `SpaceFortressVs-1.4.0-release-files`, id `11317688487`, digest `sha256:3571fc53e4a6cb2ce8c0c5793bcccae219eaa0905cf509efa541a9cd44789cf0`. Le job `build-android` `111551304971` est `SUCCESS` et `publish-release` est `SKIPPED`.
+
+## HALL GLOBAL — VALIDATION TÉLÉPHONE 2026-10-06
+
+Fab a testé l’APK configuré de l’artifact `11374640381`. Preuve téléphone : l’écran Hall affiche `SYNC OK` et `GLOBAL 1 + LOCAL 0`; l’entrée globale est récupérée et affichée. Le chemin runtime configuré est donc validé sur téléphone. Aucun secret n’est recopié dans les mémoires.
+
+## MINI-FIX SURCHARGE CINÉTIQUE V2 — 2026-10-06 — AUTORISÉ PAR FAB
+
+Fab demande un ajustement borné avant merge/release :
+- appui second doigt de 0 à moins de 0,30 s : comportement classique, aucun cercle irisé et puissance cinétique normale ×1 ; un relâchement court garde le tir historique ;
+- de 0,30 s à moins de 2,00 s : cercle irisé visible et dissipation de surcharge ×2 ;
+- à 2,00 s : état armé historique conservé, signal prêt et champ cinétique OFF jusqu’au relâchement ;
+- relâchement armé : purge réelle ET vague visuelle portées à 3,0 diamètres de vaisseau, afin d’englober aussi les gros astéroïdes ; le rendement blanc 100 % de la purge et l’intangibilité de la poussière blanche restent inchangés ;
+- le son de relâchement est ré-authored comme déflagration électromagnétique originale, empaquetée via un transport base64 validé au build ;
+- même logique partagée en CLASSIQUE et COOP/campagne ; aucun changement Hall, Danger, campagne ou `src/main.cpp`.
+
+TDD : RED prouvé par le workflow `37424970512` sur l’absence attendue du nouveau seuil `SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS`. GREEN complet Android + APK/AAB et validation téléphone restent obligatoires avant merge/release.
