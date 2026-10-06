@@ -2,28 +2,28 @@
 
 ## Hall global sync v1
 - [x] Spec + plan TDD validés; branche dédiée.
-- [x] Task 1 RED→GREEN ciblé : état/codec + stockage atomique.
-- [x] Task 2 RED→GREEN ciblé : UUID stable + réconciliation + payload.
-- [x] Task 3 RED→GREEN ciblé : ack/errors + pages/cursor + snapshot global/local.
-- [x] Task 4 hooks automatiques post-victoire/Hall + faux transport + anti-concurrence.
-- [x] Task 5 client HTTPS Java + clé BuildConfig + tests protocole.
-- [x] Task 6 pont JNI Android, transport natif ↔ Java.
-- [x] Task 7 Hall fusionné global + local, statuts sync, aucun réseau au rendu.
+- [x] Tasks 1–7 : stockage, UUID/payload, pagination/cache, hooks, HTTPS Java, JNI, Hall fusionné.
 - [x] Task 8 : CI complète GREEN sur workflow `37372279557`, tentative 2; artifact configuré `11374640381`; secret absent de Git; `src/main.cpp` protégé.
+- [x] Incident de livraison `SYNC NON CONFIGUREE` expliqué : ancien APK sans clé remis par erreur.
+- [x] Fab a testé le bon APK configuré : `SYNC OK`, `GLOBAL 1 + LOCAL 0`.
 
-## Incident livraison 2026-10-06
-- [x] Cause `SYNC NON CONFIGUREE` identifiée : APK sans clé de l’artifact précédent livré par erreur au téléphone.
-- [x] Bon APK récupéré depuis artifact `11374640381`, SHA-256 `0ca76a074b8148578b95a5b10a1fd32fad41d1c27cb46454ff2cd15d2133ab87`.
-- [ ] Fab installe ce bon APK et refait une vraie victoire.
-- [ ] Vérifier score local conservé + POST accepté + pending acquitté.
-- [ ] Rouvrir Hall et vérifier GET `/sync`, global > 0 si données serveur compatibles, absence de doublon.
-- [ ] Vérifier que la progression personnelle reste inchangée.
+## Mini-fix surcharge cinétique v2 — pré-release
+- [x] Design borné validé par Fab : délai visuel/x2 0,30 s, charge armée 2,00 s, blast/purge 3,0×, son EMP.
+- [x] TDD RED : workflow `37424970512` échoue sur la constante de délai absente, comme attendu.
+- [x] Implémenter seuil 0,30 s sans changer le champ normal 2,0×.
+- [x] Porter uniquement le blast/purge armé à 3,0×.
+- [x] Ajouter le transport du nouveau son EMP et son décodage contrôlé dans l’asset Android `kinetic_release.wav`.
+- [x] Garder la même logique CLASSIQUE + COOP et supprimer le sentinel RED temporaire.
+- [ ] Obtenir une CI Android complète GREEN sur le HEAD final, avec APK+AAB, packaging et scan secret.
+- [ ] Vérifier `src/main.cpp` toujours au blob protégé.
+- [ ] Télécharger l’APK configuré du workflow final et vérifier son SHA-256.
+- [ ] Validation téléphone Fab : appui <0,30 s sans irisation, charge 0,30–2 s, READY à 2 s, blast 3× + son EMP, gros astéroïdes purgés.
+- [ ] Après validation seulement : merge `main` puis Release sur ordre explicite de Fab.
 
-## Validation téléphone encore ouverte
-- [ ] Hall Danger 1★/9★ sur nouvelles victoires.
-- [ ] Sync réelle serveur avec APK configuré.
-- [ ] Effets poussières cinétiques.
+## Autres validations téléphone encore ouvertes
+- [ ] Hall Danger 1★/9★ sur nouvelles victoires si Fab veut les recontrôler.
+- [ ] Effets poussières cinétiques hors mini-fix v2.
 
 ## Invariants
-- [x] `src/main.cpp` protégé.
+- [x] `src/main.cpp` protégé jusque-là.
 - [x] Aucun merge main / aucune release.
