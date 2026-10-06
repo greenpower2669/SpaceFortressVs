@@ -47,6 +47,11 @@ assert 'sfKineticPurgeAsteroids(owner)' in coop
 assert 'sfNormalizeClassicShipScale' not in tactical
 assert 'sfKineticSurgeVisible' in tactical
 
+# Leaving local duel while a second finger is held must cancel only the local-duel
+# bridge state; it must not leak a charged shield into the next mode.
+assert 'sfKineticSurgeCancel(owner)' in duel
+assert 'sfKineticAudioCancel(owner)' in duel
+
 # The charged state remains deliberately vulnerable until release.
 assert 'sfKineticSurgePower(owner)' in field
 assert 'powerMultiplier=std::clamp(powerMultiplier,0.0f,SF_KINETIC_SURGE_POWER_MULTIPLIER)' in kinetic
@@ -71,6 +76,10 @@ assert 'sfKineticEnergyFlashFactor' in visual
 assert 'sfDrawKineticEnergyWarningOverlay' in visual
 assert 'sfDrawKineticEnergyWarningOverlay(renderer)' in classic_patch
 assert '#include <kinetic_energy_visuals.hpp>' in th2
+# Android runtime waves must capture the true ship reserve, not re-infer it from
+# layer strength (which can be affected by surge/layer choice).
+assert '#define sfKineticTriggerWave(owner,radius,strength)' in th2
+assert 'sfKineticEnergyFraction' in th2
 
 # Danger is a start-screen setting, defaults to ROCK N ROLL / x10 internally,
 # and non-kinetic hostile damage uses the single canonical helper.
