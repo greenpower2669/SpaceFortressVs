@@ -1,10 +1,11 @@
 # brain.md — SpaceFortressVs
 
 ## État canonique vivant
-- Base livrée : v1.4.0 sur `main`; aucun merge/release sans validation Fab.
+- Base livrée : v1.4.0 sur `main`; Fab a autorisé le 2026-10-06 le merge et la Release du lot validé téléphone.
 - Branche réseau/correctifs pré-release : `feature/hall-of-fame-global-sync-v1`, base `778967f76fd5fa8184e60bfdc238482de6fe8950`.
 - Hall Danger Boss réel validé : `47ada1e859e38ec5f09ae5104a0575eb25f08544`, workflow `37332234356` GREEN.
 - `src/main.cpp` historique reste strictement protégé.
+- Préparation Release : `1.4.1` / `versionCode 11`; aucun changement gameplay supplémentaire.
 
 ## Hall global sync v1
 - Tasks 1–3 : état sync durable, UUID/payload, ack/pages/cache/snapshot global+local.
@@ -21,7 +22,7 @@
 - Bon artifact configuré : `11374640381`; APK SHA-256 `0ca76a074b8148578b95a5b10a1fd32fad41d1c27cb46454ff2cd15d2133ab87`.
 - Le re-test du bon APK a donné `SYNC OK`; aucun patch réseau n’était requis.
 
-## Mini-fix surcharge cinétique v2 — CODE GREEN / téléphone à valider
+## Mini-fix surcharge cinétique v2 — VALIDÉ TÉLÉPHONE / RELEASE AUTORISÉE
 - Appui second doigt <0,30 s : pas de cercle irisé, puissance normale ×1; relâchement court reste un tir classique.
 - 0,30–2,00 s : surcharge visible ×2; à 2 s état armé et vulnérable jusqu’au relâchement.
 - Relâchement armé : purge + vague visuelle = diamètre 3,0× vaisseau; poussière blanche de purge reste au canon 100 %.
@@ -29,11 +30,10 @@
 - CLASSIQUE + COOP utilisent le même état de surcharge.
 - TDD RED prouvé par workflow `37424970512`.
 - Correctif final code/asset : SHA `43326ec5ba92d40b2378b0877775bce28d21b1b4`.
-- Workflow Android `37427270384` / run 320 : GREEN complet (régressions, protocole Hall, build local-only, scan secret, APK, AAB, vérification et packaging).
-- Artifact téléphone candidat : `SpaceFortressVs-1.4.0-release-files`, id `11395476858`, digest `sha256:b1f6640c65d4d90237dc477df72212dcad46b63678faca6270deb584d7436cc3`.
-- `publish-release` est resté SKIPPED; aucune Release publiée.
-- `src/main.cpp` revérifié au blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
-- Étape restante : validation téléphone Fab du délai 0,30 s, charge 2 s, blast/purge 3×, gros astéroïdes et son EMP.
+- Workflow Android `37427270384` / run 320 : GREEN complet.
+- HEAD documentaire `48eeb687d8cb60c91b28e70587b00fae3d8fe1ab` revérifié par workflow `37476092719` / run 321 : GREEN.
+- Fab a validé physiquement le lot puis a donné l’ordre explicite : `release et merge main`.
+- `src/main.cpp` reste au blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
 
 ## Hall local — invariants
 - Boss réel 1..200; Danger Boss HOME 1..9; ancien `danger=0` reste `DANGER INCONNU`.
@@ -43,4 +43,4 @@
 ## Invariants permanents
 - Progression campagne jamais modifiée par le global.
 - Campagne, aide/tuto et Danger 9 restent protégés; le seul changement cinétique autorisé est le mini-fix v2 ci-dessus.
-- Validation téléphone Fab avant merge/release.
+- L’autorisation Fab du 2026-10-06 lève explicitement le verrou merge/release pour ce lot validé, après CI fraîche de la préparation 1.4.1.

@@ -145,3 +145,15 @@ Fab demande un ajustement borné avant merge/release :
 - même logique partagée en CLASSIQUE et COOP/campagne ; aucun changement Hall, Danger, campagne ou `src/main.cpp`.
 
 TDD : RED prouvé par le workflow `37424970512` sur l’absence attendue du nouveau seuil `SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS`. GREEN complet Android + APK/AAB et validation téléphone restent obligatoires avant merge/release.
+
+## AUTORISATION FINALE FAB — 2026-10-06 — MERGE + RELEASE
+
+Après validation téléphone du mini-fix surcharge cinétique v2, Fab donne explicitement l’ordre : `Super, release et merge main`.
+
+Cette autorisation lève le verrou merge/release pour le lot courant uniquement, sous les conditions suivantes :
+- incrémenter la publication vers `1.4.1` / `versionCode 11`, car `v1.4.0` existe déjà et ne doit jamais être écrasée ;
+- ne modifier aucun gameplay supplémentaire ;
+- conserver `src/main.cpp` byte-for-byte inchangé ;
+- exiger une CI fraîche GREEN du commit de préparation 1.4.1 ;
+- merger la PR #5 vers `main` uniquement après cette preuve ;
+- publier ensuite la Release `v1.4.1` avec uniquement les artefacts vérifiés du commit de publication.

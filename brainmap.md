@@ -5,6 +5,8 @@
 - Spec Hall : `docs/superpowers/specs/2026-10-05-hall-of-fame-global-sync-design.md`.
 - Plan Hall : `docs/superpowers/plans/2026-10-05-hall-of-fame-global-sync.md`.
 - `src/main.cpp` reste lecture seule.
+- Fab a validé le lot sur téléphone et a autorisé explicitement le 2026-10-06 : `release et merge main`.
+- Préparation Release : `1.4.1` / `versionCode 11`.
 
 ## Hall global — validé téléphone
 - Victoire -> fame locale durable -> reconcile -> UUID stable -> pending -> upload auto si transport disponible.
@@ -16,7 +18,7 @@
 - Téléphone 2026-10-06 : `SYNC OK`, `GLOBAL 1 + LOCAL 0`; chaîne globale validée.
 - Incident de livraison clos : ne jamais reprendre l’ancien artifact sans clé `11369888063`.
 
-## Mini-fix surcharge cinétique v2 — CODE GREEN
+## Mini-fix surcharge cinétique v2 — VALIDÉ / AUTORISÉ RELEASE
 Flux commun CLASSIQUE + COOP :
 - second doigt 0–<0,30 s -> puissance normale ×1, aucun cercle irisé, relâchement court = tir historique ;
 - 0,30–<2,00 s -> surcharge x2 et cercle irisé ;
@@ -26,13 +28,13 @@ Flux commun CLASSIQUE + COOP :
 - `kinetic_release_emp.b64` -> `prepare-assets.py` -> `kinetic_release.wav` EMP pour l’APK.
 - TDD RED : workflow `37424970512`.
 - Code/asset final : `43326ec5ba92d40b2378b0877775bce28d21b1b4`.
-- GREEN Android : workflow `37427270384` (run 320), toutes étapes build-android réussies; `publish-release` SKIPPED.
-- Artifact candidat téléphone : `11395476858`, `SpaceFortressVs-1.4.0-release-files`, digest `sha256:b1f6640c65d4d90237dc477df72212dcad46b63678faca6270deb584d7436cc3`.
+- GREEN Android initial : workflow `37427270384` / run 320.
+- GREEN frais du HEAD documentaire : workflow `37476092719` / run 321 au SHA `48eeb687d8cb60c91b28e70587b00fae3d8fe1ab`.
+- Téléphone : validation Fab acquise ; merge/release explicitement autorisés.
 - `src/main.cpp` : blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
-- Reste à valider physiquement : délai visuel 0,30 s, charge/READY à 2 s, blast/purge réel 3×, gros astéroïdes, son EMP.
 
 ## Protections
 - Normal field max reste 2,0 diamètres; seul le blast armé passe à 3,0.
 - Campagne, Hall, Danger Boss, poussières hors purge et progression restent inchangés.
 - Vraie clé absente de Git/tests/logs; aucune clé admin dans l’APK.
-- Aucun merge `main`, aucune Release avant validation Fab.
+- La Release 1.4.1 ne doit partir qu’après une CI fraîche du commit de préparation version/notes, puis merge vers `main`.
