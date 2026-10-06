@@ -1,38 +1,40 @@
 # brain.md — SpaceFortressVs
 
 ## État canonique vivant
-- Version publiée : `v1.4.1`.
-- Release commit/tag : `450423c41c4cef6c348f49af698767016a0528fd`.
-- `main` a été aligné sur ce commit exact après publication.
-- Release publique vérifiée : APK + AAB + build.json + SHA256SUMS présents.
+- Dernière Release publique : `v1.4.1`, commit/tag `450423c41c4cef6c348f49af698767016a0528fd`.
+- `main` de départ mission v1.4.2 : `21b1ff3592ce6f531da58fad6c102049a313325d`.
+- Branche active : `feature/kinetic-energy-fatigue-duel-v142`.
+- PR active : #6 (draft pendant développement).
 - `src/main.cpp` historique reste strictement protégé, blob `835059a0ecfe0f74708068b3259cad5db1cdb579`.
 
-## Hall global sync v1 — livré
-- Sync locale-first durable, UUID/payload stable, ack/pages/cache/snapshot global+local.
-- HTTPS Java + JNI Android, GET `/sync` public, POST avec clé BuildConfig injectée par `SPACEFORTRESS_HOF_API_KEY`.
-- Clé jeu jamais dans Git; aucune clé admin dans l'APK.
-- Validation téléphone : `SYNC OK` / `GLOBAL 1 + LOCAL 0`.
-- Incident `SYNC NON CONFIGUREE` clos : ancien artifact sans clé livré par erreur; le bon artifact configuré a validé la chaîne complète.
+## Hall global — livré / hors périmètre
+- Hall global v1 fonctionne et a été validé téléphone : `SYNC OK`, `GLOBAL 1 + LOCAL 0`.
+- Secret jeu injecté au build via `SPACEFORTRESS_HOF_API_KEY`; jamais dans Git/logs/mémoires.
+- Aucun changement Hall autorisé dans le lot v1.4.2.
 
-## Mini-fix surcharge cinétique v2 — livré
-- Appui second doigt <0,30 s : pas de cercle irisé, puissance normale ×1, relâchement court = tir classique.
+## Surcharge cinétique v2 — base livrée v1.4.1
+- <0,30 s : comportement classique, sans cercle irisé.
 - 0,30–2,00 s : surcharge visible ×2.
-- À 2 s : état armé, champ cinétique OFF jusqu’au relâchement.
-- Relâchement armé : purge + vague visuelle sur 3,0 diamètres de vaisseau, avec son EMP original.
-- CLASSIQUE + COOP partagent la même logique.
-- TDD RED : `37424970512`.
-- Code/asset final : `43326ec5ba92d40b2378b0877775bce28d21b1b4`.
-- CI de préparation 1.4.1 : `37488788585` GREEN.
-- CI sur `main` après merge : `37489724746` GREEN.
-- CI de publication : `37490579073` GREEN, job `publish-release` SUCCESS.
+- À 2 s : armé, champ cinétique OFF jusqu’au relâchement.
+- Relâchement armé : blast/purge 3,0× + son EMP.
 
-## Release 1.4.1
-- APK SHA-256 : `4d4f10f324a0b9929397b14f79fb36f4faae9b48a8a027f9ce4fdc864c014da8`.
-- AAB SHA-256 : `5e20d2a5bae408237b6a25a06e87623809b4258f48392f745100dd77f34eb087`.
-- Version Android : `1.4.1`, versionCode `11`.
-- Signature APK différente de la référence v1.3.1 : ne pas désinstaller/effacer les données pour forcer une mise à jour de test.
+## Mission active — fatigue énergie + duel classique — cible v1.4.2
+- Fab demande une absorption cinétique plus faible quand la réserve baisse : `effectiveEnergy = pow(energyFraction, 1.20)`.
+- `nrj=0` = plein ; `nrj=50` = vide. Ratios visés : 50 % ≈ 43,5 %, 25 % ≈ 18,9 %, 10 % ≈ 6,3 %, 0 % = 0 % de l’efficacité nominale.
+- La surcharge ×2 s’applique après la courbe énergie ; à 2 s l’état armé reste à puissance 0 jusqu’au relâchement.
+- Vague visuelle seulement : durée ≈0,27 s pleine énergie, vers ≈0,50 s réserve vide ; collision/impact physique inchangé.
+- Vagues deviennent plus visibles et chaudes quand l’énergie baisse ; sous 10 % : rouge lumineux clignotant ~4,5 Hz, sans flash HUD/écran.
+- CLASSIQUE DUEL local : le premier doigt reste mouvement historique ; le second doigt de chaque moitié pilote le même état de surcharge partagé. Les deux joueurs sont indépendants.
+- DUEL IA conserve son chemin remaster propriétaire owner 1 ; COOP conserve ses chemins existants.
+- Android : routage du duel local dans la copie générée via `classic_duel_surge.hpp` + patch étroit ; `src/main.cpp` reste intact.
+- Overlay visuel énergie via `kinetic_energy_visuals.hpp`, dessiné après le rendu cinétique existant ; purement graphique.
 
-## Invariants permanents
-- Progression campagne jamais modifiée par le global.
-- Campagne 200, aide/tuto, Danger 9 et poussières hors périmètre restent protégés.
-- Toute prochaine évolution repart de `main` post-v1.4.1 avec validation Fab avant nouvelle Release.
+## TDD / preuves
+- RED initial : workflow `37517885303` sur les attentes de duel classique avant implémentation (échec attendu à `sfKineticSurgePress(0)`).
+- Branche/code en cours : tests énergie sévère, durée vague, duel deux owners et warning visuel ajoutés.
+- GREEN complet Android + APK/AAB + secret hygiene requis avant merge/release.
+
+## Release cible
+- Cible : `v1.4.2`, `versionCode 12`, uniquement après CI fraîche GREEN.
+- Fab a demandé une Release directe une fois le lot entièrement GREEN.
+- Ne jamais écraser v1.4.1 ; ne pas publier avant vérification `src/main.cpp` + artefacts + SHA256SUMS.

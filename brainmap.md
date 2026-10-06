@@ -1,34 +1,50 @@
 # brainmap.md — SpaceFortressVs
 
 ## Reprise rapide
-- Canon actuel : `main` après Release `v1.4.1`.
-- Commit Release : `450423c41c4cef6c348f49af698767016a0528fd`.
-- `src/main.cpp` lecture seule, blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- Dernière Release : `v1.4.1`.
+- Base mission : `main` `21b1ff3592ce6f531da58fad6c102049a313325d`.
+- Branche : `feature/kinetic-energy-fatigue-duel-v142`.
+- PR #6 draft.
+- `src/main.cpp` lecture seule, blob `835059a0ecfe0f74708068b3259cad5db1cdb579`.
 
-## Hall global — livré et validé
-- Victoire -> Hall local durable -> reconcile -> UUID stable -> pending -> upload auto.
-- Upload 201/200 -> ack + serverId durable; erreurs -> pending conservé.
-- Ouverture Hall -> retry pending + pagination `/sync` depuis cursor durable.
-- Hall -> snapshot global cache + local, dédup serverId/submissionId.
-- Téléphone : `SYNC OK`, `GLOBAL 1 + LOCAL 0`.
-- Secret injecté uniquement au build via `SPACEFORTRESS_HOF_API_KEY`; jamais dans Git.
+## Hall global — hors périmètre
+- Validé téléphone : `SYNC OK`, `GLOBAL 1 + LOCAL 0`.
+- Secret build seulement via `SPACEFORTRESS_HOF_API_KEY`.
+- Aucun changement Hall dans v1.4.2.
 
-## Surcharge cinétique v2 — livrée
-- 0–<0,30 s : comportement classique, aucun cercle irisé.
-- 0,30–<2,00 s : surcharge ×2 visible.
-- >=2,00 s : armé, champ OFF jusqu’au relâchement.
-- Relâchement armé : blast/purge 3,0× + son EMP.
-- Champ normal reste maximum 2,0 diamètres.
-- CLASSIQUE + COOP utilisent le même état.
+## Cinétique v1.4.2 — flux cible
+Énergie :
+- `energyFraction = 1 - nrj/50` ;
+- `effectiveEnergy = pow(energyFraction,1.20)` ;
+- dissipation = maximum × effectiveEnergy × surgePower ;
+- 10 % d’énergie ≈ 6,3 % d’efficacité nominale ; surcharge ×2 reste faible ; charged 2 s => puissance 0.
 
-## Preuves release
-- Préparation 1.4.1 : workflow `37488788585` GREEN.
-- `main` après merge : workflow `37489724746` GREEN.
-- Publication : workflow `37490579073` GREEN, `publish-release` SUCCESS.
-- APK : `4d4f10f324a0b9929397b14f79fb36f4faae9b48a8a027f9ce4fdc864c014da8`.
-- AAB : `5e20d2a5bae408237b6a25a06e87623809b4258f48392f745100dd77f34eb087`.
+Vague :
+- pleine réserve : durée ~0,27 s, couleur équipe propre ;
+- réserve en baisse : durée visuelle progresse vers ~0,50 s, couleur équipe→orange→rouge, alpha augmente ;
+- <10 % : rouge + clignotement ~4,5 Hz ;
+- impact/collision physique ne ralentit jamais.
 
-## Protection de reprise
-- Ne jamais écraser `v1.4.1` ni ses assets.
-- Toute nouvelle mission doit partir du `main` courant et créer une branche dédiée.
-- Aucun changement Hall/campagne/cinétique hors ordre explicite Fab.
+CLASSIQUE DUEL local :
+- premier doigt de chaque joueur = mouvement historique ;
+- second doigt même moitié = `sfKineticSurgePress(owner)` ;
+- <0,30 s = tir normal ; 0,30–2 s = irisé ×2 ; >=2 s = ready/vulnérable ; release = EMP + purge 3× ;
+- owners 0/1 indépendants ;
+- interception Android générée via `sfClassicDuelSurgeHandleEvent`, sans modifier `main.cpp`.
+
+## Fichiers v1.4.2
+- `src/kinetic_shield.hpp` : courbe énergie, énergie capturée par vague, durée visuelle.
+- `src/kinetic_energy_visuals.hpp` : couleur/alpha/flash et overlay graphique.
+- `src/classic_duel_surge.hpp` : second doigt duel local partagé avec le moteur de surcharge.
+- `src/th2.h` : branchement des deux headers.
+- `scripts/patch-classic-danger.cmake` : routage du filtre d’événement + overlay sur copie Android générée.
+- Tests : `tests/kinetic_regressions.cpp`, `tests/test_kinetic_surge_integration.py`.
+
+## TDD
+- RED : workflow `37517885303`, attente duel owner 0 absente avant implémentation.
+- GREEN complet encore requis avant préparation version 1.4.2, merge et publication.
+
+## Protections
+- Champ normal max 2,0 diamètres ; blast armé 3,0.
+- Hall, Danger 9, campagne 200, poussières et progression hors périmètre.
+- Publication v1.4.2 seulement après CI fraîche GREEN et revalidation du blob historique.
