@@ -23,10 +23,12 @@ assert 'sfKineticPurgeAsteroids' in field
 assert 'SF_KINETIC_SURGE_BLAST_DIAMETER*.5f' in field
 assert 'sfKineticTriggerWave(owner,SF_KINETIC_SURGE_BLAST_DIAMETER*.5f,1.0f)' in field
 
-# The same shared surge state drives classic and coop/campaign input paths.
-assert 'sfKineticSurgePress(1)' in classic
-assert 'sfKineticSurgeRelease(1)' in classic
-assert 'sfKineticPurgeAsteroids(1)' in classic
+# The same shared surge state drives classic duel and coop/campaign input paths.
+# Both classic duel owners must be wired independently to the shared 0.30/2.00 s state.
+for owner in ('0','1'):
+    assert f'sfKineticSurgePress({owner})' in classic
+    assert f'sfKineticSurgeRelease({owner})' in classic
+    assert f'sfKineticPurgeAsteroids({owner})' in classic
 assert 'sfKineticSurgePress(owner)' in coop
 assert 'sfKineticSurgeRelease(owner)' in coop
 assert 'sfKineticPurgeAsteroids(owner)' in coop
@@ -46,6 +48,13 @@ assert 'sfKineticRainbowColor' in tactical
 assert (root/'assets/sounds/kinetic_release_emp.b64').exists()
 assert 'kinetic_release_emp.b64' in prepare
 assert "EMP_RELEASE_SHA256" in prepare
+
+# Low energy must be visible as a kinetic warning without changing collision timing.
+assert 'sfKineticEnergyWaveColor' in tactical
+assert 'sfKineticEnergyFlashFactor' in tactical
+assert 'SF_KINETIC_LOW_ENERGY_WARNING_FRACTION' in kinetic
+assert 'SF_KINETIC_LOW_ENERGY_FLASH_HZ' in kinetic
+assert 'sfKineticWaveEnergyFraction' in tactical
 
 # Danger is a start-screen setting, defaults to ROCK N ROLL / x10 internally,
 # and non-kinetic hostile damage uses the single canonical helper.
@@ -72,4 +81,4 @@ assert 'sfApplyHostileDanger' not in field
 for name in ('kinetic_charge.wav','kinetic_ready.wav','kinetic_release.wav'):
     assert (root/'assets'/'sounds'/name).exists(), name
 
-print('PASS: delayed classic-like short taps, 3x kinetic purge, EMP release audio and shared two-second charge contract')
+print('PASS: energy-fatigued kinetic field, dual-owner classic charge, warning visuals and shared two-second surge contract')
