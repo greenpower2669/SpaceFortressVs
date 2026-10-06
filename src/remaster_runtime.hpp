@@ -10,6 +10,14 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstdint>
+#include <vector>
+#include "scenic_mix.hpp"
+#include "kinetic_shield.hpp"
+
+static bool sfFireMain(int owner,const tupl *target);
+static void sfKineticAudioStartCharge(int owner);
+static void sfKineticAudioCancel(int owner);
+static void sfKineticAudioRelease(int owner);
 
 extern sprite *Spritej1;
 extern sprite *Spritej2;
@@ -30,6 +38,7 @@ static SDL_FingerID sfRmGear2Finger = 0;
 
 static bool sfRmTrackJ2 = false;
 static SDL_FingerID sfRmJ2Finger = 0;
+static SDL_FingerID sfRmKineticFinger = -1;
 static float sfRmJ2LastX = 0.0f;
 static float sfRmJ2LastY = 0.0f;
 static float sfRmJ2Vx = 0.0f;
@@ -59,6 +68,72 @@ struct SpaceFortressShootingStar {
 
 static SpaceFortressShootingStar sfRmStar =
     {false, 0.0f, 0.0f, 0.0f, 0.0f, 0, 700, 4200};
+
+struct SfRmScenicTextures {
+    SDL_Renderer *renderer=nullptr;
+    SDL_Texture *nebulae=nullptr;
+    SDL_Texture *planets=nullptr;
+};
+static std::vector<SfRmScenicTextures> sfRmScenicTextures;
+static SfScenicBag sfRmScenicBag{};
+static int sfRmCurrentScenicCandidate=0;
+
+static SfRmScenicTextures &sfRmScenicTexturesFor(SDL_Renderer *renderer)
+{
+    for(auto &entry:sfRmScenicTextures) if(entry.renderer==renderer) return entry;
+    SfRmScenicTextures entry{};entry.renderer=renderer;
+    entry.nebulae=IMG_LoadTexture(renderer,"resources/assets/pict/campaign/nebulae.png");
+    entry.planets=IMG_LoadTexture(renderer,"resources/assets/pict/campaign/planets.png");
+    sfRmScenicTextures.push_back(entry);return sfRmScenicTextures.back();
+}
+static SDL_Rect sfRmScenicAtlasRect(SDL_Texture *texture,int index,int columns,int rows)
+{
+    int w=1,h=1;SDL_QueryTexture(texture,nullptr,nullptr,&w,&h);
+    const int cw=std::max(1,w/columns),ch=std::max(1,h/rows);
+    return {index%columns*cw,index/columns*ch,cw,ch};
+}
+static Uint8 sfRmScenicTint(Uint8 base,std::uint8_t target,float amount)
+{
+    amount=std::clamp(amount,0.0f,1.0f);
+    return Uint8(std::clamp(int(base*(1-amount)+target*amount+.5f),0,255));
+}
+static void sfRmDrawClassicScenicMap(SDL_Renderer *renderer)
+{
+    if(!renderer || sfUiScreen!=SF_UI_GAME) return;
+    int width=0,height=0;SDL_GetRendererOutputSize(renderer,&width,&height);
+    if(width<=0 || height<=0) return;
+    auto &textures=sfRmScenicTexturesFor(renderer);
+    const auto scene=sfScenicProfileForCandidate(sfRmCurrentScenicCandidate,sfRmCurrentScenicCandidate*2);
+    const auto accent=scene.accent;
+    const float seconds=float(SDL_GetTicks64())*.001f;
+    if(textures.nebulae) {
+        auto source=sfRmScenicAtlasRect(textures.nebulae,scene.backdrop,3,2);
+        const float aspect=float(width)/height;
+        if(aspect<1) {const int wanted=int(source.h*aspect),travel=source.w-wanted;source.x+=travel/2;source.w=wanted;}
+        else {const int wanted=int(source.w/aspect),travel=source.h-wanted;source.y+=travel/2;source.h=wanted;}
+        SDL_Rect full{0,0,width,height};Uint8 r,g,b,a;SDL_BlendMode blend;
+        SDL_GetTextureColorMod(textures.nebulae,&r,&g,&b);SDL_GetTextureAlphaMod(textures.nebulae,&a);SDL_GetTextureBlendMode(textures.nebulae,&blend);
+        SDL_SetTextureBlendMode(textures.nebulae,SDL_BLENDMODE_BLEND);
+        SDL_SetTextureColorMod(textures.nebulae,sfRmScenicTint(175,accent.r,.12f),sfRmScenicTint(185,accent.g,.12f),sfRmScenicTint(210,accent.b,.12f));
+        SDL_SetTextureAlphaMod(textures.nebulae,205);SDL_RenderCopy(renderer,textures.nebulae,&source,&full);
+        SDL_SetTextureColorMod(textures.nebulae,r,g,b);SDL_SetTextureAlphaMod(textures.nebulae,a);SDL_SetTextureBlendMode(textures.nebulae,blend);
+    }
+    if(textures.planets) {
+        const auto source=sfRmScenicAtlasRect(textures.planets,sfScenicPlanetAtlasIndex(scene.planetSlot),11,5);
+        const int diameter=int(std::min(width,height)*(.26f+.018f*(scene.variant%4)));
+        const std::uint32_t hx=sfScenicHash(scene.starSeed^0xa531u),hy=sfScenicHash(scene.starSeed^0x927du);
+        const float baseX=.20f+.60f*((hx%1000u)/999.0f),baseY=.20f+.60f*((hy%1000u)/999.0f);
+        const float x=width*(baseX+.025f*std::sin(seconds*.017f+scene.candidate));
+        const float y=height*(baseY+.018f*std::sin(seconds*.013f+scene.basePlanet));
+        SDL_Rect dest{int(x-diameter*.5f),int(y-diameter*.5f),diameter,diameter};Uint8 r,g,b,a;SDL_BlendMode blend;
+        SDL_GetTextureColorMod(textures.planets,&r,&g,&b);SDL_GetTextureAlphaMod(textures.planets,&a);SDL_GetTextureBlendMode(textures.planets,&blend);
+        SDL_SetTextureBlendMode(textures.planets,SDL_BLENDMODE_BLEND);
+        SDL_SetTextureColorMod(textures.planets,sfRmScenicTint(225,accent.r,.10f+scene.tintStrength),
+            sfRmScenicTint(230,accent.g,.10f+scene.tintStrength),sfRmScenicTint(235,accent.b,.10f+scene.tintStrength));
+        SDL_SetTextureAlphaMod(textures.planets,205);SDL_RenderCopy(renderer,textures.planets,&source,&dest);
+        SDL_SetTextureColorMod(textures.planets,r,g,b);SDL_SetTextureAlphaMod(textures.planets,a);SDL_SetTextureBlendMode(textures.planets,blend);
+    }
+}
 
 static uint32_t sfRmHash(uint32_t x)
 {
@@ -268,6 +343,7 @@ static void sfRmGoHome()
     setgui = true;
     sfRmResetGearTouches();
     sfRmTrackJ2 = false;
+    sfRmKineticFinger=-1;sfKineticSurgeCancel(1);
     if (Spritej1) { Spritej1->ctrl = false; Spritej1->id = 100; }
     if (Spritej2) { Spritej2->ctrl = false; Spritej2->id = 100; }
 }
@@ -287,7 +363,10 @@ static void sfRmSyncUiEngineState()
         // IA and controls from running invisibly behind HOME/HELP.
         setgui = true;
         sfRmTrackJ2 = false;
+        sfRmKineticFinger=-1;sfKineticSurgeCancel(1);
     } else if (sfRmPreviousUiScreen != SF_UI_GAME) {
+        sfRmCurrentScenicCandidate=sfScenicBagNext(sfRmScenicBag,
+            std::uint32_t(SDL_GetTicks64())^std::uint32_t(sfRmScenicBag.cycle*0x9e3779b9u));
         sfRmResetAiAnchor();
         setgui = false;
         sfRmJ2LastTick = 0;
@@ -347,15 +426,28 @@ static int SpaceFortressRemaster_WaitEvent(SDL_Event *event)
         const float py = event->tfinger.y * th;
         if (setia && !hit1 && !hit2 && py > HEIGHT * 0.5f &&
             Spritej2 && Spritej2->id == 100) {
-            sfRmTrackJ2 = true;
-            sfRmJ2Finger = fid;
-            sfRmUpdateJ2Velocity(event->tfinger, true);
+            if(sfRmTrackJ2 && fid!=sfRmJ2Finger && sfRmKineticFinger<0) {
+                sfRmKineticFinger=fid;sfKineticSurgePress(1);sfKineticAudioStartCharge(1);
+                event->type=SDL_USEREVENT;return result;
+            }
+            if(!sfRmTrackJ2) {
+                sfRmTrackJ2 = true;
+                sfRmJ2Finger = fid;
+                sfRmUpdateJ2Velocity(event->tfinger, true);
+            }
         }
     } else if (event->type == SDL_FINGERMOTION) {
+        if(event->tfinger.fingerId==sfRmKineticFinger) {event->type=SDL_USEREVENT;return result;}
         if (sfRmTrackJ2 && event->tfinger.fingerId == sfRmJ2Finger)
             sfRmUpdateJ2Velocity(event->tfinger, false);
     } else if (event->type == SDL_FINGERUP) {
         const SDL_FingerID fid = event->tfinger.fingerId;
+        if(fid==sfRmKineticFinger) {
+            const bool purge=sfKineticSurgeRelease(1);
+            if(purge) {sfKineticAudioRelease(1);sfKineticPurgeAsteroids(1);}
+            else {sfKineticAudioCancel(1);sfFireMain(1,nullptr);}
+            sfRmKineticFinger=-1;event->type=SDL_USEREVENT;return result;
+        }
         if (sfRmGear1Down && fid == sfRmGear1Finger) { sfRmGear1Down = false; sfRmGear1Finger = 0; }
         if (sfRmGear2Down && fid == sfRmGear2Finger) { sfRmGear2Down = false; sfRmGear2Finger = 0; }
         if (sfRmTrackJ2 && fid == sfRmJ2Finger) {

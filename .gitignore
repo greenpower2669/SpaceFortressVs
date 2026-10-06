@@ -42,3 +42,6 @@ local.properties
 # Python validation caches
 __pycache__/
 *.pyc
+
+# Private Hall of Fame connection material (never commit the game/admin keys)
+Fab-HallOfFame-*-connexion.json

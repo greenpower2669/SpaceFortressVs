@@ -44,6 +44,8 @@ void th2()
 // 2026 UI shim: procedural start/help screens and input interception.
 // Included here (after t.hpp in main.cpp) so SDL and sprite are already defined.
 #include <start_ui.hpp>
+#include <help_format_bridge.hpp>
+#include <tutorial_runtime.hpp>
 
 // 2026 remaster runtime: gear gesture, VFX and occasional shooting stars.
 #include <remaster_runtime.hpp>
@@ -66,4 +68,23 @@ void th2()
 // Guarded Android source patches use these gameplay safety helpers.
 #include <legacy_game_safety.hpp>
 #include <tactical_runtime.hpp>
+#include <classic_danger_runtime.hpp>
+#include <legacy_field_primitives.hpp>
+#include <legacy_field_runtime.hpp>
+
+// Preserve the campaign renderer byte-for-byte and replace only the visible
+// Hall of Fame entry point. start_ui.hpp already calls sfCampaignDrawHall()
+// through game_mode.hpp's forward declaration; the legacy body stays available
+// for regression archaeology under its explicit legacy name.
+#define sfCampaignDrawHall sfCampaignDrawHallLegacy
 #include <campaign_runtime.hpp>
+#undef sfCampaignDrawHall
+#include <hall_of_fame_runtime.hpp>
+
+// The final help bridge is intentionally last: it needs the fully defined
+// campaign state to pause/resume a live match without restarting it.
+#include <help_live_bridge.hpp>
+
+// Automatic Hall sync observes final input routing after the help/campaign
+// bridge. It never adds network work to the renderer and leaves main.cpp intact.
+#include <hall_sync_ui_bridge.hpp>

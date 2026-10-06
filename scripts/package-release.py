@@ -11,6 +11,19 @@ import subprocess
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+V131_CERTIFICATE = '8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868'
+
+
+def update_identity(package_name, code, certificate):
+    """Compare the verified APK identity with the published v1.3.1 APK."""
+    if package_name != 'com.greenpower2669.spacefortressvs' or code <= 9:
+        raise ValueError('APK package/version cannot update the v1.3.1 installation')
+    compatible = certificate.lower() == V131_CERTIFICATE
+    message = ('SIGNATURE IDENTIQUE À LA V1.3.1 — continuité de mise à jour vérifiée.' if compatible else
+               'SIGNATURE DIFFÉRENTE DE LA V1.3.1 — APK de test uniquement ; '
+               'ne pas désinstaller la version existante ni effacer ses données pour le tester.')
+    return {'referenceVersion': '1.3.1', 'referenceCertificateSha256': V131_CERTIFICATE,
+            'compatibleWithV131': compatible, 'message': message}
 
 
 def version():
@@ -43,7 +56,12 @@ def package():
     certificates = re.findall(r'Signer #\d+ certificate SHA-256 digest: ([0-9a-fA-F]{64})', signing)
     if len(certificates) != 1:
         raise ValueError('Expected one APK signing certificate')
+    package_match = re.search(r"^package: name='([^']+)'", badging, re.MULTILINE)
+    if not package_match:
+        raise ValueError('APK manifest package name is missing')
+    continuity = update_identity(package_match[1], code, certificates[0])
     print(signing)
+    print(continuity['message'])
     for source, manifest, asset_prefix in [(apk, 'AndroidManifest.xml', 'assets/'),
                                            (aab, 'base/manifest/AndroidManifest.xml', 'base/assets/')]:
         with zipfile.ZipFile(source) as archive:
@@ -76,8 +94,9 @@ def package():
         ['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     metadata = {
         'game': 'SpaceFortressVs', 'version': name, 'versionCode': code, 'commit': commit,
-        'apk': 'installable ARM64, debug signing', 'aab': 'release bundle, unsigned',
+        'apk': 'ARM64, debug signing; see updateIdentity before installing', 'aab': 'release bundle, unsigned',
         'apkCertificateSha256': certificates[0].lower(),
+        'updateIdentity': continuity,
         'files': {p.name: {'sha256': digest(p), 'size': p.stat().st_size} for p in destinations},
     }
     build = output / (prefix + '-build.json')
@@ -85,7 +104,8 @@ def package():
     destinations.append(build)
     (output / 'SHA256SUMS').write_text(''.join(f'{digest(p)}  {p.name}\n' for p in destinations))
     notes = ROOT / f'docs/releases/{name}.md'
-    (output / 'release-notes.md').write_text(notes.read_text() + f'\nCommit : `{commit}`.\n')
+    (output / 'release-notes.md').write_text(notes.read_text() +
+        f'\n**{continuity["message"]}**\n\nCertificat APK : `{certificates[0].lower()}`.\n\nCommit : `{commit}`.\n')
     print(f'Verified {prefix}: versionCode {code}, APK signature, ZIP integrity, game library and assets')
 
 

@@ -60,13 +60,15 @@ static void testCoopHumanAim()
     for (bool ai : {false,true}) for (int fps : {30,60,120}) {
         setupCampaign(0,ai);sfCoop.position=tupl(700,840);
         sfCoop.motion.velocity.set(110,0);sfCoop.shots.clear();
+        Spritej1->nrj=Spritej2->nrj=10;
+        if (!ai) sfCoopFire(0);sfCoopFire(1);
         sfCoopMovePlayers(1.0f/fps);
         assert(sfCoop.shots.size()==2);
         for (const auto &shot : sfCoop.shots) {
             assert(shot.kind==0);
             if (ai && shot.owner==0) assert(shot.velocity.vx>100);
             else {
-                assert(std::abs(shot.velocity.vx)<.001f);
+                assert(std::abs(shot.velocity.vx)<30);
                 assert(shot.owner==0 ? shot.velocity.vy>0 : shot.velocity.vy<0);
             }
         }
@@ -80,7 +82,7 @@ static void testCoopHumanAim()
         }
     }
     sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
-    std::puts("PASS: human cooperative shots keep their camp axis; Orion anticipates; ordinary shots never steer in flight");
+    std::puts("PASS: human cooperative shots keep bounded launch dispersion; Orion anticipates; ordinary shots never steer in flight");
 }
 
 static std::string sfTestReadBytes(const std::string &path)
@@ -128,7 +130,7 @@ static void testSaveRecoveryPreservation(const std::string &directory)
     }
     closedir(files);assert(preserved);
     assert(sfTestReadBytes(path)==good && sfTestReadBytes(path+".bak")==good);
-    auto invalid=known;invalid.cleared=51;
+    auto invalid=known;invalid.cleared=201;
     assert(!sfSaveCampaign(invalid));
     assert(sfTestReadBytes(path)==good && sfTestReadBytes(path+".bak")==good);
     // A newer backup is just as valuable as a newer primary.

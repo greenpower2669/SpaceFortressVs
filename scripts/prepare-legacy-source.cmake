@@ -62,6 +62,13 @@ macro(sf_patch_once label before after)
     string(REPLACE "${before}" "${after}" GAME_MAIN "${GAME_MAIN}")
 endmacro()
 
+# std::setw(int) from <iomanip> can win overload resolution over Fab's
+# historical ::setw(float) when DM.w is an int. Qualify only the generated
+# Android copy so src/main.cpp remains byte-for-byte historical.
+sf_patch_once("historical display width initialization"
+    "setw(DM.w);seth(DM.h);"
+    "::setw(static_cast<float>(DM.w));seth(DM.h);")
+
 sf_patch_once("arena-width visibility bounds"
     "a->x>0-w*0.2 and a->x<W*1.2"
     "a->x>0-W*0.2 and a->x<W*1.2")
@@ -116,6 +123,8 @@ sf_patch_once("swept blue ship impacts" "if (colee(Spritej2,e))" "if (e->pv>0 &&
 sf_patch_once("swept asteroid impacts" "e->pv>0 && colee(p,e)" "e->pv>0 && (colee(p,e) || sfShotCrosses(e,p))")
 sf_replace_region("defence impact heat independent of frame rate" "float nrjminus(sprite *e){" "float vectoriser(" "float nrjminus(sprite *e){ return sfShotHeat(e); }\n\n")
 sf_replace_region("bounded missile impact heat" "float missnrjminus(sprite *e){" "float misspvminus(" "float missnrjminus(sprite *e){ return sfShotHeat(e); }\n\n")
+sf_replace_region("linear shield missile raw damage" "float misspvminus(sprite *e){" "float pvminus(" "float misspvminus(sprite *e){ (void)e; return rand()%10+1875.0f; }\n")
+sf_replace_region("linear shield normal raw damage" "float pvminus(sprite *e){" "float nrjminus(" "float pvminus(sprite *e){ (void)e; return rand()%10+75.0f; }\n")
 # Every impact uses the same finite reserve range, before subsequent damage
 # calculations can square the victim's heat. Full-energy markers stay at their
 # historical shield anchor; exhausted markers stop at the corresponding gun.
@@ -123,6 +132,15 @@ foreach(sf_ship Spritej1 Spritej2)
     sf_patch_once("${sf_ship} missile heat" "${sf_ship}->nrj+=missnrjminus(e);" "sfAddShipHeat(${sf_ship},missnrjminus(e));")
     sf_patch_once("${sf_ship} shot heat" "${sf_ship}->nrj+=nrjminus(e);" "sfAddShipHeat(${sf_ship},nrjminus(e));")
     sf_patch_once("${sf_ship} asteroid heat" "${sf_ship}->nrj+=e->w*e->h*0.0001;" "sfAddShipHeat(${sf_ship},e->w*e->h*0.0001);")
+endforeach()
+# D-140-12: generated classic Android copy shares the linear shield core.
+foreach(sf_ship Spritej1 Spritej2)
+    sf_patch_once("${sf_ship} missile linear shield hull" "${sf_ship}->pv-=misspvminus(${sf_ship});" "${sf_ship}->pv-=sfApplyShieldImpact(${sf_ship},misspvminus(${sf_ship}));")
+    sf_patch_once("${sf_ship} normal linear shield hull" "${sf_ship}->pv-=pvminus(${sf_ship});" "${sf_ship}->pv-=sfApplyShieldImpact(${sf_ship},pvminus(${sf_ship}));")
+    sf_patch_once("${sf_ship} missile shared wear only" "sfAddShipHeat(${sf_ship},missnrjminus(e));" "/* shared shield resolver owns missile wear */")
+    sf_patch_once("${sf_ship} normal shared wear only" "sfAddShipHeat(${sf_ship},nrjminus(e));" "/* shared shield resolver owns shot wear */")
+    sf_patch_once("${sf_ship} asteroid linear shield hull" "${sf_ship}->pv-=${sf_ship}->nrj*${sf_ship}->nrj*e->w*e->h*0.00002;" "${sf_ship}->pv-=sfApplyShieldImpact(${sf_ship},e->w*e->h*.05f);")
+    sf_patch_once("${sf_ship} asteroid shared wear only" "sfAddShipHeat(${sf_ship},e->w*e->h*0.0001);" "/* shared shield resolver owns asteroid wear */")
 endforeach()
 sf_replace_region("bounded energy HUD" "\ttexreclr.x = WIDTH*0.05;" "\trouage1->updatetir();" [=[
     texreclr=sfEnergyMarkerRect(Spritej1->nrj,
@@ -139,7 +157,10 @@ sf_replace_region("projectile rendering without physics mutations" "for(auto e:t
 sf_patch_once("orange shot count" "tirj1-=1;" "tirj1=std::max(0,tirj1-1);")
 sf_patch_once("blue shot count" "tirj2-=1;" "tirj2=std::max(0,tirj2-1);")
 sf_patch_once("single IA movement" "\tSpritej1->unctrl();" "\tif (!setia) Spritej1->unctrl();")
-sf_patch_once("visible turret effects" " SDL_RenderPresent(renderer);" " sfDrawTacticalEffects(renderer);\n SDL_RenderPresent(renderer);")
+sf_patch_once("visible turret effects" " SDL_RenderPresent(renderer);" " sfDrawTacticalEffects(renderer);\n sfDrawKineticEffects(renderer);\n SDL_RenderPresent(renderer);")
+sf_patch_once("classic campaign scenic map"
+    "SDL_RenderCopy(renderer, imgfondjup, NULL, &texrfondjup);"
+    "SDL_RenderCopy(renderer, imgfondjup, NULL, &texrfondjup);\n            sfRmDrawClassicScenicMap(renderer);")
 
 # Lists, ships and state resets share one guard across their legacy producers.
 # Schedule waits and blocking SDL events remain outside that guard.
@@ -172,8 +193,21 @@ endif()
 string(SUBSTRING "${sf_foreground_tail}" 0 ${sf_foreground_length} sf_foreground_block)
 sf_replace_region("foreground relocation" "${sf_foreground_begin}" " sfDrawTacticalEffects(renderer);" "")
 sf_patch_once("cooperative frame dispatch" "sfTacticsBeginFrame(renderer);"
-    "${sf_foreground_block}\n sfTacticsBeginFrame(renderer);\n if (sfCampaignFrame(renderer)) {\n sfCoopPlaySounds(tir1,tir2,explo1,explo2);\n SDL_RenderPresent(renderer);\n continue;\n }\n")
+    "${sf_foreground_block}\n sfTacticsBeginFrame(renderer);\n if (sfCampaignFrame(renderer)) {\n sfCoopPlaySounds(tir1,tir2,explo1,explo2,entre);\n sfDrawKineticEffects(renderer);\n SDL_RenderPresent(renderer);\n continue;\n }\n")
 sf_patch_once("cooperative simulation ownership" "if (!sfGameReady || apap || setgui) continue;"
     "if (!sfGameReady || apap || setgui || sfIsCoop()) continue;")
+
+# Use the same historical field in duel and coop. Primitives live once in the
+# shared header; main.cpp remains the historical reference.
+sf_replace_region("shared colee" "bool colee(" "bool coleee" "")
+sf_replace_region("shared inxy" "bool inxy(" "void eclats" "")
+sf_replace_region("shared eclats" "void eclats(" "void setasts" "")
+sf_replace_region("shared setasts" "void setasts(" "void setastswall" "")
+sf_replace_region("shared setastswall" "void setastswall(" "void closesdl" "")
+sf_replace_region("shared partsforiw" "void partsforiw(" "void partsforired" "")
+sf_replace_region("shared partsforired" "void partsforired(" "//test2210 join code" "")
+sf_replace_region("shared live asteroid field"
+    "if ((incra1)<8) setasts(2);" "sfCollectDust();"
+    "sfLegacyFieldFrame(sfFrameDt,nullptr);\n if (sfFieldCollisionSound && entre) Mix_PlayChannel(5,entre,0);\n if (sfFieldMiningSound && explo2) Mix_PlayChannel(3,explo2,0);\n sfFieldCollisionSound=sfFieldMiningSound=false;\n SpaceFortressPruneParticles(particules,1000);\n SpaceFortressPruneParticles(particulesr,1000);\n")
 
 file(WRITE "${ANDROID_MAIN}" "${GAME_MAIN}")

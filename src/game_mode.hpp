@@ -1,4 +1,5 @@
 #pragma once
+#include "boss_danger.hpp"
 enum SfGameMode { SF_DUEL_LOCAL, SF_DUEL_AI, SF_COOP_LOCAL, SF_COOP_AI };
 inline int sfSelectedMode=SF_DUEL_LOCAL, sfActiveMode=SF_DUEL_LOCAL;
 static bool sfIsCoop() { return sfActiveMode==SF_COOP_LOCAL || sfActiveMode==SF_COOP_AI; }
