@@ -68,9 +68,11 @@ void th2()
 // Guarded Android source patches use these gameplay safety helpers.
 #include <legacy_game_safety.hpp>
 #include <tactical_runtime.hpp>
+#include <kinetic_energy_visuals.hpp>
 #include <classic_danger_runtime.hpp>
 #include <legacy_field_primitives.hpp>
 #include <legacy_field_runtime.hpp>
+#include <classic_duel_surge.hpp>
 
 // Preserve the campaign renderer byte-for-byte and replace only the visible
 // Hall of Fame entry point. start_ui.hpp already calls sfCampaignDrawHall()

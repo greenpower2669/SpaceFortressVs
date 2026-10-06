@@ -181,7 +181,7 @@ static int sfKineticPurgeAsteroids(int owner)
         if(sfKineticDestroyAsteroid(rock,SfKineticDustCause::SurgePurge)) ++purged;
     }
     if(purged>0) {
-        sfKineticTriggerWave(owner,SF_KINETIC_SURGE_BLAST_DIAMETER*.5f,1.0f);
+        sfKineticTriggerWave(owner,SF_KINETIC_SURGE_BLAST_DIAMETER*.5f,1.0f,sfKineticEnergyFraction(ship->nrj));
         sfKineticEmitRedDust(owner,std::min(12,3+purged),diameter*.46f);
         SDL_Log("KINETIC_PURGE owner=%d asteroids=%d maxRadius=%.3f",owner,purged,radius);
     }
@@ -293,7 +293,7 @@ static bool sfKineticTryLayer(sprite *rock,sprite *ship,int owner,SfKineticLayer
     if(interacted) *interacted=true;
     sfAddShipHeat(ship,solved.energyCost);
     const float strength=std::clamp(.28f+solved.dissipationFraction*.72f,0.0f,1.0f);
-    sfKineticTriggerWave(owner,raw.maxRadiusShipDiameters,strength);
+    sfKineticTriggerWave(owner,raw.maxRadiusShipDiameters,strength,sfKineticEnergyFraction(ship->nrj));
     const float diameter=sfKineticShipDiameter(ship);
     sfKineticEmitRedDust(owner,layer==SfKineticLayer::Outer ? 7 : 4,diameter*.46f);
     SDL_Log("KINETIC_IMPACT owner=%d massFactor=%.5f relativeSpeed=%.3f impactSpeed=%.3f rawDamage=%.5f residualDamage=%.5f selectedRange=%d maxRadius=%.3f energyCost=%.8f",

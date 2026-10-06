@@ -1,35 +1,38 @@
 # todo.md — SpaceFortressVs
 
-## Hall global sync v1
-- [x] Spec + plan TDD validés; branche dédiée.
-- [x] Tasks 1–7 : stockage, UUID/payload, pagination/cache, hooks, HTTPS Java, JNI, Hall fusionné.
-- [x] Task 8 : CI complète GREEN sur workflow `37372279557`, tentative 2; artifact configuré `11374640381`; secret absent de Git; `src/main.cpp` protégé.
-- [x] Incident de livraison `SYNC NON CONFIGUREE` expliqué : ancien APK sans clé remis par erreur.
-- [x] Fab a testé le bon APK configuré : `SYNC OK`, `GLOBAL 1 + LOCAL 0`.
+## Livré
+- [x] Hall global v1 validé téléphone et publié dans v1.4.1.
+- [x] Surcharge cinétique v2 : 0,30 s / 2,00 s / blast 3,0× / EMP.
+- [x] Release publique `v1.4.1` vérifiée.
 
-## Mini-fix surcharge cinétique v2 — clôture release
-- [x] Design borné validé par Fab : délai visuel/x2 0,30 s, charge armée 2,00 s, blast/purge 3,0×, son EMP.
-- [x] TDD RED : workflow `37424970512` échoue sur la constante de délai absente, comme attendu.
-- [x] Implémenter seuil 0,30 s sans changer le champ normal 2,0×.
-- [x] Porter uniquement le blast/purge armé à 3,0×.
-- [x] Ajouter le transport du nouveau son EMP et son décodage contrôlé dans l’asset Android `kinetic_release.wav`.
-- [x] Garder la même logique CLASSIQUE + COOP et supprimer le sentinel RED temporaire.
-- [x] Corriger le checksum du transport EMP sans toucher au gameplay : SHA `43326ec5ba92d40b2378b0877775bce28d21b1b4`.
-- [x] CI Android complète GREEN : workflow `37427270384` / run 320.
-- [x] HEAD documentaire revérifié GREEN : workflow `37476092719` / run 321 au SHA `48eeb687d8cb60c91b28e70587b00fae3d8fe1ab`.
-- [x] `src/main.cpp` revérifié au blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
-- [x] APK configuré livré et validé par Fab sur téléphone.
-- [x] Validation téléphone Fab : appui <0,30 s sans irisation, charge 0,30–2 s, READY à 2 s, blast 3× + son EMP, gros astéroïdes purgés.
-- [x] Fab a donné l’ordre explicite : `release et merge main`.
-- [x] Préparer version `1.4.1` / `versionCode 11` et notes publiques.
-- [ ] CI fraîche de la préparation 1.4.1 GREEN.
-- [ ] Merge PR #5 vers `main`.
-- [ ] Publier et vérifier la Release `v1.4.1` avec APK/AAB/SHA256SUMS du commit de publication.
-
-## Autres validations téléphone encore ouvertes
-- [ ] Hall Danger 1★/9★ sur nouvelles victoires si Fab veut les recontrôler.
-- [ ] Effets poussières cinétiques hors mini-fix v2.
+## Mission active — v1.4.2 fatigue cinétique + duel classique
+- [x] Créer branche `feature/kinetic-energy-fatigue-duel-v142` depuis `main` `21b1ff3592ce6f531da58fad6c102049a313325d`.
+- [x] Ouvrir PR #6 en draft.
+- [x] TDD RED : workflow `37517885303` échoue comme prévu avant le câblage duel owner 0.
+- [x] Ajouter courbe d’efficacité `pow(energyFraction,1.20)`.
+- [x] Ajouter durée de vague visuelle ~0,27 s pleine → ~0,50 s vide.
+- [x] Ajouter warning visuel équipe→orange→rouge, flash rouge <10 %.
+- [x] Ajouter bridge CLASSIQUE DUEL local second doigt pour owner 0 et owner 1, sans toucher `src/main.cpp`.
+- [x] Garder DUEL IA et COOP sur leurs chemins existants.
+- [x] Tests de courbe/durée/owners/overlay ajoutés.
+- [ ] Obtenir une CI complète GREEN sur le HEAD code + docs.
+- [ ] Corriger uniquement les défauts démontrés par tests/CI.
+- [ ] Vérifier `src/main.cpp` blob `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- [ ] Préparer `VERSION_NAME=1.4.2`, `VERSION_CODE=12` et notes Release.
+- [ ] Relancer CI fraîche GREEN de préparation release.
+- [ ] Review finale PR #6 / secret hygiene / aucun changement Hall.
+- [ ] Merge PR #6 vers `main` après GREEN.
+- [ ] Publier `v1.4.2` avec APK/AAB/SHA256SUMS et vérifier la Release publique.
 
 ## Invariants
-- [x] `src/main.cpp` protégé.
-- [x] Autorisation Fab merge/release reçue pour le lot validé.
+- [x] `src/main.cpp` non modifié à ce stade.
+- [x] Hall, Danger 9, campagne 200, progression et poussières hors périmètre.
+- [x] Fab a autorisé une Release directe de ce lot une fois entièrement GREEN.
+
+
+## Fermeture v1.4.2
+- [x] CI 335 a détecté le cleanup duel / capture énergie manquants.
+- [x] Correctif minimal codé + tests renforcés.
+- [ ] Nouvelle CI Android complète GREEN.
+- [ ] Vérifier `src/main.cpp` au blob canonique.
+- [ ] Merge PR #6 puis publication v1.4.2 conformément à l'ordre Fab une fois GREEN.

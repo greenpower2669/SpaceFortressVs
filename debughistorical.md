@@ -1,31 +1,39 @@
 # debughistorical.md — SpaceFortressVs
 
-## Pièges prouvés / à préserver
-- Hall : ne jamais confondre difficulté campagne 4 niveaux et Danger Boss HOME 1..9.
-- Anciennes entrées v1/v2 : `danger=0` = inconnu; ne jamais l'inventer ni l'envoyer.
-- Points Hall : formule Fab avec secondes comme source du temps.
-- Sync : save campagne et état réseau séparés; global ne modifie jamais `cleared/selected/pending`.
-- Sync : `submissionId` immuable après création; retry réutilise l'identité.
-- Sync : page réseau validée/stagée puis écrite durablement avant avance du cursor.
-- Sync : une page vide avec `hasMore=true` doit quand même persister `nextCursor` puis continuer.
-- Sync : callback vieux cycle/cursor doit être ignoré; erreur réseau/auth/5xx garde pending/cache/cursor.
-- Sync auto : aucun timer; une seule pagination et un seul upload in-flight par `submissionId`.
-- Sync UI : observer les transitions à la frontière finale des événements, jamais depuis `sfCampaignDrawHall()`.
-- Hall rendu : points globaux viennent du serveur; points locaux de `sfFamePoints`; pending local sans rang serveur; danger 0 reste visible/inconnu.
-- HTTPS/JNI : Java seul encode/décode JSON; C++ reçoit des valeurs typées. Échec JNI doit dégrader vers local/cache, jamais faire crasher le jeu.
-- Secret CI : ne jamais afficher la valeur; test/build sans clé d’abord, scan exact en mémoire, puis build final avec secret Actions optionnel.
-- Clés : aucune vraie clé de jeu dans Git/logs/tests/mémoires; aucune clé admin dans l'APK.
-- Livraison Actions : un rerun peut produire plusieurs artifacts portant le même nom. Toujours identifier l'artifact par tentative/ID et vérifier le SHA-256 du fichier remis au téléphone.
-- Incident 2026-10-06 : `SYNC NON CONFIGUREE` provenait de l’APK sans clé de l’artifact précédent `11369888063`, pas du code. Le bon artifact `11374640381` a ensuite donné `SYNC OK` / `GLOBAL 1 + LOCAL 0` sur téléphone. Incident clos.
-- Android astéroïdes : corriger les couches/runtime modernes, jamais `src/main.cpp`.
-- Énergie : `nrj=0` plein, `nrj=50` épuisé.
-- Surcharge cinétique v2 : ne pas confondre champ normal et blast. Le champ normal reste maximum 2,0 diamètres; seul le relâchement armé à 2 s purge/affiche sur 3,0 diamètres.
-- Surcharge cinétique v2 : avant 0,30 s, la seconde touche doit rester visuellement classique et ne doit pas activer le multiplicateur x2; à partir de 0,30 s seulement, cercle irisé + x2.
-- Surcharge cinétique v2 : à 2 s, conserver l’état vulnérable/field OFF jusqu’au relâchement; ne pas déplacer ce seuil à 0,30 s.
-- EMP : `assets/sounds/kinetic_release_emp.b64` est un transport texte sûr; `prepare-assets.py` vérifie son SHA-256 puis remplace uniquement l’asset Android empaqueté `kinetic_release.wav`. Ne pas logger de données sensibles; ce son n’est pas secret.
-- Incident checksum EMP 2026-10-06 : une première tentative a échoué à `Validate assets and runtime regressions` avec `EMP release WAV checksum mismatch`. Cause : checksum de transport erroné, pas gameplay. Correctif minimal au SHA `43326ec5ba92d40b2378b0877775bce28d21b1b4`.
-- Preuve après correction checksum : workflow `37427270384` / run 320 entièrement GREEN pour `build-android`; `publish-release` SKIPPED.
-- Preuve fraîche du HEAD documentaire : workflow `37476092719` / run 321 GREEN au SHA `48eeb687d8cb60c91b28e70587b00fae3d8fe1ab`.
-- Validation téléphone finale acquise : Fab a ensuite donné l’ordre explicite `release et merge main` le 2026-10-06.
-- Préparation Release : incrément obligatoire de `1.4.0` vers `1.4.1` / `versionCode 11` car `v1.4.0` existe déjà; ne jamais écraser une Release existante.
-- `src/main.cpp` reste au blob historique `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+## Pièges permanents
+- `src/main.cpp` historique ne doit jamais être modifié ; blob canonique `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- Hall : save campagne et état réseau séparés ; `submissionId` immuable ; page vide + `hasMore=true` avance durablement le cursor ; aucune vraie clé dans Git/logs/tests/mémoires.
+- Livraison Actions : plusieurs artifacts peuvent porter le même nom ; toujours vérifier tentative/ID/SHA-256.
+- Surcharge v2 : champ normal max 2,0 diamètres ; blast armé 3,0 ; <0,30 s aucune irisation/x2 ; à 2 s champ OFF jusqu’au relâchement.
+- EMP : asset de déflagration déjà livré v1.4.1, ne pas le ré-authored dans v1.4.2.
+
+## Clôture v1.4.1
+- Release `v1.4.1` publiée et vérifiée ; commit/tag `450423c41c4cef6c348f49af698767016a0528fd`.
+- Workflow publication `37490579073` GREEN + `publish-release` SUCCESS.
+- APK SHA-256 `4d4f10f324a0b9929397b14f79fb36f4faae9b48a8a027f9ce4fdc864c014da8`.
+- AAB SHA-256 `5e20d2a5bae408237b6a25a06e87623809b4258f48392f745100dd77f34eb087`.
+- Ne jamais remplacer les bytes d’une Release existante sous le même tag.
+
+## Mission v1.4.2 — fatigue énergie / duel classique
+- Ne pas appliquer la nouvelle courbe à `nrj` lui-même : elle ne transforme que l’efficacité cinétique. La réserve historique reste 0=pleine, 50=vide.
+- Courbe canonique demandée : `pow(energyFraction,1.20)`. À 50 % ≈0,435 ; 25 % ≈0,189 ; 10 % ≈0,063 ; vide = 0.
+- La surcharge ×2 est appliquée après la fatigue. Ne pas faire `pow(energy×2,1.2)` ; cela rendrait la surcharge artificiellement trop forte.
+- Le state `charged` à 2 s reste prioritaire : puissance cinétique 0 jusqu’au release.
+- Le ralentissement concerne uniquement `SfKineticWave.duration`. Ne jamais retarder collision, fragmentation, dégâts, poussière ou purge pour suivre l’animation.
+- Une vague capture son état énergétique à sa création ; elle ne doit pas accélérer/ralentir en cours de vie si `nrj` change.
+- Le fallback des anciens appels 3 arguments de `sfKineticTriggerWave` dérive l’énergie visuelle depuis la force historique `.28 + .72*x`; les nouveaux comportements physiques restent dans `sfApplyKineticLayer`.
+- Warning graphique : couleur équipe→orange→rouge ; sous 10 % rouge clignotant ~4,5 Hz. Le clignotement est graphique seulement, jamais un multiplicateur physique et jamais un flash plein écran/HUD.
+- CLASSIQUE DUEL local : ne pas recoder `src/main.cpp`. Intercepter uniquement le second doigt dans la copie Android générée. Premier doigt reste livré au moteur historique.
+- Les fingers de surcharge sont par-owner. Un troisième doigt est ignoré/consommé ; le release d’un owner ne touche jamais l’autre.
+- DUEL IA garde son chemin owner 1 déjà présent dans `remaster_runtime.hpp`; ne pas le doubler.
+
+## TDD v1.4.2
+- RED initial : workflow `37517885303` / run 326 attendu en échec car le duel local owner 0 n’était pas encore câblé.
+- Les tests doivent vérifier : courbe 100/50/25/10/0, surcharge après courbe, durée 0,27→~0,50, deux owners duel, overlay warning, invariants Danger/Hall/COOP.
+- Avant merge/release : exiger une CI fraîche GREEN du HEAD final, secret hygiene, APK+AAB+packaging et blob `main.cpp` canonique.
+
+
+## Piège CI 335 — 2026-10-06
+- Un simple reset de `sfClassicDuelKineticFinger` en quittant le duel local fuit l'état `sfKineticSurges[owner]` et peut laisser charge/audio actifs dans le mode suivant.
+- Toujours annuler uniquement les owners effectivement possédés par le bridge local : `sfKineticSurgeCancel(owner)` + `sfKineticAudioCancel(owner)`.
+- Ne pas déduire l'énergie visuelle d'une vague depuis sa force : surcharge et couche peuvent fausser cette valeur. Capturer la vraie `sfKineticEnergyFraction(ship->nrj)` au déclenchement.

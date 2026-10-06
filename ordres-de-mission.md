@@ -157,3 +157,22 @@ Cette autorisation lève le verrou merge/release pour le lot courant uniquement,
 - exiger une CI fraîche GREEN du commit de préparation 1.4.1 ;
 - merger la PR #5 vers `main` uniquement après cette preuve ;
 - publier ensuite la Release `v1.4.1` avec uniquement les artefacts vérifiés du commit de publication.
+
+
+## KINETIC-ENERGY-FATIGUE-DUEL-V142 — 2026-10-06 — ORDRE FAB
+
+Fab demande :
+- efficacité d'absorption cinétique décroissante avec l'énergie disponible, plus sévère que linéaire ;
+- courbe canonique `pow(energyFraction, 1.20)` ;
+- vagues visuellement plus lentes quand l'énergie baisse, sans ralentir la physique ;
+- couleur équipe -> orange -> rouge, luminosité croissante ; sous 10 % d'énergie, rouge lumineux clignotant ~4,5 Hz ;
+- surcharge 0,30 s / 2,00 s / blast 3× disponible aussi en CLASSIQUE DUEL pour les deux joueurs, via le moteur partagé, sans duplication ;
+- sous 10 %, bouclier presque inefficace même en surcharge ;
+- cible `v1.4.2` / versionCode 12 ;
+- publication directe une fois le lot entièrement GREEN.
+
+Protections :
+- `src/main.cpp` byte-for-byte inchangé, blob canonique `835059a0ecfe0f74708068b3259cad5db1cdb579` ;
+- Hall global, Danger 9, campagne 200, progression, sauvegardes et poussières hors périmètre ;
+- TDD obligatoire, CI complète APK/AAB + secret hygiene avant merge/release ;
+- ne jamais écraser v1.4.1.
