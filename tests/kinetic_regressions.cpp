@@ -23,21 +23,39 @@ int main() {
     assert(shielded.legacyEnergyCost>0 && shielded.energyCost>0);
     assert(std::abs(shielded.energyCost/shielded.legacyEnergyCost-SF_KINETIC_ENERGY_COST_SCALE)<1e-8f);
 
+    // Energy fatigue must be deliberately harsher than the old linear response.
+    const auto half=sfApplyKineticLayer(veryFast,SfKineticLayer::Outer,.50f);
+    const auto quarter=sfApplyKineticLayer(veryFast,SfKineticLayer::Outer,.25f);
+    const auto tenth=sfApplyKineticLayer(veryFast,SfKineticLayer::Outer,.10f);
+    const auto empty=sfApplyKineticLayer(veryFast,SfKineticLayer::Outer,0.0f);
+    const float fullFraction=shielded.dissipationFraction;
+    assert(std::abs(half.dissipationFraction/fullFraction-std::pow(.50f,1.2f))<.015f);
+    assert(std::abs(quarter.dissipationFraction/fullFraction-std::pow(.25f,1.2f))<.015f);
+    assert(std::abs(tenth.dissipationFraction/fullFraction-std::pow(.10f,1.2f))<.015f);
+    assert(empty.dissipationFraction<.0001f);
+    assert(tenth.dissipationFraction/fullFraction<.08f);
+    const auto tenthSurge=sfApplyKineticLayer(veryFast,SfKineticLayer::Outer,.10f,SF_KINETIC_SURGE_POWER_MULTIPLIER);
+    assert(std::abs(tenthSurge.dissipationFraction-tenth.dissipationFraction*2.0f)<.002f);
+
     const auto white=sfKineticRespondDust(true,12,-5,1,0,1,.7f,780);
     assert(white.vx==12 && white.vy==-5 && !white.vibrated && !white.deflected);
     const auto red=sfKineticRespondDust(false,12,-5,1,0,1,.7f,780);
     assert(red.vibrated && red.deflected && (red.vx!=12 || red.vy!=-5));
 
     sfKineticWaves.clear();sfKineticWaveSerial=0;
-    sfKineticTriggerWave(0,veryFast.maxRadiusShipDiameters,.9f);
-    sfKineticTriggerWave(0,fast.maxRadiusShipDiameters,.6f);
+    sfKineticTriggerWave(0,veryFast.maxRadiusShipDiameters,1.0f);
+    sfKineticTriggerWave(0,fast.maxRadiusShipDiameters,.28f);
     assert(sfKineticWaves.size()==2);
-    const auto first=sfKineticWaves.front();
-    assert(sfKineticWaveRadiusAt(first,100,0)==0);
-    const float mid=sfKineticWaveRadiusAt(first,100,first.duration*.5f);
-    const float nearEnd=sfKineticWaveRadiusAt(first,100,first.duration*.99f);
+    const auto fullWave=sfKineticWaves.front();
+    const auto tiredWave=sfKineticWaves.back();
+    assert(fullWave.duration>=.26f && fullWave.duration<=.30f);
+    assert(tiredWave.duration>=.47f && tiredWave.duration<=.52f);
+    assert(tiredWave.duration>fullWave.duration);
+    assert(sfKineticWaveRadiusAt(fullWave,100,0)==0);
+    const float mid=sfKineticWaveRadiusAt(fullWave,100,fullWave.duration*.5f);
+    const float nearEnd=sfKineticWaveRadiusAt(fullWave,100,fullWave.duration*.99f);
     assert(mid>0 && nearEnd>mid);
-    sfKineticAdvanceWaves(first.duration*1.01f);
+    sfKineticAdvanceWaves(std::max(fullWave.duration,tiredWave.duration)*1.01f);
     assert(sfKineticWaves.empty());
 
     assert(sfKineticBossMass(199)>sfKineticBossMass(0));
