@@ -13,7 +13,7 @@ import zlib
 
 REPO = Path(__file__).resolve().parents[1]
 PACK_SHA256 = 'c0b9fd4f96b56cf7f5dcace9ff6d4f46327a06486bc9729308668009d278a185'
-EMP_RELEASE_SHA256 = 'e31b7479993b629116cf04238972355540a2c847268447f8f1bdd78c01a067be'
+EMP_RELEASE_SHA256 = '96d630723bafeddc945eaf54c7d6292930569d8d93de61071de654fa96c729f8'
 # These two September 7 transports are already corrupt in Git. Use their
 # original artwork until a valid replacement is committed. Match exact bytes
 # so an unrelated future corruption still fails the build.
