@@ -35,3 +35,14 @@
 - [x] CI complète GREEN + APK test : workflow `37540141916` / run 342, artifact `11447494930`.
 - [ ] Validation téléphone Fab.
 - [ ] Aucun merge/release avant ordre explicite.
+
+
+## Avenant Fab post-342
+- [x] Ancien candidat 342 déclaré obsolète avant validation téléphone.
+- [ ] RED : boss field non destructif + anneau centre-out transparent.
+- [ ] RED : recharge Danger 4,0 s -> 10,5 s.
+- [ ] RED : spawn astéroïdes COOP continu.
+- [ ] RED : minage/aspiration blanc pendant charge 0,30–2,00 s.
+- [ ] Implémentation minimale puis CI complète.
+- [ ] Nouvel APK téléphone.
+- [ ] Aucun merge/release sans ordre explicite.

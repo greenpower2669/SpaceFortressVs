@@ -197,3 +197,20 @@ Protections :
 - `src/main.cpp` byte-for-byte inchangé, blob `835059a0ecfe0f74708068b3259cad5db1cdb579` ;
 - Hall, Danger 9, campagne/progression/sauvegardes, surcharge 0,30/2 s et poussières hors points ci-dessus restent protégés ;
 - aucun merge main ni Release de ce nouveau lot sans validation/ordre explicite de Fab.
+
+
+## AVENANT FAB — CHAMP BOSS NON DESTRUCTIF / ASPIRATION / RECHARGE DANGER — 2026-10-07
+
+Cet avenant REMPLACE les points incompatibles du lot SHOT-DISPERSION-ENERGY-BOSS-FIELD-V143 :
+- le champ cinétique du boss reste fixe et moins puissant que celui des joueurs (55 %), mais il NE DETRUIT JAMAIS les astéroïdes ;
+- il réduit leur impact, retire au boss uniquement le résiduel cinétique, puis ralentit/dévie l'astéroïde survivant ;
+- les anneaux du boss doivent être nettement plus transparents que ceux des joueurs et partir visuellement du CENTRE du boss vers le rayon du champ ;
+- pendant la charge joueur entre 0,30 s et 2,00 s, un astéroïde proche peut être miné en CONTINU : extraction moins forte que des tirs répétés, réduction progressive de taille, production de poussière blanche et aspiration efficace de cette poussière vers le vaisseau ;
+- à READY 2 s, le champ joueur est OFF comme avant et le minage continu s'arrête ; le blast/purge au relâchement reste inchangé ;
+- les astéroïdes de campagne/COOP doivent continuer à apparaître dans le temps comme dans le classique, pas seulement attendre que le stock tombe presque à zéro ;
+- la recharge passive devient un élément important de survie et varie avec le Danger Boss : MOU DU GENOU = maximum, APOCALYPSE = minimum ;
+- réglage borné retenu pour TDD : demi-vie de chaleur 4,0 s en MOU DU GENOU et 10,5 s en APOCALYPSE, interpolation monotone sur les 9 dangers. Ce réglage remplace la demi-vie provisoire 21 s et garde Apocalypse deux fois plus rapide que cette proposition précédente ;
+- les poussières blanches restent une recharge active supplémentaire.
+- dispersion initiale aléatoire CLASSIQUE + COOP du lot précédent reste demandée.
+
+Protections inchangées : `src/main.cpp` strictement intact ; aucun merge/release sans validation Fab.

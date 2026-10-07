@@ -67,3 +67,11 @@ CLASSIQUE DUEL local :
 - Run `37540141916` entièrement GREEN ; artifact `11447494930`.
 - Phone à vérifier : spread gauche/droite à faible énergie en CLASSIQUE + COOP, recharge COOP lente, anneau boss + dégâts résiduels d'astéroïdes.
 - PR #7 reste draft ; pas de merge/release.
+
+
+## Avenant 07/10 — architecture cible
+- Boss field : 55 %, centre-out transparent, astéroïde survivant amorti + cooldown anti-multi-hit.
+- Recharge COOP : helper prend Danger 0..8 ; half-life 4,0 -> 10,5 s.
+- Astéroïdes COOP : timer de spawn continu avec plafond de population.
+- Surge mining partagé CLASSIQUE/COOP : actif seulement 0,30 <= hold < 2,00 s ; cible proche unique ; shrink continu < cadence tirs ; poussière blanche attirée.
+- Run 342 obsolète pour validation téléphone.

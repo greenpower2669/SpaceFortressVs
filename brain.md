@@ -72,3 +72,12 @@
 - `publish-release` SKIPPED. PR #7 reste draft. Aucun merge `main`, aucune Release.
 - `src/main.cpp` revérifié au blob canonique `835059a0ecfe0f74708068b3259cad5db1cdb579`.
 - Étape restante : validation téléphone Fab du ressenti dispersion/recharge et des collisions astéroïde→champ boss.
+
+
+## Avenant Fab 2026-10-07 — remplace le candidat GREEN 342 sur trois points
+- Champ boss 55 % : NON destructif. Le caillou survit, son impact est amorti/dévié ; seul le résiduel enlève des PV au boss.
+- Visuel boss : anneau beaucoup plus transparent, expansion centre -> rayon du champ.
+- Charge joueur 0,30–2,00 s : minage continu d'un astéroïde proche, plus faible que des tirs répétés, avec poussière blanche aspirée efficacement ; arrêt du minage à READY 2 s.
+- COOP : astéroïdes générés continuellement dans le temps.
+- Recharge passive : abandon de la demi-vie provisoire 21 s. Danger 1 MOU DU GENOU = 4,0 s ; Danger 9 APOCALYPSE = 10,5 s ; interpolation monotone.
+- Le run 342 n'est donc plus candidat téléphone ; nouvelle preuve RED/GREEN requise.
