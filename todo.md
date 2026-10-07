@@ -63,3 +63,12 @@
 
 - [x] Classic missile/orbs/explosion COOP ; HUD 3 barres ; réserve visuelle boss ; UV demi-texel implémentés.
 - [x] RED 349 vérifié ; [x] CI 350 GREEN du commit d'implémentation.
+
+
+## BOSS-HUD-RESERVES-V143
+- [x] Correction Fab capturée : jauges triple réservées au boss ; pilotes = PV + ENERGIE.
+- [x] Branche dédiée `fix/boss-hud-reserves-v143` depuis `b588abe195000a6ab00e4bae86b441eb4b6c3455`.
+- [x] Tests RED écrits pour géométrie boss ENERGIE/VIE/CINETIQUE + réserve énergétique séparée.
+- [ ] Prouver RED en CI.
+- [ ] Implémenter correction minimale sans toucher au reste du lot 350.
+- [ ] CI GREEN APK/AAB puis validation téléphone Fab.

@@ -110,3 +110,14 @@ CLASSIQUE DUEL local :
 - Code `1aeb6758...`, run `37608419345` SUCCESS complet.
 - APK `d136fcf0...`, AAB `f84b8d5d...`; téléphone à valider.
 - Broutage : demi-texel est désormais candidat test ; ne pas aller plus loin sans preuve visuelle Fab.
+
+
+## ERRATUM HUD BOSS — 2026-10-07
+- Retour téléphone Fab sur CI 350 : les trois jauges ENERGIE / PV / CINETIQUE ont été mises par erreur sur les pilotes.
+- Correction canonique : les PILOTES reviennent au bloc historique PV + ENERGIE uniquement.
+- Les trois jauges appartiennent au BOSS : ENERGIE au-dessus, VIE au centre, CINETIQUE au-dessous, avec la représentation miroir existante pour les deux côtés.
+- Ajouter une réserve énergétique boss séparée de la réserve cinétique. Dans ce lot, les deux sont des réserves de stress/affichage uniquement : elles ne modifient ni la santé boss, ni les dégâts reçus, ni la dissipation cinétique fixe 55 %.
+- Les deux réserves s'auto-régénèrent plus vite aux difficultés basses et plus lentement aux difficultés hautes.
+- Le champ cinétique visuel reste piloté par la réserve cinétique : plus elle baisse, plus le champ est visible.
+- Tous les autres points de CI 350 sont conservés : missile/orbes/explosion classiques, anti-bleeding demi-texel, spawn/minage/recharge/Danger.
+- Nouvelle branche : `fix/boss-hud-reserves-v143`. Aucun merge main ni Release sans validation Fab.

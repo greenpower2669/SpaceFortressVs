@@ -304,38 +304,41 @@ static void testCoopHudAndMissile()
     const auto low=sfPlayerPvRect(1,width,height),up=sfPlayerPvRect(0,width,height);
     const auto mirrored=sfMirrorRect180(low,width,height);
     assert(up.x==mirrored.x && up.y==mirrored.y && up.w==mirrored.w && up.h==mirrored.h);
-    const auto b0=sfBossLifeRect(false,width,height),b1=sfBossLifeRect(true,width,height);
-    const auto bm=sfMirrorRect180(b0,width,height);assert(b1.x==bm.x && b1.y==bm.y);
+
+    // Fab correction: pilot HUD stays the historical two-bar block (PV + energy).
+    const auto lowEnergy=sfPlayerEnergyRect(1,width,height),upEnergy=sfPlayerEnergyRect(0,width,height);
+    const auto mirroredEnergy=sfMirrorRect180(lowEnergy,width,height);
+    assert(lowEnergy.y>low.y);
+    assert(upEnergy.x==mirroredEnergy.x && upEnergy.y==mirroredEnergy.y);
+
+    // The three-reserve presentation belongs to the BOSS, not the pilots.
+    const auto life0=sfBossLifeRect(false,width,height),life1=sfBossLifeRect(true,width,height);
+    const auto energy0=sfBossEnergyRect(false,width,height),energy1=sfBossEnergyRect(true,width,height);
+    const auto kinetic0=sfBossKineticRect(false,width,height),kinetic1=sfBossKineticRect(true,width,height);
+    assert(energy0.y<life0.y && life0.y<kinetic0.y);
+    const auto lifeMirror=sfMirrorRect180(life0,width,height);
+    const auto energyMirror=sfMirrorRect180(energy0,width,height);
+    const auto kineticMirror=sfMirrorRect180(kinetic0,width,height);
+    assert(life1.x==lifeMirror.x && life1.y==lifeMirror.y);
+    assert(energy1.x==energyMirror.x && energy1.y==energyMirror.y);
+    assert(kinetic1.x==kineticMirror.x && kinetic1.y==kineticMirror.y);
     const auto full=sfHealthColor(1),empty=sfHealthColor(0);
     assert(full.g>full.r && empty.r>empty.g);
+    const auto bossEnergyColor=sfBossEnergyColor(),bossKineticColor=sfBossKineticColor();
+    assert(bossEnergyColor.b>bossEnergyColor.r && bossEnergyColor.r>bossEnergyColor.g);
+    assert(bossKineticColor.r>bossKineticColor.g && bossKineticColor.g>bossKineticColor.b);
 
-    // V1.4.3 visual canon: energy above life, kinetic below life, mirrored as a block.
-    const auto lowEnergy=sfPlayerEnergyRect(1,width,height);
-    const auto lowKinetic=sfPlayerKineticRect(1,width,height);
-    const auto upEnergy=sfPlayerEnergyRect(0,width,height);
-    const auto upKinetic=sfPlayerKineticRect(0,width,height);
-    assert(lowEnergy.y<low.y && low.y<lowKinetic.y);
-    const auto mirroredEnergy=sfMirrorRect180(lowEnergy,width,height);
-    const auto mirroredKinetic=sfMirrorRect180(lowKinetic,width,height);
-    assert(upEnergy.x==mirroredEnergy.x && upEnergy.y==mirroredEnergy.y);
-    assert(upKinetic.x==mirroredKinetic.x && upKinetic.y==mirroredKinetic.y);
-    const auto energyColor=sfPlayerEnergyColor();
-    const auto kineticColor=sfPlayerKineticColor();
-    assert(energyColor.b>energyColor.r && energyColor.r>energyColor.g); // light violet
-    assert(kineticColor.r>kineticColor.g && kineticColor.g>kineticColor.b); // yellow/orange
-
-    // Boss kinetic reserve is a visual stress reserve: it regenerates faster on easy
-    // campaign difficulty and a depleted field becomes more visible.
-    assert(sfCoopBossKineticRegenPerSecond(0)>sfCoopBossKineticRegenPerSecond(3));
+    // Separate boss visual reserves: both regenerate faster at easy difficulty.
+    assert(sfCoopBossReserveRegenPerSecond(0)>sfCoopBossReserveRegenPerSecond(3));
     assert(sfCoopBossKineticVisibilityAlpha(0.05f)>sfCoopBossKineticVisibilityAlpha(0.95f));
-    sfCoop.bossKineticReserve=.25f;sfCoop.encounter=0;
-    const float easyReserve=sfCoopRegenerateBossKineticReserveValue(sfCoop.bossKineticReserve,1.0f,sfDifficultyIndex(sfCoop.encounter));
+    sfCoop.bossEnergyReserve=.25f;sfCoop.bossKineticReserve=.25f;sfCoop.encounter=0;
+    const float easyEnergy=sfCoopRegenerateBossReserveValue(sfCoop.bossEnergyReserve,1.0f,sfDifficultyIndex(sfCoop.encounter));
+    const float easyKinetic=sfCoopRegenerateBossReserveValue(sfCoop.bossKineticReserve,1.0f,sfDifficultyIndex(sfCoop.encounter));
     sfCoop.encounter=150;
-    const float hardReserve=sfCoopRegenerateBossKineticReserveValue(sfCoop.bossKineticReserve,1.0f,sfDifficultyIndex(sfCoop.encounter));
-    assert(easyReserve>hardReserve && hardReserve>.25f);
+    const float hardEnergy=sfCoopRegenerateBossReserveValue(.25f,1.0f,sfDifficultyIndex(sfCoop.encounter));
+    assert(easyEnergy>hardEnergy && easyKinetic>.25f && hardEnergy>.25f);
 
-    // Half-texel inset: sample inside an atlas cell without shaving a percentage
-    // off the artwork or bleeding into the neighbour.
+    // Half-texel inset remains the bounded anti-bleeding fix.
     const SDL_Rect atlasCell{10,20,100,80};
     const auto uv00=sfAtlasSafeUv(atlasCell,1000,800,0,0);
     const auto uv11=sfAtlasSafeUv(atlasCell,1000,800,1,1);
@@ -359,5 +362,5 @@ static void testCoopHudAndMissile()
     sfCampaignForgetRenderer(renderer);SDL_DestroyRenderer(renderer);
     renderer=SDL_CreateSoftwareRenderer(surface);assert(renderer && sfCoopTextures(renderer).missile);
     sfCampaignForgetRenderer(renderer);SDL_DestroyRenderer(renderer);SDL_FreeSurface(surface);
-    std::puts("PASS: mirrored upper HUD, duplicated boss life gradient and historical missile texture survive renderer recreation");
+    std::puts("PASS: pilot two-bar HUD, boss energy/life/kinetic HUD and historical missile texture survive renderer recreation");
 }
