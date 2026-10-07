@@ -1139,6 +1139,7 @@ static int sfHudBarHeight(int width) {return std::max(10,width/60);}
 static int sfBossHudBarHeight(int width) {return std::max(5,width/110);}
 static Uint8 sfBossHudBackgroundAlpha() {return 88;}
 static Uint8 sfBossHudFillAlpha() {return 188;}
+static Uint8 sfBossHudMirrorAlpha() {return 76;}
 static SDL_Color sfBossEnergyColor() {return {205,175,255,255};}
 static SDL_Color sfBossKineticColor() {return {255,184,66,255};}
 static SDL_Rect sfPlayerPvRect(int owner,int width,int height)
@@ -1161,6 +1162,19 @@ static SDL_Rect sfBossHudRectAt(int index,int width,int height)
     const int x=width-margin-w;
     const int y=int(height*.135f)+index*(h+gap);
     return {x,y,w,h};
+}
+static SDL_Rect sfBossHudLabelRect(int width,int height)
+{
+    const SDL_Rect top=sfBossHudRectAt(0,width,height);
+    const int labelH=std::max(10,sfBossHudBarHeight(width)*2);
+    return {top.x,std::max(2,top.y-labelH-4),top.w,labelH};
+}
+static SDL_Rect sfBossHudMirrorBand(SDL_Rect rect,bool lower)
+{
+    const int bandH=std::max(1,rect.h/4);
+    const int inset=rect.h>=4 ? 1 : 0;
+    const int y=lower ? std::max(rect.y+rect.h/2,rect.y+rect.h-bandH-inset) : rect.y+inset;
+    return {rect.x,y,rect.w,bandH};
 }
 static SDL_Rect sfBossLifeRect(bool upper,int width,int height)
 {
@@ -1190,6 +1204,17 @@ static void sfDrawBossRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,
     SDL_SetRenderDrawColor(renderer,24,28,40,sfBossHudBackgroundAlpha());SDL_RenderFillRect(renderer,&rect);
     SDL_Rect value=rect;value.w=std::max(0,int(rect.w*ratio));
     SDL_SetRenderDrawColor(renderer,fill.r,fill.g,fill.b,sfBossHudFillAlpha());SDL_RenderFillRect(renderer,&value);
+
+    // Mirror/gloss: two symmetric reflection bands remain inside the filled
+    // portion, so the compact HUD footprint does not grow.
+    if(value.w>0) {
+        SDL_Rect top=sfBossHudMirrorBand(value,false);
+        SDL_Rect bottom=sfBossHudMirrorBand(value,true);
+        SDL_SetRenderDrawColor(renderer,255,255,255,sfBossHudMirrorAlpha());
+        SDL_RenderFillRect(renderer,&top);
+        SDL_SetRenderDrawColor(renderer,255,255,255,Uint8(sfBossHudMirrorAlpha()/3));
+        SDL_RenderFillRect(renderer,&bottom);
+    }
     SDL_SetRenderDrawBlendMode(renderer,oldBlend);
 }
 
@@ -1343,6 +1368,8 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
     const float bossRatio=std::clamp(sfCoop.health/sfCoopProfile().health,0.0f,1.0f);
     const SDL_Color bossColor=sfHealthColor(bossRatio);
     const SDL_Color bossEnergyColor=sfBossEnergyColor(),bossKineticColor=sfBossKineticColor();
+    const SDL_Rect bossLabel=sfBossHudLabelRect(width,height);
+    sfCoopText(renderer,bossLabel.x,bossLabel.y,"BOSS",bossLabel.w,2,{232,220,255,220});
     sfDrawBossRatioBar(renderer,sfBossEnergyRect(false,width,height),sfCoop.bossEnergyReserve,bossEnergyColor);
     sfDrawBossRatioBar(renderer,sfBossLifeRect(false,width,height),bossRatio,bossColor);
     sfDrawBossRatioBar(renderer,sfBossKineticRect(false,width,height),sfCoop.bossKineticReserve,bossKineticColor);

@@ -93,5 +93,7 @@
 - [x] Branche dédiée depuis fb8b98d9.
 - [x] Tests RED écrits pour label BOSS + reflet interne symétrique.
 - [ ] Prouver RED en CI.
-- [ ] Implémenter uniquement le polish HUD boss.
+- [x] Implémenter uniquement le polish HUD boss.
 - [ ] CI GREEN + APK/AAB puis validation téléphone Fab.
+
+- [x] BOSS au-dessus + reflet/gloss interne sur les 3 barres, aucune emprise HUD supplémentaire.
