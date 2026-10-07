@@ -111,3 +111,11 @@
 - [x] Remplissage, label BOSS et gloss tournés avec le bloc haut.
 
 - [x] Artifact CI361 id `11515479617` ; APK `3d35a827...` ; AAB `4f4cb8bc...`.
+
+
+## SURGE-CONE-MINING
+- [x] Branche `fix/surge-cone-mining-v143` depuis d5a897d9.
+- [x] Contrat RED : continuation après 2 s, portées ×1.5, cône avant, visuel orange convergent, son discret post-READY.
+- [ ] Prouver RED CI.
+- [ ] Implémenter gameplay + visuel + audio sans toucher `src/main.cpp`.
+- [ ] CI GREEN + APK/AAB pour téléphone.

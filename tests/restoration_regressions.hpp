@@ -102,8 +102,20 @@ static void testKineticFieldAndHullRegen()
     sfKineticResetSurges();sfKineticSurgePress(0);
     sfKineticAdvanceSurges(SF_KINETIC_SURGE_HOLD_SECONDS-.01f);
     assert(sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==2.0f && !sfKineticSurgeVulnerable(0));
+    assert(sfKineticSuctionVisible(0) && sfKineticSurgeMiningActive(0));
     sfKineticAdvanceSurges(.02f);
     assert(!sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==0.0f && sfKineticSurgeVulnerable(0));
+    // Fab canon: reaching READY at two seconds must NOT stop the tide/suction.
+    assert(sfKineticSuctionVisible(0) && sfKineticSurgeMiningActive(0));
+    assert(std::abs(SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS-2.025f)<.0001f);
+    assert(std::abs(SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS-3.30f)<.0001f);
+    // Owner 0 faces down (+Y), owner 1 faces up (-Y): suction is front-cone only.
+    assert(sfKineticSurgeConeContains(0,100,100,100,300,330));
+    assert(!sfKineticSurgeConeContains(0,100,100,100,-80,330));
+    assert(sfKineticSurgeConeContains(1,100,300,100,100,330));
+    assert(!sfKineticSurgeConeContains(1,100,300,100,500,330));
+    assert(!sfKineticSurgeConeContains(0,100,100,420,250,330));
+    assert(sfKineticSurgeConeHalfWidth(200)>100 && sfKineticSurgeConeHalfWidth(200)<180);
     assert(sfKineticSurgeRelease(0));
 
     setupTactics();sfFixResetAsteroidField();sfFieldRemainder=0;
