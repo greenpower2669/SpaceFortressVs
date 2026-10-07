@@ -88,3 +88,10 @@ CLASSIQUE DUEL local :
 - CI 345 : échec de compilation uniquement sur noms provisoires/runner ; alignement des noms canoniques avant nouvelle CI.
 
 - CI 346 : le nouveau gameplay passe jusqu'au test historique de précision IA ; seul nearest<16 est obsolète avec le spread demandé. Centre prédictif conservé, tolérance bornée <90.
+
+
+## CI 347 GREEN — candidat téléphone actualisé
+- HEAD `602a725eb785ffdac393ebe1e55af3d2cf50376c` ; run `37561150366` SUCCESS.
+- Boss : champ FIXE 55 % < joueurs, non destructif, amortissement/déviation + dégâts résiduels boss.
+- Recharge : passive historique CLASSIQUE confirmée par Fab et visible en jeu ; COOP = accélération Danger ×4 -> ×2 vs v1.4.2, jamais suppression de la recharge passive.
+- Artifact release-files id `11456527917`; téléphone à valider avant merge/release.

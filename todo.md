@@ -43,8 +43,10 @@
 - [x] RED : recharge Danger 4,0 s -> 10,5 s — run 343.
 - [x] RED : spawn astéroïdes COOP continu — run 343.
 - [x] RED : minage/aspiration blanc pendant charge 0,30–2,00 s — run 343.
-- [x] Implémentation minimale codée ; [x] couture CI 345 corrigée ; [x] assertion IA CI 346 adaptée au spread ; [ ] CI complète GREEN.
-- [ ] Nouvel APK téléphone.
+- [x] Implémentation minimale codée ; [x] couture CI 345 corrigée ; [x] assertion IA CI 346 adaptée au spread ; [x] CI 347 complète GREEN.
+- [x] Nouvel APK téléphone prêt dans artifact `SpaceFortressVs-1.4.2-release-files` id `11456527917` ; [ ] validation physique Fab.
 - [ ] Aucun merge/release sans ordre explicite.
 
 - [x] Dernier canon recharge ×4→×2 par rapport à v1.4.2 appliqué.
+
+- [x] Canon reconfirmé : champ boss fixe 55 % < joueurs ; recharge passive historique présente et préservée.

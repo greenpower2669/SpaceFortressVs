@@ -102,3 +102,11 @@
 - Seul arrêt : testVelocityGhosts exigeait encore nearest<16, c'est-à-dire une précision quasi parfaite, alors que Fab demande désormais une dispersion initiale aléatoire aussi sur les tirs ordinaires du classique.
 - La prédiction Orion reste le centre de visée et le sens de l'anticipation reste testé ; tolérance de l'impact portée à <90 px pour accepter le spread sans autoriser un tir incohérent.
 - Aucun changement gameplay dans ce correctif.
+
+
+## CI 347 GREEN — correction Fab confirmée
+- HEAD gameplay/test `602a725eb785ffdac393ebe1e55af3d2cf50376c` validé par workflow `37561150366` / run 347 : SUCCESS complet.
+- Canon confirmé par Fab : le champ cinétique boss est FIXE à 55 %, donc inférieur au champ normal des joueurs (et très inférieur à leur surcharge ×2) ; il amortit/dévie l'astéroïde sans le détruire.
+- Correction d'observation : la recharge passive d'énergie existe historiquement déjà en CLASSIQUE (`nrj*=0.997`) et Fab l'observe en jeu ; le lot ne doit jamais la supprimer. En COOP, elle est accélérée selon Danger, de ×4 du rythme v1.4.2 en MOU DU GENOU vers ×2 en APOCALYPSE.
+- Artifact téléphone : `SpaceFortressVs-1.4.2-release-files` id `11456527917`, digest ZIP `sha256:1e9ef7a5276c74a9db3064a83f00c17c614ff8cddf060245336ab2f3479d9da5`.
+- Aucun merge main ni release ; prochaine étape : validation téléphone Fab.
