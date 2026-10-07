@@ -159,3 +159,23 @@
 - `bossKineticReserve` reste stressée uniquement par les impacts cinétiques d'astéroïdes et pilote l'alpha du champ.
 - Les deux réserves remontent avec la même courbe difficulté .18/s facile -> .07/s difficile.
 - Dissipation boss toujours 55 % fixe ; aucun gameplay du lot CI350 n'est modifié.
+
+
+## CI 353 GREEN — CORRECTION HUD BOSS
+- Code validé : `2e0fb31e662618958ff9caa35b433f2368d61734`.
+- TDD RED : run 352 / `37618451133` sur `9a6cf28b...`, échec attendu sur les nouveaux helpers boss.
+- GREEN : run 353 / `37618641758`, régressions + Hall + APK/AAB + packaging SUCCESS.
+- Artifact : `SpaceFortressVs-1.4.2-release-files` id `11481795087`, digest `sha256:e37204e5bc2bf51b1ef3c785f927d227e8cbcf2fe949c45065269bed08b44d24`.
+- Aucun merge main ni Release.
+
+
+## BOSS-HUD-COMPACT-DANGER-REGEN — 2026-10-07
+- Retour Fab : les 3 barres boss sont correctes mais trop grandes, trop espacées et trop opaques.
+- Nouveau canon : UN SEUL bloc latéral droit, largeur <=30 % écran, barres fines et serrées, fond + remplissage semi-transparents.
+- Régénération boss : ne plus utiliser les 4 difficultés campagne. Utiliser exclusivement les 9 niveaux de `sfBossDangerIndex`.
+- `MOU DU GENOU` : boss handicapé, vitesse de régénération = vitesse maximale actuelle / 9.
+- Progression strictement croissante sur les 9 Dangers.
+- `APOCALYPSE` : boss avantagé, vitesse = vitesse maximale actuelle (0.18 réserve/s).
+- Même courbe pour réserve énergie et réserve cinétique boss. Le champ reste 55 % fixe : la réserve ne modifie pas la dissipation gameplay.
+- Pilotes inchangés, FX/orbes/missile/anti-bleeding inchangés, `src/main.cpp` protégé.
+- Branche `fix/boss-hud-compact-danger-regen-v143`; TDD RED avant code ; aucun merge/release sans validation Fab.

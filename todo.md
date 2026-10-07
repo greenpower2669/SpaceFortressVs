@@ -74,3 +74,12 @@
 - [ ] CI GREEN APK/AAB puis validation téléphone Fab.
 
 - [x] Pilotes 2 jauges restaurés ; boss 3 jauges + réserve énergétique séparée implémentés.
+
+
+## BOSS-HUD-COMPACT-DANGER-REGEN
+- [x] CI353 précédente consignée.
+- [x] Branche dédiée créée depuis 2e0fb31e.
+- [x] Tests RED écrits : bloc boss unique compact semi-transparent + regen Danger 9 avec APOCALYPSE = 9× MOU.
+- [ ] Prouver RED en CI.
+- [ ] Implémenter géométrie compacte + alpha + regen Boss Danger.
+- [ ] CI GREEN APK/AAB puis validation téléphone Fab.

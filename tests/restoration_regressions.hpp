@@ -311,32 +311,46 @@ static void testCoopHudAndMissile()
     assert(lowEnergy.y>low.y);
     assert(upEnergy.x==mirroredEnergy.x && upEnergy.y==mirroredEnergy.y);
 
-    // The three-reserve presentation belongs to the BOSS, not the pilots.
+    // The three boss bars are a SINGLE compact side block, not mirrored across
+    // the arena. Boolean legacy argument must resolve to the same geometry.
     const auto life0=sfBossLifeRect(false,width,height),life1=sfBossLifeRect(true,width,height);
     const auto energy0=sfBossEnergyRect(false,width,height),energy1=sfBossEnergyRect(true,width,height);
     const auto kinetic0=sfBossKineticRect(false,width,height),kinetic1=sfBossKineticRect(true,width,height);
+    assert(life0.x==life1.x && life0.y==life1.y && energy0.x==energy1.x && kinetic0.x==kinetic1.x);
     assert(energy0.y<life0.y && life0.y<kinetic0.y);
-    const auto lifeMirror=sfMirrorRect180(life0,width,height);
-    const auto energyMirror=sfMirrorRect180(energy0,width,height);
-    const auto kineticMirror=sfMirrorRect180(kinetic0,width,height);
-    assert(life1.x==lifeMirror.x && life1.y==lifeMirror.y);
-    assert(energy1.x==energyMirror.x && energy1.y==energyMirror.y);
-    assert(kinetic1.x==kineticMirror.x && kinetic1.y==kineticMirror.y);
+    assert(life0.w<=int(width*.30f) && life0.x>width/2);
+    assert(kinetic0.y-energy0.y<=life0.h*3+8); // tightly packed
+    assert(life0.h<=std::max(6,width/90));      // visibly thinner than pilot bars
     const auto full=sfHealthColor(1),empty=sfHealthColor(0);
     assert(full.g>full.r && empty.r>empty.g);
     const auto bossEnergyColor=sfBossEnergyColor(),bossKineticColor=sfBossKineticColor();
     assert(bossEnergyColor.b>bossEnergyColor.r && bossEnergyColor.r>bossEnergyColor.g);
     assert(bossKineticColor.r>bossKineticColor.g && bossKineticColor.g>bossKineticColor.b);
+    assert(sfBossHudBackgroundAlpha()<160 && sfBossHudFillAlpha()<230);
 
-    // Separate boss visual reserves: both regenerate faster at easy difficulty.
-    assert(sfCoopBossReserveRegenPerSecond(0)>sfCoopBossReserveRegenPerSecond(3));
+    // Fab canon: boss is handicapped in MOU DU GENOU and increasingly favoured
+    // by the 9 Danger levels. APOCALYPSE regenerates exactly 9x faster than MOU.
+    const float mou=sfCoopBossReserveRegenPerSecond(0);
+    const float apocalypse=sfCoopBossReserveRegenPerSecond(SF_BOSS_DANGER_COUNT-1);
+    assert(mou>0 && std::abs(apocalypse/mou-9.0f)<.001f);
+    float previous=mou;
+    for(int danger=1;danger<SF_BOSS_DANGER_COUNT;++danger) {
+        const float current=sfCoopBossReserveRegenPerSecond(danger);
+        assert(current>previous);previous=current;
+    }
     assert(sfCoopBossKineticVisibilityAlpha(0.05f)>sfCoopBossKineticVisibilityAlpha(0.95f));
-    sfCoop.bossEnergyReserve=.25f;sfCoop.bossKineticReserve=.25f;sfCoop.encounter=0;
-    const float easyEnergy=sfCoopRegenerateBossReserveValue(sfCoop.bossEnergyReserve,1.0f,sfDifficultyIndex(sfCoop.encounter));
-    const float easyKinetic=sfCoopRegenerateBossReserveValue(sfCoop.bossKineticReserve,1.0f,sfDifficultyIndex(sfCoop.encounter));
-    sfCoop.encounter=150;
-    const float hardEnergy=sfCoopRegenerateBossReserveValue(.25f,1.0f,sfDifficultyIndex(sfCoop.encounter));
-    assert(easyEnergy>hardEnergy && easyKinetic>.25f && hardEnergy>.25f);
+    const float mouReserve=sfCoopRegenerateBossReserveValue(.25f,1.0f,0);
+    const float apocalypseReserve=sfCoopRegenerateBossReserveValue(.25f,1.0f,SF_BOSS_DANGER_COUNT-1);
+    assert(apocalypseReserve>mouReserve && mouReserve>.25f);
+
+    // Actual runtime regen must use Boss Danger, not campaign difficulty.
+    const int savedDanger=sfBossDangerIndex;
+    sfCoop.encounter=0;sfCoop.bossEnergyReserve=sfCoop.bossKineticReserve=.25f;
+    sfBossDangerIndex=0;sfCoopRegenerateBossReserves(1.0f);const float runtimeMou=sfCoop.bossEnergyReserve;
+    sfCoop.bossEnergyReserve=sfCoop.bossKineticReserve=.25f;
+    sfBossDangerIndex=SF_BOSS_DANGER_COUNT-1;sfCoopRegenerateBossReserves(1.0f);const float runtimeApocalypse=sfCoop.bossEnergyReserve;
+    sfBossDangerIndex=savedDanger;
+    assert(runtimeApocalypse>runtimeMou);
 
     // Half-texel inset remains the bounded anti-bleeding fix.
     const SDL_Rect atlasCell{10,20,100,80};
