@@ -39,10 +39,10 @@
 
 ## Avenant Fab post-342
 - [x] Ancien candidat 342 déclaré obsolète avant validation téléphone.
-- [ ] RED : boss field non destructif + anneau centre-out transparent.
-- [ ] RED : recharge Danger 4,0 s -> 10,5 s.
-- [ ] RED : spawn astéroïdes COOP continu.
-- [ ] RED : minage/aspiration blanc pendant charge 0,30–2,00 s.
-- [ ] Implémentation minimale puis CI complète.
+- [x] RED : boss field non destructif + anneau centre-out transparent — run 343.
+- [x] RED : recharge Danger 4,0 s -> 10,5 s — run 343.
+- [x] RED : spawn astéroïdes COOP continu — run 343.
+- [x] RED : minage/aspiration blanc pendant charge 0,30–2,00 s — run 343.
+- [x] Implémentation minimale codée ; [ ] CI complète GREEN.
 - [ ] Nouvel APK téléphone.
 - [ ] Aucun merge/release sans ordre explicite.

@@ -60,3 +60,11 @@
 - La demi-vie 21 s de recharge COOP est remplacée par une recharge dépendante du Danger (4,0 s facile -> 10,5 s apocalypse).
 - La charge 2 s ajoute un minage/aspiration blanc uniquement pendant la phase visible 0,30–2,00 s ; ne pas continuer en état charged/vulnérable.
 - Le spawn campagne doit être temporel/continu avec plafond pour éviter une explosion de population.
+
+
+## RED avenant run 343 — 2026-10-07
+- Workflow `37559681669` échoue volontairement avant code : surcharge de `sfCoopPassiveRechargeHeat` à 3 arguments absente, alpha/rayon boss absents, timer spawn absent, `sfKineticSurgeMineStep` absent.
+- Preuve RED valide : les erreurs correspondent exclusivement au nouvel avenant Fab.
+- Le nouveau champ boss ne doit JAMAIS appeler `sfKineticDestroyAsteroid`; appliquer le résiduel au boss puis réduire/réfléchir la vitesse du rocher survivant avec cooldown anti multi-hit.
+- L'anneau boss ne doit plus utiliser `sfUiCircle` opaque pour le pulse : dessin alpha dédié.
+- Le minage de charge doit s'arrêter dès `charged=true` pour préserver la vulnérabilité READY.

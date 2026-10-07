@@ -75,3 +75,12 @@ CLASSIQUE DUEL local :
 - Astéroïdes COOP : timer de spawn continu avec plafond de population.
 - Surge mining partagé CLASSIQUE/COOP : actif seulement 0,30 <= hold < 2,00 s ; cible proche unique ; shrink continu < cadence tirs ; poussière blanche attirée.
 - Run 342 obsolète pour validation téléphone.
+
+
+## Run 343 RED -> code avenant
+- Run `37559681669` RED attendu sur les nouveaux contrats.
+- Recharge: half-life Danger 0..8 = 4,0 -> 10,5 s.
+- Boss field: 55 %, ne détruit pas ; residual HP + vitesse relative amortie/rebondie ; cooldown .42 s.
+- Boss wave: centre -> rayon 1,08× boss, durée .46 s, alpha max 72 + limite permanente alpha 28.
+- Spawn COOP: batch historique `setasts(1)` toutes les 3,5 s, plafond 24.
+- Surge mining partagé: 1,25 shot-eq/s + aspiration blanche 7/s, seulement 0,30 <= hold < 2,00.

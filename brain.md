@@ -81,3 +81,11 @@
 - COOP : astéroïdes générés continuellement dans le temps.
 - Recharge passive : abandon de la demi-vie provisoire 21 s. Danger 1 MOU DU GENOU = 4,0 s ; Danger 9 APOCALYPSE = 10,5 s ; interpolation monotone.
 - Le run 342 n'est donc plus candidat téléphone ; nouvelle preuve RED/GREEN requise.
+
+
+## RED avenant run 343 + implémentation
+- RED avenant prouvé : workflow `37559681669` / run 343 échoue exactement sur les signatures/états demandés : recharge par Danger, alpha/rayon anneau boss, spawn continu et minage de surcharge.
+- Implémentation en cours : recharge COOP 4,0 s (MOU DU GENOU) -> 10,5 s (APOCALYPSE), boss 55 % non destructif avec rebond amorti/cooldown, anneau centre-out alpha <=72, spawn continu 3,5 s plafonné à 24 astéroïdes.
+- Charge 0,30–2,00 s : extraction continue 1,25 équivalent-tir/s sur l'astéroïde proche + 7 poussières blanches/s aspirées vers le vaisseau ; arrêt strict à READY 2 s.
+- Les tirs ordinaires ciblés IA reçoivent aussi la dispersion initiale aléatoire ; aucun guidage en vol ajouté.
+- Nouvelle CI GREEN complète requise avant APK téléphone.

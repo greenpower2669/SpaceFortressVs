@@ -280,7 +280,7 @@ static bool sfFireMain(int owner,const tupl *target=nullptr)
     shot->x=ship->x; shot->y=ship->y;
     float angle=(owner==0 ? 1.0f : -1.0f)*float(PI)*.5f;
     if (target) angle=std::atan2(target->y-ship->y,target->x-ship->x);
-    if (!missile && !target)
+    if (!missile)
         angle+=sfMainShotSpreadRadians(heatBefore,sfMainShotRandomUnit());
     shot->shotVelocityX=std::cos(angle)*speed;
     shot->shotVelocityY=std::sin(angle)*speed;
