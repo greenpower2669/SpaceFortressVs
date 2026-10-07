@@ -199,3 +199,9 @@
 - `BOSS` du haut est dessiné avec `sfCoopText180` à partir des coordonnées logiques du label bas : glyphes réellement retournés à 180°.
 - Le gloss suit lui aussi la rotation : bande brillante haute en bas-gauche, bande brillante basse dans la copie haut-droite.
 - Taille, transparence, regen Boss Danger, champ 55 %, joueurs, FX, atlas et gameplay inchangés.
+
+
+## CI360 RED -> CI361 GREEN
+- RED 360 : tests cassent uniquement sur le nouveau contrat d'orientation avant code.
+- GREEN 361 : suite complète SUCCESS sur `cd1b3f773b3e08e19fd36c025c274b12e661c844`.
+- Le texte BOSS du haut utilise `sfCoopText180` avec les coordonnées logiques du bloc bas ; ce n'est pas un simple texte inversé isolé.

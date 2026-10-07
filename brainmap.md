@@ -203,3 +203,8 @@ CLASSIQUE DUEL local :
 - `BOSS` du haut est dessiné avec `sfCoopText180` à partir des coordonnées logiques du label bas : glyphes réellement retournés à 180°.
 - Le gloss suit lui aussi la rotation : bande brillante haute en bas-gauche, bande brillante basse dans la copie haut-droite.
 - Taille, transparence, regen Boss Danger, champ 55 %, joueurs, FX, atlas et gameplay inchangés.
+
+
+## CI361 candidat téléphone
+- Code `cd1b3f77...` GREEN complet : boss HUD bas-gauche normal + haut-droite rotation 180° complète.
+- APK `3d35a827...`, AAB `4f4cb8bc...`; gameplay inchangé.

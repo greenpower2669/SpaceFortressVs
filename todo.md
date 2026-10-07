@@ -92,7 +92,7 @@
 ## BOSS-HUD-MIRROR-LABEL
 - [x] Branche dédiée depuis fb8b98d9.
 - [x] Tests RED écrits pour label BOSS + reflet interne symétrique.
-- [ ] Prouver RED en CI.
+- [x] RED prouvé : run 360 / `37697366838`.
 - [x] Implémenter uniquement le polish HUD boss.
 - [x] CI358 GREEN + APK/AAB ; [ ] validation téléphone Fab.
 
@@ -106,6 +106,8 @@
 - [x] Tests RED : bas-gauche normal, haut-droite miroir 180°, remplissage inversé, label miroir.
 - [ ] Prouver RED en CI.
 - [x] Même objet HUD implémenté bas-gauche + miroir 180° haut-droite.
-- [ ] CI GREEN + APK/AAB puis validation téléphone Fab.
+- [x] CI361 GREEN + APK/AAB ; [ ] validation téléphone Fab.
 
 - [x] Remplissage, label BOSS et gloss tournés avec le bloc haut.
+
+- [x] Artifact CI361 id `11515479617` ; APK `3d35a827...` ; AAB `4f4cb8bc...`.
