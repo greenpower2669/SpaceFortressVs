@@ -153,3 +153,10 @@
 - Vitesse max conservée à 0.18 réserve/s en APOCALYPSE ; MOU DU GENOU = 0.18/9 = 0.02/s ; interpolation linéaire strictement croissante pour les 7 Dangers intermédiaires.
 - Énergie et cinétique boss partagent cette courbe. Santé, dégâts, dissipation cinétique 55 %, champ et autres gameplay restent inchangés.
 - RED prouvé run 354 / `37634894304` : échec attendu sur helpers alpha absents avant code.
+
+
+## CI354 RED -> CI355 GREEN
+- RED 354 : échec exactement sur `sfBossHudBackgroundAlpha/sfBossHudFillAlpha` absents, preuve TDD valide.
+- GREEN 355 : suite complète SUCCESS sur `6826463de42ca7ad794f5ec775fb46d98009c836`.
+- Le réglage regen boss utilise maintenant `sfBossDangerIndex`, pas `sfDifficultyIndex(encounter)`.
+- Ne pas confondre cette regen de réserves boss avec la recharge passive des joueurs.

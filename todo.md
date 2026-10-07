@@ -71,7 +71,7 @@
 - [x] Tests RED écrits pour géométrie boss ENERGIE/VIE/CINETIQUE + réserve énergétique séparée.
 - [x] RED prouvé : run 354 / `37634894304`.
 - [x] Implémenter correction minimale sans toucher au reste du lot 350.
-- [ ] CI GREEN APK/AAB puis validation téléphone Fab.
+- [x] CI355 GREEN APK/AAB ; [ ] validation téléphone Fab.
 
 - [x] Pilotes 2 jauges restaurés ; boss 3 jauges + réserve énergétique séparée implémentés.
 
@@ -85,3 +85,5 @@
 - [ ] CI GREEN APK/AAB puis validation téléphone Fab.
 
 - [x] Boss MOU=0.02/s ; APOCALYPSE=0.18/s ; interpolation 9 Dangers.
+
+- [x] Artifact CI355 id `11489666990` ; APK `3d843a48...` ; AAB `044f4fae...`.

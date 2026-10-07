@@ -159,3 +159,9 @@ CLASSIQUE DUEL local :
 - Vitesse max conservée à 0.18 réserve/s en APOCALYPSE ; MOU DU GENOU = 0.18/9 = 0.02/s ; interpolation linéaire strictement croissante pour les 7 Dangers intermédiaires.
 - Énergie et cinétique boss partagent cette courbe. Santé, dégâts, dissipation cinétique 55 %, champ et autres gameplay restent inchangés.
 - RED prouvé run 354 / `37634894304` : échec attendu sur helpers alpha absents avant code.
+
+
+## CI355 candidat téléphone
+- Code `6826463d...` GREEN complet.
+- Boss HUD compact droit semi-transparent ; regen Boss Danger MOU 0.02/s -> APOCALYPSE 0.18/s (×9).
+- Artifact `11489666990`; téléphone à valider avant tout merge/release.
