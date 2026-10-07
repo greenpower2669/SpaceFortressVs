@@ -150,3 +150,12 @@
 - Le champ cinétique visuel reste piloté par la réserve cinétique : plus elle baisse, plus le champ est visible.
 - Tous les autres points de CI 350 sont conservés : missile/orbes/explosion classiques, anti-bleeding demi-texel, spawn/minage/recharge/Danger.
 - Nouvelle branche : `fix/boss-hud-reserves-v143`. Aucun merge main ni Release sans validation Fab.
+
+
+## Implémentation correction HUD boss
+- Pilotes remis exactement au bloc PV + ENERGIE du lot précédent : positions .925/.963, couleur énergie équipe, aucun affichage CINETIQUE pilote.
+- Boss : trois barres miroir ENERGIE (.831) / VIE (.858) / CINETIQUE (.885).
+- `bossEnergyReserve` séparée : les tirs joueurs/tourelles qui touchent le boss la stressent visuellement ; aucun changement de dégâts/PV.
+- `bossKineticReserve` reste stressée uniquement par les impacts cinétiques d'astéroïdes et pilote l'alpha du champ.
+- Les deux réserves remontent avec la même courbe difficulté .18/s facile -> .07/s difficile.
+- Dissipation boss toujours 55 % fixe ; aucun gameplay du lot CI350 n'est modifié.

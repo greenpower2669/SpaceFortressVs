@@ -21,7 +21,9 @@ struct SfCoopState {
     float time=0,phaseTime=0,health=900,attack=1,warning=0,hit=0;
     float chargeTime=0,chargeCooldown=4.5f,chargeOffsetX=0,chargeOffsetY=0;
     float bossKineticFlash=0;
-    // Visual/field stress reserve only. Gameplay dissipation remains the canonical fixed 55%.
+    // Boss reserves are visual stress meters only. Gameplay HP/damage and the
+    // canonical fixed 55% kinetic dissipation remain unchanged.
+    float bossEnergyReserve=1.0f;
     float bossKineticReserve=1.0f;
     float asteroidSpawnTimer=2.0f;
     std::map<sprite*,float> bossAsteroidCooldown;
@@ -486,6 +488,8 @@ static void sfCoopProjectiles(float dt)
                 sfMineAsteroid(rock,&impact);shot.life=0;break;
             }
             if (shot.life>0 && sfSegmentDistance(shot.previous,shot.position,sfCoop.position)<sfCoopBossRadius()*.75f+shot.radius) {
+                const float energyStress=.018f+.102f*std::clamp(shot.damage/60.0f,0.0f,1.0f);
+                sfCoop.bossEnergyReserve=std::clamp(sfCoop.bossEnergyReserve-energyStress,0.0f,1.0f);
                 sfCoop.health=std::max(0.0f,sfCoop.health-shot.damage);shot.life=0;sfCoop.hit=.10f;
             }
         } else if (shot.kind!=2 || shot.age>1.2f) {
@@ -554,26 +558,35 @@ static constexpr float SF_COOP_BOSS_ASTEROID_BASE_DAMAGE=80.0f;
 static constexpr float SF_COOP_BOSS_KINETIC_RING_DURATION=.46f;
 static constexpr float SF_COOP_BOSS_KINETIC_WAVE_DURATION=SF_COOP_BOSS_KINETIC_RING_DURATION;
 static constexpr Uint8 SF_COOP_BOSS_KINETIC_RING_ALPHA=72;
-static constexpr float SF_COOP_BOSS_KINETIC_REGEN_EASY=.18f;
-static constexpr float SF_COOP_BOSS_KINETIC_REGEN_HARD=.07f;
+static constexpr float SF_COOP_BOSS_RESERVE_REGEN_EASY=.18f;
+static constexpr float SF_COOP_BOSS_RESERVE_REGEN_HARD=.07f;
 static constexpr float SF_COOP_ASTEROID_SPAWN_SECONDS=3.5f;
 
-static float sfCoopBossKineticRegenPerSecond(int difficulty)
+static float sfCoopBossReserveRegenPerSecond(int difficulty)
 {
     const float t=std::clamp(difficulty,0,3)/3.0f;
-    return SF_COOP_BOSS_KINETIC_REGEN_EASY+
-        (SF_COOP_BOSS_KINETIC_REGEN_HARD-SF_COOP_BOSS_KINETIC_REGEN_EASY)*t;
+    return SF_COOP_BOSS_RESERVE_REGEN_EASY+
+        (SF_COOP_BOSS_RESERVE_REGEN_HARD-SF_COOP_BOSS_RESERVE_REGEN_EASY)*t;
 }
-static float sfCoopRegenerateBossKineticReserveValue(float reserve,float dt,int difficulty)
+static float sfCoopBossKineticRegenPerSecond(int difficulty)
+{
+    return sfCoopBossReserveRegenPerSecond(difficulty);
+}
+static float sfCoopRegenerateBossReserveValue(float reserve,float dt,int difficulty)
 {
     reserve=std::clamp(reserve,0.0f,1.0f);
     if(dt<=0) return reserve;
-    return std::min(1.0f,reserve+sfCoopBossKineticRegenPerSecond(difficulty)*dt);
+    return std::min(1.0f,reserve+sfCoopBossReserveRegenPerSecond(difficulty)*dt);
 }
-static void sfCoopRegenerateBossKineticReserve(float dt)
+static float sfCoopRegenerateBossKineticReserveValue(float reserve,float dt,int difficulty)
 {
-    sfCoop.bossKineticReserve=sfCoopRegenerateBossKineticReserveValue(
-        sfCoop.bossKineticReserve,dt,sfDifficultyIndex(sfCoop.encounter));
+    return sfCoopRegenerateBossReserveValue(reserve,dt,difficulty);
+}
+static void sfCoopRegenerateBossReserves(float dt)
+{
+    const int difficulty=sfDifficultyIndex(sfCoop.encounter);
+    sfCoop.bossEnergyReserve=sfCoopRegenerateBossReserveValue(sfCoop.bossEnergyReserve,dt,difficulty);
+    sfCoop.bossKineticReserve=sfCoopRegenerateBossReserveValue(sfCoop.bossKineticReserve,dt,difficulty);
 }
 static Uint8 sfCoopBossKineticVisibilityAlpha(float reserve)
 {
@@ -667,7 +680,7 @@ static void sfCoopAdvanceAsteroidSpawner(float dt)
 
 static void sfCoopResources(float dt)
 {
-    sfCoopRegenerateBossKineticReserve(dt);
+    sfCoopRegenerateBossReserves(dt);
     sfCoopAdvanceBossKineticCooldowns(dt);
     sfCoopAdvanceAsteroidSpawner(dt);
     sfLegacyFieldFrame(dt,sfCoopAsteroidHurt);
@@ -1122,30 +1135,36 @@ static void sfCoopText180(SDL_Renderer *renderer,int width,int height,int x,int 
     }
 }
 static int sfHudBarHeight(int width) {return std::max(10,width/60);}
-static SDL_Color sfPlayerEnergyColor() {return {205,175,255,255};}
-static SDL_Color sfPlayerKineticColor() {return {255,184,66,255};}
+static SDL_Color sfBossEnergyColor() {return {205,175,255,255};}
+static SDL_Color sfBossKineticColor() {return {255,184,66,255};}
 static SDL_Rect sfPlayerPvRect(int owner,int width,int height)
 {
     const int margin=std::max(8,width/30),w=int(width*.43f),h=sfHudBarHeight(width);
-    SDL_Rect base{margin,int(height*.932f),w,h};
+    SDL_Rect base{margin,int(height*.925f),w,h};
     return owner==0 ? sfMirrorRect180(base,width,height) : base;
 }
 static SDL_Rect sfPlayerEnergyRect(int owner,int width,int height)
 {
     const int margin=std::max(8,width/30),w=int(width*.43f),h=sfHudBarHeight(width);
-    SDL_Rect base{margin,int(height*.905f),w,h};
-    return owner==0 ? sfMirrorRect180(base,width,height) : base;
-}
-static SDL_Rect sfPlayerKineticRect(int owner,int width,int height)
-{
-    const int margin=std::max(8,width/30),w=int(width*.43f),h=sfHudBarHeight(width);
-    SDL_Rect base{margin,int(height*.959f),w,h};
+    SDL_Rect base{margin,int(height*.963f),w,h};
     return owner==0 ? sfMirrorRect180(base,width,height) : base;
 }
 static SDL_Rect sfBossLifeRect(bool upper,int width,int height)
 {
     const int w=int(width*.58f),h=sfHudBarHeight(width);
     SDL_Rect lower{(width-w)/2,int(height*.858f),w,h};
+    return upper ? sfMirrorRect180(lower,width,height) : lower;
+}
+static SDL_Rect sfBossEnergyRect(bool upper,int width,int height)
+{
+    const int w=int(width*.58f),h=sfHudBarHeight(width);
+    SDL_Rect lower{(width-w)/2,int(height*.831f),w,h};
+    return upper ? sfMirrorRect180(lower,width,height) : lower;
+}
+static SDL_Rect sfBossKineticRect(bool upper,int width,int height)
+{
+    const int w=int(width*.58f),h=sfHudBarHeight(width);
+    SDL_Rect lower{(width-w)/2,int(height*.885f),w,h};
     return upper ? sfMirrorRect180(lower,width,height) : lower;
 }
 static void sfDrawRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,SDL_Color fill,bool reverse=false)
@@ -1306,32 +1325,31 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
 
     const float bossRatio=std::clamp(sfCoop.health/sfCoopProfile().health,0.0f,1.0f);
     const SDL_Color bossColor=sfHealthColor(bossRatio);
-    sfDrawRatioBar(renderer,sfBossLifeRect(false,width,height),bossRatio,bossColor,false);
-    sfDrawRatioBar(renderer,sfBossLifeRect(true,width,height),bossRatio,bossColor,true);
+    const SDL_Color bossEnergyColor=sfBossEnergyColor(),bossKineticColor=sfBossKineticColor();
+    for(bool upper : {false,true}) {
+        sfDrawRatioBar(renderer,sfBossEnergyRect(upper,width,height),sfCoop.bossEnergyReserve,bossEnergyColor,upper);
+        sfDrawRatioBar(renderer,sfBossLifeRect(upper,width,height),bossRatio,bossColor,upper);
+        sfDrawRatioBar(renderer,sfBossKineticRect(upper,width,height),sfCoop.bossKineticReserve,bossKineticColor,upper);
+    }
 
     for (int owner=0;owner<2;++owner) {
         const auto *ship=sfCoopShip(owner);const bool upper=owner==0;
         const SDL_Color team=upper ? SDL_Color{255,180,95,255} : SDL_Color{100,210,255,255};
-        const SDL_Color energyColor=sfPlayerEnergyColor(),kineticColor=sfPlayerKineticColor();
         const float pvRatio=std::clamp(ship->pv/1000.0f,0.0f,1.0f);
         const float energyRatio=sfKineticEnergyFraction(ship->nrj);
-        const float kineticRatio=sfKineticEffectiveEnergyFraction(energyRatio);
-        sfDrawRatioBar(renderer,sfPlayerEnergyRect(owner,width,height),energyRatio,energyColor,upper);
         sfDrawRatioBar(renderer,sfPlayerPvRect(owner,width,height),pvRatio,sfHealthColor(pvRatio),upper);
-        sfDrawRatioBar(renderer,sfPlayerKineticRect(owner,width,height),kineticRatio,kineticColor,upper);
+        sfDrawRatioBar(renderer,sfPlayerEnergyRect(owner,width,height),energyRatio,team,upper);
         const int logicalX=margin,logicalW=int(width*.43f);
-        const int nameY=int(height*.870f),energyY=int(height*.889f),pvY=int(height*.916f),kineticY=int(height*.943f);
+        const int nameY=int(height*.895f),pvY=int(height*.908f),energyY=int(height*.946f);
         const std::string name=upper ? (sfActiveMode==SF_COOP_AI ? "ORION IA" : "PILOTE ORANGE") : "PILOTE BLEU";
         if(upper) {
             sfCoopText180(renderer,width,height,logicalX,nameY,name,logicalW,std::max(2,width/280),team);
-            sfCoopText180(renderer,width,height,logicalX,energyY,"ENERGIE",logicalW,std::max(2,width/300),energyColor);
             sfCoopText180(renderer,width,height,logicalX,pvY,"PV",logicalW,std::max(2,width/300),sfHealthColor(pvRatio));
-            sfCoopText180(renderer,width,height,logicalX,kineticY,"CINETIQUE",logicalW,std::max(2,width/300),kineticColor);
+            sfCoopText180(renderer,width,height,logicalX,energyY,"ENERGIE",logicalW,std::max(2,width/300),team);
         } else {
             sfCoopText(renderer,logicalX,nameY,name,logicalW,std::max(2,width/280),team);
-            sfCoopText(renderer,logicalX,energyY,"ENERGIE",logicalW,std::max(2,width/300),energyColor);
             sfCoopText(renderer,logicalX,pvY,"PV",logicalW,std::max(2,width/300),sfHealthColor(pvRatio));
-            sfCoopText(renderer,logicalX,kineticY,"CINETIQUE",logicalW,std::max(2,width/300),kineticColor);
+            sfCoopText(renderer,logicalX,energyY,"ENERGIE",logicalW,std::max(2,width/300),team);
         }
     }
 }

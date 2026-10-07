@@ -70,5 +70,7 @@
 - [x] Branche dédiée `fix/boss-hud-reserves-v143` depuis `b588abe195000a6ab00e4bae86b441eb4b6c3455`.
 - [x] Tests RED écrits pour géométrie boss ENERGIE/VIE/CINETIQUE + réserve énergétique séparée.
 - [ ] Prouver RED en CI.
-- [ ] Implémenter correction minimale sans toucher au reste du lot 350.
+- [x] Implémenter correction minimale sans toucher au reste du lot 350.
 - [ ] CI GREEN APK/AAB puis validation téléphone Fab.
+
+- [x] Pilotes 2 jauges restaurés ; boss 3 jauges + réserve énergétique séparée implémentés.
