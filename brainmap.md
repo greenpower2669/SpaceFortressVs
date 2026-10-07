@@ -102,3 +102,5 @@ CLASSIQUE DUEL local :
 - HUD : ENERGIE violet clair au-dessus, PV au centre, CINETIQUE jaune/orange au-dessous ; miroir joueur haut.
 - Boss : 55 % inchangé ; réserve visuelle 0..1, regen difficulté, anneaux centre→extérieur, alpha ↑ quand réserve ↓.
 - Atlas : demi-texel anti-bleeding, pas de crop pourcentage.
+
+- Implémenté : classic missile/orbs/explosion en COOP ; FX missile sans poussière gameplay ; HUD violet/PV/orange ; boss reserve visuelle + regen difficulté ; anneaux centre→extérieur ; UV demi-texel.

@@ -118,3 +118,13 @@
 - COOP doit réutiliser missile/orbes/explosion classiques sans modifier `src/main.cpp`.
 - Boss reste gameplay fixe 55 % ; nouvelle réserve = stress visuel/régénération seulement.
 - Broutage : correction bornée UV demi-texel ; si le téléphone montre encore le défaut, stopper avant retouche asset plus large et rediscuter avec Fab.
+
+
+## Implémentation classic FX / kinetic HUD / anti-bleeding
+- COOP charge maintenant les assets historiques `missilebb.png`, `explobb.png`, `orberr.png`, `orbebb.png`.
+- Tirs joueurs ordinaires COOP utilisent les orbes classiques redimensionnées ; missile guidé garde `missilebb.png` avec échappement visuel pur (aucune poussière rouge gameplay créée).
+- Explosions COOP suivent la distinction classique fumée/explosion ; près d'un pilote sous 35 % de bouclier, l'explosion nette `explobb.png` est privilégiée.
+- Boss 55 % gameplay inchangé. Ajout d'une réserve de stress visuelle 0..1 : impacts cinétiques la baissent, auto-régénération campagne .18/s -> .07/s de difficulté 1 à 4 ; alpha du champ augmente quand la réserve baisse.
+- Champ boss : limite très discrète + 3 anneaux continus centre→extérieur, toujours semi-transparents.
+- HUD COOP : ENERGIE violet clair / PV / CINETIQUE jaune-orange. CINETIQUE affiche l'efficacité réelle `pow(energyFraction,1.20)` ; aucune nouvelle ressource gameplay joueur.
+- Broutage boss : inset UV 0,5 % remplacé par demi-texel réel. Aucun PNG retouché.

@@ -21,6 +21,8 @@ struct SfCoopState {
     float time=0,phaseTime=0,health=900,attack=1,warning=0,hit=0;
     float chargeTime=0,chargeCooldown=4.5f,chargeOffsetX=0,chargeOffsetY=0;
     float bossKineticFlash=0;
+    // Visual/field stress reserve only. Gameplay dissipation remains the canonical fixed 55%.
+    float bossKineticReserve=1.0f;
     float asteroidSpawnTimer=2.0f;
     std::map<sprite*,float> bossAsteroidCooldown;
     tupl position;
@@ -50,7 +52,8 @@ inline int sfFamePage=0,sfCampaignPage=0;
 struct SfCampaignTextures {
     SDL_Renderer *renderer=nullptr;
     SDL_Texture *bosses=nullptr,*planets=nullptr,*backgrounds=nullptr;
-    SDL_Texture *orange=nullptr,*blue=nullptr,*bonus=nullptr,*impact=nullptr,*missile=nullptr;
+    SDL_Texture *orange=nullptr,*blue=nullptr,*bonus=nullptr,*impact=nullptr,*explosion=nullptr,*missile=nullptr;
+    SDL_Texture *orbOrange=nullptr,*orbBlue=nullptr;
     std::array<SDL_Texture*,4> rocks{};
 };
 inline std::vector<SfCampaignTextures> sfCampaignTextures;
@@ -551,7 +554,34 @@ static constexpr float SF_COOP_BOSS_ASTEROID_BASE_DAMAGE=80.0f;
 static constexpr float SF_COOP_BOSS_KINETIC_RING_DURATION=.46f;
 static constexpr float SF_COOP_BOSS_KINETIC_WAVE_DURATION=SF_COOP_BOSS_KINETIC_RING_DURATION;
 static constexpr Uint8 SF_COOP_BOSS_KINETIC_RING_ALPHA=72;
+static constexpr float SF_COOP_BOSS_KINETIC_REGEN_EASY=.18f;
+static constexpr float SF_COOP_BOSS_KINETIC_REGEN_HARD=.07f;
 static constexpr float SF_COOP_ASTEROID_SPAWN_SECONDS=3.5f;
+
+static float sfCoopBossKineticRegenPerSecond(int difficulty)
+{
+    const float t=std::clamp(difficulty,0,3)/3.0f;
+    return SF_COOP_BOSS_KINETIC_REGEN_EASY+
+        (SF_COOP_BOSS_KINETIC_REGEN_HARD-SF_COOP_BOSS_KINETIC_REGEN_EASY)*t;
+}
+static float sfCoopRegenerateBossKineticReserveValue(float reserve,float dt,int difficulty)
+{
+    reserve=std::clamp(reserve,0.0f,1.0f);
+    if(dt<=0) return reserve;
+    return std::min(1.0f,reserve+sfCoopBossKineticRegenPerSecond(difficulty)*dt);
+}
+static void sfCoopRegenerateBossKineticReserve(float dt)
+{
+    sfCoop.bossKineticReserve=sfCoopRegenerateBossKineticReserveValue(
+        sfCoop.bossKineticReserve,dt,sfDifficultyIndex(sfCoop.encounter));
+}
+static Uint8 sfCoopBossKineticVisibilityAlpha(float reserve)
+{
+    // Healthy field is intentionally discreet; depleted/stressed field becomes
+    // more visible while always staying semi-transparent.
+    reserve=std::clamp(reserve,0.0f,1.0f);
+    return Uint8(std::clamp(18.0f+(1.0f-reserve)*58.0f,18.0f,76.0f));
+}
 static constexpr size_t SF_COOP_ASTEROID_CAP=24;
 
 static float sfCoopBossKineticRingRadius(float remaining,float fieldRadius)
@@ -595,6 +625,8 @@ static bool sfCoopBossKineticAsteroidImpact(sprite *rock)
     const float residual=raw.rawDamage*(1.0f-SF_COOP_BOSS_KINETIC_DISSIPATION);
     sfCoop.health=std::max(0.0f,sfCoop.health-residual);
     sfCoop.hit=std::max(sfCoop.hit,.10f);
+    const float stress=.035f+.125f*std::clamp(raw.rawDamage/std::max(1.0f,SF_COOP_BOSS_ASTEROID_BASE_DAMAGE),0.0f,1.0f);
+    sfCoop.bossKineticReserve=std::clamp(sfCoop.bossKineticReserve-stress,0.0f,1.0f);
     sfCoop.bossKineticFlash=SF_COOP_BOSS_KINETIC_RING_DURATION;
     sfCoop.bossAsteroidCooldown[rock]=.42f;
     sfFieldCollisionSound=true;
@@ -635,6 +667,7 @@ static void sfCoopAdvanceAsteroidSpawner(float dt)
 
 static void sfCoopResources(float dt)
 {
+    sfCoopRegenerateBossKineticReserve(dt);
     sfCoopAdvanceBossKineticCooldowns(dt);
     sfCoopAdvanceAsteroidSpawner(dt);
     sfLegacyFieldFrame(dt,sfCoopAsteroidHurt);
@@ -832,7 +865,14 @@ static SfCampaignTextures &sfCoopTextures(SDL_Renderer *renderer)
     for(int i=0;i<4;++i) entry.rocks[i]=IMG_LoadTexture(renderer,(std::string("resources/assets/pict/")+paths[i]).c_str());
     entry.bonus=IMG_LoadTexture(renderer,"resources/assets/pict/Bonus_de_tourelles.png");
     entry.impact=IMG_LoadTexture(renderer,IMG_PATHpous);
+    entry.explosion=IMG_LoadTexture(renderer,IMG_PATHexplo);
     entry.missile=IMG_LoadTexture(renderer,IMG_PATHmiss);
+    // Reuse the historical duel orbs instead of approximating them with discs.
+    // Owner 0 (orange/red) historically renders IMG_PATHtj2; owner 1 (blue) IMG_PATHtj1.
+    entry.orbOrange=IMG_LoadTexture(renderer,IMG_PATHtj2);
+    entry.orbBlue=IMG_LoadTexture(renderer,IMG_PATHtj1);
+    for(SDL_Texture *texture : {entry.impact,entry.explosion,entry.missile,entry.orbOrange,entry.orbBlue})
+        if(texture) SDL_SetTextureBlendMode(texture,SDL_BLENDMODE_BLEND);
     sfCampaignTextures.push_back(entry);return sfCampaignTextures.back();
 }
 static void sfCampaignForgetRenderer(SDL_Renderer *renderer)
@@ -845,6 +885,20 @@ static SDL_Rect sfAtlasRect(SDL_Texture *texture,int index,int columns,int rows)
     int width=0,height=0;SDL_QueryTexture(texture,nullptr,nullptr,&width,&height);
     const int x=width*(index%columns)/columns,y=height*(index/columns)/rows;
     return {x,y,width*((index%columns)+1)/columns-x,height*((index/columns)+1)/rows-y};
+}
+static SDL_FPoint sfAtlasSafeUv(const SDL_Rect &src,int textureWidth,int textureHeight,float u,float v)
+{
+    // Sample half a texel inside the cell. This prevents linear-filter bleeding
+    // without shaving a percentage off the artwork (the previous .5% inset could
+    // visibly nibble narrow extremities on some boss cells).
+    textureWidth=std::max(1,textureWidth);textureHeight=std::max(1,textureHeight);
+    u=std::clamp(u,0.0f,1.0f);v=std::clamp(v,0.0f,1.0f);
+    const float insetX=src.w>1 ? .5f : 0.0f,insetY=src.h>1 ? .5f : 0.0f;
+    const float left=(src.x+insetX)/float(textureWidth);
+    const float right=(src.x+src.w-insetX)/float(textureWidth);
+    const float top=(src.y+insetY)/float(textureHeight);
+    const float bottom=(src.y+src.h-insetY)/float(textureHeight);
+    return {left+(right-left)*u,top+(bottom-top)*v};
 }
 static SDL_Rect sfBossAtlasRect(SDL_Texture *texture,int index)
 {
@@ -959,7 +1013,7 @@ static std::array<SDL_Vertex,81> sfBossVertices(SDL_Texture *atlas,int boss,tupl
         const Uint8 hitG=Uint8(hit>0 ? 195 : 255),hitB=Uint8(hit>0 ? 165 : 255);
         vertex.color={tint.r,Uint8(unsigned(hitG)*tint.g/255u),Uint8(unsigned(hitB)*tint.b/255u),
                       Uint8(unsigned(tint.a)*Uint8(255*(1-std::clamp(dying,0.0f,1.0f)))/255u)};
-        vertex.tex_coord={(src.x+(.005f+u*.99f)*src.w)/twidth,(src.y+(.005f+v*.99f)*src.h)/theight};
+        vertex.tex_coord=sfAtlasSafeUv(src,twidth,theight,u,v);
     }
     return vertices;
 }
@@ -1068,16 +1122,24 @@ static void sfCoopText180(SDL_Renderer *renderer,int width,int height,int x,int 
     }
 }
 static int sfHudBarHeight(int width) {return std::max(10,width/60);}
+static SDL_Color sfPlayerEnergyColor() {return {205,175,255,255};}
+static SDL_Color sfPlayerKineticColor() {return {255,184,66,255};}
 static SDL_Rect sfPlayerPvRect(int owner,int width,int height)
 {
     const int margin=std::max(8,width/30),w=int(width*.43f),h=sfHudBarHeight(width);
-    SDL_Rect base{margin,int(height*.925f),w,h};
+    SDL_Rect base{margin,int(height*.932f),w,h};
     return owner==0 ? sfMirrorRect180(base,width,height) : base;
 }
 static SDL_Rect sfPlayerEnergyRect(int owner,int width,int height)
 {
     const int margin=std::max(8,width/30),w=int(width*.43f),h=sfHudBarHeight(width);
-    SDL_Rect base{margin,int(height*.963f),w,h};
+    SDL_Rect base{margin,int(height*.905f),w,h};
+    return owner==0 ? sfMirrorRect180(base,width,height) : base;
+}
+static SDL_Rect sfPlayerKineticRect(int owner,int width,int height)
+{
+    const int margin=std::max(8,width/30),w=int(width*.43f),h=sfHudBarHeight(width);
+    SDL_Rect base{margin,int(height*.959f),w,h};
     return owner==0 ? sfMirrorRect180(base,width,height) : base;
 }
 static SDL_Rect sfBossLifeRect(bool upper,int width,int height)
@@ -1122,10 +1184,22 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
     }
     for (const auto *dust : particules) if (dust->pv>0) sfCoopDisc(renderer,dust->x,dust->y,2.5f,{125,235,255,220});
     for (const auto *dust : particulesr) if (dust->pv>0) sfCoopDisc(renderer,dust->x,dust->y,2.0f,{255,130,70,200});
-    if(textures.impact) for(const auto *effect:explos) {
+    if(textures.impact || textures.explosion) for(const auto *effect:explos) {
         if(effect->pv<=0 || effect->w<=0 || effect->h<=0) continue;
+        const bool smokeKind=effect->name=="pous" || effect->name=="tj2" || effect->name=="tj1";
+        bool weakShieldNearby=false;
+        for(int owner=0;owner<2;++owner) {
+            const auto *ship=sfCoopShip(owner);
+            if(!ship || ship->pv<=0 || sfShieldFraction(ship->nrj)>=.35f) continue;
+            if(vlong(effect->x-ship->x,effect->y-ship->y)<sfCoopShipRadius()*2.2f) {
+                weakShieldNearby=true;break;
+            }
+        }
+        SDL_Texture *fx=(smokeKind && !weakShieldNearby) ? textures.impact : textures.explosion;
+        if(!fx) fx=textures.explosion ? textures.explosion : textures.impact;
+        if(!fx) continue;
         SDL_Rect rect{int(effect->x-effect->w*.5f),int(effect->y-effect->h*.5f),int(effect->w),int(effect->h)};
-        SDL_RenderCopyEx(renderer,textures.impact,nullptr,&rect,sfCoop.time*effect->as*effect->asign*5,nullptr,effect->flip);
+        SDL_RenderCopyEx(renderer,fx,nullptr,&rect,sfCoop.time*effect->as*effect->asign*5,nullptr,effect->flip);
     }
     for (const auto &shot : sfCoop.shots) {
         SDL_Color color=shot.owner==0 ? SDL_Color{255,175,75,255} : shot.owner==1 ? SDL_Color{100,220,255,255} : SDL_Color{255,70,140,255};
@@ -1133,9 +1207,28 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
         if (shot.kind==4 && textures.missile) {
             const int w=std::max(8,int(shot.radius*1.55f)),h=std::max(18,int(shot.radius*4.8f));
             SDL_Rect rect{int(shot.position.x-w*.5f),int(shot.position.y-h*.5f),w,h};
+            const float speed=std::max(1.0f,vlong(shot.velocity.vx,shot.velocity.vy));
+            const float ux=shot.velocity.vx/speed,uy=shot.velocity.vy/speed;
             const double angle=std::atan2(shot.velocity.vy,shot.velocity.vx)*180.0/PI+90.0;
-            sfCoopDisc(renderer,shot.position.x,shot.position.y,shot.radius*1.65f,{color.r,color.g,color.b,70});
+            // Classic missile language without spawning gameplay red dust: hot
+            // exhaust beads trail the same missilebb.png body.
+            for(int i=1;i<=4;++i) {
+                const float trail=shot.radius*(1.5f+i*1.05f);
+                const float rr=shot.radius*(.85f-.12f*i);
+                sfCoopDisc(renderer,shot.position.x-ux*trail,shot.position.y-uy*trail,std::max(1.0f,rr),
+                           {255,Uint8(std::max(70,205-i*30)),45,Uint8(180-i*26)});
+            }
+            sfCoopDisc(renderer,shot.position.x,shot.position.y,shot.radius*1.65f,{color.r,color.g,color.b,58});
             SDL_RenderCopyEx(renderer,textures.missile,nullptr,&rect,angle,nullptr,SDL_FLIP_NONE);
+        } else if(shot.kind==0 && shot.owner>=0) {
+            SDL_Texture *orb=shot.owner==0 ? textures.orbOrange : textures.orbBlue;
+            if(orb) {
+                const int side=std::max(7,int(shot.radius*2.55f));
+                SDL_Rect rect{int(shot.position.x-side*.5f),int(shot.position.y-side*.5f),side,side};
+                SDL_RenderCopy(renderer,orb,nullptr,&rect);
+            } else {
+                sfCoopDisc(renderer,shot.position.x,shot.position.y,shot.radius,color);
+            }
         } else {
             sfCoopDisc(renderer,shot.position.x,shot.position.y,shot.radius*1.7f,{color.r,color.g,color.b,65});
             sfCoopDisc(renderer,shot.position.x,shot.position.y,shot.radius,color);
@@ -1150,16 +1243,29 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
     }
     if(death==0) {
         const int fieldRadius=int(sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE);
+        const Uint8 reserveAlpha=sfCoopBossKineticVisibilityAlpha(sfCoop.bossKineticReserve);
         sfCoopCircleAlpha(renderer,int(sfCoop.position.x),int(sfCoop.position.y),fieldRadius,
-                          145,95,215,28);
+                          145,95,215,Uint8(std::max(8,int(reserveAlpha*.34f))));
+        // Quiet, continuous centre -> outside kinetic waves. A stressed reserve
+        // is easier to read, while a healthy field remains almost transparent.
+        for(int ring=0;ring<3;++ring) {
+            float p=std::fmod(sfCoop.time*.31f+ring/3.0f,1.0f);
+            if(p<0) p+=1.0f;
+            const float eased=p*p*(3.0f-2.0f*p);
+            const int radius=std::max(1,int(fieldRadius*eased));
+            const Uint8 alpha=Uint8(std::clamp(float(reserveAlpha)*(1.0f-.62f*p),5.0f,76.0f));
+            sfCoopCircleAlpha(renderer,int(sfCoop.position.x),int(sfCoop.position.y),radius,
+                              205,160,255,alpha);
+        }
         if(sfCoop.bossKineticFlash>0) {
             const float progress=1.0f-sfCoop.bossKineticFlash/SF_COOP_BOSS_KINETIC_RING_DURATION;
             const int radius=int(sfCoopBossKineticRingRadius(sfCoop.bossKineticFlash,float(fieldRadius)));
-            const Uint8 alpha=Uint8(std::clamp(float(SF_COOP_BOSS_KINETIC_RING_ALPHA)*(1.0f-progress*.58f),18.0f,255.0f));
+            const float impactBase=std::min(float(SF_COOP_BOSS_KINETIC_RING_ALPHA),float(reserveAlpha)+18.0f);
+            const Uint8 alpha=Uint8(std::clamp(impactBase*(1.0f-progress*.62f),10.0f,76.0f));
             sfCoopCircleAlpha(renderer,int(sfCoop.position.x),int(sfCoop.position.y),radius,
-                              255,135,245,alpha);
+                              255,150,235,alpha);
             sfCoopCircleAlpha(renderer,int(sfCoop.position.x),int(sfCoop.position.y),radius+2,
-                              210,175,255,Uint8(std::max(12,int(alpha*.62f))));
+                              220,185,255,Uint8(std::max(7,int(alpha*.55f))));
         }
     }
     sfDrawEncounterBoss(renderer,textures.bosses,sfCoop.encounter,sfCoop.position,sfCoopBossRadius(),
@@ -1206,21 +1312,26 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
     for (int owner=0;owner<2;++owner) {
         const auto *ship=sfCoopShip(owner);const bool upper=owner==0;
         const SDL_Color team=upper ? SDL_Color{255,180,95,255} : SDL_Color{100,210,255,255};
+        const SDL_Color energyColor=sfPlayerEnergyColor(),kineticColor=sfPlayerKineticColor();
         const float pvRatio=std::clamp(ship->pv/1000.0f,0.0f,1.0f);
-        const float energyRatio=1-sfShipHeat(ship->nrj)/SF_MAX_SHIP_HEAT;
+        const float energyRatio=sfKineticEnergyFraction(ship->nrj);
+        const float kineticRatio=sfKineticEffectiveEnergyFraction(energyRatio);
+        sfDrawRatioBar(renderer,sfPlayerEnergyRect(owner,width,height),energyRatio,energyColor,upper);
         sfDrawRatioBar(renderer,sfPlayerPvRect(owner,width,height),pvRatio,sfHealthColor(pvRatio),upper);
-        sfDrawRatioBar(renderer,sfPlayerEnergyRect(owner,width,height),energyRatio,team,upper);
+        sfDrawRatioBar(renderer,sfPlayerKineticRect(owner,width,height),kineticRatio,kineticColor,upper);
         const int logicalX=margin,logicalW=int(width*.43f);
-        const int nameY=int(height*.895f),pvY=int(height*.908f),energyY=int(height*.946f);
+        const int nameY=int(height*.870f),energyY=int(height*.889f),pvY=int(height*.916f),kineticY=int(height*.943f);
         const std::string name=upper ? (sfActiveMode==SF_COOP_AI ? "ORION IA" : "PILOTE ORANGE") : "PILOTE BLEU";
         if(upper) {
             sfCoopText180(renderer,width,height,logicalX,nameY,name,logicalW,std::max(2,width/280),team);
+            sfCoopText180(renderer,width,height,logicalX,energyY,"ENERGIE",logicalW,std::max(2,width/300),energyColor);
             sfCoopText180(renderer,width,height,logicalX,pvY,"PV",logicalW,std::max(2,width/300),sfHealthColor(pvRatio));
-            sfCoopText180(renderer,width,height,logicalX,energyY,"ENERGIE",logicalW,std::max(2,width/300),team);
+            sfCoopText180(renderer,width,height,logicalX,kineticY,"CINETIQUE",logicalW,std::max(2,width/300),kineticColor);
         } else {
             sfCoopText(renderer,logicalX,nameY,name,logicalW,std::max(2,width/280),team);
+            sfCoopText(renderer,logicalX,energyY,"ENERGIE",logicalW,std::max(2,width/300),energyColor);
             sfCoopText(renderer,logicalX,pvY,"PV",logicalW,std::max(2,width/300),sfHealthColor(pvRatio));
-            sfCoopText(renderer,logicalX,energyY,"ENERGIE",logicalW,std::max(2,width/300),team);
+            sfCoopText(renderer,logicalX,kineticY,"CINETIQUE",logicalW,std::max(2,width/300),kineticColor);
         }
     }
 }

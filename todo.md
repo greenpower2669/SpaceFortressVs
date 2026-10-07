@@ -57,6 +57,9 @@
 - [x] Diagnostic initial broutage : atlas/UV plausible ; demi-texel retenu pour TDD.
 - [x] Tests RED écrits : HUD 3 barres, couleurs, réserve boss/regen difficulté, alpha inverse, UV demi-texel, textures classiques COOP.
 - [ ] Prouver RED en CI.
-- [ ] Implémenter sans toucher src/main.cpp.
+- [x] Implémenter sans toucher src/main.cpp.
 - [ ] CI GREEN + APK/AAB.
 - [ ] Validation téléphone Fab ; aucun merge/release avant accord.
+
+- [x] Classic missile/orbs/explosion COOP ; HUD 3 barres ; réserve visuelle boss ; UV demi-texel implémentés.
+- [ ] Vérifier RED 349 puis CI GREEN du commit d'implémentation.
