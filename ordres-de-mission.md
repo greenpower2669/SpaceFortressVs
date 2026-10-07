@@ -279,3 +279,12 @@ Les autres règles du dernier avenant restent inchangées : boss 55 % non destru
 - Même courbe pour réserve énergie et réserve cinétique boss. Le champ reste 55 % fixe : la réserve ne modifie pas la dissipation gameplay.
 - Pilotes inchangés, FX/orbes/missile/anti-bleeding inchangés, `src/main.cpp` protégé.
 - Branche `fix/boss-hud-compact-danger-regen-v143`; TDD RED avant code ; aucun merge/release sans validation Fab.
+
+
+## Implémentation BOSS-HUD-COMPACT-DANGER-REGEN
+- Boss HUD : un seul bloc à droite, largeur 28 % écran, y≈13,5 %, trois barres fines (~width/110) séparées d'environ 2 px.
+- Fond boss alpha 88/255 ; remplissage alpha 188/255. HUD pilotes inchangé.
+- Régénération réserves boss pilotée exclusivement par `sfBossDangerIndex` 0..8.
+- Vitesse max conservée à 0.18 réserve/s en APOCALYPSE ; MOU DU GENOU = 0.18/9 = 0.02/s ; interpolation linéaire strictement croissante pour les 7 Dangers intermédiaires.
+- Énergie et cinétique boss partagent cette courbe. Santé, dégâts, dissipation cinétique 55 %, champ et autres gameplay restent inchangés.
+- RED prouvé run 354 / `37634894304` : échec attendu sur helpers alpha absents avant code.

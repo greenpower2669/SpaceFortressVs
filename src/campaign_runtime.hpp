@@ -558,15 +558,16 @@ static constexpr float SF_COOP_BOSS_ASTEROID_BASE_DAMAGE=80.0f;
 static constexpr float SF_COOP_BOSS_KINETIC_RING_DURATION=.46f;
 static constexpr float SF_COOP_BOSS_KINETIC_WAVE_DURATION=SF_COOP_BOSS_KINETIC_RING_DURATION;
 static constexpr Uint8 SF_COOP_BOSS_KINETIC_RING_ALPHA=72;
-static constexpr float SF_COOP_BOSS_RESERVE_REGEN_EASY=.18f;
-static constexpr float SF_COOP_BOSS_RESERVE_REGEN_HARD=.07f;
+static constexpr float SF_COOP_BOSS_RESERVE_REGEN_MAX=.18f;
+static constexpr float SF_COOP_BOSS_RESERVE_REGEN_MIN=SF_COOP_BOSS_RESERVE_REGEN_MAX/9.0f;
 static constexpr float SF_COOP_ASTEROID_SPAWN_SECONDS=3.5f;
 
-static float sfCoopBossReserveRegenPerSecond(int difficulty)
+static float sfCoopBossReserveRegenPerSecond(int dangerIndex)
 {
-    const float t=std::clamp(difficulty,0,3)/3.0f;
-    return SF_COOP_BOSS_RESERVE_REGEN_EASY+
-        (SF_COOP_BOSS_RESERVE_REGEN_HARD-SF_COOP_BOSS_RESERVE_REGEN_EASY)*t;
+    dangerIndex=std::clamp(dangerIndex,0,SF_BOSS_DANGER_COUNT-1);
+    const float t=dangerIndex/float(SF_BOSS_DANGER_COUNT-1);
+    return SF_COOP_BOSS_RESERVE_REGEN_MIN+
+        (SF_COOP_BOSS_RESERVE_REGEN_MAX-SF_COOP_BOSS_RESERVE_REGEN_MIN)*t;
 }
 static float sfCoopBossKineticRegenPerSecond(int difficulty)
 {
@@ -584,9 +585,9 @@ static float sfCoopRegenerateBossKineticReserveValue(float reserve,float dt,int 
 }
 static void sfCoopRegenerateBossReserves(float dt)
 {
-    const int difficulty=sfDifficultyIndex(sfCoop.encounter);
-    sfCoop.bossEnergyReserve=sfCoopRegenerateBossReserveValue(sfCoop.bossEnergyReserve,dt,difficulty);
-    sfCoop.bossKineticReserve=sfCoopRegenerateBossReserveValue(sfCoop.bossKineticReserve,dt,difficulty);
+    const int dangerIndex=std::clamp(sfBossDangerIndex,0,SF_BOSS_DANGER_COUNT-1);
+    sfCoop.bossEnergyReserve=sfCoopRegenerateBossReserveValue(sfCoop.bossEnergyReserve,dt,dangerIndex);
+    sfCoop.bossKineticReserve=sfCoopRegenerateBossReserveValue(sfCoop.bossKineticReserve,dt,dangerIndex);
 }
 static Uint8 sfCoopBossKineticVisibilityAlpha(float reserve)
 {
@@ -1135,6 +1136,9 @@ static void sfCoopText180(SDL_Renderer *renderer,int width,int height,int x,int 
     }
 }
 static int sfHudBarHeight(int width) {return std::max(10,width/60);}
+static int sfBossHudBarHeight(int width) {return std::max(5,width/110);}
+static Uint8 sfBossHudBackgroundAlpha() {return 88;}
+static Uint8 sfBossHudFillAlpha() {return 188;}
 static SDL_Color sfBossEnergyColor() {return {205,175,255,255};}
 static SDL_Color sfBossKineticColor() {return {255,184,66,255};}
 static SDL_Rect sfPlayerPvRect(int owner,int width,int height)
@@ -1149,23 +1153,26 @@ static SDL_Rect sfPlayerEnergyRect(int owner,int width,int height)
     SDL_Rect base{margin,int(height*.963f),w,h};
     return owner==0 ? sfMirrorRect180(base,width,height) : base;
 }
+static SDL_Rect sfBossHudRectAt(int index,int width,int height)
+{
+    const int margin=std::max(8,width/30);
+    const int w=std::max(48,int(width*.28f)),h=sfBossHudBarHeight(width);
+    const int gap=std::max(2,h/3);
+    const int x=width-margin-w;
+    const int y=int(height*.135f)+index*(h+gap);
+    return {x,y,w,h};
+}
 static SDL_Rect sfBossLifeRect(bool upper,int width,int height)
 {
-    const int w=int(width*.58f),h=sfHudBarHeight(width);
-    SDL_Rect lower{(width-w)/2,int(height*.858f),w,h};
-    return upper ? sfMirrorRect180(lower,width,height) : lower;
+    (void)upper;return sfBossHudRectAt(1,width,height);
 }
 static SDL_Rect sfBossEnergyRect(bool upper,int width,int height)
 {
-    const int w=int(width*.58f),h=sfHudBarHeight(width);
-    SDL_Rect lower{(width-w)/2,int(height*.831f),w,h};
-    return upper ? sfMirrorRect180(lower,width,height) : lower;
+    (void)upper;return sfBossHudRectAt(0,width,height);
 }
 static SDL_Rect sfBossKineticRect(bool upper,int width,int height)
 {
-    const int w=int(width*.58f),h=sfHudBarHeight(width);
-    SDL_Rect lower{(width-w)/2,int(height*.885f),w,h};
-    return upper ? sfMirrorRect180(lower,width,height) : lower;
+    (void)upper;return sfBossHudRectAt(2,width,height);
 }
 static void sfDrawRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,SDL_Color fill,bool reverse=false)
 {
@@ -1174,6 +1181,16 @@ static void sfDrawRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,SDL_
     SDL_Rect value=rect;value.w=std::max(0,int(rect.w*ratio));
     if(reverse) value.x=rect.x+rect.w-value.w;
     SDL_SetRenderDrawColor(renderer,fill.r,fill.g,fill.b,fill.a);SDL_RenderFillRect(renderer,&value);
+}
+static void sfDrawBossRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,SDL_Color fill)
+{
+    ratio=std::clamp(ratio,0.0f,1.0f);
+    SDL_BlendMode oldBlend;SDL_GetRenderDrawBlendMode(renderer,&oldBlend);
+    SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer,24,28,40,sfBossHudBackgroundAlpha());SDL_RenderFillRect(renderer,&rect);
+    SDL_Rect value=rect;value.w=std::max(0,int(rect.w*ratio));
+    SDL_SetRenderDrawColor(renderer,fill.r,fill.g,fill.b,sfBossHudFillAlpha());SDL_RenderFillRect(renderer,&value);
+    SDL_SetRenderDrawBlendMode(renderer,oldBlend);
 }
 
 static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
@@ -1326,11 +1343,9 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
     const float bossRatio=std::clamp(sfCoop.health/sfCoopProfile().health,0.0f,1.0f);
     const SDL_Color bossColor=sfHealthColor(bossRatio);
     const SDL_Color bossEnergyColor=sfBossEnergyColor(),bossKineticColor=sfBossKineticColor();
-    for(bool upper : {false,true}) {
-        sfDrawRatioBar(renderer,sfBossEnergyRect(upper,width,height),sfCoop.bossEnergyReserve,bossEnergyColor,upper);
-        sfDrawRatioBar(renderer,sfBossLifeRect(upper,width,height),bossRatio,bossColor,upper);
-        sfDrawRatioBar(renderer,sfBossKineticRect(upper,width,height),sfCoop.bossKineticReserve,bossKineticColor,upper);
-    }
+    sfDrawBossRatioBar(renderer,sfBossEnergyRect(false,width,height),sfCoop.bossEnergyReserve,bossEnergyColor);
+    sfDrawBossRatioBar(renderer,sfBossLifeRect(false,width,height),bossRatio,bossColor);
+    sfDrawBossRatioBar(renderer,sfBossKineticRect(false,width,height),sfCoop.bossKineticReserve,bossKineticColor);
 
     for (int owner=0;owner<2;++owner) {
         const auto *ship=sfCoopShip(owner);const bool upper=owner==0;

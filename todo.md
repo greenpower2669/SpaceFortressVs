@@ -69,7 +69,7 @@
 - [x] Correction Fab capturée : jauges triple réservées au boss ; pilotes = PV + ENERGIE.
 - [x] Branche dédiée `fix/boss-hud-reserves-v143` depuis `b588abe195000a6ab00e4bae86b441eb4b6c3455`.
 - [x] Tests RED écrits pour géométrie boss ENERGIE/VIE/CINETIQUE + réserve énergétique séparée.
-- [ ] Prouver RED en CI.
+- [x] RED prouvé : run 354 / `37634894304`.
 - [x] Implémenter correction minimale sans toucher au reste du lot 350.
 - [ ] CI GREEN APK/AAB puis validation téléphone Fab.
 
@@ -81,5 +81,7 @@
 - [x] Branche dédiée créée depuis 2e0fb31e.
 - [x] Tests RED écrits : bloc boss unique compact semi-transparent + regen Danger 9 avec APOCALYPSE = 9× MOU.
 - [ ] Prouver RED en CI.
-- [ ] Implémenter géométrie compacte + alpha + regen Boss Danger.
+- [x] Géométrie compacte + alpha + regen Boss Danger implémentées.
 - [ ] CI GREEN APK/AAB puis validation téléphone Fab.
+
+- [x] Boss MOU=0.02/s ; APOCALYPSE=0.18/s ; interpolation 9 Dangers.
