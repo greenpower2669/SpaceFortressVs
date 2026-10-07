@@ -87,3 +87,11 @@
 - [x] Boss MOU=0.02/s ; APOCALYPSE=0.18/s ; interpolation 9 Dangers.
 
 - [x] Artifact CI355 id `11489666990` ; APK `3d843a48...` ; AAB `044f4fae...`.
+
+
+## BOSS-HUD-MIRROR-LABEL
+- [x] Branche dédiée depuis fb8b98d9.
+- [x] Tests RED écrits pour label BOSS + reflet interne symétrique.
+- [ ] Prouver RED en CI.
+- [ ] Implémenter uniquement le polish HUD boss.
+- [ ] CI GREEN + APK/AAB puis validation téléphone Fab.

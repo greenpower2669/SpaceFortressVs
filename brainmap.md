@@ -165,3 +165,11 @@ CLASSIQUE DUEL local :
 - Code `6826463d...` GREEN complet.
 - Boss HUD compact droit semi-transparent ; regen Boss Danger MOU 0.02/s -> APOCALYPSE 0.18/s (×9).
 - Artifact `11489666990`; téléphone à valider avant tout merge/release.
+
+
+## BOSS-HUD-MIRROR-LABEL — 2026-10-08
+- Fab valide le HUD boss compact CI355 et demande un dernier polish purement visuel : ajouter le texte `BOSS` au-dessus et un effet miroir/reflet sur les trois barres.
+- Interprétation bornée pour conserver le HUD ramassé : PAS de second bloc dupliqué ; l'effet miroir est un reflet/gloss interne symétrique dans chaque barre, sans augmenter l'emprise du HUD.
+- Le bloc reste à droite, compact et semi-transparent. Aucun changement de géométrie globale, gameplay, régénération Danger, champ 55 %, joueurs, FX, atlas ou assets.
+- TDD RED : nouveaux helpers `sfBossHudLabelRect`, `sfBossHudMirrorAlpha`, `sfBossHudMirrorBand` exigés avant implémentation.
+- Branche `fix/boss-hud-mirror-label-v143` depuis `fb8b98d92c10acfb43ec08d8ca61821b0466fda2`. `src/main.cpp` reste protégé. Aucun merge main ni Release sans validation Fab.

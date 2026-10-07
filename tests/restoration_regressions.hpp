@@ -327,6 +327,18 @@ static void testCoopHudAndMissile()
     assert(bossEnergyColor.b>bossEnergyColor.r && bossEnergyColor.r>bossEnergyColor.g);
     assert(bossKineticColor.r>bossKineticColor.g && bossKineticColor.g>bossKineticColor.b);
     assert(sfBossHudBackgroundAlpha()<160 && sfBossHudFillAlpha()<230);
+    // Final Fab HUD polish: "BOSS" label directly above the compact block and
+    // a mirrored/gloss reflection band inside each semi-transparent boss bar.
+    const auto bossLabel=sfBossHudLabelRect(width,height);
+    assert(bossLabel.x==energy0.x && bossLabel.w==energy0.w);
+    assert(bossLabel.y<energy0.y && energy0.y-bossLabel.y<=24);
+    assert(sfBossHudMirrorAlpha()>0 && sfBossHudMirrorAlpha()<sfBossHudFillAlpha());
+    const auto mirrorTop=sfBossHudMirrorBand(life0,false);
+    const auto mirrorBottom=sfBossHudMirrorBand(life0,true);
+    assert(mirrorTop.x==life0.x && mirrorTop.w==life0.w);
+    assert(mirrorBottom.x==life0.x && mirrorBottom.w==life0.w);
+    assert(mirrorTop.h==mirrorBottom.h && mirrorTop.h>=1);
+    assert(mirrorTop.y<life0.y+life0.h/2 && mirrorBottom.y>=life0.y+life0.h/2);
 
     // Fab canon: boss is handicapped in MOU DU GENOU and increasingly favoured
     // by the 9 Danger levels. APOCALYPSE regenerates exactly 9x faster than MOU.

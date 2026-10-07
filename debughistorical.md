@@ -160,3 +160,11 @@
 - GREEN 355 : suite complète SUCCESS sur `6826463de42ca7ad794f5ec775fb46d98009c836`.
 - Le réglage regen boss utilise maintenant `sfBossDangerIndex`, pas `sfDifficultyIndex(encounter)`.
 - Ne pas confondre cette regen de réserves boss avec la recharge passive des joueurs.
+
+
+## BOSS-HUD-MIRROR-LABEL — 2026-10-08
+- Fab valide le HUD boss compact CI355 et demande un dernier polish purement visuel : ajouter le texte `BOSS` au-dessus et un effet miroir/reflet sur les trois barres.
+- Interprétation bornée pour conserver le HUD ramassé : PAS de second bloc dupliqué ; l'effet miroir est un reflet/gloss interne symétrique dans chaque barre, sans augmenter l'emprise du HUD.
+- Le bloc reste à droite, compact et semi-transparent. Aucun changement de géométrie globale, gameplay, régénération Danger, champ 55 %, joueurs, FX, atlas ou assets.
+- TDD RED : nouveaux helpers `sfBossHudLabelRect`, `sfBossHudMirrorAlpha`, `sfBossHudMirrorBand` exigés avant implémentation.
+- Branche `fix/boss-hud-mirror-label-v143` depuis `fb8b98d92c10acfb43ec08d8ca61821b0466fda2`. `src/main.cpp` reste protégé. Aucun merge main ni Release sans validation Fab.
