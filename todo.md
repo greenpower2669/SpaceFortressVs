@@ -99,3 +99,11 @@
 - [x] BOSS au-dessus + reflet/gloss interne sur les 3 barres, aucune emprise HUD supplémentaire.
 
 - [x] Artifact CI358 id `11514673145` ; APK `239c14f1...` ; AAB `44f4cb83...`.
+
+
+## BOSS-HUD-DUAL-ROTATED
+- [x] Branche dédiée créée depuis 4f5c05be.
+- [x] Tests RED : bas-gauche normal, haut-droite miroir 180°, remplissage inversé, label miroir.
+- [ ] Prouver RED en CI.
+- [ ] Implémenter le même objet HUD dans les deux orientations.
+- [ ] CI GREEN + APK/AAB puis validation téléphone Fab.

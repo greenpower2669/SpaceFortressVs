@@ -311,34 +311,51 @@ static void testCoopHudAndMissile()
     assert(lowEnergy.y>low.y);
     assert(upEnergy.x==mirroredEnergy.x && upEnergy.y==mirroredEnergy.y);
 
-    // The three boss bars are a SINGLE compact side block, not mirrored across
-    // the arena. Boolean legacy argument must resolve to the same geometry.
+    // Fab final geometry: a normal compact boss HUD for the lower player at
+    // bottom-left, plus the exact same object rotated 180 degrees top-right.
     const auto life0=sfBossLifeRect(false,width,height),life1=sfBossLifeRect(true,width,height);
     const auto energy0=sfBossEnergyRect(false,width,height),energy1=sfBossEnergyRect(true,width,height);
     const auto kinetic0=sfBossKineticRect(false,width,height),kinetic1=sfBossKineticRect(true,width,height);
-    assert(life0.x==life1.x && life0.y==life1.y && energy0.x==energy1.x && kinetic0.x==kinetic1.x);
     assert(energy0.y<life0.y && life0.y<kinetic0.y);
-    assert(life0.w<=int(width*.30f) && life0.x>width/2);
-    assert(kinetic0.y-energy0.y<=life0.h*3+8); // tightly packed
-    assert(life0.h<=std::max(6,width/90));      // visibly thinner than pilot bars
+    assert(life0.w<=int(width*.30f) && life0.x<width/2);
+    assert(life0.y>height/2);
+    assert(kinetic0.y-energy0.y<=life0.h*3+8);
+    assert(life0.h<=std::max(6,width/90));
+    const auto lifeMirror=sfMirrorRect180(life0,width,height);
+    const auto energyMirror=sfMirrorRect180(energy0,width,height);
+    const auto kineticMirror=sfMirrorRect180(kinetic0,width,height);
+    assert(life1.x==lifeMirror.x && life1.y==lifeMirror.y && life1.w==lifeMirror.w && life1.h==lifeMirror.h);
+    assert(energy1.x==energyMirror.x && energy1.y==energyMirror.y);
+    assert(kinetic1.x==kineticMirror.x && kinetic1.y==kineticMirror.y);
+
+    // Filling direction is part of the 180° rotation: lower grows left->right,
+    // upper grows right->left and must be the geometric mirror of the lower fill.
+    const auto lowerHalf=sfBossHudValueRect(life0,.5f,false);
+    const auto upperHalf=sfBossHudValueRect(life1,.5f,true);
+    const auto lowerHalfMirror=sfMirrorRect180(lowerHalf,width,height);
+    assert(upperHalf.x==lowerHalfMirror.x && upperHalf.y==lowerHalfMirror.y &&
+           upperHalf.w==lowerHalfMirror.w && upperHalf.h==lowerHalfMirror.h);
+
     const auto full=sfHealthColor(1),empty=sfHealthColor(0);
     assert(full.g>full.r && empty.r>empty.g);
     const auto bossEnergyColor=sfBossEnergyColor(),bossKineticColor=sfBossKineticColor();
     assert(bossEnergyColor.b>bossEnergyColor.r && bossEnergyColor.r>bossEnergyColor.g);
     assert(bossKineticColor.r>bossKineticColor.g && bossKineticColor.g>bossKineticColor.b);
     assert(sfBossHudBackgroundAlpha()<160 && sfBossHudFillAlpha()<230);
-    // Final Fab HUD polish: "BOSS" label directly above the compact block and
-    // a mirrored/gloss reflection band inside each semi-transparent boss bar.
-    const auto bossLabel=sfBossHudLabelRect(width,height);
-    assert(bossLabel.x==energy0.x && bossLabel.w==energy0.w);
-    assert(bossLabel.y<energy0.y && energy0.y-bossLabel.y<=24);
+
+    // The whole label is mirrored too: normal above the lower block, rotated
+    // counterpart below the upper block.
+    const auto bossLabel0=sfBossHudLabelRect(false,width,height);
+    const auto bossLabel1=sfBossHudLabelRect(true,width,height);
+    const auto bossLabelMirror=sfMirrorRect180(bossLabel0,width,height);
+    assert(bossLabel0.x==energy0.x && bossLabel0.w==energy0.w && bossLabel0.y<energy0.y);
+    assert(bossLabel1.x==bossLabelMirror.x && bossLabel1.y==bossLabelMirror.y);
     assert(sfBossHudMirrorAlpha()>0 && sfBossHudMirrorAlpha()<sfBossHudFillAlpha());
     const auto mirrorTop=sfBossHudMirrorBand(life0,false);
     const auto mirrorBottom=sfBossHudMirrorBand(life0,true);
     assert(mirrorTop.x==life0.x && mirrorTop.w==life0.w);
     assert(mirrorBottom.x==life0.x && mirrorBottom.w==life0.w);
     assert(mirrorTop.h==mirrorBottom.h && mirrorTop.h>=1);
-    assert(mirrorTop.y<life0.y+life0.h/2 && mirrorBottom.y>=life0.y+life0.h/2);
 
     // Fab canon: boss is handicapped in MOU DU GENOU and increasingly favoured
     // by the 9 Danger levels. APOCALYPSE regenerates exactly 9x faster than MOU.

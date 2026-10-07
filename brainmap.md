@@ -185,3 +185,12 @@ CLASSIQUE DUEL local :
 ## CI358 candidat téléphone
 - Code `65dbfa5d...` GREEN complet : BOSS + reflet interne sur les 3 barres compactes.
 - APK `239c14f1...`, AAB `44f4cb83...`; gameplay inchangé.
+
+
+## BOSS-HUD-DUAL-ROTATED — 2026-10-08
+- Retour téléphone Fab sur CI358 : le bloc boss top-right est lisible à l'endroit, donc faux pour le joueur du haut.
+- Canon demandé : définir le bloc normal en BAS-GAUCHE pour le joueur du bas ; créer le même objet en HAUT-DROITE par transformation 180° complète.
+- La transformation 180° comprend : rectangles des 3 barres, sens de remplissage, reflet/gloss, position du label et glyphes `BOSS`.
+- Le bloc haut n'est pas une variante bricolée : il doit être le miroir géométrique exact du bloc bas via `sfMirrorRect180`, comme le HUD pilote haut.
+- Le HUD reste compact et semi-transparent. Aucune modification de regen Boss Danger, champ 55 %, gameplay, pilotes, FX ou atlas.
+- Nouvelle branche `fix/boss-hud-dual-rotated-v143` depuis `4f5c05bec735b9ab2be34e0f1a2ec1da896f0436`. `src/main.cpp` protégé ; aucun merge/release sans Fab.
