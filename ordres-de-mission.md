@@ -214,3 +214,17 @@ Cet avenant REMPLACE les points incompatibles du lot SHOT-DISPERSION-ENERGY-BOSS
 - dispersion initiale aléatoire CLASSIQUE + COOP du lot précédent reste demandée.
 
 Protections inchangées : `src/main.cpp` strictement intact ; aucun merge/release sans validation Fab.
+
+
+## ERRATUM RECHARGE DANGER — 2026-10-07 — DERNIER CANON FAB
+
+Cet erratum remplace UNIQUEMENT les valeurs de demi-vie 4,0 s / 10,5 s écrites dans l'avenant précédent ; l'historique reste append-only.
+
+Référence : la recharge COOP de v1.4.2 équivalait à nrj *= pow(.997, 60*dt).
+Fab demande maintenant une recharge passive IMPORTANTE, inversement proportionnelle au Danger :
+- MOU DU GENOU : cadence maximale = 4× la cadence v1.4.2, soit pow(.997, 240*dt) ;
+- APOCALYPSE : cadence minimale mais encore 2× la cadence v1.4.2, soit pow(.997, 120*dt) ;
+- les 7 niveaux intermédiaires interpolent monotoniquement entre ×4 et ×2.
+Le sens de nrj reste historique : 0 = réserve pleine, 50 = épuisée.
+
+Les autres règles du dernier avenant restent inchangées : boss 55 % non destructif, anneau transparent centre→extérieur, astéroïdes COOP continus, minage/aspiration blanche pendant 0,30–2,00 s.

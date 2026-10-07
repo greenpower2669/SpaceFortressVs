@@ -55,10 +55,12 @@ static void sfKineticAttractWhiteDust(int owner,float dt)
         const float dx=ship->x-dust->x,dy=ship->y-dust->y,d=vlong(dx,dy);
         if(d>range) continue;
         dust->x+=dx*pull;dust->y+=dy*pull;
-        dust->vx=0;dust->vy=0;
+        // Preserve an inward velocity so historical particle updates continue
+        // the suction between fixed field steps.
+        dust->vx=dx*12.0f;dust->vy=dy*12.0f;
     }
 }
-static void sfKineticSurgeMineStep(float dt)
+static void sfKineticSurgeMineAsteroids(float dt)
 {
     if(dt<=0) return;
     for(int owner=0;owner<2;++owner) {
@@ -445,7 +447,7 @@ static void sfLegacyFieldStep(void (*hurt)(int,float))
             sfMineAsteroid(rock,shot);break;
         }
     }
-    sfKineticSurgeMineStep(1.0f/60.0f);
+    sfKineticSurgeMineAsteroids(1.0f/60.0f);
     for(auto i=sa1.begin();i!=sa1.end();) {
         if ((*i)->pv<=0) {delete *i;i=sa1.erase(i);} else ++i;
     }

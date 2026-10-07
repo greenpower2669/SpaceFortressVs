@@ -71,7 +71,7 @@ CLASSIQUE DUEL local :
 
 ## Avenant 07/10 — architecture cible
 - Boss field : 55 %, centre-out transparent, astéroïde survivant amorti + cooldown anti-multi-hit.
-- Recharge COOP : helper prend Danger 0..8 ; half-life 4,0 -> 10,5 s.
+- Recharge COOP : helper Danger 0..8 ; multiplicateur cadence v1.4.2 ×4 -> ×2, soit exposants 240 -> 120 par seconde.
 - Astéroïdes COOP : timer de spawn continu avec plafond de population.
 - Surge mining partagé CLASSIQUE/COOP : actif seulement 0,30 <= hold < 2,00 s ; cible proche unique ; shrink continu < cadence tirs ; poussière blanche attirée.
 - Run 342 obsolète pour validation téléphone.
@@ -84,3 +84,5 @@ CLASSIQUE DUEL local :
 - Boss wave: centre -> rayon 1,08× boss, durée .46 s, alpha max 72 + limite permanente alpha 28.
 - Spawn COOP: batch historique `setasts(1)` toutes les 3,5 s, plafond 24.
 - Surge mining partagé: 1,25 shot-eq/s + aspiration blanche 7/s, seulement 0,30 <= hold < 2,00.
+
+- CI 345 : échec de compilation uniquement sur noms provisoires/runner ; alignement des noms canoniques avant nouvelle CI.

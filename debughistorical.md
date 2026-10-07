@@ -57,7 +57,7 @@
 ## Avenant après CI 342 — ne pas livrer l'ancien comportement
 - L'ancien code GREEN 342 détruisait l'astéroïde dans `sfCoopBossKineticAsteroidImpact`; Fab l'interdit maintenant.
 - Le cercle boss ancien était opaque et dessiné directement au rayon final ; Fab demande centre -> extérieur et forte transparence.
-- La demi-vie 21 s de recharge COOP est remplacée par une recharge dépendante du Danger (4,0 s facile -> 10,5 s apocalypse).
+- La demi-vie 21 s de recharge COOP est remplacée par le dernier canon : cadence v1.4.2 ×4 facile -> ×2 apocalypse (.997^(240*dt) -> .997^(120*dt)).
 - La charge 2 s ajoute un minage/aspiration blanc uniquement pendant la phase visible 0,30–2,00 s ; ne pas continuer en état charged/vulnérable.
 - Le spawn campagne doit être temporel/continu avec plafond pour éviter une explosion de population.
 
@@ -68,3 +68,8 @@
 - Le nouveau champ boss ne doit JAMAIS appeler `sfKineticDestroyAsteroid`; appliquer le résiduel au boss puis réduire/réfléchir la vitesse du rocher survivant avec cooldown anti multi-hit.
 - L'anneau boss ne doit plus utiliser `sfUiCircle` opaque pour le pulse : dessin alpha dédié.
 - Le minage de charge doit s'arrêter dès `charged=true` pour préserver la vulnérabilité READY.
+
+
+## CI 345 — échec de compilation de couture
+- Run 37560224642 : pas un défaut gameplay. Les tests appelaient les noms canoniques RING_DURATION/RingRadius/SurgeMineAsteroids, l'implémentation utilisait encore WAVE_DURATION/WaveRadius/SurgeMineStep, et le runner conservait un appel à un test séparé supprimé.
+- Fix : noms alignés + runner nettoyé. Ne pas relâcher les assertions comportementales.

@@ -79,7 +79,7 @@
 - Visuel boss : anneau beaucoup plus transparent, expansion centre -> rayon du champ.
 - Charge joueur 0,30–2,00 s : minage continu d'un astéroïde proche, plus faible que des tirs répétés, avec poussière blanche aspirée efficacement ; arrêt du minage à READY 2 s.
 - COOP : astéroïdes générés continuellement dans le temps.
-- Recharge passive : abandon de la demi-vie provisoire 21 s. Danger 1 MOU DU GENOU = 4,0 s ; Danger 9 APOCALYPSE = 10,5 s ; interpolation monotone.
+- Recharge passive : dernier canon Fab = cadence v1.4.2 ×4 en MOU DU GENOU (.997^(240*dt)) vers ×2 en APOCALYPSE (.997^(120*dt)), interpolation monotone.
 - Le run 342 n'est donc plus candidat téléphone ; nouvelle preuve RED/GREEN requise.
 
 
@@ -89,3 +89,9 @@
 - Charge 0,30–2,00 s : extraction continue 1,25 équivalent-tir/s sur l'astéroïde proche + 7 poussières blanches/s aspirées vers le vaisseau ; arrêt strict à READY 2 s.
 - Les tirs ordinaires ciblés IA reçoivent aussi la dispersion initiale aléatoire ; aucun guidage en vol ajouté.
 - Nouvelle CI GREEN complète requise avant APK téléphone.
+
+
+## CI 345 — couture de noms, gameplay non invalidé
+- Workflow 37560224642 a échoué à la compilation avant les régressions : les tests RED utilisaient les noms canoniques RING_DURATION, RingRadius et SurgeMineAsteroids, tandis que l'implémentation avait gardé des noms provisoires.
+- Correction bornée : aligner ces noms, supprimer l'appel runner obsolète et appliquer le dernier canon recharge ×4→×2.
+- Aspiration blanche conserve maintenant une vraie vitesse orientée vers le vaisseau en plus du rapprochement direct.
