@@ -33,27 +33,23 @@ static float sfKineticShipDiameter(const sprite *ship)
 }
 
 static constexpr float SF_KINETIC_SURGE_MINING_SHOT_EQUIV_PER_SECOND=1.25f;
-static constexpr float SF_KINETIC_SURGE_MINING_DUST_PER_SECOND=7.0f;
-static std::array<float,2> sfKineticSurgeMiningDustBudget{{0,0}};
+static std::array<float,2> sfKineticSurgeMiningShotBudget{{0,0}};
 
 static bool sfKineticSurgeMiningActive(int owner)
 {
-    if(owner<0 || owner>1) return false;
-    const auto &s=sfKineticSurges[owner];
-    return s.held && !s.charged && s.heldSeconds>=SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS &&
-           s.heldSeconds<SF_KINETIC_SURGE_HOLD_SECONDS;
+    return sfKineticSuctionVisible(owner);
 }
 static void sfKineticAttractWhiteDust(int owner,float dt)
 {
     auto *ship=owner==0 ? Spritej1 : Spritej2;
-    if(!ship || ship->pv<=0 || dt<=0) return;
+    if(!ship || ship->pv<=0 || dt<=0 || !sfKineticSurgeMiningActive(owner)) return;
     const float diameter=sfKineticShipDiameter(ship);
-    const float range=diameter*2.2f;
+    const float range=diameter*SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS;
     const float pull=1.0f-std::exp(-8.0f*dt);
     for(auto *dust:particules) {
         if(!dust || dust->pv<=0) continue;
-        const float dx=ship->x-dust->x,dy=ship->y-dust->y,d=vlong(dx,dy);
-        if(d>range) continue;
+        if(!sfKineticSurgeConeContains(owner,ship->x,ship->y,dust->x,dust->y,range)) continue;
+        const float dx=ship->x-dust->x,dy=ship->y-dust->y;
         dust->x+=dx*pull;dust->y+=dy*pull;
         // Preserve an inward velocity so historical particle updates continue
         // the suction between fixed field steps.
@@ -65,33 +61,38 @@ static void sfKineticSurgeMineAsteroids(float dt)
     if(dt<=0) return;
     for(int owner=0;owner<2;++owner) {
         if(!sfKineticSurgeMiningActive(owner)) {
-            sfKineticSurgeMiningDustBudget[owner]=0;
+            sfKineticSurgeMiningShotBudget[owner]=0;
             continue;
         }
         auto *ship=owner==0 ? Spritej1 : Spritej2;
         if(!ship || ship->pv<=0) continue;
         const float diameter=sfKineticShipDiameter(ship);
+        const float range=diameter*SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS;
         sprite *target=nullptr;float best=std::numeric_limits<float>::max();
         for(auto *rock:sa1) {
             if(!rock || rock->pv<=0) continue;
             const float rockRadius=std::max(rock->w,rock->h)*.5f;
             const float surface=std::max(0.0f,vlong(rock->x-ship->x,rock->y-ship->y)-rockRadius);
-            if(surface<=diameter*1.35f && surface<best) {best=surface;target=rock;}
+            if(surface>range || surface>=best) continue;
+            if(!sfKineticSurgeConeContains(owner,ship->x,ship->y,rock->x,rock->y,range,rockRadius)) continue;
+            best=surface;target=rock;
         }
         if(target) {
-            const float shrink=sfArenaH/1000.0f*SF_KINETIC_SURGE_MINING_SHOT_EQUIV_PER_SECOND*dt;
-            target->w=std::max(0.0f,target->w-shrink);target->h=std::max(0.0f,target->h-shrink);
-            target->sw=target->w;target->sh=target->h;target->startup();
-            sfFieldMiningSound=true;
-            sfKineticSurgeMiningDustBudget[owner]+=SF_KINETIC_SURGE_MINING_DUST_PER_SECOND*dt;
-            while(sfKineticSurgeMiningDustBudget[owner]>=1.0f && particules.size()<1000) {
-                sfKineticSurgeMiningDustBudget[owner]-=1.0f;
+            // Preserve Fab's classic asteroid->white-dust language instead of
+            // approximating it: each tide pulse is a real historical mining hit.
+            sfKineticSurgeMiningShotBudget[owner]+=SF_KINETIC_SURGE_MINING_SHOT_EQUIV_PER_SECOND*dt;
+            while(sfKineticSurgeMiningShotBudget[owner]>=1.0f && target->pv>0 && particules.size()<1000) {
+                sfKineticSurgeMiningShotBudget[owner]-=1.0f;
                 const float dx=ship->x-target->x,dy=ship->y-target->y,d=std::max(1.0f,vlong(dx,dy));
-                const float rockRadius=std::max(target->w,target->h)*.42f;
-                auto *dust=new parts(target->x+dx/d*rockRadius,target->y+dy/d*rockRadius);
-                dust->pv=600;dust->vx=0;dust->vy=0;particules.push_back(dust);
+                const float rr=std::max(target->w,target->h)*.42f;
+                sprite tideProbe;
+                const float probe=std::max(2.0f,diameter*.035f);
+                tideProbe.setxywh(target->x+dx/d*rr,target->y+dy/d*rr,probe,probe);
+                tideProbe.pv=1;tideProbe.vx=dx/d*.12f;tideProbe.vy=dy/d*.12f;tideProbe.startup();
+                sfMineAsteroid(target,&tideProbe); // partsforiw + classic "pous" impact + historical shrink.
             }
-            if(target->w<sfArenaH/100.0f || target->h<sfArenaH/100.0f) target->pv=0;
+        } else {
+            sfKineticSurgeMiningShotBudget[owner]=std::min(sfKineticSurgeMiningShotBudget[owner],.99f);
         }
         sfKineticAttractWhiteDust(owner,dt);
     }

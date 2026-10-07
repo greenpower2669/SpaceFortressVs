@@ -117,5 +117,7 @@
 - [x] Branche `fix/surge-cone-mining-v143` depuis d5a897d9.
 - [x] Contrat RED : continuation après 2 s, portées ×1.5, cône avant, visuel orange convergent, son discret post-READY.
 - [ ] Prouver RED CI.
-- [ ] Implémenter gameplay + visuel + audio sans toucher `src/main.cpp`.
+- [x] Gameplay + cône visuel + audio post-READY implémentés sans toucher `src/main.cpp`.
 - [ ] CI GREEN + APK/AAB pour téléphone.
+
+- [x] Restitution poussières réutilise `sfMineAsteroid` / `partsforiw` historique.

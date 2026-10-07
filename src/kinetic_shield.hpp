@@ -27,6 +27,11 @@ constexpr float SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS = .30f;
 constexpr float SF_KINETIC_SURGE_HOLD_SECONDS = 2.0f;
 constexpr float SF_KINETIC_SURGE_BLAST_DIAMETER = 3.0f;
 constexpr float SF_KINETIC_SURGE_POWER_MULTIPLIER = 2.0f;
+// Fab 2026-10-08: the tide/suction footprint is 50% larger than the previous
+// mining/white-dust radii, but the final release blast stays unchanged.
+constexpr float SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS = 1.35f*1.50f;
+constexpr float SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS = 2.20f*1.50f;
+constexpr float SF_KINETIC_SURGE_CONE_TAN_HALF = .7002075f; // 35 degree half-angle.
 
 struct SfKineticVector { float x=0,y=0; };
 enum class SfKineticLayer { None, Inner, Outer };
@@ -99,6 +104,29 @@ static bool sfKineticSurgeVisible(int owner)
     if(owner<0 || owner>1) return false;
     const auto &s=sfKineticSurges[owner];
     return s.held && !s.charged && s.heldSeconds>=SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS;
+}
+
+static bool sfKineticSuctionVisible(int owner)
+{
+    if(owner<0 || owner>1) return false;
+    const auto &s=sfKineticSurges[owner];
+    // READY changes defence power/vulnerability, not the tide: suction lasts
+    // until the second finger is actually released or cancelled.
+    return s.held && s.heldSeconds>=SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS;
+}
+static float sfKineticSurgeConeHalfWidth(float forwardDistance)
+{
+    return std::max(0.0f,forwardDistance)*SF_KINETIC_SURGE_CONE_TAN_HALF;
+}
+static bool sfKineticSurgeConeContains(int owner,float shipX,float shipY,
+                                       float pointX,float pointY,float range,float padding=0.0f)
+{
+    if(owner<0 || owner>1 || range<=0) return false;
+    const float dx=pointX-shipX,dy=pointY-shipY;
+    const float forward=(owner==0 ? dy : -dy); // top pilot looks down; bottom pilot looks up.
+    if(forward<=0) return false;
+    if(vlong(dx,dy)>range+std::max(0.0f,padding)) return false;
+    return std::abs(dx)<=sfKineticSurgeConeHalfWidth(forward)+std::max(0.0f,padding);
 }
 static bool sfKineticSurgeVulnerable(int owner)
 {

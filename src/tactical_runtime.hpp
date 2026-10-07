@@ -44,7 +44,17 @@ static void sfKineticAudioStartCharge(int owner)
 {
     if(owner<0 || owner>1) return;
     sfKineticAudioEnsure();sfKineticAudioHaltCharge(owner);sfKineticAudio.readySignaled[owner]=false;
-    if(sfKineticAudio.charge) sfKineticAudio.chargeChannel[owner]=Mix_PlayChannel(-1,sfKineticAudio.charge,0);
+    if(sfKineticAudio.charge) {
+        sfKineticAudio.chargeChannel[owner]=Mix_PlayChannel(-1,sfKineticAudio.charge,0);
+        if(sfKineticAudio.chargeChannel[owner]>=0) Mix_Volume(sfKineticAudio.chargeChannel[owner],76);
+    }
+}
+static void sfKineticAudioStartQuietHold(int owner)
+{
+    if(owner<0 || owner>1 || !sfKineticAudio.charge) return;
+    sfKineticAudioHaltCharge(owner);
+    sfKineticAudio.chargeChannel[owner]=Mix_PlayChannel(-1,sfKineticAudio.charge,-1);
+    if(sfKineticAudio.chargeChannel[owner]>=0) Mix_Volume(sfKineticAudio.chargeChannel[owner],24);
 }
 static void sfKineticAudioCancel(int owner)
 {
@@ -65,6 +75,9 @@ static void sfKineticAudioUpdate()
         if(surge.held && surge.charged && !sfKineticAudio.readySignaled[owner]) {
             sfKineticAudioHaltCharge(owner);
             if(sfKineticAudio.ready) Mix_PlayChannel(-1,sfKineticAudio.ready,0);
+            // READY is a cue, not silence: the tide keeps a quiet background hum
+            // until the second finger is released.
+            sfKineticAudioStartQuietHold(owner);
             sfKineticAudio.readySignaled[owner]=true;
         } else if(!surge.held) {
             sfKineticAudioHaltCharge(owner);sfKineticAudio.readySignaled[owner]=false;
@@ -722,6 +735,42 @@ static void sfTacticalRainbowRing(SDL_Renderer *renderer,tupl center,float radiu
     }
 }
 
+static void sfDrawKineticSuctionCone(SDL_Renderer *renderer,int owner)
+{
+    if(!renderer || !sfKineticSuctionVisible(owner)) return;
+    const auto *ship=owner==0 ? Spritej1 : Spritej2;
+    if(!ship || ship->pv<=0) return;
+    const float diameter=std::max(1.0f,std::max({ship->sw,ship->sh,ship->w,ship->h}));
+    const float dir=owner==0 ? 1.0f : -1.0f;
+    const float noseY=ship->y+dir*diameter*.42f;
+    const float range=diameter*SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS;
+    const float half=sfKineticSurgeConeHalfWidth(range);
+    const SDL_Color fill{255,132,28,22};
+    const SDL_Vertex wedge[]={{{ship->x,noseY},fill,{0,0}},
+        {{ship->x-half,noseY+dir*range},fill,{0,0}},
+        {{ship->x+half,noseY+dir*range},fill,{0,0}}};
+    const int wi[]={0,1,2};
+    SDL_RenderGeometry(renderer,nullptr,wedge,3,wi,3);
+    SDL_SetRenderDrawColor(renderer,255,142,36,62);
+    SDL_RenderDrawLineF(renderer,ship->x,noseY,ship->x-half,noseY+dir*range);
+    SDL_RenderDrawLineF(renderer,ship->x,noseY,ship->x+half,noseY+dir*range);
+
+    // Five translucent fronts travel from the mouth of the cone toward the
+    // ship; their motion makes the suction direction readable without a 360° halo.
+    const float seconds=float(SDL_GetTicks64())*.001f;
+    for(int i=0;i<5;++i) {
+        const float phase=std::fmod(seconds*.72f+i/5.0f,1.0f);
+        const float outward=1.0f-phase;
+        const float d=diameter*(.18f+(SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS-.18f)*outward);
+        const float hw=sfKineticSurgeConeHalfWidth(d);
+        const Uint8 alpha=Uint8(52+72*(1.0f-outward));
+        SDL_SetRenderDrawColor(renderer,255,154,52,alpha);
+        SDL_RenderDrawLineF(renderer,ship->x-hw,noseY+dir*d,ship->x+hw,noseY+dir*d);
+        const float centerRadius=std::max(1.0f,diameter*(.010f+.010f*(1.0f-outward)));
+        sfTacticalRing(renderer,tupl(ship->x,noseY+dir*d),centerRadius,SDL_Color{255,188,78,Uint8(alpha*.82f)});
+    }
+}
+
 static Uint8 sfKineticWaveFrontAlpha(float progress,float strength)
 {
     progress=std::clamp(progress,0.0f,1.0f);
@@ -735,9 +784,12 @@ static void sfDrawKineticEffects(SDL_Renderer *renderer)
 {
     if (!renderer || sfUiScreen!=SF_UI_GAME) return;
     const bool surgeVisible=sfKineticSurgeVisible(0) || sfKineticSurgeVisible(1);
-    if(sfKineticWaves.empty() && !surgeVisible) return;
+    const bool suctionVisible=sfKineticSuctionVisible(0) || sfKineticSuctionVisible(1);
+    if(sfKineticWaves.empty() && !surgeVisible && !suctionVisible) return;
     SDL_BlendMode previous;SDL_GetRenderDrawBlendMode(renderer,&previous);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+    for(int owner=0;owner<2;++owner) if(sfKineticSuctionVisible(owner))
+        sfDrawKineticSuctionCone(renderer,owner);
     for(int owner=0;owner<2;++owner) if(sfKineticSurgeVisible(owner)) {
         const auto *ship=owner==0 ? Spritej1 : Spritej2;
         if(!ship || ship->pv<=0) continue;
