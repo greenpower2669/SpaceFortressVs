@@ -104,3 +104,9 @@ CLASSIQUE DUEL local :
 - Atlas : demi-texel anti-bleeding, pas de crop pourcentage.
 
 - Implémenté : classic missile/orbs/explosion en COOP ; FX missile sans poussière gameplay ; HUD violet/PV/orange ; boss reserve visuelle + regen difficulté ; anneaux centre→extérieur ; UV demi-texel.
+
+
+## CI 350 GREEN
+- Code `1aeb6758...`, run `37608419345` SUCCESS complet.
+- APK `d136fcf0...`, AAB `f84b8d5d...`; téléphone à valider.
+- Broutage : demi-texel est désormais candidat test ; ne pas aller plus loin sans preuve visuelle Fab.

@@ -237,3 +237,14 @@ Les autres règles du dernier avenant restent inchangées : boss 55 % non destru
 - La réserve cinétique boss ajoutée par ce lot est une réserve de stress/visibilité et ne remplace PAS la dissipation gameplay fixe 55 % déjà canonique.
 - TDD RED : les tests référencent volontairement `sfPlayerKineticRect`, couleurs dédiées, réserve/régénération boss et `sfAtlasSafeUv` avant implémentation.
 - `src/main.cpp` reste strictement intact. Aucun merge main ni Release sans validation Fab.
+
+
+## CI 350 GREEN — CLASSIC-FX-KINETIC-HUD-V143
+- TDD RED : commit `78b0ea35018a095f0ced6228fdf04c50f312caaf`, workflow `37608129628` / run 349, échec attendu dans les régressions sur les nouveaux symboles (HUD cinétique, réserve boss, UV demi-texel, textures classiques).
+- Implémentation : `1aeb6758dd5ee8bbcf52e00f424361d8262f0c6d`.
+- GREEN : workflow `37608419345` / run 350, régressions + Hall + secret hygiene + APK + AAB + packaging SUCCESS.
+- Artifact : `SpaceFortressVs-1.4.2-release-files` id `11476546682`, digest ZIP `sha256:e5b62e26afbe8b29e3710dcabe6adada0c70989616e9a06dab74cef1065cf4f3`.
+- APK SHA-256 : `d136fcf0690f2fc13ac1004022162aa1601544ab8474c7e72bb1cc3ec24d07e1`.
+- AAB SHA-256 : `f84b8d5d5c964fd8e3f787b565c776b7e18c62ac88d1e238b2c7b01d5ecec4aa`.
+- `src/main.cpp` revérifié au blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- Aucun merge main, aucune Release. Validation téléphone Fab requise, notamment pour confirmer/disprover le diagnostic du broutage.

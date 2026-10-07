@@ -98,3 +98,9 @@
 - Nouveau UV : demi-texel réel à l'intérieur de la cellule, indépendant de la taille du sprite. C'est le seul correctif asset/découpe appliqué avant test téléphone.
 - Si Fab voit encore un asset « brouté », ne pas multiplier les clamps/crops : relever quel asset précis et quel mode avant autre modification.
 - Le missile COOP n'émet volontairement pas `particulesr` pour son échappement : ces particules ont désormais un sens gameplay de poussière rouge.
+
+
+## TDD 349 → 350
+- RED 349 `37608129628` : compilation arrêtée exactement sur les nouveaux helpers/champs absents, donc contrat correctement testé avant code.
+- GREEN 350 `37608419345` : suite runtime entière, Hall, build APK/AAB et packaging SUCCESS sur `1aeb6758dd5ee8bbcf52e00f424361d8262f0c6d`.
+- Le diagnostic « UV demi-texel » reste à confirmer sur téléphone : un GREEN logiciel ne prouve pas à lui seul que le rare défaut visuel observé est totalement éliminé.

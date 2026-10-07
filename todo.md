@@ -56,10 +56,10 @@
 - [x] Branche dédiée créée depuis 898227ec.
 - [x] Diagnostic initial broutage : atlas/UV plausible ; demi-texel retenu pour TDD.
 - [x] Tests RED écrits : HUD 3 barres, couleurs, réserve boss/regen difficulté, alpha inverse, UV demi-texel, textures classiques COOP.
-- [ ] Prouver RED en CI.
+- [x] RED prouvé : run 349 / `37608129628`.
 - [x] Implémenter sans toucher src/main.cpp.
-- [ ] CI GREEN + APK/AAB.
+- [x] CI 350 GREEN + APK/AAB sur `1aeb6758dd5ee8bbcf52e00f424361d8262f0c6d`.
 - [ ] Validation téléphone Fab ; aucun merge/release avant accord.
 
 - [x] Classic missile/orbs/explosion COOP ; HUD 3 barres ; réserve visuelle boss ; UV demi-texel implémentés.
-- [ ] Vérifier RED 349 puis CI GREEN du commit d'implémentation.
+- [x] RED 349 vérifié ; [x] CI 350 GREEN du commit d'implémentation.
