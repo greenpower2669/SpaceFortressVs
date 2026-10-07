@@ -105,5 +105,7 @@
 - [x] Branche dédiée créée depuis 4f5c05be.
 - [x] Tests RED : bas-gauche normal, haut-droite miroir 180°, remplissage inversé, label miroir.
 - [ ] Prouver RED en CI.
-- [ ] Implémenter le même objet HUD dans les deux orientations.
+- [x] Même objet HUD implémenté bas-gauche + miroir 180° haut-droite.
 - [ ] CI GREEN + APK/AAB puis validation téléphone Fab.
+
+- [x] Remplissage, label BOSS et gloss tournés avec le bloc haut.

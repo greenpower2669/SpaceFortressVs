@@ -1154,20 +1154,22 @@ static SDL_Rect sfPlayerEnergyRect(int owner,int width,int height)
     SDL_Rect base{margin,int(height*.963f),w,h};
     return owner==0 ? sfMirrorRect180(base,width,height) : base;
 }
-static SDL_Rect sfBossHudRectAt(int index,int width,int height)
+static SDL_Rect sfBossHudRectAt(int index,int width,int height,bool upper=false)
 {
     const int margin=std::max(8,width/30);
     const int w=std::max(48,int(width*.28f)),h=sfBossHudBarHeight(width);
     const int gap=std::max(2,h/3);
-    const int x=width-margin-w;
-    const int y=int(height*.135f)+index*(h+gap);
-    return {x,y,w,h};
+    // Canonical object lives bottom-left for the lower player. The upper-player
+    // instance is its exact 180-degree geometric mirror.
+    SDL_Rect base{margin,int(height*.835f)+index*(h+gap),w,h};
+    return upper ? sfMirrorRect180(base,width,height) : base;
 }
-static SDL_Rect sfBossHudLabelRect(int width,int height)
+static SDL_Rect sfBossHudLabelRect(bool upper,int width,int height)
 {
-    const SDL_Rect top=sfBossHudRectAt(0,width,height);
+    const SDL_Rect top=sfBossHudRectAt(0,width,height,false);
     const int labelH=std::max(10,sfBossHudBarHeight(width)*2);
-    return {top.x,std::max(2,top.y-labelH-4),top.w,labelH};
+    SDL_Rect base{top.x,std::max(2,top.y-labelH-4),top.w,labelH};
+    return upper ? sfMirrorRect180(base,width,height) : base;
 }
 static SDL_Rect sfBossHudMirrorBand(SDL_Rect rect,bool lower)
 {
@@ -1178,15 +1180,22 @@ static SDL_Rect sfBossHudMirrorBand(SDL_Rect rect,bool lower)
 }
 static SDL_Rect sfBossLifeRect(bool upper,int width,int height)
 {
-    (void)upper;return sfBossHudRectAt(1,width,height);
+    return sfBossHudRectAt(1,width,height,upper);
 }
 static SDL_Rect sfBossEnergyRect(bool upper,int width,int height)
 {
-    (void)upper;return sfBossHudRectAt(0,width,height);
+    return sfBossHudRectAt(0,width,height,upper);
 }
 static SDL_Rect sfBossKineticRect(bool upper,int width,int height)
 {
-    (void)upper;return sfBossHudRectAt(2,width,height);
+    return sfBossHudRectAt(2,width,height,upper);
+}
+static SDL_Rect sfBossHudValueRect(SDL_Rect rect,float ratio,bool upper)
+{
+    ratio=std::clamp(ratio,0.0f,1.0f);
+    SDL_Rect value=rect;value.w=std::max(0,int(rect.w*ratio));
+    if(upper) value.x=rect.x+rect.w-value.w;
+    return value;
 }
 static void sfDrawRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,SDL_Color fill,bool reverse=false)
 {
@@ -1196,23 +1205,22 @@ static void sfDrawRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,SDL_
     if(reverse) value.x=rect.x+rect.w-value.w;
     SDL_SetRenderDrawColor(renderer,fill.r,fill.g,fill.b,fill.a);SDL_RenderFillRect(renderer,&value);
 }
-static void sfDrawBossRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,SDL_Color fill)
+static void sfDrawBossRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,SDL_Color fill,bool upper=false)
 {
-    ratio=std::clamp(ratio,0.0f,1.0f);
     SDL_BlendMode oldBlend;SDL_GetRenderDrawBlendMode(renderer,&oldBlend);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer,24,28,40,sfBossHudBackgroundAlpha());SDL_RenderFillRect(renderer,&rect);
-    SDL_Rect value=rect;value.w=std::max(0,int(rect.w*ratio));
+    SDL_Rect value=sfBossHudValueRect(rect,ratio,upper);
     SDL_SetRenderDrawColor(renderer,fill.r,fill.g,fill.b,sfBossHudFillAlpha());SDL_RenderFillRect(renderer,&value);
 
-    // Mirror/gloss: two symmetric reflection bands remain inside the filled
-    // portion, so the compact HUD footprint does not grow.
+    // The gloss is rotated with the HUD too: bright edge on top for the lower
+    // player, bright edge on bottom for the 180-degree upper-player copy.
     if(value.w>0) {
         SDL_Rect top=sfBossHudMirrorBand(value,false);
         SDL_Rect bottom=sfBossHudMirrorBand(value,true);
-        SDL_SetRenderDrawColor(renderer,255,255,255,sfBossHudMirrorAlpha());
+        SDL_SetRenderDrawColor(renderer,255,255,255,upper ? Uint8(sfBossHudMirrorAlpha()/3) : sfBossHudMirrorAlpha());
         SDL_RenderFillRect(renderer,&top);
-        SDL_SetRenderDrawColor(renderer,255,255,255,Uint8(sfBossHudMirrorAlpha()/3));
+        SDL_SetRenderDrawColor(renderer,255,255,255,upper ? sfBossHudMirrorAlpha() : Uint8(sfBossHudMirrorAlpha()/3));
         SDL_RenderFillRect(renderer,&bottom);
     }
     SDL_SetRenderDrawBlendMode(renderer,oldBlend);
@@ -1368,11 +1376,20 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
     const float bossRatio=std::clamp(sfCoop.health/sfCoopProfile().health,0.0f,1.0f);
     const SDL_Color bossColor=sfHealthColor(bossRatio);
     const SDL_Color bossEnergyColor=sfBossEnergyColor(),bossKineticColor=sfBossKineticColor();
-    const SDL_Rect bossLabel=sfBossHudLabelRect(width,height);
-    sfCoopText(renderer,bossLabel.x,bossLabel.y,"BOSS",bossLabel.w,2,{232,220,255,220});
-    sfDrawBossRatioBar(renderer,sfBossEnergyRect(false,width,height),sfCoop.bossEnergyReserve,bossEnergyColor);
-    sfDrawBossRatioBar(renderer,sfBossLifeRect(false,width,height),bossRatio,bossColor);
-    sfDrawBossRatioBar(renderer,sfBossKineticRect(false,width,height),sfCoop.bossKineticReserve,bossKineticColor);
+
+    // Lower player: canonical compact object bottom-left.
+    const SDL_Rect bossLabelLower=sfBossHudLabelRect(false,width,height);
+    sfCoopText(renderer,bossLabelLower.x,bossLabelLower.y,"BOSS",bossLabelLower.w,2,{232,220,255,220});
+    sfDrawBossRatioBar(renderer,sfBossEnergyRect(false,width,height),sfCoop.bossEnergyReserve,bossEnergyColor,false);
+    sfDrawBossRatioBar(renderer,sfBossLifeRect(false,width,height),bossRatio,bossColor,false);
+    sfDrawBossRatioBar(renderer,sfBossKineticRect(false,width,height),sfCoop.bossKineticReserve,bossKineticColor,false);
+
+    // Upper player: same object transformed by 180 degrees. sfCoopText180
+    // receives the lower logical coordinates and performs the glyph rotation.
+    sfCoopText180(renderer,width,height,bossLabelLower.x,bossLabelLower.y,"BOSS",bossLabelLower.w,2,{232,220,255,220});
+    sfDrawBossRatioBar(renderer,sfBossEnergyRect(true,width,height),sfCoop.bossEnergyReserve,bossEnergyColor,true);
+    sfDrawBossRatioBar(renderer,sfBossLifeRect(true,width,height),bossRatio,bossColor,true);
+    sfDrawBossRatioBar(renderer,sfBossKineticRect(true,width,height),sfCoop.bossKineticReserve,bossKineticColor,true);
 
     for (int owner=0;owner<2;++owner) {
         const auto *ship=sfCoopShip(owner);const bool upper=owner==0;
