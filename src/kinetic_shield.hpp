@@ -125,7 +125,7 @@ static bool sfKineticSurgeConeContains(int owner,float shipX,float shipY,
     const float dx=pointX-shipX,dy=pointY-shipY;
     const float forward=(owner==0 ? dy : -dy); // top pilot looks down; bottom pilot looks up.
     if(forward<=0) return false;
-    if(vlong(dx,dy)>range+std::max(0.0f,padding)) return false;
+    if(std::sqrt(dx*dx+dy*dy)>range+std::max(0.0f,padding)) return false;
     return std::abs(dx)<=sfKineticSurgeConeHalfWidth(forward)+std::max(0.0f,padding);
 }
 static bool sfKineticSurgeVulnerable(int owner)
