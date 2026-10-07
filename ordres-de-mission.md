@@ -176,3 +176,55 @@ Protections :
 - Hall global, Danger 9, campagne 200, progression, sauvegardes et poussières hors périmètre ;
 - TDD obligatoire, CI complète APK/AAB + secret hygiene avant merge/release ;
 - ne jamais écraser v1.4.1.
+
+
+## SHOT-DISPERSION-ENERGY-BOSS-FIELD-V143 — 2026-10-06 — ORDRE FAB
+
+Constat téléphone confirmé par Fab :
+- en CLASSIQUE et COOP, la dispersion des tirs ordinaires est devenue absente ou imperceptible ;
+- les tirs doivent perdre en vitesse/efficacité et partir davantage au hasard à gauche/droite quand l'énergie baisse, puis rester rectilignes après le départ ;
+- la COOP recharge passivement beaucoup trop vite ;
+- Fab confirme que le CLASSIQUE possède historiquement une recharge passive lente dans `sprite::update()` (`nrj*=0.997`) et demande que la COOP retrouve un rythme lent comparable, sans supprimer cette recharge passive ;
+- les poussières blanches restent une récupération active distincte ;
+- en COOP/campagne, les boss doivent posséder un champ cinétique FIXE, moins puissant que celui des joueurs ;
+- un astéroïde entrant dans le champ du boss doit subir le champ et infliger au boss les dégâts cinétiques résiduels ; aucun multiplicateur Danger sur ces dégâts ;
+- champ boss proposé/canon du lot : dissipation fixe 55 %, donc inférieure au champ joueur plein (inner 78 %, outer 94 %) ;
+- l'impact peut détruire l'astéroïde en poussière blanche selon le rendement cinétique existant, sans modifier les règles de collecte boss déjà livrées.
+
+Protections :
+- nouvelle branche `fix/shot-dispersion-energy-boss-field-v143` depuis `main` `7722d806...` ;
+- TDD RED avant code ;
+- `src/main.cpp` byte-for-byte inchangé, blob `835059a0ecfe0f74708068b3259cad5db1cdb579` ;
+- Hall, Danger 9, campagne/progression/sauvegardes, surcharge 0,30/2 s et poussières hors points ci-dessus restent protégés ;
+- aucun merge main ni Release de ce nouveau lot sans validation/ordre explicite de Fab.
+
+
+## AVENANT FAB — CHAMP BOSS NON DESTRUCTIF / ASPIRATION / RECHARGE DANGER — 2026-10-07
+
+Cet avenant REMPLACE les points incompatibles du lot SHOT-DISPERSION-ENERGY-BOSS-FIELD-V143 :
+- le champ cinétique du boss reste fixe et moins puissant que celui des joueurs (55 %), mais il NE DETRUIT JAMAIS les astéroïdes ;
+- il réduit leur impact, retire au boss uniquement le résiduel cinétique, puis ralentit/dévie l'astéroïde survivant ;
+- les anneaux du boss doivent être nettement plus transparents que ceux des joueurs et partir visuellement du CENTRE du boss vers le rayon du champ ;
+- pendant la charge joueur entre 0,30 s et 2,00 s, un astéroïde proche peut être miné en CONTINU : extraction moins forte que des tirs répétés, réduction progressive de taille, production de poussière blanche et aspiration efficace de cette poussière vers le vaisseau ;
+- à READY 2 s, le champ joueur est OFF comme avant et le minage continu s'arrête ; le blast/purge au relâchement reste inchangé ;
+- les astéroïdes de campagne/COOP doivent continuer à apparaître dans le temps comme dans le classique, pas seulement attendre que le stock tombe presque à zéro ;
+- la recharge passive devient un élément important de survie et varie avec le Danger Boss : MOU DU GENOU = maximum, APOCALYPSE = minimum ;
+- réglage borné retenu pour TDD : demi-vie de chaleur 4,0 s en MOU DU GENOU et 10,5 s en APOCALYPSE, interpolation monotone sur les 9 dangers. Ce réglage remplace la demi-vie provisoire 21 s et garde Apocalypse deux fois plus rapide que cette proposition précédente ;
+- les poussières blanches restent une recharge active supplémentaire.
+- dispersion initiale aléatoire CLASSIQUE + COOP du lot précédent reste demandée.
+
+Protections inchangées : `src/main.cpp` strictement intact ; aucun merge/release sans validation Fab.
+
+
+## ERRATUM RECHARGE DANGER — 2026-10-07 — DERNIER CANON FAB
+
+Cet erratum remplace UNIQUEMENT les valeurs de demi-vie 4,0 s / 10,5 s écrites dans l'avenant précédent ; l'historique reste append-only.
+
+Référence : la recharge COOP de v1.4.2 équivalait à nrj *= pow(.997, 60*dt).
+Fab demande maintenant une recharge passive IMPORTANTE, inversement proportionnelle au Danger :
+- MOU DU GENOU : cadence maximale = 4× la cadence v1.4.2, soit pow(.997, 240*dt) ;
+- APOCALYPSE : cadence minimale mais encore 2× la cadence v1.4.2, soit pow(.997, 120*dt) ;
+- les 7 niveaux intermédiaires interpolent monotoniquement entre ×4 et ×2.
+Le sens de nrj reste historique : 0 = réserve pleine, 50 = épuisée.
+
+Les autres règles du dernier avenant restent inchangées : boss 55 % non destructif, anneau transparent centre→extérieur, astéroïdes COOP continus, minage/aspiration blanche pendant 0,30–2,00 s.

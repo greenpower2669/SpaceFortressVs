@@ -46,3 +46,52 @@ CLASSIQUE DUEL local :
 - Champ normal max 2,0 diamètres ; blast armé 3,0.
 - Hall, Danger 9, campagne 200, poussières et progression hors périmètre.
 - Ne jamais modifier `src/main.cpp`.
+
+
+## Lot v1.4.3 candidat — en travail
+- CLASSIQUE historique : passive recharge confirmée dans `sprite::update(): nrj*=0.997`.
+- COOP : remplacer le faux équivalent 60 Hz trop rapide par une recharge lente frame-independent.
+- Tirs : helper commun d'enveloppe de dispersion selon `nrj` + échantillon aléatoire symétrique ; CLASSIQUE `sfFireMain` et COOP `sfCoopFire`.
+- Boss : champ fixe 55 % autour du boss ; astéroïde entrant -> calcul masse/vitesse relative -> 55 % dissipé, résiduel sur santé boss -> destruction cinétique/poussière existante.
+- Pas de Danger sur le cinétique boss.
+
+
+## Implémentation active
+- `tactical_runtime.hpp` : `sfMainShotSpreadEnvelope/Radians/RandomUnit` + spread humain classique.
+- `campaign_runtime.hpp` : spread COOP aléatoire partagé, recharge passive demi-vie 21 s, champ boss fixe 55 %, collision astéroïde→boss et anneau visuel.
+- TDD RED run 340 (`37539108268`) confirmé avant code.
+
+
+## CI 342 GREEN
+- Code candidat : `5c66e892...`.
+- Run `37540141916` entièrement GREEN ; artifact `11447494930`.
+- Phone à vérifier : spread gauche/droite à faible énergie en CLASSIQUE + COOP, recharge COOP lente, anneau boss + dégâts résiduels d'astéroïdes.
+- PR #7 reste draft ; pas de merge/release.
+
+
+## Avenant 07/10 — architecture cible
+- Boss field : 55 %, centre-out transparent, astéroïde survivant amorti + cooldown anti-multi-hit.
+- Recharge COOP : helper Danger 0..8 ; multiplicateur cadence v1.4.2 ×4 -> ×2, soit exposants 240 -> 120 par seconde.
+- Astéroïdes COOP : timer de spawn continu avec plafond de population.
+- Surge mining partagé CLASSIQUE/COOP : actif seulement 0,30 <= hold < 2,00 s ; cible proche unique ; shrink continu < cadence tirs ; poussière blanche attirée.
+- Run 342 obsolète pour validation téléphone.
+
+
+## Run 343 RED -> code avenant
+- Run `37559681669` RED attendu sur les nouveaux contrats.
+- Recharge: half-life Danger 0..8 = 4,0 -> 10,5 s.
+- Boss field: 55 %, ne détruit pas ; residual HP + vitesse relative amortie/rebondie ; cooldown .42 s.
+- Boss wave: centre -> rayon 1,08× boss, durée .46 s, alpha max 72 + limite permanente alpha 28.
+- Spawn COOP: batch historique `setasts(1)` toutes les 3,5 s, plafond 24.
+- Surge mining partagé: 1,25 shot-eq/s + aspiration blanche 7/s, seulement 0,30 <= hold < 2,00.
+
+- CI 345 : échec de compilation uniquement sur noms provisoires/runner ; alignement des noms canoniques avant nouvelle CI.
+
+- CI 346 : le nouveau gameplay passe jusqu'au test historique de précision IA ; seul nearest<16 est obsolète avec le spread demandé. Centre prédictif conservé, tolérance bornée <90.
+
+
+## CI 347 GREEN — candidat téléphone actualisé
+- HEAD `602a725eb785ffdac393ebe1e55af3d2cf50376c` ; run `37561150366` SUCCESS.
+- Boss : champ FIXE 55 % < joueurs, non destructif, amortissement/déviation + dégâts résiduels boss.
+- Recharge : passive historique CLASSIQUE confirmée par Fab et visible en jeu ; COOP = accélération Danger ×4 -> ×2 vs v1.4.2, jamais suppression de la recharge passive.
+- Artifact release-files id `11456527917`; téléphone à valider avant merge/release.

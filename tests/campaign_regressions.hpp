@@ -12,6 +12,82 @@ static void setupCampaign(int boss=0,bool ai=false)
     sfCampaignSave.pending=false;sfCampaignSave.selected=boss;sfCampaignSave.cleared=std::max(sfCampaignSave.cleared,boss);
     sfCampaignStart();sfCoop.phase=SfCoopPhase::Combat;
 }
+static void testCoopPassiveRechargeAndBossField()
+{
+    setupCampaign();sfCoop.position=tupl(sfArenaW*.5f,sfArenaH*.5f);
+    const int oldDanger=sfBossDangerIndex;
+
+    // Latest Fab canon: APOCALYPSE is already twice the v1.4.2 passive
+    // recharge rate; MOU DU GENOU is the maximum at four times v1.4.2.
+    const float releasedOneSecond=50.0f*std::pow(.997f,60.0f);
+    sfBossDangerIndex=8;
+    const float apocalypse=sfCoopPassiveRechargeHeat(50.0f,1.0f);
+    assert(std::abs(apocalypse-50.0f*std::pow(.997f,120.0f))<.02f);
+    assert(apocalypse<releasedOneSecond);
+    sfBossDangerIndex=0;
+    const float mouDuGenou=sfCoopPassiveRechargeHeat(50.0f,1.0f);
+    assert(mouDuGenou<apocalypse);
+    assert(std::abs(mouDuGenou-50.0f*std::pow(.997f,240.0f))<.02f);
+
+    // Boss field is fixed and weaker than the players, transparent, and its
+    // visible impact wave expands from the boss centre.
+    assert(SF_COOP_BOSS_KINETIC_DISSIPATION>0.0f);
+    assert(SF_COOP_BOSS_KINETIC_DISSIPATION<SF_KINETIC_INNER_DISSIPATION);
+    assert(SF_COOP_BOSS_KINETIC_RING_ALPHA<128);
+    const float fieldRadius=sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE;
+    assert(sfCoopBossKineticRingRadius(SF_COOP_BOSS_KINETIC_RING_DURATION,fieldRadius)<1.0f);
+    assert(sfCoopBossKineticRingRadius(0.0f,fieldRadius)>fieldRadius*.95f);
+
+    sfFixResetAsteroidField();
+    auto *rock=new sprite;
+    rock->setxywh(sfCoop.position.x+fieldRadius*.92f,sfCoop.position.y,
+                  sfArenaH*.09f,sfArenaH*.09f);
+    rock->pv=1;rock->vx=-sfKineticReferenceSpeed(sfArenaW)/60.0f;rock->vy=0;
+    sa1.push_back(rock);
+    const float before=sfCoop.health;
+    const float speedBefore=vlong(rock->vx,rock->vy);
+    const auto dustBefore=particules.size();
+    sfCoopBossKineticField();
+    assert(sfCoop.health<before);
+    assert(rock->pv>0);
+    assert(vlong(rock->vx,rock->vy)<speedBefore);
+    assert(particules.size()==dustBefore);
+    assert(sfCoop.bossKineticFlash>0.0f);
+    const float afterFirst=sfCoop.health;
+    sfCoopBossKineticField();
+    assert(sfCoop.health==afterFirst); // one impact per field entry
+
+    // COOP continuously restores the classic asteroid population.
+    sfFixResetAsteroidField();incra1=0;
+    sfCoopResources(1.0f/60.0f);
+    assert(sa1.size()>=8);
+
+    // Shared 2 s charge mines a nearby asteroid continuously before READY.
+    sfFixResetAsteroidField();
+    auto *mineRock=new sprite;
+    mineRock->setxywh(Spritej1->x+Spritej1->sw*.70f,Spritej1->y,
+                      sfArenaH*.10f,sfArenaH*.10f);
+    mineRock->pv=1;mineRock->vx=mineRock->vy=0;sa1.push_back(mineRock);
+    const float widthBefore=mineRock->w;
+    sfKineticSurgePress(0);sfKineticAdvanceSurges(.31f);
+    for(int frame=0;frame<60;++frame) {
+        sfKineticSurgeMineAsteroids(1.0f/60.0f);
+        sfKineticAdvanceSurges(1.0f/60.0f);
+    }
+    assert(sfKineticSurges[0].held && !sfKineticSurges[0].charged);
+    assert(mineRock->pv>0 && mineRock->w<widthBefore);
+    assert(widthBefore-mineRock->w < (sfArenaH/1000.0f)*2.0f);
+    assert(!particules.empty());
+    const auto *dust=particules.back();
+    assert((Spritej1->x-dust->x)*dust->vx+(Spritej1->y-dust->y)*dust->vy>0);
+    sfKineticSurgeCancel(0);
+
+    sfBossDangerIndex=oldDanger;
+    sfFixResetAsteroidField();
+    sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
+    std::puts("PASS: strong danger-scaled passive recharge, continuous asteroids, non-destructive boss field and 2 s charge mining");
+}
+
 static void testVelocityGhosts()
 {
     for (int fps : {30,60,120}) for (int owner=0;owner<2;++owner) {
@@ -30,7 +106,10 @@ static void testVelocityGhosts()
             target->x+=sfObserved[1-owner].velocity.vx*sfFrameDt;sfAdvanceProjectile(shot);
             nearest=std::min(nearest,sfSegmentDistance(tupl(shot->shotFromX,shot->shotFromY),tupl(shot->x,shot->y),tupl(target->x,target->y)));
         }
-        assert(nearest<16); // Aimed at a future point, not the starting location.
+        // Predictive lead remains the centreline, but ordinary shots now carry
+        // the requested initial energy-dependent random spread. It may miss,
+        // while still being recognisably aimed at the future target.
+        assert(nearest<90);
     }
     setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_AI;
     Spritej2->y=840;sfObserved[1].velocity.set(160,-90);sfThinkPilot();
