@@ -106,7 +106,10 @@ static void testVelocityGhosts()
             target->x+=sfObserved[1-owner].velocity.vx*sfFrameDt;sfAdvanceProjectile(shot);
             nearest=std::min(nearest,sfSegmentDistance(tupl(shot->shotFromX,shot->shotFromY),tupl(shot->x,shot->y),tupl(target->x,target->y)));
         }
-        assert(nearest<16); // Aimed at a future point, not the starting location.
+        // Predictive lead remains the centreline, but ordinary shots now carry
+        // the requested initial energy-dependent random spread. It may miss,
+        // while still being recognisably aimed at the future target.
+        assert(nearest<90);
     }
     setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_AI;
     Spritej2->y=840;sfObserved[1].velocity.set(160,-90);sfThinkPilot();

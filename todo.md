@@ -43,7 +43,7 @@
 - [x] RED : recharge Danger 4,0 s -> 10,5 s — run 343.
 - [x] RED : spawn astéroïdes COOP continu — run 343.
 - [x] RED : minage/aspiration blanc pendant charge 0,30–2,00 s — run 343.
-- [x] Implémentation minimale codée ; [x] couture CI 345 corrigée ; [ ] CI complète GREEN.
+- [x] Implémentation minimale codée ; [x] couture CI 345 corrigée ; [x] assertion IA CI 346 adaptée au spread ; [ ] CI complète GREEN.
 - [ ] Nouvel APK téléphone.
 - [ ] Aucun merge/release sans ordre explicite.
 

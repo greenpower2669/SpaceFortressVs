@@ -86,3 +86,5 @@ CLASSIQUE DUEL local :
 - Surge mining partagé: 1,25 shot-eq/s + aspiration blanche 7/s, seulement 0,30 <= hold < 2,00.
 
 - CI 345 : échec de compilation uniquement sur noms provisoires/runner ; alignement des noms canoniques avant nouvelle CI.
+
+- CI 346 : le nouveau gameplay passe jusqu'au test historique de précision IA ; seul nearest<16 est obsolète avec le spread demandé. Centre prédictif conservé, tolérance bornée <90.
