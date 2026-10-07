@@ -175,3 +175,9 @@
 - Effet miroir interprété comme reflet/gloss interne : deux bandes symétriques dans la partie remplie de chaque barre (haut alpha 76, bas alpha ~25), sans second bloc ni emprise écran supplémentaire.
 - Fond 88/255 et remplissage 188/255 conservés ; géométrie 28 % et regen Danger MOU 0.02/s -> APOCALYPSE 0.18/s inchangées.
 - Aucun changement gameplay, FX, atlas, joueurs, champ 55 % ou `src/main.cpp`.
+
+
+## CI357 RED -> CI358 GREEN
+- RED 357 : helpers label/reflet volontairement absents avant code.
+- GREEN 358 : suite complète SUCCESS sur `65dbfa5d2676b76ac438df462917c5bd01fa1cca`.
+- Effet miroir réalisé comme gloss interne, pas comme duplication du HUD, pour respecter la demande précédente de compacité latérale.

@@ -180,3 +180,8 @@ CLASSIQUE DUEL local :
 - Effet miroir interprété comme reflet/gloss interne : deux bandes symétriques dans la partie remplie de chaque barre (haut alpha 76, bas alpha ~25), sans second bloc ni emprise écran supplémentaire.
 - Fond 88/255 et remplissage 188/255 conservés ; géométrie 28 % et regen Danger MOU 0.02/s -> APOCALYPSE 0.18/s inchangées.
 - Aucun changement gameplay, FX, atlas, joueurs, champ 55 % ou `src/main.cpp`.
+
+
+## CI358 candidat téléphone
+- Code `65dbfa5d...` GREEN complet : BOSS + reflet interne sur les 3 barres compactes.
+- APK `239c14f1...`, AAB `44f4cb83...`; gameplay inchangé.

@@ -80,7 +80,7 @@
 - [x] CI353 précédente consignée.
 - [x] Branche dédiée créée depuis 2e0fb31e.
 - [x] Tests RED écrits : bloc boss unique compact semi-transparent + regen Danger 9 avec APOCALYPSE = 9× MOU.
-- [ ] Prouver RED en CI.
+- [x] RED prouvé : run 357 / `37694965125`.
 - [x] Géométrie compacte + alpha + regen Boss Danger implémentées.
 - [ ] CI GREEN APK/AAB puis validation téléphone Fab.
 
@@ -94,6 +94,8 @@
 - [x] Tests RED écrits pour label BOSS + reflet interne symétrique.
 - [ ] Prouver RED en CI.
 - [x] Implémenter uniquement le polish HUD boss.
-- [ ] CI GREEN + APK/AAB puis validation téléphone Fab.
+- [x] CI358 GREEN + APK/AAB ; [ ] validation téléphone Fab.
 
 - [x] BOSS au-dessus + reflet/gloss interne sur les 3 barres, aucune emprise HUD supplémentaire.
+
+- [x] Artifact CI358 id `11514673145` ; APK `239c14f1...` ; AAB `44f4cb83...`.
