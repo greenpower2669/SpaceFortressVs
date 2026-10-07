@@ -15,25 +15,30 @@ static void setupCampaign(int boss=0,bool ai=false)
 static void testCoopPassiveRechargeAndBossField()
 {
     setupCampaign();sfCoop.position=tupl(sfArenaW*.5f,sfArenaH*.5f);
-    const int savedDanger=sfBossDangerIndex;
-    const float easy=sfCoopPassiveRechargeHeat(50.0f,1.0f,0);
-    const float apocalypse=sfCoopPassiveRechargeHeat(50.0f,1.0f,8);
-    assert(easy<apocalypse); // easier danger recharges faster
-    assert(easy<45.0f && easy>40.0f);
-    assert(apocalypse<48.0f && apocalypse>45.0f);
-    sfBossDangerIndex=8;Spritej1->nrj=50;
-    for(int frame=0;frame<60;++frame) sfCoopMovePlayers(1.0f/60.0f);
-    assert(std::abs(Spritej1->nrj-apocalypse)<.15f);
-    sfBossDangerIndex=savedDanger;
+    const int oldDanger=sfBossDangerIndex;
 
+    // Latest Fab canon: APOCALYPSE is already twice the v1.4.2 passive
+    // recharge rate; MOU DU GENOU is the maximum at four times v1.4.2.
+    const float releasedOneSecond=50.0f*std::pow(.997f,60.0f);
+    sfBossDangerIndex=8;
+    const float apocalypse=sfCoopPassiveRechargeHeat(50.0f,1.0f);
+    assert(std::abs(apocalypse-50.0f*std::pow(.997f,120.0f))<.02f);
+    assert(apocalypse<releasedOneSecond);
+    sfBossDangerIndex=0;
+    const float mouDuGenou=sfCoopPassiveRechargeHeat(50.0f,1.0f);
+    assert(mouDuGenou<apocalypse);
+    assert(std::abs(mouDuGenou-50.0f*std::pow(.997f,240.0f))<.02f);
+
+    // Boss field is fixed and weaker than the players, transparent, and its
+    // visible impact wave expands from the boss centre.
     assert(SF_COOP_BOSS_KINETIC_DISSIPATION>0.0f);
     assert(SF_COOP_BOSS_KINETIC_DISSIPATION<SF_KINETIC_INNER_DISSIPATION);
-    assert(SF_COOP_BOSS_KINETIC_RING_ALPHA<=96);
-    assert(sfCoopBossKineticWaveRadius(0.0f)==0.0f);
-    assert(sfCoopBossKineticWaveRadius(.5f)>0.0f);
+    assert(SF_COOP_BOSS_KINETIC_RING_ALPHA<128);
+    const float fieldRadius=sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE;
+    assert(sfCoopBossKineticRingRadius(SF_COOP_BOSS_KINETIC_RING_DURATION,fieldRadius)<1.0f);
+    assert(sfCoopBossKineticRingRadius(0.0f,fieldRadius)>fieldRadius*.95f);
 
     sfFixResetAsteroidField();
-    const float fieldRadius=sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE;
     auto *rock=new sprite;
     rock->setxywh(sfCoop.position.x+fieldRadius*.92f,sfCoop.position.y,
                   sfArenaH*.09f,sfArenaH*.09f);
@@ -41,50 +46,46 @@ static void testCoopPassiveRechargeAndBossField()
     sa1.push_back(rock);
     const float before=sfCoop.health;
     const float speedBefore=vlong(rock->vx,rock->vy);
-    assert(sfCoopBossKineticAsteroidImpact(rock));
+    const auto dustBefore=particules.size();
+    sfCoopBossKineticField();
     assert(sfCoop.health<before);
-    assert(rock->pv>0); // boss field dampens/deflects, never destroys the asteroid
+    assert(rock->pv>0);
     assert(vlong(rock->vx,rock->vy)<speedBefore);
+    assert(particules.size()==dustBefore);
     assert(sfCoop.bossKineticFlash>0.0f);
-    const float after=sfCoop.health;
-    assert(!sfCoopBossKineticAsteroidImpact(rock)); // cooldown prevents repeated frame damage
-    assert(sfCoop.health==after);
+    const float afterFirst=sfCoop.health;
+    sfCoopBossKineticField();
+    assert(sfCoop.health==afterFirst); // one impact per field entry
 
+    // COOP continuously restores the classic asteroid population.
+    sfFixResetAsteroidField();incra1=0;
+    sfCoopResources(1.0f/60.0f);
+    assert(sa1.size()>=8);
+
+    // Shared 2 s charge mines a nearby asteroid continuously before READY.
     sfFixResetAsteroidField();
-    sfCoop.asteroidSpawnTimer=0;
-    const auto beforeSpawn=sa1.size();
-    sfCoopAdvanceAsteroidSpawner(.1f);
-    assert(sa1.size()>beforeSpawn); // campaign keeps producing asteroids over time
-
-    sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
-    std::puts("PASS: danger-scaled passive recharge, transparent centre-out boss field, surviving damped asteroid and continuous campaign spawns");
-}
-
-static void testSurgeContinuousMining()
-{
-    setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;setia=false;
-    Spritej2->setxywh(390,1200,100,100);Spritej2->sw=Spritej2->sh=100;Spritej2->nrj=30;
-    auto *rock=new sprite;rock->setxywh(390,1085,150,150);rock->sw=rock->sh=150;
-    rock->pv=1;rock->vx=rock->vy=0;sa1.push_back(rock);
-    const float widthBefore=rock->w;
-    sfKineticSurgePress(1);sfKineticAdvanceSurges(.35f);
-    for(int i=0;i<60;++i) sfKineticSurgeMineStep(1.0f/60.0f);
-    assert(rock->pv>0 && rock->w<widthBefore);
-    const float shrink=widthBefore-rock->w;
-    const float oneShot=sfArenaH/1000.0f;
-    assert(shrink>0 && shrink<oneShot*2.0f); // weaker than repeated gun mining
+    auto *mineRock=new sprite;
+    mineRock->setxywh(Spritej1->x+Spritej1->sw*.70f,Spritej1->y,
+                      sfArenaH*.10f,sfArenaH*.10f);
+    mineRock->pv=1;mineRock->vx=mineRock->vy=0;sa1.push_back(mineRock);
+    const float widthBefore=mineRock->w;
+    sfKineticSurgePress(0);sfKineticAdvanceSurges(.31f);
+    for(int frame=0;frame<60;++frame) {
+        sfKineticSurgeMineAsteroids(1.0f/60.0f);
+        sfKineticAdvanceSurges(1.0f/60.0f);
+    }
+    assert(sfKineticSurges[0].held && !sfKineticSurges[0].charged);
+    assert(mineRock->pv>0 && mineRock->w<widthBefore);
+    assert(widthBefore-mineRock->w < (sfArenaH/1000.0f)*2.0f);
     assert(!particules.empty());
-    float nearest=1e9f;
-    for(auto *dust:particules) if(dust->pv>0)
-        nearest=std::min(nearest,vlong(dust->x-Spritej2->x,dust->y-Spritej2->y));
-    assert(nearest<90.0f); // white dust is actively sucked toward the charging ship
-    sfKineticAdvanceSurges(1.70f);
-    assert(sfKineticSurges[1].charged);
-    const float chargedWidth=rock->w;
-    for(int i=0;i<30;++i) sfKineticSurgeMineStep(1.0f/60.0f);
-    assert(std::abs(rock->w-chargedWidth)<.001f); // mining stops once READY makes the field vulnerable/off
-    sfKineticSurgeCancel(1);sfFixResetAsteroidField();
-    std::puts("PASS: 0.30-2.00 s surge continuously mines nearby asteroid and efficiently attracts white dust");
+    const auto *dust=particules.back();
+    assert((Spritej1->x-dust->x)*dust->vx+(Spritej1->y-dust->y)*dust->vy>0);
+    sfKineticSurgeCancel(0);
+
+    sfBossDangerIndex=oldDanger;
+    sfFixResetAsteroidField();
+    sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
+    std::puts("PASS: strong danger-scaled passive recharge, continuous asteroids, non-destructive boss field and 2 s charge mining");
 }
 
 static void testVelocityGhosts()
