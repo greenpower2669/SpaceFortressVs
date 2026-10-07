@@ -95,3 +95,10 @@ CLASSIQUE DUEL local :
 - Boss : champ FIXE 55 % < joueurs, non destructif, amortissement/déviation + dégâts résiduels boss.
 - Recharge : passive historique CLASSIQUE confirmée par Fab et visible en jeu ; COOP = accélération Danger ×4 -> ×2 vs v1.4.2, jamais suppression de la recharge passive.
 - Artifact release-files id `11456527917`; téléphone à valider avant merge/release.
+
+
+## Lot visual v1.4.3 — branche dédiée
+- Classic assets → COOP : missile + FX, orbes redimensionnées, explosion nette si bouclier faible.
+- HUD : ENERGIE violet clair au-dessus, PV au centre, CINETIQUE jaune/orange au-dessous ; miroir joueur haut.
+- Boss : 55 % inchangé ; réserve visuelle 0..1, regen difficulté, anneaux centre→extérieur, alpha ↑ quand réserve ↓.
+- Atlas : demi-texel anti-bleeding, pas de crop pourcentage.

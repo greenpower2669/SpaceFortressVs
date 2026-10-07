@@ -309,10 +309,46 @@ static void testCoopHudAndMissile()
     const auto full=sfHealthColor(1),empty=sfHealthColor(0);
     assert(full.g>full.r && empty.r>empty.g);
 
+    // V1.4.3 visual canon: energy above life, kinetic below life, mirrored as a block.
+    const auto lowEnergy=sfPlayerEnergyRect(1,width,height);
+    const auto lowKinetic=sfPlayerKineticRect(1,width,height);
+    const auto upEnergy=sfPlayerEnergyRect(0,width,height);
+    const auto upKinetic=sfPlayerKineticRect(0,width,height);
+    assert(lowEnergy.y<low.y && low.y<lowKinetic.y);
+    const auto mirroredEnergy=sfMirrorRect180(lowEnergy,width,height);
+    const auto mirroredKinetic=sfMirrorRect180(lowKinetic,width,height);
+    assert(upEnergy.x==mirroredEnergy.x && upEnergy.y==mirroredEnergy.y);
+    assert(upKinetic.x==mirroredKinetic.x && upKinetic.y==mirroredKinetic.y);
+    const auto energyColor=sfPlayerEnergyColor();
+    const auto kineticColor=sfPlayerKineticColor();
+    assert(energyColor.b>energyColor.r && energyColor.r>energyColor.g); // light violet
+    assert(kineticColor.r>kineticColor.g && kineticColor.g>kineticColor.b); // yellow/orange
+
+    // Boss kinetic reserve is a visual stress reserve: it regenerates faster on easy
+    // campaign difficulty and a depleted field becomes more visible.
+    assert(sfCoopBossKineticRegenPerSecond(0)>sfCoopBossKineticRegenPerSecond(3));
+    assert(sfCoopBossKineticVisibilityAlpha(0.05f)>sfCoopBossKineticVisibilityAlpha(0.95f));
+    sfCoop.bossKineticReserve=.25f;sfCoop.encounter=0;
+    const float easyReserve=sfCoopRegenerateBossKineticReserveValue(sfCoop.bossKineticReserve,1.0f,sfDifficultyIndex(sfCoop.encounter));
+    sfCoop.encounter=150;
+    const float hardReserve=sfCoopRegenerateBossKineticReserveValue(sfCoop.bossKineticReserve,1.0f,sfDifficultyIndex(sfCoop.encounter));
+    assert(easyReserve>hardReserve && hardReserve>.25f);
+
+    // Half-texel inset: sample inside an atlas cell without shaving a percentage
+    // off the artwork or bleeding into the neighbour.
+    const SDL_Rect atlasCell{10,20,100,80};
+    const auto uv00=sfAtlasSafeUv(atlasCell,1000,800,0,0);
+    const auto uv11=sfAtlasSafeUv(atlasCell,1000,800,1,1);
+    assert(std::abs(uv00.x-10.5f/1000.0f)<1e-6f);
+    assert(std::abs(uv00.y-20.5f/800.0f)<1e-6f);
+    assert(std::abs(uv11.x-109.5f/1000.0f)<1e-6f);
+    assert(std::abs(uv11.y-99.5f/800.0f)<1e-6f);
+
     auto *surface=SDL_CreateRGBSurfaceWithFormat(0,width,height,32,SDL_PIXELFORMAT_RGBA32);
     auto *renderer=SDL_CreateSoftwareRenderer(surface);assert(surface && renderer);
     setupCampaign();sfArenaW=width;sfArenaH=height;
-    auto &textures=sfCoopTextures(renderer);assert(textures.missile);
+    auto &textures=sfCoopTextures(renderer);
+    assert(textures.missile && textures.explosion && textures.orbOrange && textures.orbBlue);
     sfCoop.shots.clear();sfCoopEmit(tupl(200,400),-float(PI)*.5f,240,1,60,4);
     SDL_SetRenderDrawColor(renderer,0,0,0,255);SDL_RenderClear(renderer);sfCoopDrawArena(renderer,width,height);
     std::vector<Uint32> missile(width*height);assert(SDL_RenderReadPixels(renderer,nullptr,SDL_PIXELFORMAT_RGBA32,missile.data(),width*4)==0);

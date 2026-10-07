@@ -228,3 +228,12 @@ Fab demande maintenant une recharge passive IMPORTANTE, inversement proportionne
 Le sens de nrj reste historique : 0 = réserve pleine, 50 = épuisée.
 
 Les autres règles du dernier avenant restent inchangées : boss 55 % non destructif, anneau transparent centre→extérieur, astéroïdes COOP continus, minage/aspiration blanche pendant 0,30–2,00 s.
+
+
+## CLASSIC-FX-KINETIC-HUD-V143 — RED — 2026-10-07
+- Nouvelle branche `feature/classic-fx-kinetic-hud-v143` depuis `898227ecd99d1dc1d3e3d287bfcc969dcaec8f90`.
+- Fab autorise le codage : projectile guidé COOP aligné sur le missile classique et ses FX ; explosions classiques nettes plutôt que fumée quand le bouclier est faible ; orbes classiques réutilisées et redimensionnées en COOP ; HUD à trois barres ENERGIE / PV / CINETIQUE ; champ boss semi-transparent à anneaux centre→extérieur, plus visible quand sa réserve visuelle baisse, avec régénération plus rapide aux difficultés basses.
+- Diagnostic du « broutage » : piste atlas/UV retenue de façon bornée. Test demandé sur une marge demi-texel anti-bleeding ; aucune retouche destructive des assets sans nouvelle preuve téléphone.
+- La réserve cinétique boss ajoutée par ce lot est une réserve de stress/visibilité et ne remplace PAS la dissipation gameplay fixe 55 % déjà canonique.
+- TDD RED : les tests référencent volontairement `sfPlayerKineticRect`, couleurs dédiées, réserve/régénération boss et `sfAtlasSafeUv` avant implémentation.
+- `src/main.cpp` reste strictement intact. Aucun merge main ni Release sans validation Fab.

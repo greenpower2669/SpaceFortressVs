@@ -110,3 +110,11 @@
 - Correction d'observation : la recharge passive d'énergie existe historiquement déjà en CLASSIQUE (`nrj*=0.997`) et Fab l'observe en jeu ; le lot ne doit jamais la supprimer. En COOP, elle est accélérée selon Danger, de ×4 du rythme v1.4.2 en MOU DU GENOU vers ×2 en APOCALYPSE.
 - Artifact téléphone : `SpaceFortressVs-1.4.2-release-files` id `11456527917`, digest ZIP `sha256:1e9ef7a5276c74a9db3064a83f00c17c614ff8cddf060245336ab2f3479d9da5`.
 - Aucun merge main ni release ; prochaine étape : validation téléphone Fab.
+
+
+## Mission active — classic FX / kinetic HUD / anti-bleeding
+- Branche `feature/classic-fx-kinetic-hud-v143`.
+- RED d'abord : tests du HUD 3 barres, réserve visuelle boss, difficulté de régénération, visibilité inverse de réserve et demi-texel atlas.
+- COOP doit réutiliser missile/orbes/explosion classiques sans modifier `src/main.cpp`.
+- Boss reste gameplay fixe 55 % ; nouvelle réserve = stress visuel/régénération seulement.
+- Broutage : correction bornée UV demi-texel ; si le téléphone montre encore le défaut, stopper avant retouche asset plus large et rediscuter avec Fab.

@@ -50,3 +50,13 @@
 - [x] Dernier canon recharge ×4→×2 par rapport à v1.4.2 appliqué.
 
 - [x] Canon reconfirmé : champ boss fixe 55 % < joueurs ; recharge passive historique présente et préservée.
+
+
+## CLASSIC-FX-KINETIC-HUD-V143
+- [x] Branche dédiée créée depuis 898227ec.
+- [x] Diagnostic initial broutage : atlas/UV plausible ; demi-texel retenu pour TDD.
+- [x] Tests RED écrits : HUD 3 barres, couleurs, réserve boss/regen difficulté, alpha inverse, UV demi-texel, textures classiques COOP.
+- [ ] Prouver RED en CI.
+- [ ] Implémenter sans toucher src/main.cpp.
+- [ ] CI GREEN + APK/AAB.
+- [ ] Validation téléphone Fab ; aucun merge/release avant accord.
