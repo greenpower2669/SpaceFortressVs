@@ -122,4 +122,14 @@ for name in ('kinetic_charge.wav','kinetic_ready.wav','kinetic_release.wav'):
 assert 'for(auto *rock:sa1)' in field
 assert 'sfCoopApplyMiningConeBossDamage' in coop
 assert 'SF_COOP_PHASER_DAMAGE' in coop
+assert 'if(owner==0 && sfActiveMode==SF_COOP_AI) continue' in coop
+assert 'sfCoopAiUpdateMiningCone' in coop
+assert 'sfCoopAiShouldFire' in coop
+assert 'sfCoopRegisterBossDamage' in coop
+assert 'sfCoopUpdateBossThreat' in coop
+assert 'sfCoopUpdateBossMissileDodge' in coop
+assert 'sfAiDangerLevel' in tactical
+assert 'sfAiReactionSeconds' in tactical
+assert 'sfAiPredictionHorizon' in tactical
+assert 'sfAiLowEnergy' in tactical
 print('PASS: canonical 0.2 s cone, red-green supercharge, simultaneous mining and continuous boss DPS contract')
