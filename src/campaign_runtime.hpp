@@ -220,7 +220,7 @@ static void sfCoopPattern(int pattern)
     }
 }
 
-static float sfCoopRisk(tupl position,tuplv velocity)
+static float sfCoopRisk(tupl position,tuplv velocity,Uint64 ignoredAsteroidId=0)
 {
     float risk=0; const float radius=sfCoopShipRadius();
     for (const auto &shot : sfCoop.shots) if (shot.owner<0 && shot.life>0) {
@@ -243,7 +243,7 @@ static float sfCoopRisk(tupl position,tuplv velocity)
         if (std::abs(distance-futureRadius)<radius+sfArenaW*.03f) risk+=3;
     }
     const float oldDt=sfFrameDt,oldK=k0;sfFrameDt=1.0f/60;k0=1;
-    risk+=sfAsteroidRisk(position,velocity,radius);
+    risk+=sfAsteroidRisk(position,velocity,radius,ignoredAsteroidId);
     sfFrameDt=oldDt;k0=oldK;
     return risk;
 }
@@ -251,6 +251,13 @@ static float sfCoopRisk(tupl position,tuplv velocity)
 static bool sfCoopAiLowEnergy()
 {
     return Spritej1 && sfKineticEnergyFraction(Spritej1->nrj)<=.10f;
+}
+static bool sfCoopAiNeedsMining()
+{
+    // <=10% remains the absolute emergency rule. Outside a rescue, begin
+    // intelligent recovery earlier so the mining behaviour is visible/useful
+    // before the teammate is already empty.
+    return Spritej1 && sfKineticEnergyFraction(Spritej1->nrj)<=.35f;
 }
 static sprite *sfCoopAiRecoveryRock(bool rescueOnly)
 {
@@ -265,15 +272,29 @@ static sprite *sfCoopAiRecoveryRock(bool rescueOnly)
         const float rvx=rock->vx*60.0f-sfObserved[0].velocity.vx;
         const float rvy=rock->vy*60.0f-sfObserved[0].velocity.vy;
         const float relative=vlong(rvx,rvy);
-        const bool small=size<=shipDiameter*1.05f && relative<=sfArenaW*.36f;
-        if(!small) continue; // distinguish exploitable rock from dangerous collision.
+        const bool exploitable=size<=shipDiameter*1.50f && relative<=sfArenaW*.42f;
+        if(!exploitable) continue; // a small/slow rock is a resource, not an automatic flee trigger.
         const float distance=vlong(rock->x-position.x,rock->y-position.y);
-        if(distance>sfArenaW*(rescueOnly ? .26f : .48f)) continue;
+        if(distance>sfArenaW*(rescueOnly ? .26f : .52f)) continue;
         if(rescueOnly && sfSegmentDistance(position,rescue,tupl(rock->x,rock->y))>sfArenaW*.16f) continue;
         const float score=distance+relative*.18f+size*.20f;
         if(score<best) {best=score;bestRock=rock;}
     }
+    if(bestRock && !bestRock->tacticalId) bestRock->tacticalId=++sfNextAsteroidId;
     return bestRock;
+}
+static tupl sfCoopAiMiningGoal(sprite *rock)
+{
+    if(!rock || !Spritej1) return tupl(Spritej1 ? Spritej1->x : 0,Spritej1 ? Spritej1->y : 0);
+    const float diameter=sfKineticShipDiameter(Spritej1);
+    const float shipRadius=sfCoopShipRadius();
+    const float rockRadius=std::max(rock->w,rock->h)*.5f;
+    const float coneRange=diameter*sfKineticSurgeMiningRangeDiameters();
+    const float noseOffset=diameter*.42f;
+    const float collisionClearance=shipRadius+rockRadius+diameter*.035f;
+    const float coneForward=std::max(diameter*.035f,coneRange*.48f);
+    const float clearance=std::max(collisionClearance,noseOffset+coneForward);
+    return tupl(rock->x,rock->y-clearance);
 }
 static bool sfCoopAiRockInMiningCone(sprite *rock)
 {
@@ -288,7 +309,8 @@ static void sfCoopAiUpdateMiningCone()
 {
     if(sfActiveMode!=SF_COOP_AI || !Spritej1 || Spritej1->pv<=0) return;
     const bool rescue=Spritej2 && Spritej2->pv<=0 && sfCoop.revives>0;
-    sprite *rock=sfCoopAiLowEnergy() ? sfCoopAiRecoveryRock(rescue) : nullptr;
+    const bool mayMine=rescue ? sfCoopAiLowEnergy() : sfCoopAiNeedsMining();
+    sprite *rock=mayMine ? sfCoopAiRecoveryRock(rescue) : nullptr;
     const bool mine=rock && sfCoopAiRockInMiningCone(rock);
     if(mine && !sfKineticSurges[0].held) {
         sfKineticSurgePress(0);sfKineticAudioStartCharge(0);
@@ -312,6 +334,7 @@ static tuplv sfCoopAiVelocity(float dt)
     const tupl position(ship->x,ship->y);
     const bool rescue=Spritej2->pv<=0 && sfCoop.revives>0;
     const bool lowEnergy=sfCoopAiLowEnergy();
+    const bool needsMining=sfCoopAiNeedsMining();
     const auto aim=sfBossGhost().intercept(position,sfArenaW*1.4f,.55f+.35f*sfCoopBossAiSkill());
     tupl goal(aim.x+sfArenaW*.16f*std::sin(sfCoop.time*.38f),aim.y-sfArenaH*.26f);
     sprite *resourceRock=nullptr;
@@ -321,7 +344,7 @@ static tuplv sfCoopAiVelocity(float dt)
     if(rescue) {
         goal=tupl(Spritej2->x,Spritej2->y);
         if(lowEnergy) resourceRock=sfCoopAiRecoveryRock(true);
-    } else if(lowEnergy) {
+    } else if(needsMining) {
         // Prefer already-created white dust, then a small safely exploitable rock.
         float bestDust=std::numeric_limits<float>::max();
         for(const auto *dust:particules) {
@@ -342,9 +365,9 @@ static tuplv sfCoopAiVelocity(float dt)
         }
     }
     if(resourceRock) {
-        // Stand just above the rock so the owner-0 forward cone (+Y) mines it.
-        const float clearance=sfCoopShipRadius()+std::max(resourceRock->w,resourceRock->h)*.62f;
-        goal=tupl(resourceRock->x,resourceRock->y-clearance);
+        // Stand at a cone-aware, collision-safe distance. This remains valid
+        // even when Apocalypse shortens the cone.
+        goal=sfCoopAiMiningGoal(resourceRock);
     }
 
     const float maxSpeed=sfArenaW*.58f;
@@ -358,7 +381,7 @@ static tuplv sfCoopAiVelocity(float dt)
         const tupl future(position.x+candidate.vx*.35f,position.y+candidate.vy*.35f);
         const bool edge=future.x<sfArenaW*.07f || future.x>sfArenaW*.93f || future.y<sfArenaH*.11f || future.y>sfArenaH*.89f;
         const float nearBoss=vlong(future.x-sfCoop.position.x,future.y-sfCoop.position.y)<sfCoopBossRadius()+sfCoopShipRadius()*1.7f ? 8.0f : 0;
-        float risk=sfCoopRisk(position,candidate);
+        float risk=sfCoopRisk(position,candidate,resourceRock ? resourceRock->tacticalId : 0);
         float resourceBonus=0;
         if(resourceRock) {
             const float d=vlong(future.x-resourceRock->x,future.y-resourceRock->y);
@@ -1049,6 +1072,12 @@ static void sfCoopTick(float dt)
 
 static void sfCampaignStart()
 {
+    // Defensive synchronization: a campaign launched from COOP+IA must never
+    // silently fall back to the local two-player behaviour.
+    if(sfSelectedMode==SF_COOP_LOCAL || sfSelectedMode==SF_COOP_AI) {
+        sfActiveMode=sfSelectedMode;
+        setia=sfModeHasAi(sfActiveMode);
+    }
     sfLoadCampaign();sfCoop=SfCoopState{};sfKineticResetSurges();
     sfFixResetAsteroidField();sfFieldRemainder=0;
     if (!sfDuelShipStylesSaved) {
