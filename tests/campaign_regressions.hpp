@@ -146,6 +146,19 @@ static void testVelocityGhosts()
     auto *recoveryRock=new sprite;recoveryRock->setxywh(Spritej1->x,Spritej1->y+130,45,45);
     recoveryRock->pv=1;recoveryRock->vx=recoveryRock->vy=0;recoveryRock->sw=recoveryRock->sh=45;recoveryRock->startup();sa1.push_back(recoveryRock);
     sfThinkPilot();assert(sfPilot.mode==SfAiMode::Mine);
+
+    // Phone regression: Mine must really activate the cone, even at Apocalypse.
+    sfBossDangerIndex=8;Spritej1->nrj=40;sfKineticResetSurges();
+    sfAiRecoveryGoal(recoveryRock,std::max(Spritej1->sw,Spritej1->sh)*.43f,sfMainShotSpeed(Spritej1->nrj));
+    Spritej1->x=sfPilot.goal.x;Spritej1->y=sfPilot.goal.y;Spritej1->startup();
+    sfPilot.velocity.set(0,0);sfAiUpdateConeStrategy();
+    assert(sfPilot.mode==SfAiMode::Mine && sfPilot.surgeOwned && sfKineticSurges[0].held);
+    sfKineticAdvanceSurges(.21f);
+    const float classicMineBefore=recoveryRock->w;
+    sfKineticSurgeMineAsteroids(.10f);
+    assert(recoveryRock->w<classicMineBefore);
+    sfAiStopOwnedSurge(false);
+
     sfBossDangerIndex=aiOldDanger;sfFixResetAsteroidField();
 
     setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_AI;
@@ -247,6 +260,22 @@ static void testCoopGameplay()
     const float aiConeHp=sfCoop.health;sfCoopApplyMiningConeBossDamage(.20f);
     assert(sfCoop.health==aiConeHp);
     sfKineticSurgeCancel(0);sfKineticAudioCancel(0);
+
+    // COOP AI starts recovery before exhaustion and can reach its Apocalypse cone.
+    sfBossDangerIndex=8;Spritej1->nrj=40;sfKineticResetSurges();
+    const tupl coopMineGoal=sfCoopAiMiningGoal(smallResource);
+    Spritej1->x=coopMineGoal.x;Spritej1->y=coopMineGoal.y;Spritej1->startup();
+    assert(sfCoopAiNeedsMining() && sfCoopAiRockInMiningCone(smallResource));
+    sfCoopAiUpdateMiningCone();assert(sfKineticSurges[0].held);
+    sfKineticAdvanceSurges(.21f);
+    const float coopMineBefore=smallResource->w;
+    sfKineticSurgeMineAsteroids(.10f);
+    assert(smallResource->w<coopMineBefore);
+    sfKineticSurgeCancel(0);sfKineticAudioCancel(0);
+
+    sfSelectedMode=SF_COOP_AI;sfActiveMode=SF_COOP_LOCAL;setia=false;
+    sfCampaignStart();
+    assert(sfActiveMode==SF_COOP_AI && setia);
 
     sfBossDangerIndex=8;sfCoop.chargeActive=false;sfCoop.chargeCooldown=5;
     sfCoopRegisterBossDamage(1,sfCoopProfile().health*.04f);sfCoopUpdateBossThreat(.016f);
