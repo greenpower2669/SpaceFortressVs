@@ -515,7 +515,7 @@ static void sfAiUpdateConeStrategy()
     sprite *recovery=sfAiRecoveryRock();
     bool mineReady=false;
     if(recovery) {
-        const float diameter=sfKineticShipDiameter(Spritej1);
+        const float diameter=std::max(1.0f,std::max({Spritej1->sw,Spritej1->sh,Spritej1->w,Spritej1->h}));
         const float noseY=Spritej1->y+diameter*.42f;
         const float range=diameter*sfKineticSurgeMiningRangeDiameters();
         mineReady=sfKineticSurgeConeContains(0,Spritej1->x,noseY,recovery->x,recovery->y,range,
