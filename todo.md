@@ -136,3 +136,14 @@
 
 - [x] Artifact CI369 id `11570413138`; APK `31d17b83...`; AAB `10db6126...`.
 - [ ] Test téléphone Fab : calibrer uniquement Vprès/Vloin si nécessaire.
+
+
+## IA-BALANCE-CLASSIC-VECTOR
+- [x] Branche dédiée depuis le candidat CI369.
+- [x] Cône difficulté ÷1..÷9 : minage / offense / ouverture / longueur.
+- [x] IA adverse CLASSIQUE progressive N1→N9 + récupération <=10 % + supercharge stratégique.
+- [x] IA COOP sauveteur + ressources <=10 % + petit astéroïde exploitable + cône minage uniquement.
+- [x] Boss : agresseur principal + charge adaptative + esquive missile bornée.
+- [x] CLASSIQUE tactile haut/bas : destination vectorielle ; COOP tactile intacte.
+- [ ] CI GREEN + APK/AAB.
+- [ ] Validation téléphone Fab.
