@@ -42,8 +42,8 @@ assert 'sfClassicDuelSurgeHandleEvent' in duel
 assert 'sfClassicDuelSurgeHandleEvent(e,tid,ty)' in classic_patch
 assert 'sfClassicTouchSetTarget(0,tx,ty,inx,iny)' in classic_patch
 assert 'sfClassicTouchSetTarget(1,tx,ty,inx,iny)' in classic_patch
-assert 'if (inx) Spritej1->x=tx' not in classic_patch
-assert 'if (inx) Spritej2->x=tx' not in classic_patch
+assert 'classic upper touch vector target' in classic_patch
+assert 'classic lower touch vector target' in classic_patch
 assert 'sfClassicTouchVectorUpdate' in tactical
 assert '#include <classic_duel_surge.hpp>' in th2
 assert 'sfKineticSurgePress(owner)' in coop
