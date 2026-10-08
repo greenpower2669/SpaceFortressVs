@@ -123,3 +123,13 @@
 - [x] Restitution poussières réutilise `sfMineAsteroid` / `partsforiw` historique.
 
 - [x] Artifact CI365 id `11531471894` ; APK `71a4fb84...` ; AAB `9f4a3357...`.
+
+
+## CONE-MINAGE-SUPERCHARGE-SPEC
+- [x] Branche `fix/cone-mining-supercharge-spec-v143` depuis CI365 documenté.
+- [x] PDF canonique repris depuis main.
+- [x] 0,2 s + cercle rouge→vert + bouclier normal suspendu.
+- [x] Minage simultané distance-dépendant, temps réel, non bloqué par les particules.
+- [x] Boss DPS continu ×3→×0,03 selon point de collision.
+- [ ] CI GREEN + APK/AAB.
+- [ ] Validation téléphone Fab des vitesses Vprès/Vloin provisoires.
