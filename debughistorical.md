@@ -225,3 +225,9 @@
 - Visuel : cône orange semi-transparent + 5 fronts convergents extérieur→intérieur, sans halo 360°, actif pendant toute l'aspiration y compris après 2 s.
 - Audio : READY reste joué ; ensuite `kinetic_charge.wav` boucle au volume canal 24/128 jusqu'au release/cancel (charge initiale 76/128).
 - Aucun changement `src/main.cpp`, boss HUD, Danger, boss kinetic ou blast final.
+
+
+## CI363/364 -> CI365 GREEN — SURGE-CONE-MINING
+- 363 : dépendance `vlong` interdite dans le helper header-only du cône ; remplacée par `sqrt` locale.
+- 364 : ancien test supposait minage latéral/360° ; corrigé pour astéroïde frontal et ajouté contrôle de poursuite après READY.
+- 365 : chaîne complète GREEN sur `40a3e91d8d4fff7e8ac44f94d2bda6d4010efc50`.

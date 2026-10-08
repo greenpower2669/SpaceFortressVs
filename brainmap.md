@@ -228,3 +228,9 @@ CLASSIQUE DUEL local :
 - Visuel : cône orange semi-transparent + 5 fronts convergents extérieur→intérieur, sans halo 360°, actif pendant toute l'aspiration y compris après 2 s.
 - Audio : READY reste joué ; ensuite `kinetic_charge.wav` boucle au volume canal 24/128 jusqu'au release/cancel (charge initiale 76/128).
 - Aucun changement `src/main.cpp`, boss HUD, Danger, boss kinetic ou blast final.
+
+
+## CI365 candidat téléphone — aspiration avant
+- Code `40a3e91d...` GREEN complet.
+- Cône avant orange semi-transparent, fronts convergents extérieur→intérieur, aspiration/minage maintenus après READY, portées ×1.5.
+- APK `71a4fb84...`, AAB `9f4a3357...`; blast final et gameplay hors lot inchangés.

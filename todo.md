@@ -116,8 +116,10 @@
 ## SURGE-CONE-MINING
 - [x] Branche `fix/surge-cone-mining-v143` depuis d5a897d9.
 - [x] Contrat RED : continuation après 2 s, portées ×1.5, cône avant, visuel orange convergent, son discret post-READY.
-- [ ] Prouver RED CI.
+- [x] CI363/364 ont exposé les deux incompatibilités résiduelles (header autonome + ancien test 360°).
 - [x] Gameplay + cône visuel + audio post-READY implémentés sans toucher `src/main.cpp`.
-- [ ] CI GREEN + APK/AAB pour téléphone.
+- [x] CI365 GREEN + APK/AAB ; [ ] validation téléphone Fab.
 
 - [x] Restitution poussières réutilise `sfMineAsteroid` / `partsforiw` historique.
+
+- [x] Artifact CI365 id `11531471894` ; APK `71a4fb84...` ; AAB `9f4a3357...`.
