@@ -65,6 +65,7 @@ assert 'sfKineticMiningArenaFractionPerSecond' in kinetic
 assert 'sfKineticConeBossDpsMultiplier' in kinetic
 assert 'sfKineticConeDifficultyDivisor' in kinetic
 assert 'sfKineticConeDifficultyScale' in kinetic
+assert 'return 2.0f/sfKineticConeDifficultyDivisor();' in kinetic
 assert 'sfKineticSurgeMiningRangeDiameters' in kinetic
 assert 'sfKineticSurgeDustRangeDiameters' in kinetic
 
@@ -124,6 +125,8 @@ assert 'sfCoopApplyMiningConeBossDamage' in coop
 assert 'SF_COOP_PHASER_DAMAGE' in coop
 assert 'if(owner==0 && sfActiveMode==SF_COOP_AI) continue' in coop
 assert 'sfCoopAiUpdateMiningCone' in coop
+assert 'sfCoopAiNeedsMining' in coop
+assert 'sfCoopAiMiningGoal' in coop
 assert 'sfCoopAiShouldFire' in coop
 assert 'sfCoopRegisterBossDamage' in coop
 assert 'sfCoopUpdateBossThreat' in coop
