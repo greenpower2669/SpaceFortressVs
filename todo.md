@@ -131,5 +131,8 @@
 - [x] 0,2 s + cercle rouge→vert + bouclier normal suspendu.
 - [x] Minage simultané distance-dépendant, temps réel, non bloqué par les particules.
 - [x] Boss DPS continu ×3→×0,03 selon point de collision.
-- [ ] CI GREEN + APK/AAB.
+- [x] CI369 GREEN + APK/AAB.
 - [ ] Validation téléphone Fab des vitesses Vprès/Vloin provisoires.
+
+- [x] Artifact CI369 id `11570413138`; APK `31d17b83...`; AAB `10db6126...`.
+- [ ] Test téléphone Fab : calibrer uniquement Vprès/Vloin si nécessaire.

@@ -247,3 +247,9 @@ CLASSIQUE DUEL local :
 - Boss : dégâts continus en parallèle du minage ; DPS = DPS réel du phaser × [3 - 2,97 × d/L]. Le point d'entrée est recherché sur le périmètre de collision du boss (même rayon que le phaser), pas seulement son centre. Les astéroïdes ne bloquent pas.
 - Déflagration pleine charge : mécanisme existant ×3 préservé ; relâchement avant 100 % ne lance pas la purge pleine puissance.
 - `src/main.cpp` protégé. Aucun merge `main` ni Release sans validation Fab.
+
+
+## CI369 candidat téléphone
+- Canon PDF implémenté et GREEN complet sur `b8d3764d...`.
+- 0,2 s ; cercle rouge→vert ; shield suspendu ; minage toutes cibles + distance ; boss ×3→×0,03 ; particules non bloquantes.
+- APK `31d17b83...`, AAB `10db6126...`; Vprès/Vloin restent à calibrer sur téléphone.

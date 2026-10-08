@@ -382,3 +382,17 @@ Les autres règles du dernier avenant restent inchangées : boss 55 % non destru
 - Boss : dégâts continus en parallèle du minage ; DPS = DPS réel du phaser × [3 - 2,97 × d/L]. Le point d'entrée est recherché sur le périmètre de collision du boss (même rayon que le phaser), pas seulement son centre. Les astéroïdes ne bloquent pas.
 - Déflagration pleine charge : mécanisme existant ×3 préservé ; relâchement avant 100 % ne lance pas la purge pleine puissance.
 - `src/main.cpp` protégé. Aucun merge `main` ni Release sans validation Fab.
+
+
+## CI 369 GREEN — CONE-MINAGE-SUPERCHARGE-SPEC
+- Code/test candidat : `b8d3764d02b59efeb2ef09b20b137da7d5da3b6b`.
+- CI368 / `37823187540` : seul échec = ancien garde-fou Python exigeant encore littéralement le délai historique `0.30f`; aucun échec C++ fonctionnel observé avant ce stop.
+- Garde-fou réaligné sur le PDF : `0.20f`, supercharge rouge→vert, minage simultané et DPS boss.
+- CI369 / `37823744853` : chaîne complète SUCCESS (assets/régressions, Hall protocol, debug APK, secret hygiene, APK/AAB installables, packaging).
+- Artifact `SpaceFortressVs-1.4.2-release-files` id `11570413138`, digest ZIP `sha256:d429b88f7160a26a0817da19e6f5e07e11bf628944dd56414d8e70b02967b522`.
+- APK SHA-256 : `31d17b8317ce831176ff7d81957369dae392239f954fc06fdfcf42f215a785b6`.
+- AAB SHA-256 : `10db6126094e654ff346bbe84240b9de61639023645bd9256cce35ddbd0b450d`.
+- Fonctionnel couvert : activation 0,2 s ; cercle supercharge rouge→orange→jaune→vert ; 100 % à 2 s et maintien ; bouclier cinétique normal suspendu pendant la supercharge ; minage simultané de toutes les cibles ; vitesse de fonte linéaire selon distance ; fonte indépendante du plafond de poussières ; boss DPS phaser ×3→×0,03 selon point touché de sa zone de collision ; astéroïdes non bloquants.
+- Calibration Vprès/Vloin reste volontairement provisoire : `0.020 H/s` / `0.004 H/s`, à ajuster après essai téléphone Fab.
+- `src/main.cpp` revérifié au blob `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- Aucun merge main ni Release ; validation téléphone Fab requise.
