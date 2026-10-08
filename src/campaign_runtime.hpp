@@ -21,6 +21,11 @@ struct SfCoopState {
     float time=0,phaseTime=0,health=900,attack=1,warning=0,hit=0;
     float chargeTime=0,chargeCooldown=4.5f,chargeOffsetX=0,chargeOffsetY=0;
     float bossKineticFlash=0;
+    std::array<float,2> bossThreat{};
+    int bossAggressor=-1;
+    float bossAggroTime=0,bossDodgeCooldown=0;
+    tupl bossDodgeOffset;
+    tuplv bossDodgeVelocity;
     // Boss reserves are visual stress meters only. Gameplay HP/damage and the
     // canonical fixed 55% kinetic dissipation remain unchanged.
     float bossEnergyReserve=1.0f;
@@ -71,6 +76,15 @@ static sprite *sfCoopShip(int owner) { return owner==0 ? Spritej1 : Spritej2; }
 static const SfBossProfile &sfCoopProfile() { return sfEncounterProfile(sfCoop.encounter); }
 static float sfCoopBossRadius() { return std::min(sfArenaW,sfArenaH)*(.11f+.00065f*sfCoop.boss); }
 static float sfCoopShipRadius() { return std::min(sfArenaW,sfArenaH)*.053f; }
+static float sfCoopBossAiSkill()
+{
+    return std::clamp(sfBossDangerIndex,0,SF_BOSS_DANGER_COUNT-1)/float(SF_BOSS_DANGER_COUNT-1);
+}
+static void sfCoopRegisterBossDamage(int owner,float damage)
+{
+    if(owner<0 || owner>1 || damage<=0 || sfCoop.health<=0) return;
+    sfCoop.bossThreat[owner]+=damage;
+}
 static SfVelocityGhost sfBossGhost() { return {sfCoop.position,sfCoop.motion.velocity}; }
 static float sfSegmentDistance(tupl a,tupl b,tupl point)
 {
@@ -234,14 +248,92 @@ static float sfCoopRisk(tupl position,tuplv velocity)
     return risk;
 }
 
+static bool sfCoopAiLowEnergy()
+{
+    return Spritej1 && sfKineticEnergyFraction(Spritej1->nrj)<=.10f;
+}
+static sprite *sfCoopAiRecoveryRock(bool rescueOnly)
+{
+    if(!Spritej1) return nullptr;
+    const tupl position(Spritej1->x,Spritej1->y);
+    const tupl rescue(Spritej2 ? Spritej2->x : position.x,Spritej2 ? Spritej2->y : position.y);
+    const float shipDiameter=sfKineticShipDiameter(Spritej1);
+    sprite *bestRock=nullptr;float best=std::numeric_limits<float>::max();
+    for(auto *rock:sa1) {
+        if(!rock || rock->pv<=0) continue;
+        const float size=std::max(rock->w,rock->h);
+        const float rvx=rock->vx*60.0f-sfObserved[0].velocity.vx;
+        const float rvy=rock->vy*60.0f-sfObserved[0].velocity.vy;
+        const float relative=vlong(rvx,rvy);
+        const bool small=size<=shipDiameter*1.05f && relative<=sfArenaW*.36f;
+        if(!small) continue; // distinguish exploitable rock from dangerous collision.
+        const float distance=vlong(rock->x-position.x,rock->y-position.y);
+        if(distance>sfArenaW*(rescueOnly ? .26f : .48f)) continue;
+        if(rescueOnly && sfSegmentDistance(position,rescue,tupl(rock->x,rock->y))>sfArenaW*.16f) continue;
+        const float score=distance+relative*.18f+size*.20f;
+        if(score<best) {best=score;bestRock=rock;}
+    }
+    return bestRock;
+}
+static bool sfCoopAiRockInMiningCone(sprite *rock)
+{
+    if(!rock || !Spritej1 || rock->pv<=0) return false;
+    const float diameter=sfKineticShipDiameter(Spritej1);
+    const float noseY=Spritej1->y+diameter*.42f;
+    const float range=diameter*sfKineticSurgeMiningRangeDiameters();
+    return sfKineticSurgeConeContains(0,Spritej1->x,noseY,rock->x,rock->y,range,
+                                      std::max(rock->w,rock->h)*.5f);
+}
+static void sfCoopAiUpdateMiningCone()
+{
+    if(sfActiveMode!=SF_COOP_AI || !Spritej1 || Spritej1->pv<=0) return;
+    const bool rescue=Spritej2 && Spritej2->pv<=0 && sfCoop.revives>0;
+    sprite *rock=sfCoopAiLowEnergy() ? sfCoopAiRecoveryRock(rescue) : nullptr;
+    const bool mine=rock && sfCoopAiRockInMiningCone(rock);
+    if(mine && !sfKineticSurges[0].held) {
+        sfKineticSurgePress(0);sfKineticAudioStartCharge(0);
+    } else if(!mine && sfKineticSurges[0].held) {
+        // Co-op AI uses the cone only as a mining tool: cancel, never release
+        // an offensive full-charge purge on its own.
+        sfKineticSurgeCancel(0);sfKineticAudioCancel(0);
+    }
+}
+static bool sfCoopAiShouldFire()
+{
+    if(sfActiveMode!=SF_COOP_AI || !Spritej1 || Spritej1->pv<=0) return false;
+    if(Spritej2 && Spritej2->pv<=0 && sfCoop.revives>0) return false;
+    if(sfKineticEnergyFraction(Spritej1->nrj)<=.25f) return false;
+    if(Spritej1->pv<420 || sfKineticSurges[0].held) return false;
+    return true;
+}
 static tuplv sfCoopAiVelocity(float dt)
 {
     auto *ship=Spritej1;
     const tupl position(ship->x,ship->y);
-    const auto aim=sfBossGhost().intercept(position,sfArenaW*1.4f,.9f);
+    const bool rescue=Spritej2->pv<=0 && sfCoop.revives>0;
+    const bool lowEnergy=sfCoopAiLowEnergy();
+    const auto aim=sfBossGhost().intercept(position,sfArenaW*1.4f,.55f+.35f*sfCoopBossAiSkill());
     tupl goal(aim.x+sfArenaW*.16f*std::sin(sfCoop.time*.38f),aim.y-sfArenaH*.26f);
-    if (Spritej2->pv<=0 && sfCoop.revives>0) goal=tupl(Spritej2->x,Spritej2->y);
-    else if (ship->nrj>22 && !particules.empty()) {
+    sprite *resourceRock=nullptr;
+
+    // Rescue is absolute priority. At critical energy only accept a quick
+    // resource detour lying near the rescue route; never cross the arena to mine.
+    if(rescue) {
+        goal=tupl(Spritej2->x,Spritej2->y);
+        if(lowEnergy) resourceRock=sfCoopAiRecoveryRock(true);
+    } else if(lowEnergy) {
+        // Prefer already-created white dust, then a small safely exploitable rock.
+        float bestDust=std::numeric_limits<float>::max();
+        for(const auto *dust:particules) {
+            if(!dust || dust->pv<=0) continue;
+            const float distance=vlong(dust->x-position.x,dust->y-position.y);
+            if(distance<bestDust && distance<sfArenaW*.42f &&
+               sfCoopRisk(tupl(dust->x,dust->y),tuplv(0,0))<1.2f) {
+                bestDust=distance;goal=tupl(dust->x,dust->y);
+            }
+        }
+        if(bestDust==std::numeric_limits<float>::max()) resourceRock=sfCoopAiRecoveryRock(false);
+    } else if (ship->nrj>22 && !particules.empty()) {
         float best=std::numeric_limits<float>::max();
         for (const auto *dust : particules) {
             if (dust->pv<=0) continue;
@@ -249,6 +341,12 @@ static tuplv sfCoopAiVelocity(float dt)
             if (distance<best && sfCoopRisk(tupl(dust->x,dust->y),tuplv(0,0))<.1f) {best=distance;goal=tupl(dust->x,dust->y);}
         }
     }
+    if(resourceRock) {
+        // Stand just above the rock so the owner-0 forward cone (+Y) mines it.
+        const float clearance=sfCoopShipRadius()+std::max(resourceRock->w,resourceRock->h)*.62f;
+        goal=tupl(resourceRock->x,resourceRock->y-clearance);
+    }
+
     const float maxSpeed=sfArenaW*.58f;
     goal.x=std::clamp(goal.x,sfArenaW*.12f,sfArenaW*.88f);
     goal.y=std::clamp(goal.y,sfArenaH*.12f,sfArenaH*.88f);
@@ -260,8 +358,17 @@ static tuplv sfCoopAiVelocity(float dt)
         const tupl future(position.x+candidate.vx*.35f,position.y+candidate.vy*.35f);
         const bool edge=future.x<sfArenaW*.07f || future.x>sfArenaW*.93f || future.y<sfArenaH*.11f || future.y>sfArenaH*.89f;
         const float nearBoss=vlong(future.x-sfCoop.position.x,future.y-sfCoop.position.y)<sfCoopBossRadius()+sfCoopShipRadius()*1.7f ? 8.0f : 0;
-        const float score=sfCoopRisk(position,candidate)*10+(edge ? 12 : 0)+nearBoss+
-                          vlong(candidate.vx-wanted.vx,candidate.vy-wanted.vy)/maxSpeed;
+        float risk=sfCoopRisk(position,candidate);
+        float resourceBonus=0;
+        if(resourceRock) {
+            const float d=vlong(future.x-resourceRock->x,future.y-resourceRock->y);
+            resourceBonus=std::clamp(1.0f-d/std::max(1.0f,sfArenaW*.30f),0.0f,1.0f)*5.0f;
+            // A small, slow selected rock is a resource, not an automatic flee trigger.
+            risk=std::max(0.0f,risk-1.4f*resourceBonus);
+        }
+        const float rescueBonus=rescue ? std::clamp(1.0f-vlong(future.x-Spritej2->x,future.y-Spritej2->y)/std::max(1.0f,sfArenaW),0.0f,1.0f)*3.0f : 0;
+        const float score=risk*10+(edge ? 12 : 0)+nearBoss+
+                          vlong(candidate.vx-wanted.vx,candidate.vy-wanted.vy)/maxSpeed-resourceBonus-rescueBonus;
         if (score<best) {best=score;chosen=candidate;}
     }
     const auto old=sfCoop.controls[0].velocity;
@@ -269,6 +376,75 @@ static tuplv sfCoopAiVelocity(float dt)
     return tuplv(old.vx+(chosen.vx-old.vx)*blend,old.vy+(chosen.vy-old.vy)*blend);
 }
 
+static void sfCoopUpdateBossThreat(float dt)
+{
+    const float skill=sfCoopBossAiSkill();
+    const float decay=std::exp(-dt*(1.15f-.45f*skill));
+    for(auto &v:sfCoop.bossThreat) v*=decay;
+    sfCoop.bossAggroTime=std::max(0.0f,sfCoop.bossAggroTime-dt);
+
+    int candidate=-1;float threat=0;
+    for(int owner=0;owner<2;++owner) if(sfCoopShip(owner)->pv>0 && sfCoop.bossThreat[owner]>threat) {
+        threat=sfCoop.bossThreat[owner];candidate=owner;
+    }
+    const float threshold=sfCoopProfile().health*(.030f-.020f*skill);
+    if(candidate>=0 && threat>=threshold) {
+        if(sfCoop.bossAggressor<0 || sfCoopShip(sfCoop.bossAggressor)->pv<=0 ||
+           candidate==sfCoop.bossAggressor ||
+           sfCoop.bossThreat[candidate]>sfCoop.bossThreat[sfCoop.bossAggressor]*1.18f) {
+            sfCoop.bossAggressor=candidate;
+        }
+        sfCoop.bossAggroTime=1.4f+1.8f*skill;
+        if(!sfCoop.chargeActive)
+            sfCoop.chargeCooldown=std::min(sfCoop.chargeCooldown,1.25f-.90f*skill);
+    }
+    if(sfCoop.bossAggroTime<=0 && (sfCoop.bossAggressor<0 || sfCoopShip(sfCoop.bossAggressor)->pv<=0))
+        sfCoop.bossAggressor=-1;
+}
+static void sfCoopUpdateBossMissileDodge(float dt)
+{
+    if(dt<=0) return;
+    const float skill=sfCoopBossAiSkill();
+    sfCoop.bossDodgeCooldown=std::max(0.0f,sfCoop.bossDodgeCooldown-dt);
+    tuplv desired(0,0);
+    if(sfCoop.bossDodgeCooldown<=0) {
+        float bestT=std::numeric_limits<float>::max();
+        for(const auto &shot:sfCoop.shots) {
+            if(shot.owner<0 || shot.kind!=4 || shot.life<=0) continue;
+            const float rx=shot.position.x-sfCoop.position.x,ry=shot.position.y-sfCoop.position.y;
+            const float vx=shot.velocity.vx-sfCoop.motion.velocity.vx,vy=shot.velocity.vy-sfCoop.motion.velocity.vy;
+            const float vv=vx*vx+vy*vy;
+            if(vv<1) continue;
+            const float horizon=.45f+.70f*skill;
+            const float t=std::clamp(-(rx*vx+ry*vy)/vv,0.0f,horizon);
+            const float miss=vlong(rx+vx*t,ry+vy*t);
+            const float reaction=.46f-.28f*skill;
+            if(t<reaction || miss>sfCoopBossRadius()*(1.08f+.18f*skill) || t>=bestT) continue;
+            const float speed=std::sqrt(vv);
+            const float cross=vx*(-ry)-vy*(-rx);
+            const float sign=cross>=0 ? 1.0f : -1.0f;
+            const float dodgeSpeed=sfArenaW*(.07f+.13f*skill);
+            desired=tuplv(-vy/speed*sign*dodgeSpeed,vx/speed*sign*dodgeSpeed);
+            bestT=t;
+        }
+        if(bestT<std::numeric_limits<float>::max()) sfCoop.bossDodgeCooldown=.32f+.28f*(1.0f-skill);
+    }
+    const float maxAccel=sfArenaW*(.50f+.55f*skill);
+    auto approach=[&](float current,float target) {
+        return current+std::clamp(target-current,-maxAccel*dt,maxAccel*dt);
+    };
+    sfCoop.bossDodgeVelocity.vx=approach(sfCoop.bossDodgeVelocity.vx,desired.vx);
+    sfCoop.bossDodgeVelocity.vy=approach(sfCoop.bossDodgeVelocity.vy,desired.vy);
+    sfCoop.bossDodgeOffset.x+=sfCoop.bossDodgeVelocity.vx*dt;
+    sfCoop.bossDodgeOffset.y+=sfCoop.bossDodgeVelocity.vy*dt;
+    const float decay=std::exp(-dt*(1.7f-.35f*skill));
+    sfCoop.bossDodgeOffset.x*=decay;sfCoop.bossDodgeOffset.y*=decay;
+    const float maxOffset=sfArenaW*(.025f+.045f*skill);
+    const float length=vlong(sfCoop.bossDodgeOffset.x,sfCoop.bossDodgeOffset.y);
+    if(length>maxOffset) {
+        sfCoop.bossDodgeOffset.x*=maxOffset/length;sfCoop.bossDodgeOffset.y*=maxOffset/length;
+    }
+}
 static float sfCoopFireDelay(float heat)
 {
     return .20f+.010f*sfShipHeat(heat);
@@ -308,10 +484,12 @@ static void sfCoopApplyMiningConeBossDamage(float dt)
 {
     if(dt<=0 || sfCoop.phase!=SfCoopPhase::Combat || sfCoop.health<=0) return;
     for(int owner=0;owner<2 && sfCoop.health>0;++owner) {
+        if(owner==0 && sfActiveMode==SF_COOP_AI) continue; // teammate cone = mining only.
         const float hit=sfCoopConeBossHitFraction(owner);
         if(hit<0) continue;
         const float damage=sfCoopPhaserDps(owner)*sfKineticConeBossDpsMultiplier(hit)*dt;
         if(damage<=0) continue;
+        sfCoopRegisterBossDamage(owner,damage);
         sfCoop.health=std::max(0.0f,sfCoop.health-damage);
         sfCoop.hit=std::max(sfCoop.hit,.06f);
     }
@@ -444,8 +622,10 @@ static void sfCoopMovePlayers(float dt)
             sfCoopBossContact(owner,dt); ship->startup();
         }
         sfCoop.cooldown[owner]-=dt;
-        if (owner==0 && sfActiveMode==SF_COOP_AI && sfCoop.cooldown[owner]<=0)
-            sfCoopFire(owner);
+        if(owner==0 && sfActiveMode==SF_COOP_AI) {
+            sfCoopAiUpdateMiningCone();
+            if(sfCoop.cooldown[owner]<=0 && sfCoopAiShouldFire()) sfCoopFire(owner);
+        }
     }
     for (int owner=0;owner<2;++owner) if (sfCoopShip(owner)->pv<=0) {
         const auto *ally=sfCoopShip(1-owner); auto *down=sfCoopShip(owner);
@@ -533,6 +713,7 @@ static void sfCoopProjectiles(float dt)
             if (shot.life>0 && sfSegmentDistance(shot.previous,shot.position,sfCoop.position)<sfCoopBossRadius()*.75f+shot.radius) {
                 const float energyStress=.018f+.102f*std::clamp(shot.damage/60.0f,0.0f,1.0f);
                 sfCoop.bossEnergyReserve=std::clamp(sfCoop.bossEnergyReserve-energyStress,0.0f,1.0f);
+                sfCoopRegisterBossDamage(shot.owner,shot.damage);
                 sfCoop.health=std::max(0.0f,sfCoop.health-shot.damage);shot.life=0;sfCoop.hit=.10f;
             }
         } else if (shot.kind!=2 || shot.age>1.2f) {
@@ -777,7 +958,9 @@ static tupl sfCoopBossBasePosition(float time)
 static void sfCoopStartCharge()
 {
     if(sfCoop.chargeActive || sfCoop.phase!=SfCoopPhase::Combat) return;
-    int target=(sfCoop.volley+sfCoop.encounter)&1;
+    int target=(sfCoop.bossAggroTime>0 && sfCoop.bossAggressor>=0 &&
+                sfCoopShip(sfCoop.bossAggressor)->pv>0)
+        ? sfCoop.bossAggressor : (sfCoop.volley+sfCoop.encounter)&1;
     if(sfCoopShip(target)->pv<=0) target=1-target;
     if(sfCoopShip(target)->pv<=0) return;
     const float p=sfBossTravelProgress(sfCoop.encounter);
@@ -792,11 +975,23 @@ static void sfCoopStartCharge()
 static void sfCoopUpdateCharge(float dt)
 {
     if(sfCoop.chargeActive) {
+        const float skill=sfCoopBossAiSkill();
+        if(sfCoop.bossAggroTime>0 && sfCoop.bossAggressor>=0 &&
+           sfCoopShip(sfCoop.bossAggressor)->pv>0) {
+            const int target=sfCoop.bossAggressor;
+            const auto base=sfCoopBossBasePosition(sfCoop.time);
+            const auto future=sfShipGhost(target).intercept(base,sfArenaW*(.70f+.45f*sfBossTravelProgress(sfCoop.encounter)),
+                                                            .18f+.48f*skill);
+            const float desiredX=future.x-base.x,desiredY=future.y-base.y;
+            const float blend=1.0f-std::exp(-dt*(1.2f+4.0f*skill));
+            sfCoop.chargeOffsetX+=(desiredX-sfCoop.chargeOffsetX)*blend;
+            sfCoop.chargeOffsetY+=(desiredY-sfCoop.chargeOffsetY)*blend;
+        }
         sfCoop.chargeTime+=dt;
         if(sfCoop.chargeTime>=SF_COOP_CHARGE_DURATION) {
   sfCoop.chargeActive=false;sfCoop.chargeTime=0;sfCoop.chargeOffsetX=sfCoop.chargeOffsetY=0;
   sfCoop.chargeHit={false,false};
-  sfCoop.chargeCooldown=8.0f-3.0f*sfBossTravelProgress(sfCoop.encounter);
+  sfCoop.chargeCooldown=(8.0f-3.0f*sfBossTravelProgress(sfCoop.encounter))*(1.25f-.35f*skill);
         }
         return;
     }
@@ -806,12 +1001,18 @@ static void sfCoopUpdateCharge(float dt)
 static tupl sfCoopBossPosition(float time)
 {
     auto base=sfCoopBossBasePosition(time);
-    if(!sfCoop.chargeActive) return base;
+    const float radius=sfCoopBossRadius();
+    if(!sfCoop.chargeActive) {
+        base.x=std::clamp(base.x+sfCoop.bossDodgeOffset.x,radius,sfArenaW-radius);
+        base.y=std::clamp(base.y+sfCoop.bossDodgeOffset.y,radius+sfArenaH*.105f,sfArenaH-radius-sfArenaH*.105f);
+        return base;
+    }
     const float phase=std::clamp(sfCoop.chargeTime/SF_COOP_CHARGE_DURATION,0.0f,1.0f);
     const float envelope=phase<.55f ? phase/.55f : (1.0f-phase)/.45f;
-    const float radius=sfCoopBossRadius();
     base.x=std::clamp(base.x+sfCoop.chargeOffsetX*envelope,radius,sfArenaW-radius);
     base.y=std::clamp(base.y+sfCoop.chargeOffsetY*envelope,radius+sfArenaH*.105f,sfArenaH-radius-sfArenaH*.105f);
+    base.x=std::clamp(base.x+sfCoop.bossDodgeOffset.x,radius,sfArenaW-radius);
+    base.y=std::clamp(base.y+sfCoop.bossDodgeOffset.y,radius+sfArenaH*.105f,sfArenaH-radius-sfArenaH*.105f);
     return base;
 }
 
@@ -822,6 +1023,8 @@ static void sfCoopTick(float dt)
     sfCoop.time+=dt;sfCoop.hit=std::max(0.0f,sfCoop.hit-dt);
     sfCoop.bossKineticFlash=std::max(0.0f,sfCoop.bossKineticFlash-dt);
     const auto &boss=sfCoopProfile();
+    sfCoopUpdateBossThreat(dt);
+    sfCoopUpdateBossMissileDodge(dt);
     sfCoopUpdateCharge(dt);
     sfCoop.position=sfCoopBossPosition(sfCoop.time);
     sfCoop.motion.observe(sfCoop.position,dt);
