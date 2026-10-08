@@ -149,3 +149,12 @@
 - [ ] Validation téléphone Fab.
 
 - [x] Artifact CI377 `11578789486`; APK `133e558b...`; AAB `99a3b202...`.
+
+
+## CI385 — RETOUR TELEPHONE IA/MINAGE + CONE
+- [x] Courbe cône remplacée par 2/(niveau+1) : niveau 1 = 100 %, niveau 9 = 20 %.
+- [x] CLASSIQUE VS IA : mode Mine déclenche réellement et maintient le cône ; approche adaptée à la portée réelle.
+- [x] COOP IA : minage préventif <=35 %, urgence <=10 %, cible exploitable non fuie, secours prioritaire.
+- [x] Synchronisation défensive COOP+IA au démarrage campagne.
+- [x] CI385 GREEN + APK/AAB ; src/main.cpp intact.
+- [ ] Validation téléphone Fab.
