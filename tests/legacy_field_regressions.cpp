@@ -142,6 +142,32 @@ static void interactions()
     std::puts("PASS: shared real field fragments into 16 children, mines once, emits/collects proportional ore and applies ship collisions in duel/coop");
 }
 
+static void vsAiRuntimeMining()
+{
+    W=WIDTH=sfArenaW=780;H=HEIGHT=sfArenaH=1680;k0=1;sfFrameDt=1.0f/60.0f;
+    sfActiveMode=sfSelectedMode=SF_DUEL_AI;sfUiScreen=SF_UI_GAME;
+    setgui=false;setia=true;sfBossDangerIndex=2;
+    sfTacticsReset();clearField();
+    Spritej1->setxywh(390,250,100,100);
+    Spritej2->setxywh(390,1300,100,100);
+    for(auto *ship:{Spritej1,Spritej2}) {ship->sw=ship->sh=100;ship->pv=1000;ship->ctrl=false;}
+    Spritej1->nrj=30;Spritej2->nrj=0;loosej1->pv=loosej2->pv=0;
+    auto *rock=fieldRock(390,420,100);
+    sfThinkPilot();
+    assert(sfPilot.mode==SfAiMode::Mine);
+    sfAiUpdateConeStrategy();
+    assert(sfPilot.surgeOwned && sfKineticSurges[0].held);
+    const float initial=rock->w;
+    for(int step=0;step<46;++step) {
+        sfKineticAdvanceSurges(sfFrameDt);
+        sfLegacyFieldFrame(sfFrameDt,nullptr); // Compiled generated Android main.
+    }
+    assert(rock->pv>0 && rock->w<initial && sfKineticSurges[0].held);
+    sfAiStopOwnedSurge(false);
+    sfTacticsReset();clearField();
+    std::puts("PASS: Android VS IA cone press melts asteroid in real generated field");
+}
+
 static void fullField()
 {
     for(auto size:{std::pair<int,int>{780,1680},{1680,780}}) for(bool coop:{false,true}) {
@@ -181,4 +207,5 @@ int main(int argc,char **argv)
     if (argc==1 || std::string(argv[1])=="trajectories") trajectories();
     if (argc==1 || std::string(argv[1])=="interactions") interactions();
     if (argc==1 || std::string(argv[1])=="full-field") fullField();
+    if (argc==1 || std::string(argv[1])=="vs-ai-mining") vsAiRuntimeMining();
 }

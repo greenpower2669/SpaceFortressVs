@@ -76,6 +76,15 @@ static sprite *sfCoopShip(int owner) { return owner==0 ? Spritej1 : Spritej2; }
 static const SfBossProfile &sfCoopProfile() { return sfEncounterProfile(sfCoop.encounter); }
 static float sfCoopBossRadius() { return std::min(sfArenaW,sfArenaH)*(.11f+.00065f*sfCoop.boss); }
 static float sfCoopShipRadius() { return std::min(sfArenaW,sfArenaH)*.053f; }
+static tupl sfCoopBossRefugePosition(tupl position)
+{
+    const float radius=sfCoopBossRadius();
+    const float x=sfAiRefugeInset(sfArenaW,radius);
+    const float y=std::min(sfArenaH*.45f,radius+sfArenaH*.105f+
+        std::max(radius*.35f,sfArenaH*.025f));
+    return tupl(std::clamp(position.x,x,sfArenaW-x),
+                std::clamp(position.y,y,sfArenaH-y));
+}
 static float sfCoopBossAiSkill()
 {
     return std::clamp(sfBossDangerIndex,0,SF_BOSS_DANGER_COUNT-1)/float(SF_BOSS_DANGER_COUNT-1);
@@ -371,15 +380,19 @@ static tuplv sfCoopAiVelocity(float dt)
     }
 
     const float maxSpeed=sfArenaW*.58f;
-    goal.x=std::clamp(goal.x,sfArenaW*.12f,sfArenaW*.88f);
-    goal.y=std::clamp(goal.y,sfArenaH*.12f,sfArenaH*.88f);
+    const float refugeX=sfAiRefugeInset(sfArenaW,sfCoopShipRadius());
+    const float refugeY=std::max(sfArenaH*.105f+sfCoopShipRadius(),
+                                sfAiRefugeInset(sfArenaH,sfCoopShipRadius()));
+    goal.x=std::clamp(goal.x,refugeX,sfArenaW-refugeX);
+    goal.y=std::clamp(goal.y,refugeY,sfArenaH-refugeY);
     const tuplv wanted=sfUnitVelocity(position,goal,std::min(maxSpeed,vlong(goal.x-position.x,goal.y-position.y)*3));
     tuplv chosen=wanted; float best=std::numeric_limits<float>::max();
     for (int i=-2;i<16;++i) {
         const float angle=i*2*float(PI)/16;
         const tuplv candidate=i==-2 ? wanted : i==-1 ? tuplv(0,0) : tuplv(std::cos(angle)*maxSpeed,std::sin(angle)*maxSpeed);
         const tupl future(position.x+candidate.vx*.35f,position.y+candidate.vy*.35f);
-        const bool edge=future.x<sfArenaW*.07f || future.x>sfArenaW*.93f || future.y<sfArenaH*.11f || future.y>sfArenaH*.89f;
+        const bool edge=future.x<refugeX || future.x>sfArenaW-refugeX ||
+                            future.y<refugeY || future.y>sfArenaH-refugeY;
         const float nearBoss=vlong(future.x-sfCoop.position.x,future.y-sfCoop.position.y)<sfCoopBossRadius()+sfCoopShipRadius()*1.7f ? 8.0f : 0;
         float risk=sfCoopRisk(position,candidate,resourceRock ? resourceRock->tacticalId : 0);
         float resourceBonus=0;
@@ -629,7 +642,7 @@ static void sfCoopMovePlayers(float dt)
         if (owner==0 && sfActiveMode==SF_COOP_AI) control.velocity=sfCoopAiVelocity(dt);
         else if (control.down) {
             const float distance=vlong(control.target.x-ship->x,control.target.y-ship->y);
-            control.velocity=sfUnitVelocity(previous,control.target,std::min(sfArenaW*1.2f,distance*11));
+            control.velocity=sfUnitVelocity(previous,control.target,std::min(sfArenaW*1.55f,distance*15));
         } else { const float decay=std::exp(-dt*8);control.velocity.vx*=decay;control.velocity.vy*=decay; }
         const float halfWidth=std::max(radius,ship->w*.5f),halfHeight=ship->h*.5f;
         ship->x=std::clamp(ship->x+control.velocity.vx*dt,halfWidth,sfArenaW-halfWidth);
@@ -991,7 +1004,8 @@ static void sfCoopStartCharge()
     const auto future=sfShipGhost(target).intercept(base,sfArenaW*(.70f+.45f*p),.55f);
     const float minX=sfArenaW*(.34f-.26f*p),maxX=sfArenaW*(.66f+.26f*p);
     const float minY=sfArenaH*(.30f-.20f*p),maxY=sfArenaH*(.70f+.20f*p);
-    const float tx=std::clamp(future.x,minX,maxX),ty=std::clamp(future.y,minY,maxY);
+    const tupl safe=sfCoopBossRefugePosition(future);
+    const float tx=std::clamp(safe.x,minX,maxX),ty=std::clamp(safe.y,minY,maxY);
     sfCoop.chargeOffsetX=tx-base.x;sfCoop.chargeOffsetY=ty-base.y;
     sfCoop.chargeTime=0;sfCoop.chargeHit={false,false};sfCoop.chargeActive=true;
 }
@@ -1005,7 +1019,8 @@ static void sfCoopUpdateCharge(float dt)
             const auto base=sfCoopBossBasePosition(sfCoop.time);
             const auto future=sfShipGhost(target).intercept(base,sfArenaW*(.70f+.45f*sfBossTravelProgress(sfCoop.encounter)),
                                                             .18f+.48f*skill);
-            const float desiredX=future.x-base.x,desiredY=future.y-base.y;
+            const tupl safe=sfCoopBossRefugePosition(future);
+            const float desiredX=safe.x-base.x,desiredY=safe.y-base.y;
             const float blend=1.0f-std::exp(-dt*(1.2f+4.0f*skill));
             sfCoop.chargeOffsetX+=(desiredX-sfCoop.chargeOffsetX)*blend;
             sfCoop.chargeOffsetY+=(desiredY-sfCoop.chargeOffsetY)*blend;
@@ -1024,19 +1039,13 @@ static void sfCoopUpdateCharge(float dt)
 static tupl sfCoopBossPosition(float time)
 {
     auto base=sfCoopBossBasePosition(time);
-    const float radius=sfCoopBossRadius();
-    if(!sfCoop.chargeActive) {
-        base.x=std::clamp(base.x+sfCoop.bossDodgeOffset.x,radius,sfArenaW-radius);
-        base.y=std::clamp(base.y+sfCoop.bossDodgeOffset.y,radius+sfArenaH*.105f,sfArenaH-radius-sfArenaH*.105f);
-        return base;
-    }
+    if(!sfCoop.chargeActive)
+        return sfCoopBossRefugePosition(tupl(base.x+sfCoop.bossDodgeOffset.x,
+                                             base.y+sfCoop.bossDodgeOffset.y));
     const float phase=std::clamp(sfCoop.chargeTime/SF_COOP_CHARGE_DURATION,0.0f,1.0f);
     const float envelope=phase<.55f ? phase/.55f : (1.0f-phase)/.45f;
-    base.x=std::clamp(base.x+sfCoop.chargeOffsetX*envelope,radius,sfArenaW-radius);
-    base.y=std::clamp(base.y+sfCoop.chargeOffsetY*envelope,radius+sfArenaH*.105f,sfArenaH-radius-sfArenaH*.105f);
-    base.x=std::clamp(base.x+sfCoop.bossDodgeOffset.x,radius,sfArenaW-radius);
-    base.y=std::clamp(base.y+sfCoop.bossDodgeOffset.y,radius+sfArenaH*.105f,sfArenaH-radius-sfArenaH*.105f);
-    return base;
+    return sfCoopBossRefugePosition(tupl(base.x+sfCoop.chargeOffsetX*envelope+sfCoop.bossDodgeOffset.x,
+                                         base.y+sfCoop.chargeOffsetY*envelope+sfCoop.bossDodgeOffset.y));
 }
 
 static void sfCoopTick(float dt)

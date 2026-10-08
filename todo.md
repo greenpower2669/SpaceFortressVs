@@ -158,3 +158,12 @@
 - [x] Synchronisation défensive COOP+IA au démarrage campagne.
 - [x] CI385 GREEN + APK/AAB ; src/main.cpp intact.
 - [ ] Validation téléphone Fab.
+
+## 2026-10-09 — FAB PHONE FEEDBACK — ON VALIDATION BRANCH ONLY
+- [x] Trace Android : generated main via CMake; sfTacticsBeginFrame → sfUpdatePilot → sfAiUpdateConeStrategy ; sfLegacyFieldFrame → sfKineticSurgeMineAsteroids.
+- [x] VS IA : real nearby mining opportunities, temporary mining commitment across rethinks, logcat traces and generated-runtime integration test.
+- [x] Border refuge from actual radius + relative arena dimension for classic AI, coop AI and boss (charge and dodge kept).
+- [x] Vector touch speed up for classic and coop, still physically capped.
+- [ ] CI APK/AAB green and main.cpp blob check.
+- [ ] Fab phone test: mining VS IA, borders/boss charge, faster vector tracking, difficulty 1 and 9.
+- [ ] No main merge, no Release without Fab approval.

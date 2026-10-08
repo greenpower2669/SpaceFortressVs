@@ -104,7 +104,18 @@ static void sfKineticSurgeMineAsteroids(float dt)
             if(visualPulse) sfKineticTideVisual(rock,ship,diameter);
             if(rock->w<sfArenaH/100.0f || rock->h<sfArenaH/100.0f) rock->pv=0;
         }
-        if(minedAny && visualPulse) sfFieldMiningSound=true;
+        if(minedAny && visualPulse) {
+            sfFieldMiningSound=true;
+            if(owner==0 && sfActiveMode==SF_DUEL_AI) {
+                static Uint64 lastAiMiningLog=0;
+                const Uint64 now=SDL_GetTicks64();
+                if(!lastAiMiningLog || now-lastAiMiningLog>=2000) {
+                    SDL_Log("SF_VS_AI_MINING_RUNTIME active=1 level=%d",
+                        std::clamp(sfBossDangerIndex,0,SF_BOSS_DANGER_COUNT-1)+1);
+                    lastAiMiningLog=now;
+                }
+            }
+        }
         sfKineticAttractWhiteDust(owner,dt);
     }
 }

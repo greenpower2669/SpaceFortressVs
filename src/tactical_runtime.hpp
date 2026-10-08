@@ -209,10 +209,25 @@ static float sfEnemyShotRisk(tupl position,tuplv velocity,float radius)
     return risk;
 }
 
+static float sfAiRefugeInset(float dimension,float radius)
+{
+    return std::min(dimension*.45f,radius+
+        std::max(radius*.35f,std::min(sfArenaW,sfArenaH)*.035f));
+}
+static tupl sfAiRefugeGoal(tupl goal,float radius,float maxY)
+{
+    const float x=sfAiRefugeInset(sfArenaW,radius);
+    const float y=sfAiRefugeInset(sfArenaH,radius);
+    return tupl(std::clamp(goal.x,x,std::max(x,sfArenaW-x)),
+                std::clamp(goal.y,y,std::max(y,maxY-y*.35f)));
+}
 static tuplv sfAvoidAsteroids(tupl position, tupl goal, tuplv current, float radius,
                               float maxY=-1, Uint64 ignoredAsteroidId=0)
 {
     if (maxY<0) maxY=sfArenaH*.48f-radius*.25f;
+    goal=sfAiRefugeGoal(goal,radius,maxY);
+    const float safeX=sfAiRefugeInset(sfArenaW,radius);
+    const float safeY=sfAiRefugeInset(sfArenaH,radius);
     enti steering;
     steering.xy = position;
     steering.azim(goal.x,goal.y); // fablib heading and vector conversion
@@ -235,8 +250,8 @@ static tuplv sfAvoidAsteroids(tupl position, tupl goal, tuplv current, float rad
             candidate.vy=current.vy+ay/change*maxChange;
         }
         const float futureX=position.x+candidate.vx*.25f, futureY=position.y+candidate.vy*.25f;
-        const float edgePenalty=(futureX<radius || futureX>sfArenaW-radius ||
-            futureY<radius || futureY>maxY) ? 8.0f : 0.0f;
+        const float edgePenalty=(futureX<safeX || futureX>sfArenaW-safeX ||
+            futureY<safeY || futureY>maxY-safeY*.35f) ? 16.0f : 0.0f;
         const float score=sfAsteroidRisk(position,candidate,radius,ignoredAsteroidId)*8+
             sfEnemyShotRisk(position,candidate,radius)*12+edgePenalty+
             vlong(candidate.vx-wanted.vx,candidate.vy-wanted.vy)/maxSpeed;
@@ -252,6 +267,7 @@ struct SfPilot {
     tuplv velocity,habitVelocity;
     float rethink=0, aligned=0, cooldown=.35f;
     float aggressiveFor=0, nextAggression=2.5f, raidCooldown=0, raidAge=0, enemyTime=0;
+    float mineCommit=0, mineCooldown=0;
     Uint64 asteroidId=0;
     bool surgeOwned=false;
 };
@@ -280,7 +296,7 @@ static void sfClassicTouchSetTarget(int owner,float x,float y,bool acceptX,bool 
 static void sfClassicTouchVectorUpdate(float dt)
 {
     if(dt<=0 || sfIsCoop()) return;
-    const float maxSpeed=sfArenaW*.58f; // canonical coop vector speed/reference.
+    const float maxSpeed=sfArenaW*.95f; // higher responsiveness, still finite speed.
     for(int owner=0;owner<2;++owner) {
         auto *ship=owner==0 ? Spritej1 : Spritej2;
         auto &state=sfClassicTouchVectors[owner];
@@ -488,6 +504,8 @@ static void sfAiRecoveryGoal(sprite *rock,float radius,float shotSpeed)
 {
     if(!rock || !Spritej1) return;
     if(!rock->tacticalId) rock->tacticalId=++sfNextAsteroidId;
+    if(sfPilot.mode!=SfAiMode::Mine || sfPilot.asteroidId!=rock->tacticalId)
+        sfPilot.mineCommit=2.6f;
     sfPilot.asteroidId=rock->tacticalId;
     const tuplv velocity(rock->vx*k0/std::max(.001f,sfFrameDt),rock->vy*k0/std::max(.001f,sfFrameDt));
     sfPilot.aim=sfPredictIntercept(tupl(Spritej1->x,Spritej1->y),tupl(rock->x,rock->y),velocity,shotSpeed,.35f+.25f*sfAiSkill());
@@ -560,6 +578,8 @@ static void sfAiUpdateConeStrategy()
 
     if(want && !sfKineticSurges[0].held) {
         sfKineticSurgePress(0);sfKineticAudioStartCharge(0);sfPilot.surgeOwned=true;
+        if(wantMining) SDL_Log("SF_VS_AI_CONE_PRESS level=%d rock=%llu",
+            sfAiDangerLevel(),static_cast<unsigned long long>(sfPilot.asteroidId));
     } else if(sfPilot.surgeOwned) {
         if(wantMining) return; // Hold continuously so the real field can melt the rock.
         if(strategicBlast && sfKineticSurges[0].charged && rockRisk>.45f) {
@@ -630,6 +650,15 @@ static void sfThinkPilot()
             sfEnemyShotRisk(position,sfPilot.velocity,radius)>.5f) sfBeginRetreat();
         else { sfRaidGoal(rock,radius,speed); return; }
     }
+    // Preserve the selected resource through multiple fast tactical rethinks.
+    if(sfPilot.mode==SfAiMode::Mine && sfPilot.mineCommit>0 && !sfAiLowEnergy()) {
+        if(auto *rock=sfAiTrackedMiningRock()) {
+            if(rock->y>position.y+radius*.15f && rock->y<sfArenaH*.64f) {
+                sfAiRecoveryGoal(rock,radius,speed);
+                return;
+            }
+        }
+    }
     if (sfPilot.mode==SfAiMode::Retreat) {
         float best=std::numeric_limits<float>::max();
         for (float fraction : {.25f,.50f,.75f}) {
@@ -687,15 +716,18 @@ static void sfThinkPilot()
             }
         }
     }
-    if (level>=2 && sfPilot.mode!=SfAiMode::Collect && Spritej1->nrj>18 && sfPilot.aggressiveFor<=0) {
+    if (level>=2 && sfPilot.mode!=SfAiMode::Collect && Spritej1->nrj>7 &&
+        sfPilot.aggressiveFor<=0 && sfPilot.mineCooldown<=0) {
         sprite *chosen=nullptr;float bestRock=std::numeric_limits<float>::max();
         for (auto *rock : sa1) {
             if (!rock || rock->pv<=0 || rock->y<radius*2 || rock->y>sfArenaH*.58f ||
-                rock->x<radius || rock->x>sfArenaW-radius) continue;
+                rock->x<sfAiRefugeInset(sfArenaW,radius) ||
+                rock->x>sfArenaW-sfAiRefugeInset(sfArenaW,radius)) continue;
             const float relativeSpeed=vlong(rock->vx*k0/std::max(.001f,sfFrameDt),
                                             rock->vy*k0/std::max(.001f,sfFrameDt));
             if(relativeSpeed>sfArenaW*.44f) continue;
             const float distance=vlong(rock->x-position.x,rock->y-position.y);
+            if(distance>sfArenaW*.75f) continue;
             const float score=distance+relativeSpeed*.10f+std::max(rock->w,rock->h)*.18f;
             if(score<bestRock) {bestRock=score;chosen=rock;}
         }
@@ -710,6 +742,11 @@ static void sfUpdatePilot(float dt)
     if (!setia || !sfRoundActive()) { sfPilot.aligned=0; return; }
     sfPilot.rethink-=dt; sfPilot.cooldown-=dt;
     sfPilot.raidCooldown=std::max(0.0f,sfPilot.raidCooldown-dt);
+    sfPilot.mineCooldown=std::max(0.0f,sfPilot.mineCooldown-dt);
+    sfPilot.mineCommit=std::max(0.0f,sfPilot.mineCommit-dt);
+    if(sfPilot.mode==SfAiMode::Mine && sfPilot.mineCommit<=0 && !sfAiLowEnergy()) {
+        sfPilot.mode=SfAiMode::Attack;sfPilot.mineCooldown=2.0f;
+    }
     sfPilot.aggressiveFor=std::max(0.0f,sfPilot.aggressiveFor-dt); sfPilot.nextAggression-=dt;
     const int level=sfAiDangerLevel();const float skill=sfAiSkill();
     const float habitBlend=1.0f-std::exp(-dt*(.55f+1.45f*skill));
