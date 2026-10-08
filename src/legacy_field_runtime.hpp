@@ -48,7 +48,7 @@ static void sfKineticAttractWhiteDust(int owner,float dt)
     auto *ship=owner==0 ? Spritej1 : Spritej2;
     if(!ship || ship->pv<=0 || dt<=0 || !sfKineticSurgeMiningActive(owner)) return;
     const float diameter=sfKineticShipDiameter(ship);
-    const float range=diameter*SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS;
+    const float range=diameter*sfKineticSurgeDustRangeDiameters();
     const float noseY=sfKineticSurgeNoseY(owner,ship,diameter);
     const float pull=1.0f-std::exp(-8.0f*dt);
     for(auto *dust:particules) {
@@ -82,7 +82,7 @@ static void sfKineticSurgeMineAsteroids(float dt)
         auto *ship=owner==0 ? Spritej1 : Spritej2;
         if(!ship || ship->pv<=0) continue;
         const float diameter=sfKineticShipDiameter(ship);
-        const float range=diameter*SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS;
+        const float range=diameter*sfKineticSurgeMiningRangeDiameters();
         const float noseY=sfKineticSurgeNoseY(owner,ship,diameter);
         sfKineticSurgeMiningVisualClock[owner]+=dt;
         const bool visualPulse=sfKineticSurgeMiningVisualClock[owner]>=SF_KINETIC_SURGE_MINING_VISUAL_INTERVAL;

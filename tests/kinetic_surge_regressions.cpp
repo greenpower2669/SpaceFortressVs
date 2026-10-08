@@ -32,5 +32,20 @@ int main()
 
     sfKineticSurgePress(0);sfKineticAdvanceSurges(.20f);
     assert(sfKineticSurgeVisible(0) && !sfKineticSurgeRelease(0));
+
+    const int oldDanger=sfBossDangerIndex;
+    sfBossDangerIndex=0;
+    assert(sfKineticConeDifficultyDivisor()==1.0f);
+    const float easyRange=sfKineticSurgeMiningRangeDiameters();
+    const float easyWidth=sfKineticSurgeConeHalfWidth(100.0f);
+    const float easyMine=sfKineticMiningArenaFractionPerSecond(.5f);
+    const float easyDamage=sfKineticConeBossDpsMultiplier(.5f);
+    sfBossDangerIndex=8;
+    assert(sfKineticConeDifficultyDivisor()==9.0f);
+    assert(std::abs(sfKineticSurgeMiningRangeDiameters()*9.0f-easyRange)<.0001f);
+    assert(std::abs(sfKineticSurgeConeHalfWidth(100.0f)*9.0f-easyWidth)<.0001f);
+    assert(std::abs(sfKineticMiningArenaFractionPerSecond(.5f)*9.0f-easyMine)<.0001f);
+    assert(std::abs(sfKineticConeBossDpsMultiplier(.5f)*9.0f-easyDamage)<.0001f);
+    sfBossDangerIndex=oldDanger;
     return 0;
 }

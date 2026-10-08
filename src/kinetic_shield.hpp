@@ -3,6 +3,7 @@
 #include <array>
 #include <cmath>
 #include <vector>
+#include "boss_danger.hpp"
 
 // Shared kinetic model for classic and coop/campaign. Velocities are pixels/second.
 // Gameplay energy remains the historical shared nrj reserve; no new visible heat system exists.
@@ -121,21 +122,38 @@ static bool sfKineticSuctionVisible(int owner)
 {
     return sfKineticSuperchargeActive(owner);
 }
+static float sfKineticConeDifficultyDivisor()
+{
+    return float(std::clamp(sfBossDangerIndex,0,SF_BOSS_DANGER_COUNT-1)+1);
+}
+static float sfKineticConeDifficultyScale()
+{
+    return 1.0f/sfKineticConeDifficultyDivisor();
+}
+static float sfKineticSurgeMiningRangeDiameters()
+{
+    return SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS*sfKineticConeDifficultyScale();
+}
+static float sfKineticSurgeDustRangeDiameters()
+{
+    return SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS*sfKineticConeDifficultyScale();
+}
 static float sfKineticMiningArenaFractionPerSecond(float normalizedDistance)
 {
     const float t=std::clamp(normalizedDistance,0.0f,1.0f);
-    return SF_KINETIC_SURGE_MINING_FAR_ARENA_FRACTION_PER_SECOND+
+    const float base=SF_KINETIC_SURGE_MINING_FAR_ARENA_FRACTION_PER_SECOND+
         (SF_KINETIC_SURGE_MINING_NEAR_ARENA_FRACTION_PER_SECOND-
          SF_KINETIC_SURGE_MINING_FAR_ARENA_FRACTION_PER_SECOND)*(1.0f-t);
+    return base*sfKineticConeDifficultyScale();
 }
 static float sfKineticConeBossDpsMultiplier(float normalizedDistance)
 {
     const float t=std::clamp(normalizedDistance,0.0f,1.0f);
-    return 3.0f-2.97f*t;
+    return (3.0f-2.97f*t)*sfKineticConeDifficultyScale();
 }
 static float sfKineticSurgeConeHalfWidth(float forwardDistance)
 {
-    return std::max(0.0f,forwardDistance)*SF_KINETIC_SURGE_CONE_TAN_HALF;
+    return std::max(0.0f,forwardDistance)*SF_KINETIC_SURGE_CONE_TAN_HALF*sfKineticConeDifficultyScale();
 }
 static bool sfKineticSurgeConeContains(int owner,float shipX,float shipY,
                                        float pointX,float pointY,float range,float padding=0.0f)

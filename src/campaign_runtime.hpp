@@ -287,7 +287,7 @@ static float sfCoopConeBossHitFraction(int owner)
     if(!ship || ship->pv<=0 || sfCoop.health<=0) return -1.0f;
     const float diameter=sfKineticShipDiameter(ship),dir=owner==0 ? 1.0f : -1.0f;
     const float noseX=ship->x,noseY=ship->y+dir*diameter*.42f;
-    const float range=diameter*SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS;
+    const float range=diameter*sfKineticSurgeMiningRangeDiameters();
     const float radius=sfCoopBossRadius()*.75f;
     if(vlong(sfCoop.position.x-noseX,sfCoop.position.y-noseY)<=radius) return 0.0f;
     float best=2.0f;

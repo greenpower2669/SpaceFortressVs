@@ -257,6 +257,46 @@ struct SfPilot {
 inline SfPilot sfPilot;
 inline std::array<float,2> sfPickupGlow{};
 
+struct SfClassicTouchVectorState {
+    tupl target;
+    bool active=false;
+};
+inline std::array<SfClassicTouchVectorState,2> sfClassicTouchVectors{};
+
+static void sfClassicTouchSetTarget(int owner,float x,float y,bool acceptX,bool acceptY)
+{
+    if(owner<0 || owner>1 || sfIsCoop()) return;
+    auto *ship=owner==0 ? Spritej1 : Spritej2;
+    if(!ship || ship->pv<=0 || (owner==0 && setia)) return;
+    auto &state=sfClassicTouchVectors[owner];
+    if(!state.active) state.target=tupl(ship->x,ship->y);
+    if(acceptX) state.target.x=x;
+    if(acceptY) state.target.y=y;
+    state.target.x=std::clamp(state.target.x,sfArenaW*.05f,sfArenaW*.95f);
+    state.target.y=std::clamp(state.target.y,sfArenaH*.05f,sfArenaH*.95f);
+    state.active=true;
+}
+static void sfClassicTouchVectorUpdate(float dt)
+{
+    if(dt<=0 || sfIsCoop()) return;
+    const float maxSpeed=sfArenaW*.58f; // canonical coop vector speed/reference.
+    for(int owner=0;owner<2;++owner) {
+        auto *ship=owner==0 ? Spritej1 : Spritej2;
+        auto &state=sfClassicTouchVectors[owner];
+        if(!ship || ship->pv<=0 || !ship->ctrl || (owner==0 && setia)) {
+            state.active=false;continue;
+        }
+        if(!state.active) state.target=tupl(ship->x,ship->y);
+        const float dx=state.target.x-ship->x,dy=state.target.y-ship->y;
+        const float distance=vlong(dx,dy);
+        if(distance<=.5f) {ship->x=state.target.x;ship->y=state.target.y;continue;}
+        const float step=std::min(distance,maxSpeed*dt);
+        ship->x=std::clamp(ship->x+dx/distance*step,sfArenaW*.05f,sfArenaW*.95f);
+        ship->y=std::clamp(ship->y+dy/distance*step,sfArenaH*.05f,sfArenaH*.95f);
+        ship->startup();
+    }
+}
+
 static bool sfRoundActive()
 {
     return sfUiScreen==SF_UI_GAME && !setgui && Spritej1 && Spritej2 &&
@@ -691,6 +731,7 @@ static void sfTacticsBeginFrame(SDL_Renderer *renderer)
     if (sfUiScreen==SF_UI_GAME) sfSceneSeconds+=sfFrameDt;
     if (sfUiScreen==SF_UI_GAME && !sfIsCoop()) {sfKineticAdvanceSurges(sfFrameDt);sfKineticAudioUpdate();}
     if (sfUiScreen==SF_UI_GAME && !setgui) { sfRegenerateHull(Spritej1,sfFrameDt); sfRegenerateHull(Spritej2,sfFrameDt); }
+    if (sfUiScreen==SF_UI_GAME && !sfIsCoop()) sfClassicTouchVectorUpdate(sfFrameDt);
     // Cooperative simulation samples after each movement substep; observing
     // the same position again here would incorrectly damp the velocity ghost.
     if (!sfIsCoop()) {
@@ -743,7 +784,7 @@ static void sfDrawKineticSuctionCone(SDL_Renderer *renderer,int owner)
     const float diameter=std::max(1.0f,std::max({ship->sw,ship->sh,ship->w,ship->h}));
     const float dir=owner==0 ? 1.0f : -1.0f;
     const float noseY=ship->y+dir*diameter*.42f;
-    const float range=diameter*SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS;
+    const float range=diameter*sfKineticSurgeDustRangeDiameters();
     const float half=sfKineticSurgeConeHalfWidth(range);
     const SDL_Color fill{255,132,28,22};
     const SDL_Vertex wedge[]={{{ship->x,noseY},fill,{0,0}},
@@ -761,7 +802,7 @@ static void sfDrawKineticSuctionCone(SDL_Renderer *renderer,int owner)
     for(int i=0;i<5;++i) {
         const float phase=std::fmod(seconds*.72f+i/5.0f,1.0f);
         const float outward=1.0f-phase;
-        const float d=diameter*(.18f+(SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS-.18f)*outward);
+        const float d=diameter*(.18f+(sfKineticSurgeDustRangeDiameters()-.18f)*outward);
         const float hw=sfKineticSurgeConeHalfWidth(d);
         const Uint8 alpha=Uint8(52+72*(1.0f-outward));
         SDL_SetRenderDrawColor(renderer,255,154,52,alpha);

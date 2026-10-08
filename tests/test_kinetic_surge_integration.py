@@ -40,6 +40,11 @@ for owner in ('0','1'):
     assert f'sfKineticPurgeAsteroids({owner})' in duel
 assert 'sfClassicDuelSurgeHandleEvent' in duel
 assert 'sfClassicDuelSurgeHandleEvent(e,tid,ty)' in classic_patch
+assert 'sfClassicTouchSetTarget(0,tx,ty,inx,iny)' in classic_patch
+assert 'sfClassicTouchSetTarget(1,tx,ty,inx,iny)' in classic_patch
+assert 'if (inx) Spritej1->x=tx' not in classic_patch
+assert 'if (inx) Spritej2->x=tx' not in classic_patch
+assert 'sfClassicTouchVectorUpdate' in tactical
 assert '#include <classic_duel_surge.hpp>' in th2
 assert 'sfKineticSurgePress(owner)' in coop
 assert 'sfKineticSurgeRelease(owner)' in coop
@@ -58,6 +63,10 @@ assert 'return sfKineticSuperchargeActive(owner) ? 0.0f : 1.0f;' in kinetic
 assert 'sfKineticSuperchargeProgress' in kinetic
 assert 'sfKineticMiningArenaFractionPerSecond' in kinetic
 assert 'sfKineticConeBossDpsMultiplier' in kinetic
+assert 'sfKineticConeDifficultyDivisor' in kinetic
+assert 'sfKineticConeDifficultyScale' in kinetic
+assert 'sfKineticSurgeMiningRangeDiameters' in kinetic
+assert 'sfKineticSurgeDustRangeDiameters' in kinetic
 
 # Shared packaged audio cues and canonical red->orange->yellow->green charge feedback. The release cue is
 # re-authored as the EMP blast through the text-safe Android asset transport.
