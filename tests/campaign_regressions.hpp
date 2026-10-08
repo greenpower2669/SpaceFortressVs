@@ -62,31 +62,35 @@ static void testCoopPassiveRechargeAndBossField()
     sfCoopResources(1.0f/60.0f);
     assert(sa1.size()>=8);
 
-    // Shared 2 s charge/tide mines only in front of the ship and keeps doing
-    // so after READY while the second finger remains held.
+    // PDF canon: from 0.2 s every asteroid in the forward cone melts in parallel.
     sfFixResetAsteroidField();
-    auto *mineRock=new sprite;
-    mineRock->setxywh(Spritej1->x,Spritej1->y+Spritej1->sh*.70f,
-                      sfArenaH*.10f,sfArenaH*.10f);
-    mineRock->pv=1;mineRock->vx=mineRock->vy=0;sa1.push_back(mineRock);
-    const float widthBefore=mineRock->w;
-    sfKineticSurgePress(0);sfKineticAdvanceSurges(.31f);
-    for(int frame=0;frame<60;++frame) {
-        sfKineticSurgeMineAsteroids(1.0f/60.0f);
-        sfKineticAdvanceSurges(1.0f/60.0f);
-    }
-    assert(sfKineticSurges[0].held && !sfKineticSurges[0].charged);
-    assert(mineRock->pv>0 && mineRock->w<widthBefore);
-    const float widthBeforeReady=mineRock->w;
-    for(int frame=0;frame<90;++frame) {
-        sfKineticSurgeMineAsteroids(1.0f/60.0f);
-        sfKineticAdvanceSurges(1.0f/60.0f);
-    }
-    assert(sfKineticSurges[0].held && sfKineticSurges[0].charged);
-    assert(mineRock->pv>0 && mineRock->w<widthBeforeReady); // tide persists after READY.
-    assert(!particules.empty());
-    const auto *dust=particules.back();
-    assert((Spritej1->x-dust->x)*dust->vx+(Spritej1->y-dust->y)*dust->vy>0);
+    Spritej1->setxywh(390,300,100,100);Spritej1->sw=Spritej1->sh=100;Spritej1->startup();
+    auto makeRock=[&](float y){auto *r=new sprite;r->setxywh(Spritej1->x,y,80,80);r->pv=1;r->vx=r->vy=0;r->sw=r->sh=80;r->startup();sa1.push_back(r);return r;};
+    auto *nearRock=makeRock(370),*midRock=makeRock(430),*farRock=makeRock(500);
+    sfKineticResetSurges();sfKineticSurgePress(0);sfKineticAdvanceSurges(.21f);
+    const float n0=nearRock->w,m0=midRock->w,f0=farRock->w;
+    sfKineticSurgeMineAsteroids(.10f);
+    const float dn=n0-nearRock->w,dm=m0-midRock->w,df=f0-farRock->w;
+    assert(dn>dm && dm>df && df>0);
+
+    while(particules.size()<995) {auto *p=new parts(0,0);p->pv=600;particules.push_back(p);}
+    const float capBefore=farRock->w;sfKineticSurgeMineAsteroids(.25f);assert(farRock->w<capBefore);
+    for(auto *p:particules) delete p;particules.clear();
+
+    sfKineticAdvanceSurges(1.80f);
+    const float readyBefore=midRock->w;sfKineticSurgeMineAsteroids(.10f);
+    assert(sfKineticSurges[0].charged && sfKineticSuperchargeProgress(0)==1.0f && midRock->w<readyBefore);
+
+    sfCoop.health=sfCoopProfile().health;sfCoop.position=tupl(Spritej1->x,Spritej1->y+120);
+    const float nearHit=sfCoopConeBossHitFraction(0);assert(nearHit>=0 && nearHit<1);
+    const float hp0=sfCoop.health,expected=sfCoopPhaserDps(0)*sfKineticConeBossDpsMultiplier(nearHit)*.10f;
+    sfCoopApplyMiningConeBossDamage(.10f);assert(std::abs((hp0-sfCoop.health)-expected)<.05f);
+
+    const float diameter=sfKineticShipDiameter(Spritej1),noseY=sfKineticSurgeNoseY(0,Spritej1,diameter);
+    const float coneRange=diameter*SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS;
+    sfCoop.position=tupl(Spritej1->x+140,noseY+120);
+    assert(!sfKineticSurgeConeContains(0,Spritej1->x,noseY,sfCoop.position.x,sfCoop.position.y,coneRange));
+    assert(sfCoopConeBossHitFraction(0)>=0);
     sfKineticSurgeCancel(0);
 
     sfBossDangerIndex=oldDanger;

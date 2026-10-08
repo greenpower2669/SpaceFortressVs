@@ -273,6 +273,49 @@ static float sfCoopFireDelay(float heat)
 {
     return .20f+.010f*sfShipHeat(heat);
 }
+static constexpr float SF_COOP_PHASER_DAMAGE=12.0f;
+static float sfCoopPhaserDps(int owner)
+{
+    const auto *ship=sfCoopShip(owner);
+    if(!ship || ship->pv<=0) return 0.0f;
+    return SF_COOP_PHASER_DAMAGE/std::max(.001f,sfCoopFireDelay(ship->nrj));
+}
+static float sfCoopConeBossHitFraction(int owner)
+{
+    if(owner<0 || owner>1 || !sfKineticSuctionVisible(owner)) return -1.0f;
+    const auto *ship=sfCoopShip(owner);
+    if(!ship || ship->pv<=0 || sfCoop.health<=0) return -1.0f;
+    const float diameter=sfKineticShipDiameter(ship),dir=owner==0 ? 1.0f : -1.0f;
+    const float noseX=ship->x,noseY=ship->y+dir*diameter*.42f;
+    const float range=diameter*SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS;
+    const float radius=sfCoopBossRadius()*.75f;
+    if(vlong(sfCoop.position.x-noseX,sfCoop.position.y-noseY)<=radius) return 0.0f;
+    float best=2.0f;
+    auto consider=[&](float x,float y) {
+        if(!sfKineticSurgeConeContains(owner,noseX,noseY,x,y,range)) return;
+        const float forward=owner==0 ? y-noseY : noseY-y;
+        if(forward>=0) best=std::min(best,std::clamp(forward/std::max(1.0f,range),0.0f,1.0f));
+    };
+    consider(sfCoop.position.x,sfCoop.position.y);
+    constexpr int samples=96;
+    for(int i=0;i<samples;++i) {
+        const float a=i*2.0f*float(PI)/samples;
+        consider(sfCoop.position.x+std::cos(a)*radius,sfCoop.position.y+std::sin(a)*radius);
+    }
+    return best<=1.0f ? best : -1.0f;
+}
+static void sfCoopApplyMiningConeBossDamage(float dt)
+{
+    if(dt<=0 || sfCoop.phase!=SfCoopPhase::Combat || sfCoop.health<=0) return;
+    for(int owner=0;owner<2 && sfCoop.health>0;++owner) {
+        const float hit=sfCoopConeBossHitFraction(owner);
+        if(hit<0) continue;
+        const float damage=sfCoopPhaserDps(owner)*sfKineticConeBossDpsMultiplier(hit)*dt;
+        if(damage<=0) continue;
+        sfCoop.health=std::max(0.0f,sfCoop.health-damage);
+        sfCoop.hit=std::max(sfCoop.hit,.06f);
+    }
+}
 static float sfCoopShotSpread(float heat,unsigned sequence,int owner)
 {
     (void)sequence;(void)owner;
@@ -317,7 +360,7 @@ static bool sfCoopFire(int owner)
     if (!missile) angle+=sfCoopShotSpread(heatBefore,sequence,owner);
     const float radius=sfCoopShipRadius();
     sfCoopEmit(tupl(ship->x+std::cos(angle)*radius,ship->y+std::sin(angle)*radius),
-               angle,missile ? sfArenaW*.65f : speed,owner,missile ? 60 : 12,missile ? 4 : 0);
+               angle,missile ? sfArenaW*.65f : speed,owner,missile ? 60 : SF_COOP_PHASER_DAMAGE,missile ? 4 : 0);
     sfCoop.cooldown[owner]=sfCoopFireDelay(heatBefore);
     return true;
 }
@@ -793,7 +836,7 @@ static void sfCoopTick(float dt)
         sfCoop.attack=boss.interval*(sfCoop.phaseNumber==2 ? .82f : 1.0f);
         ++sfCoop.volley;
     }
-    sfCoopProjectiles(dt);sfCoopResources(dt);sfCoopBonus(dt);
+    sfCoopProjectiles(dt);sfCoopApplyMiningConeBossDamage(dt);sfCoopResources(dt);sfCoopBonus(dt);
     if (sfCoop.health<=0 && (Spritej1->pv>0 || Spritej2->pv>0)) sfCoopWin();
     else if (Spritej1->pv<=0 && Spritej2->pv<=0) {
         sfCoop.phase=SfCoopPhase::Defeat;sfCoop.phaseTime=0;

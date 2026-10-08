@@ -23,7 +23,7 @@ constexpr float SF_KINETIC_LOW_ENERGY_WAVE_DURATION = .50f;
 constexpr float SF_KINETIC_ENERGY_FATIGUE_EXPONENT = 1.20f;
 constexpr float SF_KINETIC_LOW_ENERGY_WARNING_FRACTION = .10f;
 constexpr float SF_KINETIC_LOW_ENERGY_FLASH_HZ = 4.5f;
-constexpr float SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS = .30f;
+constexpr float SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS = .20f;
 constexpr float SF_KINETIC_SURGE_HOLD_SECONDS = 2.0f;
 constexpr float SF_KINETIC_SURGE_BLAST_DIAMETER = 3.0f;
 constexpr float SF_KINETIC_SURGE_POWER_MULTIPLIER = 2.0f;
@@ -32,6 +32,9 @@ constexpr float SF_KINETIC_SURGE_POWER_MULTIPLIER = 2.0f;
 constexpr float SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS = 1.35f*1.50f;
 constexpr float SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS = 2.20f*1.50f;
 constexpr float SF_KINETIC_SURGE_CONE_TAN_HALF = .7002075f; // 35 degree half-angle.
+// Trial calibration only: the PDF intentionally leaves Vnear/Vfar open.
+constexpr float SF_KINETIC_SURGE_MINING_NEAR_ARENA_FRACTION_PER_SECOND = .020f;
+constexpr float SF_KINETIC_SURGE_MINING_FAR_ARENA_FRACTION_PER_SECOND = .004f;
 
 struct SfKineticVector { float x=0,y=0; };
 enum class SfKineticLayer { None, Inner, Outer };
@@ -92,27 +95,43 @@ static void sfKineticAdvanceSurges(float dt)
             s.charged=true;
     }
 }
-static float sfKineticSurgePower(int owner)
-{
-    if(owner<0 || owner>1) return 1.0f;
-    const auto &s=sfKineticSurges[owner];
-    if(!s.held || s.heldSeconds<SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS) return 1.0f;
-    return s.charged ? 0.0f : SF_KINETIC_SURGE_POWER_MULTIPLIER;
-}
-static bool sfKineticSurgeVisible(int owner)
+static bool sfKineticSuperchargeActive(int owner)
 {
     if(owner<0 || owner>1) return false;
     const auto &s=sfKineticSurges[owner];
-    return s.held && !s.charged && s.heldSeconds>=SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS;
+    return s.held && s.heldSeconds>=SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS;
+}
+static float sfKineticSuperchargeProgress(int owner)
+{
+    if(!sfKineticSuperchargeActive(owner)) return 0.0f;
+    const float span=std::max(.001f,SF_KINETIC_SURGE_HOLD_SECONDS-SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS);
+    return std::clamp((sfKineticSurges[owner].heldSeconds-SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS)/span,0.0f,1.0f);
+}
+static float sfKineticSurgePower(int owner)
+{
+    if(owner<0 || owner>1) return 1.0f;
+    return sfKineticSuperchargeActive(owner) ? 0.0f : 1.0f;
+}
+static bool sfKineticSurgeVisible(int owner)
+{
+    return sfKineticSuperchargeActive(owner);
 }
 
 static bool sfKineticSuctionVisible(int owner)
 {
-    if(owner<0 || owner>1) return false;
-    const auto &s=sfKineticSurges[owner];
-    // READY changes defence power/vulnerability, not the tide: suction lasts
-    // until the second finger is actually released or cancelled.
-    return s.held && s.heldSeconds>=SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS;
+    return sfKineticSuperchargeActive(owner);
+}
+static float sfKineticMiningArenaFractionPerSecond(float normalizedDistance)
+{
+    const float t=std::clamp(normalizedDistance,0.0f,1.0f);
+    return SF_KINETIC_SURGE_MINING_FAR_ARENA_FRACTION_PER_SECOND+
+        (SF_KINETIC_SURGE_MINING_NEAR_ARENA_FRACTION_PER_SECOND-
+         SF_KINETIC_SURGE_MINING_FAR_ARENA_FRACTION_PER_SECOND)*(1.0f-t);
+}
+static float sfKineticConeBossDpsMultiplier(float normalizedDistance)
+{
+    const float t=std::clamp(normalizedDistance,0.0f,1.0f);
+    return 3.0f-2.97f*t;
 }
 static float sfKineticSurgeConeHalfWidth(float forwardDistance)
 {
@@ -130,9 +149,7 @@ static bool sfKineticSurgeConeContains(int owner,float shipX,float shipY,
 }
 static bool sfKineticSurgeVulnerable(int owner)
 {
-    if(owner<0 || owner>1) return false;
-    const auto &s=sfKineticSurges[owner];
-    return s.held && s.charged;
+    return sfKineticSuperchargeActive(owner);
 }
 static void sfKineticResetSurges()
 {

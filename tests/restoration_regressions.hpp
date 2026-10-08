@@ -101,11 +101,12 @@ static void testKineticFieldAndHullRegen()
 
     sfKineticResetSurges();sfKineticSurgePress(0);
     sfKineticAdvanceSurges(SF_KINETIC_SURGE_HOLD_SECONDS-.01f);
-    assert(sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==2.0f && !sfKineticSurgeVulnerable(0));
+    assert(sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==0.0f && sfKineticSurgeVulnerable(0));
     assert(sfKineticSuctionVisible(0) && sfKineticSurgeMiningActive(0));
+    assert(sfKineticSuperchargeProgress(0)<1.0f);
     sfKineticAdvanceSurges(.02f);
-    assert(!sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==0.0f && sfKineticSurgeVulnerable(0));
-    // Fab canon: reaching READY at two seconds must NOT stop the tide/suction.
+    assert(sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==0.0f && sfKineticSurgeVulnerable(0));
+    assert(sfKineticSuperchargeProgress(0)==1.0f);
     assert(sfKineticSuctionVisible(0) && sfKineticSurgeMiningActive(0));
     assert(std::abs(SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS-2.025f)<.0001f);
     assert(std::abs(SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS-3.30f)<.0001f);

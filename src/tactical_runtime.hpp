@@ -771,6 +771,28 @@ static void sfDrawKineticSuctionCone(SDL_Renderer *renderer,int owner)
     }
 }
 
+static SDL_Color sfKineticSuperchargeColor(float progress,Uint8 alpha)
+{
+    progress=std::clamp(progress,0.0f,1.0f);
+    SDL_Color a,b;float t;
+    if(progress<.45f) {a={255,38,24,alpha};b={255,138,24,alpha};t=progress/.45f;}
+    else if(progress<.72f) {a={255,138,24,alpha};b={255,222,42,alpha};t=(progress-.45f)/.27f;}
+    else {a={255,222,42,alpha};b={48,224,104,alpha};t=(progress-.72f)/.28f;}
+    return {Uint8(a.r+(b.r-a.r)*t),Uint8(a.g+(b.g-a.g)*t),Uint8(a.b+(b.b-a.b)*t),alpha};
+}
+static void sfDrawKineticSuperchargeCircle(SDL_Renderer *renderer,int owner)
+{
+    if(!renderer || !sfKineticSurgeVisible(owner)) return;
+    const auto *ship=owner==0 ? Spritej1 : Spritej2;
+    if(!ship || ship->pv<=0) return;
+    const float diameter=std::max(1.0f,std::max({ship->sw,ship->sh,ship->w,ship->h}));
+    const float progress=sfKineticSuperchargeProgress(owner);
+    const float pulse=.5f+.5f*std::sin(float(SDL_GetTicks64())*.010f+owner*1.7f);
+    const float radius=diameter*SF_KINETIC_MAX_SHIELD_DIAMETER*.5f;
+    sfTacticalRing(renderer,tupl(ship->x,ship->y),radius,sfKineticSuperchargeColor(progress,Uint8(132+38*pulse)));
+    sfTacticalRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-3.0f),sfKineticSuperchargeColor(progress,Uint8(70+24*pulse)));
+}
+
 static Uint8 sfKineticWaveFrontAlpha(float progress,float strength)
 {
     progress=std::clamp(progress,0.0f,1.0f);
@@ -788,20 +810,8 @@ static void sfDrawKineticEffects(SDL_Renderer *renderer)
     if(sfKineticWaves.empty() && !surgeVisible && !suctionVisible) return;
     SDL_BlendMode previous;SDL_GetRenderDrawBlendMode(renderer,&previous);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
-    for(int owner=0;owner<2;++owner) if(sfKineticSuctionVisible(owner))
-        sfDrawKineticSuctionCone(renderer,owner);
-    for(int owner=0;owner<2;++owner) if(sfKineticSurgeVisible(owner)) {
-        const auto *ship=owner==0 ? Spritej1 : Spritej2;
-        if(!ship || ship->pv<=0) continue;
-        const float diameter=std::max(1.0f,std::max({ship->sw,ship->sh,ship->w,ship->h}));
-        const float pulse=.5f+.5f*std::sin(float(SDL_GetTicks64())*.010f+owner*1.7f);
-        const float phase=std::fmod(float(SDL_GetTicks64())*.00028f+owner*.17f,1.0f);
-        const float outer=diameter*SF_KINETIC_MAX_SHIELD_DIAMETER*.5f;
-        const float inner=diameter*SF_KINETIC_INNER_MAX_RADIUS_SHIP_DIAMETERS;
-        sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),outer,phase,Uint8(112+36*pulse));
-        sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),outer-2,phase+.19f,Uint8(62+22*pulse));
-        sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),inner,phase+.37f,Uint8(92+28*pulse));
-    }
+    for(int owner=0;owner<2;++owner) if(sfKineticSuctionVisible(owner)) sfDrawKineticSuctionCone(renderer,owner);
+    for(int owner=0;owner<2;++owner) if(sfKineticSurgeVisible(owner)) sfDrawKineticSuperchargeCircle(renderer,owner);
     for(const auto &wave:sfKineticWaves) {
         if(wave.owner<0 || wave.owner>1 || !sfKineticWaveAlive(wave)) continue;
         const auto *ship=wave.owner==0 ? Spritej1 : Spritej2;
@@ -813,10 +823,9 @@ static void sfDrawKineticEffects(SDL_Renderer *renderer)
         const Uint8 frontAlpha=sfKineticWaveFrontAlpha(p,wave.strength);
         if(frontAlpha<3) continue;
         if(sfKineticSurgeVisible(wave.owner)) {
-            const float phase=std::fmod(float(SDL_GetTicks64())*.00042f+wave.owner*.17f+p*.55f,1.0f);
-            sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),radius,phase,frontAlpha);
-            sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-3.0f),phase+.16f,Uint8(frontAlpha*.72f));
-            sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-6.0f),phase+.31f,Uint8(frontAlpha*.38f));
+            const auto c=sfKineticSuperchargeColor(sfKineticSuperchargeProgress(wave.owner),frontAlpha);
+            sfTacticalRing(renderer,tupl(ship->x,ship->y),radius,c);
+            sfTacticalRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-3.0f),SDL_Color{c.r,c.g,c.b,Uint8(frontAlpha*.62f)});
         } else {
             const SDL_Color team=wave.owner==0 ? SDL_Color{255,188,96,255} : SDL_Color{96,210,255,255};
             sfTacticalRing(renderer,tupl(ship->x,ship->y),radius,SDL_Color{team.r,team.g,team.b,frontAlpha});
