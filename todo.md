@@ -33,7 +33,7 @@
 - [x] TDD RED pour dispersion, recharge lente COOP et impact astéroïde boss : workflow `37539108268`.
 - [x] Implémentation minimale.
 - [x] CI complète GREEN + APK test : workflow `37540141916` / run 342, artifact `11447494930`.
-- [ ] Validation téléphone Fab.
+- [ ] Validation téléphone Fab : cône niveaux 1/3/9, IA CLASSIQUE, secours COOP, boss, tactile haut/bas.
 - [ ] Aucun merge/release avant ordre explicite.
 
 
@@ -145,5 +145,7 @@
 - [x] IA COOP sauveteur + ressources <=10 % + petit astéroïde exploitable + cône minage uniquement.
 - [x] Boss : agresseur principal + charge adaptative + esquive missile bornée.
 - [x] CLASSIQUE tactile haut/bas : destination vectorielle ; COOP tactile intacte.
-- [ ] CI GREEN + APK/AAB.
+- [x] CI377 GREEN + APK/AAB.
 - [ ] Validation téléphone Fab.
+
+- [x] Artifact CI377 `11578789486`; APK `133e558b...`; AAB `99a3b202...`.

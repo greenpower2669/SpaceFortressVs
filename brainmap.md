@@ -267,3 +267,9 @@ CLASSIQUE DUEL local :
 - Boss missiles : estimation de trajectoire sur missiles visibles uniquement ; fenêtre d'anticipation, temps de réaction et amplitude d'esquive progressent avec la difficulté. Esquive latérale bornée en accélération/amplitude, donc jamais parfaite ni téléportée.
 - CLASSIQUE tactile uniquement : les affectations historiques directes `Spritej1/2->x/y = touch` sont remplacées dans le source Android généré par une destination. `sfClassicTouchVectorUpdate` avance les deux vaisseaux vers cette destination à vitesse bornée selon le modèle COOP. Le code tactile COOP n'est pas modifié.
 - `src/main.cpp` reste strictement protégé. Aucun merge main ni Release avant validation téléphone Fab.
+
+
+## CI377 — candidat téléphone IA/balance
+- GREEN complet sur `13025a34...` ; PR #15 draft.
+- Cône ÷1..÷9 sur 4 axes ; IA CLASSIQUE 1→9 ; COOP sauveteur/minage-only ; boss agresseur+esquive ; tactile CLASSIQUE vectoriel haut/bas.
+- APK `133e558b...`; AAB `99a3b202...`; `src/main.cpp` intact.

@@ -263,3 +263,10 @@
 - Boss missiles : estimation de trajectoire sur missiles visibles uniquement ; fenêtre d'anticipation, temps de réaction et amplitude d'esquive progressent avec la difficulté. Esquive latérale bornée en accélération/amplitude, donc jamais parfaite ni téléportée.
 - CLASSIQUE tactile uniquement : les affectations historiques directes `Spritej1/2->x/y = touch` sont remplacées dans le source Android généré par une destination. `sfClassicTouchVectorUpdate` avance les deux vaisseaux vers cette destination à vitesse bornée selon le modèle COOP. Le code tactile COOP n'est pas modifié.
 - `src/main.cpp` reste strictement protégé. Aucun merge main ni Release avant validation téléphone Fab.
+
+
+## CI371→CI377 — convergence mission IA/balance
+- 371/372/373/374 : corrections successives des gardes d'intégration et du contrat historique niveau 3.
+- 375 : ancien test de largeur supposait un cône non danger-scalé ; test réaligné MOU DU GENOU + preuve /9 APOCALYPSE.
+- 376 : assertions historiques bouclier/contact dépendaient implicitement de ROCK N ROLL ; tests rendus autonomes sans changer le gameplay.
+- 377 : chaîne complète GREEN sur `13025a34f5ad8739388787f00cfae243e1e8eb37`.

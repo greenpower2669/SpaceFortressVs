@@ -410,3 +410,21 @@ Les autres règles du dernier avenant restent inchangées : boss 55 % non destru
 - Boss missiles : estimation de trajectoire sur missiles visibles uniquement ; fenêtre d'anticipation, temps de réaction et amplitude d'esquive progressent avec la difficulté. Esquive latérale bornée en accélération/amplitude, donc jamais parfaite ni téléportée.
 - CLASSIQUE tactile uniquement : les affectations historiques directes `Spritej1/2->x/y = touch` sont remplacées dans le source Android généré par une destination. `sfClassicTouchVectorUpdate` avance les deux vaisseaux vers cette destination à vitesse bornée selon le modèle COOP. Le code tactile COOP n'est pas modifié.
 - `src/main.cpp` reste strictement protégé. Aucun merge main ni Release avant validation téléphone Fab.
+
+
+## CI377 GREEN — IA / EQUILIBRAGE CONE / CLASSIC VECTOR — 2026-10-08
+- Branche : `fix/ai-balance-classic-vector-v143`.
+- Candidat code+tests : `13025a34f5ad8739388787f00cfae243e1e8eb37`.
+- PR : #15 (draft), aucun merge `main`, aucune Release.
+- Cône : quatre axes liés au Boss Danger 1..9 par diviseur exact 1..9 : vitesse de minage, DPS offensif autorisé, ouverture, longueur. MOU DU GENOU conserve CI369 ; APOCALYPSE = /9. Supercharge/minage restent indépendants.
+- IA CLASSIQUE : progression stratégique niveau 1→9, réaction/anticipation/esquive/risque/agressivité graduelles, anticipation haute difficulté basée uniquement sur vitesse observée, priorité récupération à <=10 % d'énergie, recherche d'astéroïdes et cône de minage, supercharge stratégique sans omniscience.
+- IA COOP : survivant/sauveteur ; secours joueur neutralisé prioritaire ; à <=10 % énergie, ressources proches exploitables ; petit astéroïde lent reconnu comme ressource ; pas de fuite automatique. Cône IA COOP strictement minage : dégâts boss explicitement interdits et pas de purge offensive volontaire.
+- Boss : attribution des dégâts par propriétaire, menace avec décroissance, agresseur principal réévalué, charge physique adaptative vers lui, esquive missile bornée/imparfaite et dépendante du niveau.
+- CLASSIQUE tactile : les deux affectations historiques directes `Spritej1/2 x/y = doigt` sont remplacées dans le patch Android par destinations vectorielles ; vitesse bornée ; haut et bas couverts. Le déplacement tactile COOP n'est pas modifié.
+- CI371→376 : rouges utilisés pour corriger gardes/test hérités (patch tactile, dépendance helper, cadence niveau 3, largeur cône désormais danger-scalée, isolation des assertions historiques ROCK N ROLL).
+- CI377 / run `37845179868` : chaîne complète SUCCESS : assets/régressions, protocole Hall, debug APK, secret hygiene, APK/AAB installables, packaging.
+- Artifact release-files id `11578789486`, digest ZIP `sha256:d5b8b820f5cda438360510858120d2ba598a7362dfc2104fcd5d163a0980e78e`.
+- APK SHA-256 : `133e558b2fceb9ad2bfb33f84add6ff2087e91b8f85ddcb81343d7cbc1895e0f`.
+- AAB SHA-256 : `99a3b202eca1dc0e139f8e74c8a9b4b1cb580bc1f04d0074be14f31dfa161948`.
+- `src/main.cpp` revérifié : blob `835059a0ecfe0f74708068b3259cad5db1cdb579` inchangé.
+- Prochaine étape : validation téléphone Fab, en particulier largeur/portée du cône aux niveaux 1/3/9, comportement IA <=10 %, sauvetage COOP, charge/esquive boss et absence totale de téléportation CLASSIQUE.
