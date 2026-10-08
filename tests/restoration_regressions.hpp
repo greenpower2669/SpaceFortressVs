@@ -175,6 +175,8 @@ static void testRealCoopField()
 
 static void testCoopDifficultyChain()
 {
+    const int savedDanger=sfBossDangerIndex;
+    sfBossDangerIndex=2; // Historical cadence/contact assertions are ROCK N ROLL x10.
     setupCampaign();
     float highSpread=0,lowSpread=0;
     for(unsigned i=1;i<=32;++i) {
@@ -215,6 +217,7 @@ static void testCoopDifficultyChain()
     for(int i=0;i<31;++i) {auto *dust=new parts(390,300);dust->pv=600;particules.push_back(dust);}
     sfCollectDust();
     assert(Spritej1->nrj==0 && std::abs(Spritej1->pv-904.0f)<.02f);
+    sfBossDangerIndex=savedDanger;
     std::puts("PASS: energy lowers cadence/accuracy, boss contact is continuous, rocks bypass shot i-frames and ore no longer resets the shield");
 }
 
