@@ -116,7 +116,13 @@ static void testKineticFieldAndHullRegen()
     assert(sfKineticSurgeConeContains(1,100,300,100,100,330));
     assert(!sfKineticSurgeConeContains(1,100,300,100,500,330));
     assert(!sfKineticSurgeConeContains(0,100,100,420,250,330));
-    assert(sfKineticSurgeConeHalfWidth(200)>100 && sfKineticSurgeConeHalfWidth(200)<180);
+    const int coneDangerBefore=sfBossDangerIndex;
+    sfBossDangerIndex=0;
+    const float easyConeHalfWidth=sfKineticSurgeConeHalfWidth(200);
+    assert(easyConeHalfWidth>100 && easyConeHalfWidth<180);
+    sfBossDangerIndex=8;
+    assert(std::abs(sfKineticSurgeConeHalfWidth(200)*9.0f-easyConeHalfWidth)<.01f);
+    sfBossDangerIndex=coneDangerBefore;
     assert(sfKineticSurgeRelease(0));
 
     setupTactics();sfFixResetAsteroidField();sfFieldRemainder=0;
