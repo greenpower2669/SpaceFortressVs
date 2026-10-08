@@ -62,10 +62,11 @@ static void testCoopPassiveRechargeAndBossField()
     sfCoopResources(1.0f/60.0f);
     assert(sa1.size()>=8);
 
-    // Shared 2 s charge mines a nearby asteroid continuously before READY.
+    // Shared 2 s charge/tide mines only in front of the ship and keeps doing
+    // so after READY while the second finger remains held.
     sfFixResetAsteroidField();
     auto *mineRock=new sprite;
-    mineRock->setxywh(Spritej1->x+Spritej1->sw*.70f,Spritej1->y,
+    mineRock->setxywh(Spritej1->x,Spritej1->y+Spritej1->sh*.70f,
                       sfArenaH*.10f,sfArenaH*.10f);
     mineRock->pv=1;mineRock->vx=mineRock->vy=0;sa1.push_back(mineRock);
     const float widthBefore=mineRock->w;
@@ -76,7 +77,13 @@ static void testCoopPassiveRechargeAndBossField()
     }
     assert(sfKineticSurges[0].held && !sfKineticSurges[0].charged);
     assert(mineRock->pv>0 && mineRock->w<widthBefore);
-    assert(widthBefore-mineRock->w < (sfArenaH/1000.0f)*2.0f);
+    const float widthBeforeReady=mineRock->w;
+    for(int frame=0;frame<90;++frame) {
+        sfKineticSurgeMineAsteroids(1.0f/60.0f);
+        sfKineticAdvanceSurges(1.0f/60.0f);
+    }
+    assert(sfKineticSurges[0].held && sfKineticSurges[0].charged);
+    assert(mineRock->pv>0 && mineRock->w<widthBeforeReady); // tide persists after READY.
     assert(!particules.empty());
     const auto *dust=particules.back();
     assert((Spritej1->x-dust->x)*dust->vx+(Spritej1->y-dust->y)*dust->vy>0);
