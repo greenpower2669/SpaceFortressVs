@@ -140,6 +140,8 @@ static void testKineticFieldAndHullRegen()
 
 static void testCollectedBonusAndShield()
 {
+    const int savedDanger=sfBossDangerIndex;
+    sfBossDangerIndex=2; // This historical shield assertion is defined at ROCK N ROLL x10.
     setupCampaign();sfCoop.bonusTimer=0;sfCoopBonus(.01f);
     assert(sfCoop.bonusLife>0 && sfCoop.turretTime==0);
     sfCoop.bonusPosition=tupl(Spritej2->x,Spritej2->y);sfCoop.bonusVelocity.set(0,0);
@@ -155,6 +157,7 @@ static void testCollectedBonusAndShield()
     sfCoopHurt(0,10);sfCoopHurt(1,10);
     assert(Spritej1->pv==1000 && Spritej2->pv==900);
     assert(std::abs(Spritej1->nrj-10.0f)<.01f && Spritej2->nrj==50);
+    sfBossDangerIndex=savedDanger;
     std::puts("PASS: random floating bonus, collection, independent turret energy, expiration and reserve-dependent shield");
 }
 
