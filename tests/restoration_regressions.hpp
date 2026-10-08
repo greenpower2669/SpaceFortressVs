@@ -121,7 +121,7 @@ static void testKineticFieldAndHullRegen()
     const float easyConeHalfWidth=sfKineticSurgeConeHalfWidth(200);
     assert(easyConeHalfWidth>100 && easyConeHalfWidth<180);
     sfBossDangerIndex=8;
-    assert(std::abs(sfKineticSurgeConeHalfWidth(200)*9.0f-easyConeHalfWidth)<.01f);
+    assert(std::abs(sfKineticSurgeConeHalfWidth(200)*5.0f-easyConeHalfWidth)<.01f);
     sfBossDangerIndex=coneDangerBefore;
     assert(sfKineticSurgeRelease(0));
 

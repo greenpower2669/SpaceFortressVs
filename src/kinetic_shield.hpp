@@ -124,11 +124,14 @@ static bool sfKineticSuctionVisible(int owner)
 }
 static float sfKineticConeDifficultyDivisor()
 {
-    return float(std::clamp(sfBossDangerIndex,0,SF_BOSS_DANGER_COUNT-1)+1);
+    // Fab 2026-10-08: shift the 1..9 danger level by +1, then apply x2.
+    // Human level 1 -> 2/2 = 1.00 (canonical full cone).
+    // Human level 9 -> 2/10 = 0.20 (usable Apocalypse cone).
+    return float(std::clamp(sfBossDangerIndex,0,SF_BOSS_DANGER_COUNT-1)+2);
 }
 static float sfKineticConeDifficultyScale()
 {
-    return 1.0f/sfKineticConeDifficultyDivisor();
+    return 2.0f/sfKineticConeDifficultyDivisor();
 }
 static float sfKineticSurgeMiningRangeDiameters()
 {
