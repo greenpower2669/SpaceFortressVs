@@ -122,6 +122,32 @@ static void testVelocityGhosts()
         // while still being recognisably aimed at the future target.
         assert(nearest<90);
     }
+    // CLASSIC touch target is a bounded vector destination for both ships.
+    setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;setia=false;
+    sfArenaW=780;sfArenaH=1680;
+    Spritej1->setxywh(200,250,100,100);Spritej2->setxywh(580,1400,100,100);
+    Spritej1->ctrl=Spritej2->ctrl=true;
+    sfClassicTouchSetTarget(0,700,700,true,true);
+    sfClassicTouchSetTarget(1,80,900,true,true);
+    const float topX=Spritej1->x,bottomX=Spritej2->x;
+    sfClassicTouchVectorUpdate(.10f);
+    assert(Spritej1->x>topX && Spritej1->x<700);
+    assert(Spritej2->x<bottomX && Spritej2->x>80);
+    assert(Spritej1->x-topX<=sfArenaW*.0581f && bottomX-Spritej2->x<=sfArenaW*.0581f);
+    Spritej1->ctrl=Spritej2->ctrl=false;
+
+    setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_AI;setia=true;
+    const int aiOldDanger=sfBossDangerIndex;
+    sfBossDangerIndex=0;Spritej2->setxywh(500,840,100,100);sfObserved[1].velocity.set(160,-90);sfThinkPilot();
+    assert(std::abs(sfPilot.aim.x-Spritej2->x)<.01f);
+    sfBossDangerIndex=8;sfPilot.habitVelocity.set(120,-40);sfThinkPilot();
+    assert(sfPilot.aim.x>Spritej2->x);
+    sfFixResetAsteroidField();Spritej1->nrj=49;
+    auto *recoveryRock=new sprite;recoveryRock->setxywh(Spritej1->x,Spritej1->y+130,45,45);
+    recoveryRock->pv=1;recoveryRock->vx=recoveryRock->vy=0;recoveryRock->sw=recoveryRock->sh=45;recoveryRock->startup();sa1.push_back(recoveryRock);
+    sfThinkPilot();assert(sfPilot.mode==SfAiMode::Mine);
+    sfBossDangerIndex=aiOldDanger;sfFixResetAsteroidField();
+
     setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_AI;
     Spritej2->y=840;sfObserved[1].velocity.set(160,-90);sfThinkPilot();
     const auto right=sfPilot.goal;
@@ -206,6 +232,31 @@ static void testCoopGameplay()
     Spritej1->nrj=20;
     sfCoopProjectiles(.5f);assert(Spritej1->pv==1000);
     sfCoopProjectiles(.51f);assert(Spritej1->pv<1000); // Real telegraph before damage.
+
+    // COOP AI: survivor/rescuer; cone mining only.
+    setupCampaign(0,true);sfBossDangerIndex=0;sfFixResetAsteroidField();
+    Spritej1->setxywh(390,300,100,100);Spritej1->sw=Spritej1->sh=100;Spritej1->startup();
+    Spritej2->setxywh(420,1250,100,100);Spritej2->pv=1000;
+    Spritej1->nrj=49;
+    auto *smallResource=new sprite;smallResource->setxywh(390,390,42,42);
+    smallResource->pv=1;smallResource->vx=smallResource->vy=0;smallResource->sw=smallResource->sh=42;smallResource->startup();sa1.push_back(smallResource);
+    assert(sfCoopAiRecoveryRock(false)==smallResource);
+    sfCoopAiUpdateMiningCone();assert(sfKineticSurges[0].held);
+    sfKineticAdvanceSurges(.21f);
+    sfCoop.position=tupl(390,410);sfCoop.health=sfCoopProfile().health;
+    const float aiConeHp=sfCoop.health;sfCoopApplyMiningConeBossDamage(.20f);
+    assert(sfCoop.health==aiConeHp);
+    sfKineticSurgeCancel(0);sfKineticAudioCancel(0);
+
+    sfBossDangerIndex=8;sfCoop.chargeActive=false;sfCoop.chargeCooldown=5;
+    sfCoopRegisterBossDamage(1,sfCoopProfile().health*.04f);sfCoopUpdateBossThreat(.016f);
+    assert(sfCoop.bossAggressor==1 && sfCoop.bossAggroTime>0 && sfCoop.chargeCooldown<1.0f);
+
+    sfCoop.position=tupl(390,840);sfCoop.motion.velocity.set(0,0);sfCoop.shots.clear();
+    SfCoopShot threat;threat.owner=1;threat.kind=4;threat.life=4;threat.position=threat.previous=tupl(390,1120);
+    threat.velocity=tuplv(0,-520);threat.radius=8;sfCoop.shots.push_back(threat);
+    sfCoopUpdateBossMissileDodge(.05f);
+    assert(vlong(sfCoop.bossDodgeVelocity.vx,sfCoop.bossDodgeVelocity.vy)>0);
 
     setupCampaign();Spritej1->setxywh(390,300,100,100);Spritej2->setxywh(400,310,100,100);
     Spritej1->nrj=Spritej2->nrj=30;
