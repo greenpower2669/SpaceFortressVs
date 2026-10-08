@@ -720,7 +720,11 @@ static void sfUpdatePilot(float dt)
     sfAiUpdateConeStrategy();
     const bool aggressive=sfPilot.aggressiveFor>0 || sfPilot.mode==SfAiMode::RaidMine;
     const auto mainShots=std::count_if(entitiesj2.begin(),entitiesj2.end(),[](const sprite *shot){return !shot->defensiveShot;});
-    const float requiredAlignment=aggressive ? (.18f-.09f*skill) : (.26f-.12f*skill);
+    // Keep the historical ROCK N ROLL (level 3) timing around 0.16 s,
+    // while level 1 remains deliberately slower and high levels react faster.
+    const float requiredAlignment=aggressive
+        ? std::max(.06f,.16f-.24f*skill)
+        : std::max(.06f,.255f-.40f*skill);
     if (!sfAiLowEnergy() && !sfPilot.surgeOwned &&
         sfPilot.mode!=SfAiMode::Collect && sfPilot.mode!=SfAiMode::Retreat &&
         sfPilot.aligned>=requiredAlignment && sfPilot.cooldown<=0 &&
