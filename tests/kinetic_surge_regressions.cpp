@@ -22,6 +22,7 @@ int main()
     assert(sfKineticSurgeVisible(1) && sfKineticSuctionVisible(1) && sfKineticSurgeVulnerable(1));
     assert(sfKineticSurgeRelease(1));
 
+    const int initialDanger=sfBossDangerIndex;sfBossDangerIndex=0;
     const float n=sfKineticMiningArenaFractionPerSecond(0),m=sfKineticMiningArenaFractionPerSecond(.5f),f=sfKineticMiningArenaFractionPerSecond(1);
     assert(n>m && m>f && f>0);
     assert(std::abs(sfKineticConeBossDpsMultiplier(0)-3.0f)<.0001f);
@@ -33,6 +34,7 @@ int main()
     sfKineticSurgePress(0);sfKineticAdvanceSurges(.20f);
     assert(sfKineticSurgeVisible(0) && !sfKineticSurgeRelease(0));
 
+    sfBossDangerIndex=initialDanger;
     const int oldDanger=sfBossDangerIndex;
     sfBossDangerIndex=0;
     assert(sfKineticConeDifficultyDivisor()==1.0f);
