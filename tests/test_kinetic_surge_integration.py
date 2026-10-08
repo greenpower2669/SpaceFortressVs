@@ -14,7 +14,7 @@ prepare=(root/'scripts/prepare-assets.py').read_text()
 th2=(root/'src/th2.h').read_text()
 
 assert 'SF_KINETIC_MAX_SHIELD_DIAMETER = 2.0f' in kinetic
-assert 'SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS = .30f' in kinetic
+assert 'SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS = .20f' in kinetic
 assert 'SF_KINETIC_SURGE_HOLD_SECONDS = 2.0f' in kinetic
 assert 'SF_KINETIC_SURGE_BLAST_DIAMETER = 3.0f' in kinetic
 assert 'SF_KINETIC_SURGE_POWER_MULTIPLIER = 2.0f' in kinetic
@@ -52,16 +52,20 @@ assert 'sfKineticSurgeVisible' in tactical
 assert 'sfKineticSurgeCancel(owner)' in duel
 assert 'sfKineticAudioCancel(owner)' in duel
 
-# The charged state remains deliberately vulnerable until release.
+# From 0.2 s until release, the normal kinetic shield is deliberately suspended.
 assert 'sfKineticSurgePower(owner)' in field
-assert 'powerMultiplier=std::clamp(powerMultiplier,0.0f,SF_KINETIC_SURGE_POWER_MULTIPLIER)' in kinetic
+assert 'return sfKineticSuperchargeActive(owner) ? 0.0f : 1.0f;' in kinetic
+assert 'sfKineticSuperchargeProgress' in kinetic
+assert 'sfKineticMiningArenaFractionPerSecond' in kinetic
+assert 'sfKineticConeBossDpsMultiplier' in kinetic
 
-# Shared packaged audio cues and iridescent charge feedback. The release cue is
+# Shared packaged audio cues and canonical red->orange->yellow->green charge feedback. The release cue is
 # re-authored as the EMP blast through the text-safe Android asset transport.
 assert 'kinetic_charge.wav' in tactical
 assert 'kinetic_ready.wav' in tactical
 assert 'kinetic_release.wav' in tactical
-assert 'sfKineticRainbowColor' in tactical
+assert 'sfKineticSuperchargeColor' in tactical
+assert 'sfDrawKineticSuperchargeCircle' in tactical
 assert (root/'assets/sounds/kinetic_release_emp.b64').exists()
 assert 'kinetic_release_emp.b64' in prepare
 assert "EMP_RELEASE_SHA256" in prepare
@@ -106,4 +110,7 @@ assert 'sfApplyHostileDanger' not in field
 for name in ('kinetic_charge.wav','kinetic_ready.wav','kinetic_release.wav'):
     assert (root/'assets'/'sounds'/name).exists(), name
 
-print('PASS: energy-fatigued kinetic field, dual-owner classic charge, warning visuals and shared two-second surge contract')
+assert 'for(auto *rock:sa1)' in field
+assert 'sfCoopApplyMiningConeBossDamage' in coop
+assert 'SF_COOP_PHASER_DAMAGE' in coop
+print('PASS: canonical 0.2 s cone, red-green supercharge, simultaneous mining and continuous boss DPS contract')
