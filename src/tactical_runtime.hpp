@@ -168,12 +168,12 @@ static float sfMainShotRandomUnit()
     return (float(std::rand()%20001)-10000.0f)/10000.0f;
 }
 
-static float sfAsteroidRisk(tupl position, tuplv velocity, float radius)
+static float sfAsteroidRisk(tupl position, tuplv velocity, float radius, Uint64 ignoredAsteroidId=0)
 {
     float risk = 0;
     const float units = std::max(.05f,k0)/sfFrameDt;
     for (const auto *rock : sa1) {
-        if (rock->pv<=0) continue;
+        if (rock->pv<=0 || (ignoredAsteroidId && rock->tacticalId==ignoredAsteroidId)) continue;
         const float dx = rock->x-position.x, dy = rock->y-position.y;
         const float vx = rock->vx*units-velocity.vx, vy = rock->vy*units-velocity.vy;
         const float speed2 = vx*vx+vy*vy;
@@ -210,7 +210,7 @@ static float sfEnemyShotRisk(tupl position,tuplv velocity,float radius)
 }
 
 static tuplv sfAvoidAsteroids(tupl position, tupl goal, tuplv current, float radius,
-                              float maxY=-1)
+                              float maxY=-1, Uint64 ignoredAsteroidId=0)
 {
     if (maxY<0) maxY=sfArenaH*.48f-radius*.25f;
     enti steering;
@@ -237,7 +237,7 @@ static tuplv sfAvoidAsteroids(tupl position, tupl goal, tuplv current, float rad
         const float futureX=position.x+candidate.vx*.25f, futureY=position.y+candidate.vy*.25f;
         const float edgePenalty=(futureX<radius || futureX>sfArenaW-radius ||
             futureY<radius || futureY>maxY) ? 8.0f : 0.0f;
-        const float score=sfAsteroidRisk(position,candidate,radius)*8+
+        const float score=sfAsteroidRisk(position,candidate,radius,ignoredAsteroidId)*8+
             sfEnemyShotRisk(position,candidate,radius)*12+edgePenalty+
             vlong(candidate.vx-wanted.vx,candidate.vy-wanted.vy)/maxSpeed;
         if (score<bestScore) { bestScore=score; best=candidate; }
@@ -486,12 +486,32 @@ static sprite *sfAiRecoveryRock()
 }
 static void sfAiRecoveryGoal(sprite *rock,float radius,float shotSpeed)
 {
-    if(!rock) return;
+    if(!rock || !Spritej1) return;
+    if(!rock->tacticalId) rock->tacticalId=++sfNextAsteroidId;
+    sfPilot.asteroidId=rock->tacticalId;
     const tuplv velocity(rock->vx*k0/std::max(.001f,sfFrameDt),rock->vy*k0/std::max(.001f,sfFrameDt));
     sfPilot.aim=sfPredictIntercept(tupl(Spritej1->x,Spritej1->y),tupl(rock->x,rock->y),velocity,shotSpeed,.35f+.25f*sfAiSkill());
-    const float clearance=radius+std::max(rock->w,rock->h)*.55f+sfArenaW*.025f;
+
+    // Park at a distance derived from the ACTUAL danger-scaled cone.
+    // The previous fixed clearance could leave the AI permanently outside its
+    // own cone in high difficulty, so it looked like the mining behaviour did
+    // not exist.
+    const float diameter=std::max(1.0f,std::max({Spritej1->sw,Spritej1->sh,Spritej1->w,Spritej1->h}));
+    const float rockRadius=std::max(rock->w,rock->h)*.5f;
+    const float coneRange=diameter*sfKineticSurgeMiningRangeDiameters();
+    const float noseOffset=diameter*.42f;
+    const float collisionClearance=radius+rockRadius+diameter*.035f;
+    const float coneForward=std::max(diameter*.035f,coneRange*.48f);
+    const float clearance=std::max(collisionClearance,noseOffset+coneForward);
     sfPilot.goal=tupl(sfPilot.aim.x,sfPilot.aim.y-clearance);
     sfPilot.mode=SfAiMode::Mine;
+}
+static sprite *sfAiTrackedMiningRock()
+{
+    if(!sfPilot.asteroidId) return nullptr;
+    for(auto *rock:sa1)
+        if(rock && rock->pv>0 && rock->tacticalId==sfPilot.asteroidId) return rock;
+    return nullptr;
 }
 static void sfAiStopOwnedSurge(bool releaseFull=false)
 {
@@ -512,22 +532,36 @@ static void sfAiUpdateConeStrategy()
     const float radius=std::max(Spritej1->sw,Spritej1->sh)*.43f;
     const float rockRisk=sfAsteroidRisk(position,sfPilot.velocity,radius);
     const float shotRisk=sfEnemyShotRisk(position,sfPilot.velocity,radius);
-    sprite *recovery=sfAiRecoveryRock();
+    const bool critical=energy<=.10f;
+
+    sprite *miningTarget=(sfPilot.mode==SfAiMode::Mine || sfPilot.mode==SfAiMode::RaidMine)
+        ? sfAiTrackedMiningRock() : nullptr;
+    if(!miningTarget && critical) {
+        miningTarget=sfAiRecoveryRock();
+        if(miningTarget && !miningTarget->tacticalId) miningTarget->tacticalId=++sfNextAsteroidId;
+        if(miningTarget) sfPilot.asteroidId=miningTarget->tacticalId;
+    }
+
     bool mineReady=false;
-    if(recovery) {
+    if(miningTarget) {
         const float diameter=std::max(1.0f,std::max({Spritej1->sw,Spritej1->sh,Spritej1->w,Spritej1->h}));
         const float noseY=Spritej1->y+diameter*.42f;
         const float range=diameter*sfKineticSurgeMiningRangeDiameters();
-        mineReady=sfKineticSurgeConeContains(0,Spritej1->x,noseY,recovery->x,recovery->y,range,
-                                             std::max(recovery->w,recovery->h)*.5f);
+        mineReady=sfKineticSurgeConeContains(0,Spritej1->x,noseY,miningTarget->x,miningTarget->y,range,
+                                             std::max(miningTarget->w,miningTarget->h)*.5f);
     }
-    const bool critical=energy<=.10f;
-    const bool strategicBlast=sfAiDangerLevel()>=5 && energy>.35f && rockRisk>(.85f-.35f*sfAiSkill()) && shotRisk<.30f;
-    const bool want=critical ? mineReady : strategicBlast;
+
+    // Mining mode really owns the cone now, not only the <=10% emergency path.
+    const bool wantMining=miningTarget && mineReady &&
+        (critical || sfPilot.mode==SfAiMode::Mine || sfPilot.mode==SfAiMode::RaidMine);
+    const bool strategicBlast=!wantMining && sfAiDangerLevel()>=5 && energy>.35f &&
+        rockRisk>(.85f-.35f*sfAiSkill()) && shotRisk<.30f;
+    const bool want=wantMining || strategicBlast;
+
     if(want && !sfKineticSurges[0].held) {
         sfKineticSurgePress(0);sfKineticAudioStartCharge(0);sfPilot.surgeOwned=true;
     } else if(sfPilot.surgeOwned) {
-        if(critical && energy<.24f && recovery) return;
+        if(wantMining) return; // Hold continuously so the real field can melt the rock.
         if(strategicBlast && sfKineticSurges[0].charged && rockRisk>.45f) {
             sfAiStopOwnedSurge(true);return;
         }
@@ -543,9 +577,7 @@ static void sfBeginRetreat()
 
 static sprite *sfFindRaidAsteroid()
 {
-    for (auto *rock : sa1)
-        if (rock->pv>0 && rock->tacticalId==sfPilot.asteroidId && sfPilot.asteroidId) return rock;
-    return nullptr;
+    return sfAiTrackedMiningRock();
 }
 
 static void sfRaidGoal(sprite *rock,float radius,float shotSpeed)
@@ -656,19 +688,18 @@ static void sfThinkPilot()
         }
     }
     if (level>=2 && sfPilot.mode!=SfAiMode::Collect && Spritej1->nrj>18 && sfPilot.aggressiveFor<=0) {
-        float bestRock=std::numeric_limits<float>::max();
-        for (const auto *rock : sa1) {
-            if (rock->pv<=0 || rock->y<radius*2 || rock->y>sfArenaH*.58f ||
+        sprite *chosen=nullptr;float bestRock=std::numeric_limits<float>::max();
+        for (auto *rock : sa1) {
+            if (!rock || rock->pv<=0 || rock->y<radius*2 || rock->y>sfArenaH*.58f ||
                 rock->x<radius || rock->x>sfArenaW-radius) continue;
+            const float relativeSpeed=vlong(rock->vx*k0/std::max(.001f,sfFrameDt),
+                                            rock->vy*k0/std::max(.001f,sfFrameDt));
+            if(relativeSpeed>sfArenaW*.44f) continue;
             const float distance=vlong(rock->x-position.x,rock->y-position.y);
-            if (distance<bestRock) {
-                bestRock=distance;
-                const float clearance=radius+std::max(rock->w,rock->h)*.6f+sfArenaW*.09f;
-                sfPilot.aim=sfPredictIntercept(position,tupl(rock->x,rock->y),
-                    tuplv(rock->vx*k0/sfFrameDt,rock->vy*k0/sfFrameDt),speed,.5f);
-                sfPilot.goal=tupl(sfPilot.aim.x,rock->y-clearance); sfPilot.mode=SfAiMode::Mine;
-            }
+            const float score=distance+relativeSpeed*.10f+std::max(rock->w,rock->h)*.18f;
+            if(score<bestRock) {bestRock=score;chosen=rock;}
         }
+        if(chosen) sfAiRecoveryGoal(chosen,radius,speed);
     }
     sfPilot.goal.x=std::clamp(sfPilot.goal.x,radius,std::max(radius,sfArenaW-radius));
     sfPilot.goal.y=std::clamp(sfPilot.goal.y,radius,std::max(radius,sfArenaH*.45f));
@@ -704,7 +735,9 @@ static void sfUpdatePilot(float dt)
     const tupl position(Spritej1->x,Spritej1->y);
     const bool excursion=sfPilot.mode==SfAiMode::RaidMine || sfPilot.mode==SfAiMode::Retreat;
     const float maxY=sfArenaH*(excursion ? .60f : .47f);
-    sfPilot.velocity=sfAvoidAsteroids(position,sfPilot.goal,sfPilot.velocity,radius,maxY);
+    const Uint64 miningObstacleToIgnore=
+        (sfPilot.mode==SfAiMode::Mine || sfPilot.mode==SfAiMode::RaidMine) ? sfPilot.asteroidId : 0;
+    sfPilot.velocity=sfAvoidAsteroids(position,sfPilot.goal,sfPilot.velocity,radius,maxY,miningObstacleToIgnore);
     Spritej1->x=std::clamp(position.x+sfPilot.velocity.vx*dt,radius,std::max(radius,sfArenaW-radius));
     Spritej1->y=std::clamp(position.y+sfPilot.velocity.vy*dt,radius,std::max(radius,maxY));
     iago->xy.setxy(Spritej1->x,Spritej1->y);
