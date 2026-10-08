@@ -82,7 +82,13 @@ static void testTacticalPilot()
     auto *rock=new sprite; rock->setxywh(350,550,100,100);
     rock->pv=100; rock->vx=rock->vy=0; sa1.push_back(rock);
     Spritej1->nrj=30; sfThinkPilot();
-    assert(sfPilot.mode==SfAiMode::Mine && sfPilot.goal.y<rock->y-100);
+    assert(sfPilot.mode==SfAiMode::Mine && sfPilot.goal.y<rock->y);
+    const float mineGoalX=sfPilot.goal.x,mineGoalY=sfPilot.goal.y;
+    Spritej1->x=mineGoalX;Spritej1->y=mineGoalY;Spritej1->startup();
+    const float mineDiameter=std::max(1.0f,std::max({Spritej1->sw,Spritej1->sh,Spritej1->w,Spritej1->h}));
+    const float mineNose=Spritej1->y+mineDiameter*.42f;
+    assert(sfKineticSurgeConeContains(0,Spritej1->x,mineNose,rock->x,rock->y,
+        mineDiameter*sfKineticSurgeMiningRangeDiameters(),std::max(rock->w,rock->h)*.5f));
 
     // Head-on encounter: measure clearance along the path, not final offset
     // after the pilot has already returned toward its goal.
