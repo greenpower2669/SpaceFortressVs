@@ -7,6 +7,8 @@ trap 'rm -rf "$sf_test_dir"' EXIT
 python3 "$sf_repo/scripts/prepare-assets.py" --output "$sf_test_dir/resources/assets"
 python3 "$sf_repo/tests/test_assets.py"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/solo_campaign_model_regressions.cpp" -o "$sf_test_dir/solo-model"
+g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/solo_tutorial_challenges_regressions.cpp" -o "$sf_test_dir/solo-tutorial"
+"$sf_test_dir/solo-tutorial"
 "$sf_test_dir/solo-model"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/solo_map_generator_regressions.cpp" -o "$sf_test_dir/solo-map"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/solo_session_regressions.cpp" -o "$sf_test_dir/solo-session"
