@@ -57,6 +57,11 @@ struct Progression {
             if(mask & ~((1u<<stagesPerWorld)-1u))return false;
             parsed[w]=mask;
         }
+        // Each completed level must have all preceding levels completed.
+        // Reject forged saves with holes before checking world progression.
+        for(uint32_t mask:parsed){
+            if(mask && (mask & (mask+1u))!=0u)return false;
+        }
         // Reject saves that unlock future worlds without completing predecessors.
         for(unsigned w=1;w<initialWorlds;w++)
             if(parsed[w] && parsed[w-1]!=((1u<<stagesPerWorld)-1u))return false;
