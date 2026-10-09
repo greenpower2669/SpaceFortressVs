@@ -293,3 +293,9 @@
 - Both CLASSIC duel modes now share the same second-finger / kinetic charge / mining / release logic for the blue human; retire the conflicting VS-AI remaster touch shortcut. Orange AI remains CPU-controlled.
 - Added native regressions for vector speed bounds, COOP speed and duel touch parity. Phone validation remains mandatory.
 - src/main.cpp historical SHA must remain unchanged. No merge, no Release, no signing key generation until new Fab order.
+
+
+## 2026-10-09 — Aides sur CI389
+- Base CI389 `5ed37a7647f348767f90d913f31fae76bd3b6089`; branche `fix/help-refresh-on-ci389-20261009`.
+- Report limité à `src/help_runtime.hpp`, `tests/help_runtime_regressions.cpp`, `docs/proposals/2026-10-09-tutorial-mini-jeux.md`. Cônes, IA, minage, vitesse et `src/main.cpp` conservés.
+- Mini-jeux proposés seulement. Validation CI/APK téléphone requise. Pas de merge main ni Release.
