@@ -37,6 +37,8 @@ read -r -a sf_sdl_cflags <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
 read -r -a sf_sdl_libs <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \
     "$sf_repo/tests/solo_renderer_regressions.cpp" "${sf_sdl_libs[@]}" -o "$sf_test_dir/solo-renderer"
+g++ -std=c++17 -O1 -DSF_SOLO_STANDALONE -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \
+    "$sf_repo/src/solo_prototype.cpp" "${sf_sdl_libs[@]}" -o "$sf_test_dir/solo-playable"
 "$sf_test_dir/solo-renderer"
 g++ -std=c++17 -O1 -g -ffunction-sections -fdata-sections -I "$sf_repo/src" -I "$sf_repo/tests/include" \
     "${sf_sdl_cflags[@]}" "$sf_repo/tests/classic_danger_regressions.cpp" \
