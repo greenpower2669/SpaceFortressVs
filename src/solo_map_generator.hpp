@@ -24,7 +24,7 @@ struct MapOptions {
 inline Map generate(const MapOptions &o) {
     Map m;
     if(o.world==0 || o.stage==0 || o.stage>20 || o.difficulty<1 ||
-       o.difficulty>9 || o.width<12 || o.width>512 ||
+       o.difficulty>9 || o.width<24 || o.width>512 ||
        o.height<32 || o.height>8192) return m;
     m.world=o.world;m.stage=o.stage;m.version=1;
     m.id="W"+std::to_string(o.world)+"-S"+std::to_string(o.stage)+
