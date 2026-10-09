@@ -29,3 +29,12 @@ Branche : `feature/solo-worlds-tutorials-v1` issue de CI391. Ne pas merger sur m
 5. Académie interactive 6 séquences / 8 mini-jeux, sandbox isolée.
 6. Éditeur, validations dynamiques et variantes immuables de difficulté.
 7. CI Android, APK test Fab, puis décision de merge/release.
+
+## Tranche suivante — prototype graphique et pilotage
+- `src/solo_renderer.hpp` : rendu SDL des pixels de carte, marqueur du vaisseau, coque et minimap.
+- `src/solo_session.hpp` : déplacement, caméra, collisions, dégâts cumulés, réparation et verrou du boss.
+- `src/solo_prototype.cpp` : prototype SDL autonome pilotable au doigt ou au clavier (flèches/WASD, R pour recommencer, Échap pour quitter). Le prototype est compilé en CI mais **n'est pas encore lancé depuis l'APK principal**.
+- `tests/solo_renderer_regressions.cpp` et `tests/solo_session_regressions.cpp` ; compilation du prototype via `scripts/test-regressions.sh`.
+- Une erreur de littéraux `\\n` dans le header de score a été identifiée dans les logs CI et corrigée.
+
+**Limites fonctionnelles** : pas encore de vrais tirs, de vagues actives, de boss COOP, de sauvegarde de campagne ni d'intégration au menu. L'entrée tactile ne remplace pas les contrôles canoniques : elle est réservée au prototype autonome. La formule de score reste expérimentale.
