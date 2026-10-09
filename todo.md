@@ -177,3 +177,9 @@
 - [ ] New Android CI, tests, APK/AAB and historical SHA verification.
 - [ ] Fab phone test of controls, collisions, mining and two duel modes.
 - [ ] Signature, main merge and Release remain on hold.
+
+
+## 2026-10-09 — Aides sur CI389
+- Base CI389 `5ed37a7647f348767f90d913f31fae76bd3b6089`; branche `fix/help-refresh-on-ci389-20261009`.
+- Report limité à `src/help_runtime.hpp`, `tests/help_runtime_regressions.cpp`, `docs/proposals/2026-10-09-tutorial-mini-jeux.md`. Cônes, IA, minage, vitesse et `src/main.cpp` conservés.
+- Mini-jeux proposés seulement. Validation CI/APK téléphone requise. Pas de merge main ni Release.
