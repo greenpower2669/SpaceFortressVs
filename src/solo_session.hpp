@@ -12,10 +12,13 @@ struct Session {
     Phase phase=Phase::Ready;
     float seconds=0, cameraY=0;
     unsigned enemiesDefeated=0;
+    unsigned enemiesAvailable=0;
+    bool reachedFinish=false;
     bool bossDefeated=false;
     float shipRadius=.30f;
     float collisionCooldown=0;
     explicit Session(Map source):map(std::move(source)) {
+        for(const auto tile:map.tiles)if(tile==Tile::Enemy)++enemiesAvailable;
         for(int y=0;y<map.height;y++)
             for(int x=0;x<map.width;x++)
                 if(map.at(x,y)==Tile::Start){
@@ -61,8 +64,9 @@ struct Session {
             if(collisionCooldown==0){damage(5);collisionCooldown=.45f;}
         }else if(hit==Tile::Boss && !bossDefeated){
             phase=Phase::BossFight;
-        }else if(hit==Tile::Finish && bossDefeated){
-            phase=Phase::Won;
+        }else if(hit==Tile::Finish){
+            reachedFinish=true;
+            if(bossDefeated)phase=Phase::Won;
         }
         // Camera follows with a slight look-ahead in direction of travel.
         const float lookAhead=std::clamp(pilot.vy*.6f,-3.0f,3.0f);
