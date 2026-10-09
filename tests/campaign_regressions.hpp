@@ -12,6 +12,93 @@ static void setupCampaign(int boss=0,bool ai=false)
     sfCampaignSave.pending=false;sfCampaignSave.selected=boss;sfCampaignSave.cleared=std::max(sfCampaignSave.cleared,boss);
     sfCampaignStart();sfCoop.phase=SfCoopPhase::Combat;
 }
+static void testCoopPassiveRechargeAndBossField()
+{
+    setupCampaign();sfCoop.position=tupl(sfArenaW*.5f,sfArenaH*.5f);
+    const int oldDanger=sfBossDangerIndex;
+
+    // Latest Fab canon: APOCALYPSE is already twice the v1.4.2 passive
+    // recharge rate; MOU DU GENOU is the maximum at four times v1.4.2.
+    const float releasedOneSecond=50.0f*std::pow(.997f,60.0f);
+    sfBossDangerIndex=8;
+    const float apocalypse=sfCoopPassiveRechargeHeat(50.0f,1.0f);
+    assert(std::abs(apocalypse-50.0f*std::pow(.997f,120.0f))<.02f);
+    assert(apocalypse<releasedOneSecond);
+    sfBossDangerIndex=0;
+    const float mouDuGenou=sfCoopPassiveRechargeHeat(50.0f,1.0f);
+    assert(mouDuGenou<apocalypse);
+    assert(std::abs(mouDuGenou-50.0f*std::pow(.997f,240.0f))<.02f);
+
+    // Boss field is fixed and weaker than the players, transparent, and its
+    // visible impact wave expands from the boss centre.
+    assert(SF_COOP_BOSS_KINETIC_DISSIPATION>0.0f);
+    assert(SF_COOP_BOSS_KINETIC_DISSIPATION<SF_KINETIC_INNER_DISSIPATION);
+    assert(SF_COOP_BOSS_KINETIC_RING_ALPHA<128);
+    const float fieldRadius=sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE;
+    assert(sfCoopBossKineticRingRadius(SF_COOP_BOSS_KINETIC_RING_DURATION,fieldRadius)<1.0f);
+    assert(sfCoopBossKineticRingRadius(0.0f,fieldRadius)>fieldRadius*.95f);
+
+    sfFixResetAsteroidField();
+    auto *rock=new sprite;
+    rock->setxywh(sfCoop.position.x+fieldRadius*.92f,sfCoop.position.y,
+                  sfArenaH*.09f,sfArenaH*.09f);
+    rock->pv=1;rock->vx=-sfKineticReferenceSpeed(sfArenaW)/60.0f;rock->vy=0;
+    sa1.push_back(rock);
+    const float before=sfCoop.health;
+    const float speedBefore=vlong(rock->vx,rock->vy);
+    const auto dustBefore=particules.size();
+    sfCoopBossKineticField();
+    assert(sfCoop.health<before);
+    assert(rock->pv>0);
+    assert(vlong(rock->vx,rock->vy)<speedBefore);
+    assert(particules.size()==dustBefore);
+    assert(sfCoop.bossKineticFlash>0.0f);
+    const float afterFirst=sfCoop.health;
+    sfCoopBossKineticField();
+    assert(sfCoop.health==afterFirst); // one impact per field entry
+
+    // COOP continuously restores the classic asteroid population.
+    sfFixResetAsteroidField();incra1=0;
+    sfCoopResources(1.0f/60.0f);
+    assert(sa1.size()>=8);
+
+    // PDF canon: from 0.2 s every asteroid in the forward cone melts in parallel.
+    sfFixResetAsteroidField();
+    Spritej1->setxywh(390,300,100,100);Spritej1->sw=Spritej1->sh=100;Spritej1->startup();
+    auto makeRock=[&](float y){auto *r=new sprite;r->setxywh(Spritej1->x,y,80,80);r->pv=1;r->vx=r->vy=0;r->sw=r->sh=80;r->startup();sa1.push_back(r);return r;};
+    auto *nearRock=makeRock(370),*midRock=makeRock(430),*farRock=makeRock(500);
+    sfKineticResetSurges();sfKineticSurgePress(0);sfKineticAdvanceSurges(.21f);
+    const float n0=nearRock->w,m0=midRock->w,f0=farRock->w;
+    sfKineticSurgeMineAsteroids(.10f);
+    const float dn=n0-nearRock->w,dm=m0-midRock->w,df=f0-farRock->w;
+    assert(dn>dm && dm>df && df>0);
+
+    while(particules.size()<995) {auto *p=new parts(0,0);p->pv=600;particules.push_back(p);}
+    const float capBefore=farRock->w;sfKineticSurgeMineAsteroids(.25f);assert(farRock->w<capBefore);
+    for(auto *p:particules) delete p;particules.clear();
+
+    sfKineticAdvanceSurges(1.80f);
+    const float readyBefore=midRock->w;sfKineticSurgeMineAsteroids(.10f);
+    assert(sfKineticSurges[0].charged && sfKineticSuperchargeProgress(0)==1.0f && midRock->w<readyBefore);
+
+    sfCoop.health=sfCoopProfile().health;sfCoop.position=tupl(Spritej1->x,Spritej1->y+120);
+    const float nearHit=sfCoopConeBossHitFraction(0);assert(nearHit>=0 && nearHit<1);
+    const float hp0=sfCoop.health,expected=sfCoopPhaserDps(0)*sfKineticConeBossDpsMultiplier(nearHit)*.10f;
+    sfCoopApplyMiningConeBossDamage(.10f);assert(std::abs((hp0-sfCoop.health)-expected)<.05f);
+
+    const float diameter=sfKineticShipDiameter(Spritej1),noseY=sfKineticSurgeNoseY(0,Spritej1,diameter);
+    const float coneRange=diameter*SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS;
+    sfCoop.position=tupl(Spritej1->x+140,noseY+120);
+    assert(!sfKineticSurgeConeContains(0,Spritej1->x,noseY,sfCoop.position.x,sfCoop.position.y,coneRange));
+    assert(sfCoopConeBossHitFraction(0)>=0);
+    sfKineticSurgeCancel(0);
+
+    sfBossDangerIndex=oldDanger;
+    sfFixResetAsteroidField();
+    sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;sfCampaignRestoreDuelShips();
+    std::puts("PASS: strong danger-scaled passive recharge, continuous asteroids, non-destructive boss field and 2 s charge mining");
+}
+
 static void testVelocityGhosts()
 {
     for (int fps : {30,60,120}) for (int owner=0;owner<2;++owner) {
@@ -30,8 +117,68 @@ static void testVelocityGhosts()
             target->x+=sfObserved[1-owner].velocity.vx*sfFrameDt;sfAdvanceProjectile(shot);
             nearest=std::min(nearest,sfSegmentDistance(tupl(shot->shotFromX,shot->shotFromY),tupl(shot->x,shot->y),tupl(target->x,target->y)));
         }
-        assert(nearest<16); // Aimed at a future point, not the starting location.
+        // Predictive lead remains the centreline, but ordinary shots now carry
+        // the requested initial energy-dependent random spread. It may miss,
+        // while still being recognisably aimed at the future target.
+        assert(nearest<90);
     }
+    // CLASSIC touch target is a bounded vector destination for both ships.
+    setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;setia=false;
+    sfArenaW=780;sfArenaH=1680;
+    Spritej1->setxywh(200,250,100,100);Spritej2->setxywh(580,1400,100,100);
+    Spritej1->ctrl=Spritej2->ctrl=true;
+    sfClassicTouchSetTarget(0,700,700,true,true);
+    sfClassicTouchSetTarget(1,80,900,true,true);
+    const float topX=Spritej1->x,bottomX=Spritej2->x;
+    sfClassicTouchVectorUpdate(.10f);
+    assert(Spritej1->x>topX && Spritej1->x<700);
+    assert(Spritej2->x<bottomX && Spritej2->x>80);
+    // Human vector speed 1.90 arena widths/s, twice the original.
+    assert(vlong(Spritej1->x-topX,Spritej1->y-250)>sfArenaW*.15f);
+    assert(vlong(bottomX-Spritej2->x,Spritej2->y-1400)>sfArenaW*.15f);
+    assert(vlong(Spritej1->x-topX,Spritej1->y-250)<=sfArenaW*.1901f);
+    assert(vlong(bottomX-Spritej2->x,Spritej2->y-1400)<=sfArenaW*.1901f);
+    Spritej1->ctrl=Spritej2->ctrl=false;
+
+    // Blue human's second finger must behave identically in either duel.
+    for(int mode : {SF_DUEL_LOCAL,SF_DUEL_AI}) {
+        setupTactics();sfActiveMode=sfSelectedMode=mode;setia=mode==SF_DUEL_AI;
+        Spritej2->pv=1000;Spritej2->ctrl=true;Spritej2->id=41;
+        sfKineticResetSurges();sfClassicDuelCancelOwnedSurges();
+        SDL_Event second{};second.type=SDL_FINGERDOWN;
+        assert(sfClassicDuelSurgeHandleEvent(second,42,sfArenaH*.75f));
+        assert(sfClassicDuelKineticFinger[1]==42 && sfKineticSurges[1].held);
+        if(mode==SF_DUEL_AI)
+            assert(!sfClassicDuelSurgeHandleEvent(second,43,sfArenaH*.25f));
+        sfClassicDuelCancelOwnedSurges();
+        assert(sfClassicDuelKineticFinger[1]<0 && !sfKineticSurges[1].held);
+    }
+
+    setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_AI;setia=true;
+    const int aiOldDanger=sfBossDangerIndex;
+    sfBossDangerIndex=0;Spritej2->setxywh(500,840,100,100);sfObserved[1].velocity.set(160,-90);sfThinkPilot();
+    assert(std::abs(sfPilot.aim.x-Spritej2->x)<.01f);
+    sfBossDangerIndex=8;sfPilot.habitVelocity.set(120,-40);sfThinkPilot();
+    assert(sfPilot.aim.x>Spritej2->x);
+    sfFixResetAsteroidField();Spritej1->nrj=49;
+    auto *recoveryRock=new sprite;recoveryRock->setxywh(Spritej1->x,Spritej1->y+130,45,45);
+    recoveryRock->pv=1;recoveryRock->vx=recoveryRock->vy=0;recoveryRock->sw=recoveryRock->sh=45;recoveryRock->startup();sa1.push_back(recoveryRock);
+    sfThinkPilot();assert(sfPilot.mode==SfAiMode::Mine);
+
+    // Phone regression: Mine must really activate the cone, even at Apocalypse.
+    sfBossDangerIndex=8;Spritej1->nrj=40;sfKineticResetSurges();
+    sfAiRecoveryGoal(recoveryRock,std::max(Spritej1->sw,Spritej1->sh)*.43f,sfMainShotSpeed(Spritej1->nrj));
+    Spritej1->x=sfPilot.goal.x;Spritej1->y=sfPilot.goal.y;Spritej1->startup();
+    sfPilot.velocity.set(0,0);sfAiUpdateConeStrategy();
+    assert(sfPilot.mode==SfAiMode::Mine && sfPilot.surgeOwned && sfKineticSurges[0].held);
+    sfKineticAdvanceSurges(.21f);
+    const float classicMineBefore=recoveryRock->w;
+    sfKineticSurgeMineAsteroids(.10f);
+    assert(recoveryRock->w<classicMineBefore);
+    sfAiStopOwnedSurge(false);
+
+    sfBossDangerIndex=aiOldDanger;sfFixResetAsteroidField();
+
     setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_AI;
     Spritej2->y=840;sfObserved[1].velocity.set(160,-90);sfThinkPilot();
     const auto right=sfPilot.goal;
@@ -117,6 +264,47 @@ static void testCoopGameplay()
     sfCoopProjectiles(.5f);assert(Spritej1->pv==1000);
     sfCoopProjectiles(.51f);assert(Spritej1->pv<1000); // Real telegraph before damage.
 
+    // COOP AI: survivor/rescuer; cone mining only.
+    setupCampaign(0,true);sfBossDangerIndex=0;sfFixResetAsteroidField();
+    Spritej1->setxywh(390,300,100,100);Spritej1->sw=Spritej1->sh=100;Spritej1->startup();
+    Spritej2->setxywh(420,1250,100,100);Spritej2->pv=1000;
+    Spritej1->nrj=49;
+    auto *smallResource=new sprite;smallResource->setxywh(390,390,42,42);
+    smallResource->pv=1;smallResource->vx=smallResource->vy=0;smallResource->sw=smallResource->sh=42;smallResource->startup();sa1.push_back(smallResource);
+    assert(sfCoopAiRecoveryRock(false)==smallResource);
+    sfCoopAiUpdateMiningCone();assert(sfKineticSurges[0].held);
+    sfKineticAdvanceSurges(.21f);
+    sfCoop.position=tupl(390,410);sfCoop.health=sfCoopProfile().health;
+    const float aiConeHp=sfCoop.health;sfCoopApplyMiningConeBossDamage(.20f);
+    assert(sfCoop.health==aiConeHp);
+    sfKineticSurgeCancel(0);sfKineticAudioCancel(0);
+
+    // COOP AI starts recovery before exhaustion and can reach its Apocalypse cone.
+    sfBossDangerIndex=8;Spritej1->nrj=40;sfKineticResetSurges();
+    const tupl coopMineGoal=sfCoopAiMiningGoal(smallResource);
+    Spritej1->x=coopMineGoal.x;Spritej1->y=coopMineGoal.y;Spritej1->startup();
+    assert(sfCoopAiNeedsMining() && sfCoopAiRockInMiningCone(smallResource));
+    sfCoopAiUpdateMiningCone();assert(sfKineticSurges[0].held);
+    sfKineticAdvanceSurges(.21f);
+    const float coopMineBefore=smallResource->w;
+    sfKineticSurgeMineAsteroids(.10f);
+    assert(smallResource->w<coopMineBefore);
+    sfKineticSurgeCancel(0);sfKineticAudioCancel(0);
+
+    sfSelectedMode=SF_COOP_AI;sfActiveMode=SF_COOP_LOCAL;setia=false;
+    sfCampaignStart();
+    assert(sfActiveMode==SF_COOP_AI && setia);
+
+    sfBossDangerIndex=8;sfCoop.chargeActive=false;sfCoop.chargeCooldown=5;
+    sfCoopRegisterBossDamage(1,sfCoopProfile().health*.04f);sfCoopUpdateBossThreat(.016f);
+    assert(sfCoop.bossAggressor==1 && sfCoop.bossAggroTime>0 && sfCoop.chargeCooldown<1.0f);
+
+    sfCoop.position=tupl(390,840);sfCoop.motion.velocity.set(0,0);sfCoop.shots.clear();
+    SfCoopShot threat;threat.owner=1;threat.kind=4;threat.life=4;threat.position=threat.previous=tupl(390,1120);
+    threat.velocity=tuplv(0,-520);threat.radius=8;sfCoop.shots.push_back(threat);
+    sfCoopUpdateBossMissileDodge(.05f);
+    assert(vlong(sfCoop.bossDodgeVelocity.vx,sfCoop.bossDodgeVelocity.vy)>0);
+
     setupCampaign();Spritej1->setxywh(390,300,100,100);Spritej2->setxywh(400,310,100,100);
     Spritej1->nrj=Spritej2->nrj=30;
     auto *dust=new parts(400,310);dust->vx=dust->vy=0;particules.push_back(dust);sfCollectDust();
@@ -156,7 +344,9 @@ static void testCoopArenaBounds()
         const float startX=Spritej1->x;
         sfCoop.controls[0].down=true;
         sfCoop.controls[0].target=tupl(sfArenaW*.75f,Spritej1->y);
-        for (int frame=0;frame<30;++frame) sfCoopMovePlayers(1.0f/60);
+        sfCoopMovePlayers(1.0f/60);
+        assert(Spritej1->x-startX>sfArenaW*.038f); // New 3.10 W/s cap.
+        for (int frame=1;frame<30;++frame) sfCoopMovePlayers(1.0f/60);
         assert(Spritej1->x>startX && Spritej1->pv==1000);
         for(const auto target:{tupl(0,0),tupl(sfArenaW,sfArenaH)}) {
             sfCoop.controls[0].target=target;

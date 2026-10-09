@@ -101,9 +101,28 @@ static void testKineticFieldAndHullRegen()
 
     sfKineticResetSurges();sfKineticSurgePress(0);
     sfKineticAdvanceSurges(SF_KINETIC_SURGE_HOLD_SECONDS-.01f);
-    assert(sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==2.0f && !sfKineticSurgeVulnerable(0));
+    assert(sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==0.0f && sfKineticSurgeVulnerable(0));
+    assert(sfKineticSuctionVisible(0) && sfKineticSurgeMiningActive(0));
+    assert(sfKineticSuperchargeProgress(0)<1.0f);
     sfKineticAdvanceSurges(.02f);
-    assert(!sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==0.0f && sfKineticSurgeVulnerable(0));
+    assert(sfKineticSurgeVisible(0) && sfKineticSurgePower(0)==0.0f && sfKineticSurgeVulnerable(0));
+    assert(sfKineticSuperchargeProgress(0)==1.0f);
+    assert(sfKineticSuctionVisible(0) && sfKineticSurgeMiningActive(0));
+    assert(std::abs(SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS-2.025f)<.0001f);
+    assert(std::abs(SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS-3.30f)<.0001f);
+    // Owner 0 faces down (+Y), owner 1 faces up (-Y): suction is front-cone only.
+    assert(sfKineticSurgeConeContains(0,100,100,100,300,330));
+    assert(!sfKineticSurgeConeContains(0,100,100,100,-80,330));
+    assert(sfKineticSurgeConeContains(1,100,300,100,100,330));
+    assert(!sfKineticSurgeConeContains(1,100,300,100,500,330));
+    assert(!sfKineticSurgeConeContains(0,100,100,420,250,330));
+    const int coneDangerBefore=sfBossDangerIndex;
+    sfBossDangerIndex=0;
+    const float easyConeHalfWidth=sfKineticSurgeConeHalfWidth(200);
+    assert(easyConeHalfWidth>100 && easyConeHalfWidth<180);
+    sfBossDangerIndex=8;
+    assert(std::abs(sfKineticSurgeConeHalfWidth(200)*5.0f-easyConeHalfWidth)<.01f);
+    sfBossDangerIndex=coneDangerBefore;
     assert(sfKineticSurgeRelease(0));
 
     setupTactics();sfFixResetAsteroidField();sfFieldRemainder=0;
@@ -121,6 +140,8 @@ static void testKineticFieldAndHullRegen()
 
 static void testCollectedBonusAndShield()
 {
+    const int savedDanger=sfBossDangerIndex;
+    sfBossDangerIndex=2; // This historical shield assertion is defined at ROCK N ROLL x10.
     setupCampaign();sfCoop.bonusTimer=0;sfCoopBonus(.01f);
     assert(sfCoop.bonusLife>0 && sfCoop.turretTime==0);
     sfCoop.bonusPosition=tupl(Spritej2->x,Spritej2->y);sfCoop.bonusVelocity.set(0,0);
@@ -136,6 +157,7 @@ static void testCollectedBonusAndShield()
     sfCoopHurt(0,10);sfCoopHurt(1,10);
     assert(Spritej1->pv==1000 && Spritej2->pv==900);
     assert(std::abs(Spritej1->nrj-10.0f)<.01f && Spritej2->nrj==50);
+    sfBossDangerIndex=savedDanger;
     std::puts("PASS: random floating bonus, collection, independent turret energy, expiration and reserve-dependent shield");
 }
 
@@ -153,6 +175,8 @@ static void testRealCoopField()
 
 static void testCoopDifficultyChain()
 {
+    const int savedDanger=sfBossDangerIndex;
+    sfBossDangerIndex=2; // Historical cadence/contact assertions are ROCK N ROLL x10.
     setupCampaign();
     float highSpread=0,lowSpread=0;
     for(unsigned i=1;i<=32;++i) {
@@ -193,6 +217,7 @@ static void testCoopDifficultyChain()
     for(int i=0;i<31;++i) {auto *dust=new parts(390,300);dust->pv=600;particules.push_back(dust);}
     sfCollectDust();
     assert(Spritej1->nrj==0 && std::abs(Spritej1->pv-904.0f)<.02f);
+    sfBossDangerIndex=savedDanger;
     std::puts("PASS: energy lowers cadence/accuracy, boss contact is continuous, rocks bypass shot i-frames and ore no longer resets the shield");
 }
 
@@ -304,15 +329,97 @@ static void testCoopHudAndMissile()
     const auto low=sfPlayerPvRect(1,width,height),up=sfPlayerPvRect(0,width,height);
     const auto mirrored=sfMirrorRect180(low,width,height);
     assert(up.x==mirrored.x && up.y==mirrored.y && up.w==mirrored.w && up.h==mirrored.h);
-    const auto b0=sfBossLifeRect(false,width,height),b1=sfBossLifeRect(true,width,height);
-    const auto bm=sfMirrorRect180(b0,width,height);assert(b1.x==bm.x && b1.y==bm.y);
+
+    // Fab correction: pilot HUD stays the historical two-bar block (PV + energy).
+    const auto lowEnergy=sfPlayerEnergyRect(1,width,height),upEnergy=sfPlayerEnergyRect(0,width,height);
+    const auto mirroredEnergy=sfMirrorRect180(lowEnergy,width,height);
+    assert(lowEnergy.y>low.y);
+    assert(upEnergy.x==mirroredEnergy.x && upEnergy.y==mirroredEnergy.y);
+
+    // Fab final geometry: a normal compact boss HUD for the lower player at
+    // bottom-left, plus the exact same object rotated 180 degrees top-right.
+    const auto life0=sfBossLifeRect(false,width,height),life1=sfBossLifeRect(true,width,height);
+    const auto energy0=sfBossEnergyRect(false,width,height),energy1=sfBossEnergyRect(true,width,height);
+    const auto kinetic0=sfBossKineticRect(false,width,height),kinetic1=sfBossKineticRect(true,width,height);
+    assert(energy0.y<life0.y && life0.y<kinetic0.y);
+    assert(life0.w<=int(width*.30f) && life0.x<width/2);
+    assert(life0.y>height/2);
+    assert(kinetic0.y-energy0.y<=life0.h*3+8);
+    assert(life0.h<=std::max(6,width/90));
+    const auto lifeMirror=sfMirrorRect180(life0,width,height);
+    const auto energyMirror=sfMirrorRect180(energy0,width,height);
+    const auto kineticMirror=sfMirrorRect180(kinetic0,width,height);
+    assert(life1.x==lifeMirror.x && life1.y==lifeMirror.y && life1.w==lifeMirror.w && life1.h==lifeMirror.h);
+    assert(energy1.x==energyMirror.x && energy1.y==energyMirror.y);
+    assert(kinetic1.x==kineticMirror.x && kinetic1.y==kineticMirror.y);
+
+    // Filling direction is part of the 180° rotation: lower grows left->right,
+    // upper grows right->left and must be the geometric mirror of the lower fill.
+    const auto lowerHalf=sfBossHudValueRect(life0,.5f,false);
+    const auto upperHalf=sfBossHudValueRect(life1,.5f,true);
+    const auto lowerHalfMirror=sfMirrorRect180(lowerHalf,width,height);
+    assert(upperHalf.x==lowerHalfMirror.x && upperHalf.y==lowerHalfMirror.y &&
+           upperHalf.w==lowerHalfMirror.w && upperHalf.h==lowerHalfMirror.h);
+
     const auto full=sfHealthColor(1),empty=sfHealthColor(0);
     assert(full.g>full.r && empty.r>empty.g);
+    const auto bossEnergyColor=sfBossEnergyColor(),bossKineticColor=sfBossKineticColor();
+    assert(bossEnergyColor.b>bossEnergyColor.r && bossEnergyColor.r>bossEnergyColor.g);
+    assert(bossKineticColor.r>bossKineticColor.g && bossKineticColor.g>bossKineticColor.b);
+    assert(sfBossHudBackgroundAlpha()<160 && sfBossHudFillAlpha()<230);
+
+    // The whole label is mirrored too: normal above the lower block, rotated
+    // counterpart below the upper block.
+    const auto bossLabel0=sfBossHudLabelRect(false,width,height);
+    const auto bossLabel1=sfBossHudLabelRect(true,width,height);
+    const auto bossLabelMirror=sfMirrorRect180(bossLabel0,width,height);
+    assert(bossLabel0.x==energy0.x && bossLabel0.w==energy0.w && bossLabel0.y<energy0.y);
+    assert(bossLabel1.x==bossLabelMirror.x && bossLabel1.y==bossLabelMirror.y);
+    assert(sfBossHudMirrorAlpha()>0 && sfBossHudMirrorAlpha()<sfBossHudFillAlpha());
+    const auto mirrorTop=sfBossHudMirrorBand(life0,false);
+    const auto mirrorBottom=sfBossHudMirrorBand(life0,true);
+    assert(mirrorTop.x==life0.x && mirrorTop.w==life0.w);
+    assert(mirrorBottom.x==life0.x && mirrorBottom.w==life0.w);
+    assert(mirrorTop.h==mirrorBottom.h && mirrorTop.h>=1);
+
+    // Fab canon: boss is handicapped in MOU DU GENOU and increasingly favoured
+    // by the 9 Danger levels. APOCALYPSE regenerates exactly 9x faster than MOU.
+    const float mou=sfCoopBossReserveRegenPerSecond(0);
+    const float apocalypse=sfCoopBossReserveRegenPerSecond(SF_BOSS_DANGER_COUNT-1);
+    assert(mou>0 && std::abs(apocalypse/mou-9.0f)<.001f);
+    float previous=mou;
+    for(int danger=1;danger<SF_BOSS_DANGER_COUNT;++danger) {
+        const float current=sfCoopBossReserveRegenPerSecond(danger);
+        assert(current>previous);previous=current;
+    }
+    assert(sfCoopBossKineticVisibilityAlpha(0.05f)>sfCoopBossKineticVisibilityAlpha(0.95f));
+    const float mouReserve=sfCoopRegenerateBossReserveValue(.25f,1.0f,0);
+    const float apocalypseReserve=sfCoopRegenerateBossReserveValue(.25f,1.0f,SF_BOSS_DANGER_COUNT-1);
+    assert(apocalypseReserve>mouReserve && mouReserve>.25f);
+
+    // Actual runtime regen must use Boss Danger, not campaign difficulty.
+    const int savedDanger=sfBossDangerIndex;
+    sfCoop.encounter=0;sfCoop.bossEnergyReserve=sfCoop.bossKineticReserve=.25f;
+    sfBossDangerIndex=0;sfCoopRegenerateBossReserves(1.0f);const float runtimeMou=sfCoop.bossEnergyReserve;
+    sfCoop.bossEnergyReserve=sfCoop.bossKineticReserve=.25f;
+    sfBossDangerIndex=SF_BOSS_DANGER_COUNT-1;sfCoopRegenerateBossReserves(1.0f);const float runtimeApocalypse=sfCoop.bossEnergyReserve;
+    sfBossDangerIndex=savedDanger;
+    assert(runtimeApocalypse>runtimeMou);
+
+    // Half-texel inset remains the bounded anti-bleeding fix.
+    const SDL_Rect atlasCell{10,20,100,80};
+    const auto uv00=sfAtlasSafeUv(atlasCell,1000,800,0,0);
+    const auto uv11=sfAtlasSafeUv(atlasCell,1000,800,1,1);
+    assert(std::abs(uv00.x-10.5f/1000.0f)<1e-6f);
+    assert(std::abs(uv00.y-20.5f/800.0f)<1e-6f);
+    assert(std::abs(uv11.x-109.5f/1000.0f)<1e-6f);
+    assert(std::abs(uv11.y-99.5f/800.0f)<1e-6f);
 
     auto *surface=SDL_CreateRGBSurfaceWithFormat(0,width,height,32,SDL_PIXELFORMAT_RGBA32);
     auto *renderer=SDL_CreateSoftwareRenderer(surface);assert(surface && renderer);
     setupCampaign();sfArenaW=width;sfArenaH=height;
-    auto &textures=sfCoopTextures(renderer);assert(textures.missile);
+    auto &textures=sfCoopTextures(renderer);
+    assert(textures.missile && textures.explosion && textures.orbOrange && textures.orbBlue);
     sfCoop.shots.clear();sfCoopEmit(tupl(200,400),-float(PI)*.5f,240,1,60,4);
     SDL_SetRenderDrawColor(renderer,0,0,0,255);SDL_RenderClear(renderer);sfCoopDrawArena(renderer,width,height);
     std::vector<Uint32> missile(width*height);assert(SDL_RenderReadPixels(renderer,nullptr,SDL_PIXELFORMAT_RGBA32,missile.data(),width*4)==0);
@@ -323,5 +430,5 @@ static void testCoopHudAndMissile()
     sfCampaignForgetRenderer(renderer);SDL_DestroyRenderer(renderer);
     renderer=SDL_CreateSoftwareRenderer(surface);assert(renderer && sfCoopTextures(renderer).missile);
     sfCampaignForgetRenderer(renderer);SDL_DestroyRenderer(renderer);SDL_FreeSurface(surface);
-    std::puts("PASS: mirrored upper HUD, duplicated boss life gradient and historical missile texture survive renderer recreation");
+    std::puts("PASS: pilot two-bar HUD, boss energy/life/kinetic HUD and historical missile texture survive renderer recreation");
 }

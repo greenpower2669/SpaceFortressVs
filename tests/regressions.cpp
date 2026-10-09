@@ -287,11 +287,13 @@ int main(int argc,char **argv)
         return 2;
     }
     testVectors(); testLegacyCrashes(); testInput(); testTextures(); testScenicRendering();
+    testMainShotDispersionByEnergy();
     testTacticalPilot(); testTacticalTurrets(); testJupiterMotion();
     testRaidsAndDefence();
     testEnergyFeedback(); testProjectileFeedback();
     char campaignDirectory[]="/tmp/spacefortress-campaign-XXXXXX";
     assert(mkdtemp(campaignDirectory));
+    testCoopPassiveRechargeAndBossField();
     testVelocityGhosts();testCampaignPersistence(campaignDirectory);testCoopGameplay();testCoopArenaBounds();testCoopCollisionMinerals();testCampaignEntryAndFights();testCampaignProgression();
     testCampaignRendering(std::getenv("SPACEFORTRESS_CAMPAIGN_PREVIEW"));
     testDuelStyleRoundTrip();testShipBreathing();testCoopHumanAim();testUnknownSaveWithBackup(campaignDirectory);

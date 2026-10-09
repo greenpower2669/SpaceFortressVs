@@ -32,11 +32,21 @@ sf_danger_patch_once("blue normal non-kinetic hull damage"
     "Spritej2->pv-=sfApplyShieldImpact(Spritej2,sfClassicIncomingNonKinetic(e,Spritej2,pvminus(Spritej2)));")
 
 # Local classic duel keeps the historical first-finger movement path. A second
-# finger is intercepted before the old switch and routed to the shared 0.30/2 s
+# finger is intercepted before the old switch and routed to the shared 0.20/2 s
 # surge state. AI duel keeps the existing remaster owner-1 route.
 sf_danger_patch_once("classic local duel kinetic surge routing"
     "    switch( e.type) {"
     "    if (sfClassicDuelSurgeHandleEvent(e,tid,ty)) continue;\n    switch( e.type) {")
+
+# Classic only: keep the historical finger ownership/fire logic, but replace
+# direct coordinate assignment by the same destination-vector idea already
+# proven in COOP. No cooperative control code is touched.
+sf_danger_patch_once("classic upper touch vector target"
+    "   if (Spritej1->ctrl and tid==Spritej1->id){\n          if (inx) Spritej1->x=tx;\n          if (iny) Spritej1->y=ty;"
+    "   if (Spritej1->ctrl and tid==Spritej1->id){\n          sfClassicTouchSetTarget(0,tx,ty,inx,iny);")
+sf_danger_patch_once("classic lower touch vector target"
+    "   if (Spritej2->ctrl and tid==Spritej2->id){\n          if (inx) Spritej2->x=tx;\n          if (iny) Spritej2->y=ty;"
+    "   if (Spritej2->ctrl and tid==Spritej2->id){\n          sfClassicTouchSetTarget(1,tx,ty,inx,iny);")
 
 # Existing team-colour waves remain the base visual. Add a visual-only fatigue
 # overlay after every classic/coop kinetic draw so weak shields become slower,

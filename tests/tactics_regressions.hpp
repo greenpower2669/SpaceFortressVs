@@ -14,6 +14,31 @@ static void setupTactics()
     loosej1->pv=loosej2->pv=0;
 }
 
+static void testMainShotDispersionByEnergy()
+{
+    const float full=sfMainShotSpreadEnvelope(0.0f);
+    const float tired=sfMainShotSpreadEnvelope(50.0f);
+    assert(full>0.0f && full<.03f);
+    assert(tired>.15f && tired>full*6.0f);
+    assert(sfMainShotSpreadRadians(50.0f,1.0f)>0.0f);
+    assert(sfMainShotSpreadRadians(50.0f,-1.0f)<0.0f);
+    assert(std::abs(sfMainShotSpreadRadians(50.0f,1.0f)+
+                    sfMainShotSpreadRadians(50.0f,-1.0f))<.0001f);
+
+    setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;setia=false;
+    Spritej2->nrj=35;std::srand(142);
+    bool left=false,right=false;
+    for(int i=0;i<24;++i) {
+        assert(sfFireMain(1));
+        const auto *shot=entitiesj1.back();
+        if(shot->name=="miss") continue;
+        left|=shot->shotVelocityX<-.01f;
+        right|=shot->shotVelocityX>.01f;
+    }
+    assert(left && right);
+    std::puts("PASS: classic ordinary shots regain random left/right spread that widens as energy falls");
+}
+
 static void testTacticalPilot()
 {
     setupTactics();
@@ -57,7 +82,13 @@ static void testTacticalPilot()
     auto *rock=new sprite; rock->setxywh(350,550,100,100);
     rock->pv=100; rock->vx=rock->vy=0; sa1.push_back(rock);
     Spritej1->nrj=30; sfThinkPilot();
-    assert(sfPilot.mode==SfAiMode::Mine && sfPilot.goal.y<rock->y-100);
+    assert(sfPilot.mode==SfAiMode::Mine && sfPilot.goal.y<rock->y);
+    const float mineGoalX=sfPilot.goal.x,mineGoalY=sfPilot.goal.y;
+    Spritej1->x=mineGoalX;Spritej1->y=mineGoalY;Spritej1->startup();
+    const float mineDiameter=std::max(1.0f,std::max({Spritej1->sw,Spritej1->sh,Spritej1->w,Spritej1->h}));
+    const float mineNose=Spritej1->y+mineDiameter*.42f;
+    assert(sfKineticSurgeConeContains(0,Spritej1->x,mineNose,rock->x,rock->y,
+        mineDiameter*sfKineticSurgeMiningRangeDiameters(),std::max(rock->w,rock->h)*.5f));
 
     // Head-on encounter: measure clearance along the path, not final offset
     // after the pilot has already returned toward its goal.

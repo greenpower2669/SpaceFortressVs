@@ -44,7 +44,17 @@ static void sfKineticAudioStartCharge(int owner)
 {
     if(owner<0 || owner>1) return;
     sfKineticAudioEnsure();sfKineticAudioHaltCharge(owner);sfKineticAudio.readySignaled[owner]=false;
-    if(sfKineticAudio.charge) sfKineticAudio.chargeChannel[owner]=Mix_PlayChannel(-1,sfKineticAudio.charge,0);
+    if(sfKineticAudio.charge) {
+        sfKineticAudio.chargeChannel[owner]=Mix_PlayChannel(-1,sfKineticAudio.charge,0);
+        if(sfKineticAudio.chargeChannel[owner]>=0) Mix_Volume(sfKineticAudio.chargeChannel[owner],76);
+    }
+}
+static void sfKineticAudioStartQuietHold(int owner)
+{
+    if(owner<0 || owner>1 || !sfKineticAudio.charge) return;
+    sfKineticAudioHaltCharge(owner);
+    sfKineticAudio.chargeChannel[owner]=Mix_PlayChannel(-1,sfKineticAudio.charge,-1);
+    if(sfKineticAudio.chargeChannel[owner]>=0) Mix_Volume(sfKineticAudio.chargeChannel[owner],24);
 }
 static void sfKineticAudioCancel(int owner)
 {
@@ -65,6 +75,9 @@ static void sfKineticAudioUpdate()
         if(surge.held && surge.charged && !sfKineticAudio.readySignaled[owner]) {
             sfKineticAudioHaltCharge(owner);
             if(sfKineticAudio.ready) Mix_PlayChannel(-1,sfKineticAudio.ready,0);
+            // READY is a cue, not silence: the tide keeps a quiet background hum
+            // until the second finger is released.
+            sfKineticAudioStartQuietHold(owner);
             sfKineticAudio.readySignaled[owner]=true;
         } else if(!surge.held) {
             sfKineticAudioHaltCharge(owner);sfKineticAudio.readySignaled[owner]=false;
@@ -141,12 +154,26 @@ static float sfMainShotSpeed(float heat)
     return (60-sfShipHeat(heat+1))*.4f*60*sfArenaW/780.0f;
 }
 
-static float sfAsteroidRisk(tupl position, tuplv velocity, float radius)
+static float sfMainShotSpreadEnvelope(float heat)
+{
+    const float spent=sfShipHeat(heat)/SF_MAX_SHIP_HEAT;
+    return .018f+.162f*std::pow(spent,1.25f);
+}
+static float sfMainShotSpreadRadians(float heat,float randomUnit)
+{
+    return std::clamp(randomUnit,-1.0f,1.0f)*sfMainShotSpreadEnvelope(heat);
+}
+static float sfMainShotRandomUnit()
+{
+    return (float(std::rand()%20001)-10000.0f)/10000.0f;
+}
+
+static float sfAsteroidRisk(tupl position, tuplv velocity, float radius, Uint64 ignoredAsteroidId=0)
 {
     float risk = 0;
     const float units = std::max(.05f,k0)/sfFrameDt;
     for (const auto *rock : sa1) {
-        if (rock->pv<=0) continue;
+        if (rock->pv<=0 || (ignoredAsteroidId && rock->tacticalId==ignoredAsteroidId)) continue;
         const float dx = rock->x-position.x, dy = rock->y-position.y;
         const float vx = rock->vx*units-velocity.vx, vy = rock->vy*units-velocity.vy;
         const float speed2 = vx*vx+vy*vy;
@@ -182,10 +209,25 @@ static float sfEnemyShotRisk(tupl position,tuplv velocity,float radius)
     return risk;
 }
 
+static float sfAiRefugeInset(float dimension,float radius)
+{
+    return std::min(dimension*.45f,radius+
+        std::max(radius*.35f,std::min(sfArenaW,sfArenaH)*.035f));
+}
+static tupl sfAiRefugeGoal(tupl goal,float radius,float maxY)
+{
+    const float x=sfAiRefugeInset(sfArenaW,radius);
+    const float y=sfAiRefugeInset(sfArenaH,radius);
+    return tupl(std::clamp(goal.x,x,std::max(x,sfArenaW-x)),
+                std::clamp(goal.y,y,std::max(y,maxY-y*.35f)));
+}
 static tuplv sfAvoidAsteroids(tupl position, tupl goal, tuplv current, float radius,
-                              float maxY=-1)
+                              float maxY=-1, Uint64 ignoredAsteroidId=0)
 {
     if (maxY<0) maxY=sfArenaH*.48f-radius*.25f;
+    goal=sfAiRefugeGoal(goal,radius,maxY);
+    const float safeX=sfAiRefugeInset(sfArenaW,radius);
+    const float safeY=sfAiRefugeInset(sfArenaH,radius);
     enti steering;
     steering.xy = position;
     steering.azim(goal.x,goal.y); // fablib heading and vector conversion
@@ -208,9 +250,9 @@ static tuplv sfAvoidAsteroids(tupl position, tupl goal, tuplv current, float rad
             candidate.vy=current.vy+ay/change*maxChange;
         }
         const float futureX=position.x+candidate.vx*.25f, futureY=position.y+candidate.vy*.25f;
-        const float edgePenalty=(futureX<radius || futureX>sfArenaW-radius ||
-            futureY<radius || futureY>maxY) ? 8.0f : 0.0f;
-        const float score=sfAsteroidRisk(position,candidate,radius)*8+
+        const float edgePenalty=(futureX<safeX || futureX>sfArenaW-safeX ||
+            futureY<safeY || futureY>maxY-safeY*.35f) ? 16.0f : 0.0f;
+        const float score=sfAsteroidRisk(position,candidate,radius,ignoredAsteroidId)*8+
             sfEnemyShotRisk(position,candidate,radius)*12+edgePenalty+
             vlong(candidate.vx-wanted.vx,candidate.vy-wanted.vy)/maxSpeed;
         if (score<bestScore) { bestScore=score; best=candidate; }
@@ -222,13 +264,55 @@ enum class SfAiMode { Attack, Collect, Mine, RaidMine, Retreat };
 struct SfPilot {
     SfAiMode mode = SfAiMode::Attack;
     tupl goal, aim;
-    tuplv velocity;
+    tuplv velocity,habitVelocity;
     float rethink=0, aligned=0, cooldown=.35f;
     float aggressiveFor=0, nextAggression=2.5f, raidCooldown=0, raidAge=0, enemyTime=0;
+    float mineCommit=0, mineCooldown=0;
     Uint64 asteroidId=0;
+    bool surgeOwned=false;
 };
 inline SfPilot sfPilot;
 inline std::array<float,2> sfPickupGlow{};
+
+struct SfClassicTouchVectorState {
+    tupl target;
+    bool active=false;
+};
+inline std::array<SfClassicTouchVectorState,2> sfClassicTouchVectors{};
+
+static void sfClassicTouchSetTarget(int owner,float x,float y,bool acceptX,bool acceptY)
+{
+    if(owner<0 || owner>1 || sfIsCoop()) return;
+    auto *ship=owner==0 ? Spritej1 : Spritej2;
+    if(!ship || ship->pv<=0 || (owner==0 && setia)) return;
+    auto &state=sfClassicTouchVectors[owner];
+    if(!state.active) state.target=tupl(ship->x,ship->y);
+    if(acceptX) state.target.x=x;
+    if(acceptY) state.target.y=y;
+    state.target.x=std::clamp(state.target.x,sfArenaW*.05f,sfArenaW*.95f);
+    state.target.y=std::clamp(state.target.y,sfArenaH*.05f,sfArenaH*.95f);
+    state.active=true;
+}
+static void sfClassicTouchVectorUpdate(float dt)
+{
+    if(dt<=0 || sfIsCoop()) return;
+    const float maxSpeed=sfArenaW*1.90f; // Human double-speed, finite vector movement.
+    for(int owner=0;owner<2;++owner) {
+        auto *ship=owner==0 ? Spritej1 : Spritej2;
+        auto &state=sfClassicTouchVectors[owner];
+        if(!ship || ship->pv<=0 || !ship->ctrl || (owner==0 && setia)) {
+            state.active=false;continue;
+        }
+        if(!state.active) state.target=tupl(ship->x,ship->y);
+        const float dx=state.target.x-ship->x,dy=state.target.y-ship->y;
+        const float distance=vlong(dx,dy);
+        if(distance<=.5f) {ship->x=state.target.x;ship->y=state.target.y;continue;}
+        const float step=std::min(distance,maxSpeed*dt);
+        ship->x=std::clamp(ship->x+dx/distance*step,sfArenaW*.05f,sfArenaW*.95f);
+        ship->y=std::clamp(ship->y+dy/distance*step,sfArenaH*.05f,sfArenaH*.95f);
+        ship->startup();
+    }
+}
 
 static bool sfRoundActive()
 {
@@ -260,25 +344,23 @@ static bool sfFireMain(int owner,const tupl *target=nullptr)
     sprite *ship=owner==0 ? Spritej1 : Spritej2;
     sprite *shot=sfMakeShot(owner);
     if (!shot) return false;
+    const float heatBefore=sfShipHeat(ship->nrj);
+    const float speed=sfMainShotSpeed(heatBefore);
     const bool missile=sfSpendMainEnergy(ship);
     shot->x=ship->x; shot->y=ship->y;
-    shot->vx=0;
-    shot->vy=(60-ship->nrj)*(owner==0 ? .4f : -.4f);
-    shot->shotImpactHeat=std::clamp(shot->vy*shot->vy*.005f,0.0f,3.0f);
-    shot->shotVelocityX=shot->vx*60*sfArenaW/780;
-    shot->shotVelocityY=shot->vy*60*sfArenaW/780;
-    if (target) {
-        const float distance=std::max(1.0f,vlong(target->x-ship->x,target->y-ship->y));
-        const float speed=std::abs(shot->shotVelocityY);
-        shot->shotVelocityX=(target->x-ship->x)/distance*speed;
-        shot->shotVelocityY=(target->y-ship->y)/distance*speed;
-    }
+    float angle=(owner==0 ? 1.0f : -1.0f)*float(PI)*.5f;
+    if (target) angle=std::atan2(target->y-ship->y,target->x-ship->x);
+    if (!missile)
+        angle+=sfMainShotSpreadRadians(heatBefore,sfMainShotRandomUnit());
+    shot->shotVelocityX=std::cos(angle)*speed;
+    shot->shotVelocityY=std::sin(angle)*speed;
+    const float legacyAxisSpeed=speed*780.0f/(60.0f*std::max(1.0f,sfArenaW));
+    shot->shotImpactHeat=std::clamp(legacyAxisSpeed*legacyAxisSpeed*.005f,0.0f,3.0f);
     if (missile) {
         shot->name="miss";
         shot->shotVelocityX=0;
         shot->shotVelocityY=(owner==0 ? 1 : -1)*sfArenaW*.65f;
-        shot->vy=shot->shotVelocityY*sfFrameDt/std::max(.05f,k0);
-        shot->w=shot->sw*.5f; shot->vx=0; tirjz=true;
+        shot->w=shot->sw*.5f; tirjz=true;
     } else (owner==0 ? tirj1z : tirj2z)=true;
     shot->vx=shot->shotVelocityX*sfFrameDt/std::max(.05f,k0);
     shot->vy=shot->shotVelocityY*sfFrameDt/std::max(.05f,k0);
@@ -382,6 +464,131 @@ static void sfDrawProjectiles(SDL_Renderer *renderer,const std::list<sprite*> &s
     SDL_SetRenderDrawColor(renderer,red,green,blue,alpha);
 }
 
+static int sfAiDangerLevel()
+{
+    return std::clamp(sfBossDangerIndex,0,SF_BOSS_DANGER_COUNT-1)+1;
+}
+static float sfAiSkill()
+{
+    return (sfAiDangerLevel()-1)/8.0f;
+}
+static float sfAiReactionSeconds()
+{
+    return .28f-.20f*sfAiSkill();
+}
+static float sfAiPredictionHorizon()
+{
+    return .12f+.78f*sfAiSkill();
+}
+static bool sfAiLowEnergy()
+{
+    return Spritej1 && sfKineticEnergyFraction(Spritej1->nrj)<=.10f;
+}
+static sprite *sfAiRecoveryRock()
+{
+    if(!Spritej1) return nullptr;
+    const tupl position(Spritej1->x,Spritej1->y);
+    const float radius=std::max(Spritej1->sw,Spritej1->sh)*.43f;
+    sprite *chosen=nullptr;float best=std::numeric_limits<float>::max();
+    for(auto *rock:sa1) {
+        if(!rock || rock->pv<=0 || rock->y<=position.y+radius*.35f || rock->y>sfArenaH*.64f) continue;
+        const float relativeSpeed=vlong(rock->vx*k0/std::max(.001f,sfFrameDt),
+                                        rock->vy*k0/std::max(.001f,sfFrameDt));
+        const float distance=vlong(rock->x-position.x,rock->y-position.y);
+        const float score=distance+relativeSpeed*.12f+std::max(rock->w,rock->h)*.25f;
+        if(score<best) {best=score;chosen=rock;}
+    }
+    return chosen;
+}
+static void sfAiRecoveryGoal(sprite *rock,float radius,float shotSpeed)
+{
+    if(!rock || !Spritej1) return;
+    if(!rock->tacticalId) rock->tacticalId=++sfNextAsteroidId;
+    if(sfPilot.mode!=SfAiMode::Mine || sfPilot.asteroidId!=rock->tacticalId)
+        sfPilot.mineCommit=2.6f;
+    sfPilot.asteroidId=rock->tacticalId;
+    const tuplv velocity(rock->vx*k0/std::max(.001f,sfFrameDt),rock->vy*k0/std::max(.001f,sfFrameDt));
+    sfPilot.aim=sfPredictIntercept(tupl(Spritej1->x,Spritej1->y),tupl(rock->x,rock->y),velocity,shotSpeed,.35f+.25f*sfAiSkill());
+
+    // Park at a distance derived from the ACTUAL danger-scaled cone.
+    // The previous fixed clearance could leave the AI permanently outside its
+    // own cone in high difficulty, so it looked like the mining behaviour did
+    // not exist.
+    const float diameter=std::max(1.0f,std::max({Spritej1->sw,Spritej1->sh,Spritej1->w,Spritej1->h}));
+    const float rockRadius=std::max(rock->w,rock->h)*.5f;
+    const float coneRange=diameter*sfKineticSurgeMiningRangeDiameters();
+    const float noseOffset=diameter*.42f;
+    const float collisionClearance=radius+rockRadius+diameter*.035f;
+    const float coneForward=std::max(diameter*.035f,coneRange*.48f);
+    const float clearance=std::max(collisionClearance,noseOffset+coneForward);
+    sfPilot.goal=tupl(sfPilot.aim.x,sfPilot.aim.y-clearance);
+    sfPilot.mode=SfAiMode::Mine;
+}
+static sprite *sfAiTrackedMiningRock()
+{
+    if(!sfPilot.asteroidId) return nullptr;
+    for(auto *rock:sa1)
+        if(rock && rock->pv>0 && rock->tacticalId==sfPilot.asteroidId) return rock;
+    return nullptr;
+}
+static void sfAiStopOwnedSurge(bool releaseFull=false)
+{
+    if(!sfPilot.surgeOwned) return;
+    if(releaseFull && sfKineticSurges[0].charged) {
+        const bool purge=sfKineticSurgeRelease(0);
+        if(purge) {sfKineticAudioRelease(0);sfKineticPurgeAsteroids(0);}
+    } else {
+        sfKineticSurgeCancel(0);sfKineticAudioCancel(0);
+    }
+    sfPilot.surgeOwned=false;
+}
+static void sfAiUpdateConeStrategy()
+{
+    if(!setia || !Spritej1 || Spritej1->pv<=0) {sfAiStopOwnedSurge(false);return;}
+    const float energy=sfKineticEnergyFraction(Spritej1->nrj);
+    const tupl position(Spritej1->x,Spritej1->y);
+    const float radius=std::max(Spritej1->sw,Spritej1->sh)*.43f;
+    const float rockRisk=sfAsteroidRisk(position,sfPilot.velocity,radius);
+    const float shotRisk=sfEnemyShotRisk(position,sfPilot.velocity,radius);
+    const bool critical=energy<=.10f;
+
+    sprite *miningTarget=(sfPilot.mode==SfAiMode::Mine || sfPilot.mode==SfAiMode::RaidMine)
+        ? sfAiTrackedMiningRock() : nullptr;
+    if(!miningTarget && critical) {
+        miningTarget=sfAiRecoveryRock();
+        if(miningTarget && !miningTarget->tacticalId) miningTarget->tacticalId=++sfNextAsteroidId;
+        if(miningTarget) sfPilot.asteroidId=miningTarget->tacticalId;
+    }
+
+    bool mineReady=false;
+    if(miningTarget) {
+        const float diameter=std::max(1.0f,std::max({Spritej1->sw,Spritej1->sh,Spritej1->w,Spritej1->h}));
+        const float noseY=Spritej1->y+diameter*.42f;
+        const float range=diameter*sfKineticSurgeMiningRangeDiameters();
+        mineReady=sfKineticSurgeConeContains(0,Spritej1->x,noseY,miningTarget->x,miningTarget->y,range,
+                                             std::max(miningTarget->w,miningTarget->h)*.5f);
+    }
+
+    // Mining mode really owns the cone now, not only the <=10% emergency path.
+    const bool wantMining=miningTarget && mineReady &&
+        (critical || sfPilot.mode==SfAiMode::Mine || sfPilot.mode==SfAiMode::RaidMine);
+    const bool strategicBlast=!wantMining && sfAiDangerLevel()>=5 && energy>.35f &&
+        rockRisk>(.85f-.35f*sfAiSkill()) && shotRisk<.30f;
+    const bool want=wantMining || strategicBlast;
+
+    if(want && !sfKineticSurges[0].held) {
+        sfKineticSurgePress(0);sfKineticAudioStartCharge(0);sfPilot.surgeOwned=true;
+        if(wantMining) SDL_Log("SF_VS_AI_CONE_PRESS level=%d rock=%llu",
+            sfAiDangerLevel(),static_cast<unsigned long long>(sfPilot.asteroidId));
+    } else if(sfPilot.surgeOwned) {
+        if(wantMining) return; // Hold continuously so the real field can melt the rock.
+        if(strategicBlast && sfKineticSurges[0].charged && rockRisk>.45f) {
+            sfAiStopOwnedSurge(true);return;
+        }
+        if(!want || shotRisk>(.72f-.35f*sfAiSkill())) sfAiStopOwnedSurge(false);
+    }
+}
+
 static void sfBeginRetreat()
 {
     sfPilot.mode=SfAiMode::Retreat; sfPilot.asteroidId=0;
@@ -390,9 +597,7 @@ static void sfBeginRetreat()
 
 static sprite *sfFindRaidAsteroid()
 {
-    for (auto *rock : sa1)
-        if (rock->pv>0 && rock->tacticalId==sfPilot.asteroidId && sfPilot.asteroidId) return rock;
-    return nullptr;
+    return sfAiTrackedMiningRock();
 }
 
 static void sfRaidGoal(sprite *rock,float radius,float shotSpeed)
@@ -410,12 +615,49 @@ static void sfThinkPilot()
     const tupl position(Spritej1->x,Spritej1->y);
     const float radius=std::max(Spritej1->sw,Spritej1->sh)*.43f;
     const float speed=sfMainShotSpeed(Spritej1->nrj);
+    const int level=sfAiDangerLevel();
+    const float skill=sfAiSkill();
+
+    // Absolute recovery rule: <=10% reserve means resources before aggression.
+    if(sfAiLowEnergy()) {
+        if(auto *rock=sfAiRecoveryRock()) {
+            sfAiRecoveryGoal(rock,radius,speed);
+            sfPilot.goal.x=std::clamp(sfPilot.goal.x,radius,std::max(radius,sfArenaW-radius));
+            sfPilot.goal.y=std::clamp(sfPilot.goal.y,radius,std::max(radius,sfArenaH*.58f));
+            return;
+        }
+        float bestDust=std::numeric_limits<float>::max();
+        for(const auto *dust:particules) if(dust && dust->pv>0 && dust->y<sfArenaH*.58f) {
+            const float d=vlong(dust->x-position.x,dust->y-position.y);
+            if(d<bestDust) {bestDust=d;sfPilot.goal=tupl(dust->x,dust->y);sfPilot.mode=SfAiMode::Collect;}
+        }
+        if(bestDust<std::numeric_limits<float>::max()) return;
+    }
+
+    // Level 1 stays intentionally readable: current-position aim, broad lane,
+    // slow reaction, and no optional raid tactics.
+    if(level==1) {
+        sfPilot.aim=tupl(Spritej2->x,Spritej2->y);
+        sfPilot.goal=tupl(Spritej2->x,sfArenaH*.27f);
+        sfPilot.mode=SfAiMode::Attack;
+        sfPilot.goal.x=std::clamp(sfPilot.goal.x,radius,std::max(radius,sfArenaW-radius));
+        return;
+    }
     if (sfPilot.mode==SfAiMode::RaidMine) {
         sprite *rock=sfFindRaidAsteroid();
         if (!rock || rock->vy<=0 || sfPilot.raidAge>10 || sfPilot.enemyTime>1.0f ||
             Spritej1->y>sfArenaH*.57f || Spritej1->nrj>34 || Spritej1->pv<600 ||
             sfEnemyShotRisk(position,sfPilot.velocity,radius)>.5f) sfBeginRetreat();
         else { sfRaidGoal(rock,radius,speed); return; }
+    }
+    // Preserve the selected resource through multiple fast tactical rethinks.
+    if(sfPilot.mode==SfAiMode::Mine && sfPilot.mineCommit>0 && !sfAiLowEnergy()) {
+        if(auto *rock=sfAiTrackedMiningRock()) {
+            if(rock->y>position.y+radius*.15f && rock->y<sfArenaH*.64f) {
+                sfAiRecoveryGoal(rock,radius,speed);
+                return;
+            }
+        }
     }
     if (sfPilot.mode==SfAiMode::Retreat) {
         float best=std::numeric_limits<float>::max();
@@ -431,7 +673,7 @@ static void sfThinkPilot()
         if (Spritej1->y>sfArenaH*.34f) return;
         sfPilot.mode=SfAiMode::Attack;
     }
-    if (sfPilot.aggressiveFor>0 && sfPilot.raidCooldown<=0 && Spritej1->nrj<23 && Spritej1->pv>=650) {
+    if (level>=2 && sfPilot.aggressiveFor>0 && sfPilot.raidCooldown<=0 && Spritej1->nrj<23 && Spritej1->pv>=650) {
         sprite *chosen=nullptr; float best=std::numeric_limits<float>::max();
         for (auto *rock : sa1) {
             const float vy=rock->vy*k0/sfFrameDt;
@@ -447,12 +689,17 @@ static void sfThinkPilot()
             sfPilot.raidAge=sfPilot.enemyTime=0; sfRaidGoal(chosen,radius,speed); return;
         }
     }
-    sfPilot.aim=sfShipGhost(1).intercept(position,speed);
+    sfPilot.aim=sfShipGhost(1).intercept(position,speed,sfAiPredictionHorizon());
+    if(level>=8) {
+        const float habitLead=.10f+.10f*skill;
+        sfPilot.aim.x+=sfPilot.habitVelocity.vx*habitLead;
+        sfPilot.aim.y+=sfPilot.habitVelocity.vy*habitLead;
+    }
     sfPilot.goal=tupl(sfPilot.aim.x,std::min(sfArenaH*(sfPilot.aggressiveFor>0 ? .36f : .29f),
                                             sfPilot.aim.y-sfArenaH*.28f));
     sfPilot.mode=SfAiMode::Attack;
     float bestDust=std::numeric_limits<float>::max();
-    if (Spritej1->nrj>12 && (sfPilot.aggressiveFor<=0 || Spritej1->nrj>25)) {
+    if (level>=2 && Spritej1->nrj>12 && (sfPilot.aggressiveFor<=0 || Spritej1->nrj>25)) {
         const int stride=std::max(1,int(particules.size())/96);
         int sample=0;
         for (const auto *dust : particules) {
@@ -469,20 +716,22 @@ static void sfThinkPilot()
             }
         }
     }
-    if (sfPilot.mode!=SfAiMode::Collect && Spritej1->nrj>18 && sfPilot.aggressiveFor<=0) {
-        float bestRock=std::numeric_limits<float>::max();
-        for (const auto *rock : sa1) {
-            if (rock->pv<=0 || rock->y<radius*2 || rock->y>sfArenaH*.58f ||
-                rock->x<radius || rock->x>sfArenaW-radius) continue;
+    if (level>=2 && sfPilot.mode!=SfAiMode::Collect && Spritej1->nrj>7 &&
+        sfPilot.aggressiveFor<=0 && sfPilot.mineCooldown<=0) {
+        sprite *chosen=nullptr;float bestRock=std::numeric_limits<float>::max();
+        for (auto *rock : sa1) {
+            if (!rock || rock->pv<=0 || rock->y<radius*2 || rock->y>sfArenaH*.58f ||
+                rock->x<sfAiRefugeInset(sfArenaW,radius) ||
+                rock->x>sfArenaW-sfAiRefugeInset(sfArenaW,radius)) continue;
+            const float relativeSpeed=vlong(rock->vx*k0/std::max(.001f,sfFrameDt),
+                                            rock->vy*k0/std::max(.001f,sfFrameDt));
+            if(relativeSpeed>sfArenaW*.44f) continue;
             const float distance=vlong(rock->x-position.x,rock->y-position.y);
-            if (distance<bestRock) {
-                bestRock=distance;
-                const float clearance=radius+std::max(rock->w,rock->h)*.6f+sfArenaW*.09f;
-                sfPilot.aim=sfPredictIntercept(position,tupl(rock->x,rock->y),
-                    tuplv(rock->vx*k0/sfFrameDt,rock->vy*k0/sfFrameDt),speed,.5f);
-                sfPilot.goal=tupl(sfPilot.aim.x,rock->y-clearance); sfPilot.mode=SfAiMode::Mine;
-            }
+            if(distance>sfArenaW*.75f) continue;
+            const float score=distance+relativeSpeed*.10f+std::max(rock->w,rock->h)*.18f;
+            if(score<bestRock) {bestRock=score;chosen=rock;}
         }
+        if(chosen) sfAiRecoveryGoal(chosen,radius,speed);
     }
     sfPilot.goal.x=std::clamp(sfPilot.goal.x,radius,std::max(radius,sfArenaW-radius));
     sfPilot.goal.y=std::clamp(sfPilot.goal.y,radius,std::max(radius,sfArenaH*.45f));
@@ -493,42 +742,67 @@ static void sfUpdatePilot(float dt)
     if (!setia || !sfRoundActive()) { sfPilot.aligned=0; return; }
     sfPilot.rethink-=dt; sfPilot.cooldown-=dt;
     sfPilot.raidCooldown=std::max(0.0f,sfPilot.raidCooldown-dt);
+    sfPilot.mineCooldown=std::max(0.0f,sfPilot.mineCooldown-dt);
+    sfPilot.mineCommit=std::max(0.0f,sfPilot.mineCommit-dt);
+    if(sfPilot.mode==SfAiMode::Mine && sfPilot.mineCommit<=0 && !sfAiLowEnergy()) {
+        sfPilot.mode=SfAiMode::Attack;sfPilot.mineCooldown=2.0f;
+    }
     sfPilot.aggressiveFor=std::max(0.0f,sfPilot.aggressiveFor-dt); sfPilot.nextAggression-=dt;
-    if (Spritej1->nrj>28 || Spritej1->pv<650) sfPilot.aggressiveFor=0;
+    const int level=sfAiDangerLevel();const float skill=sfAiSkill();
+    const float habitBlend=1.0f-std::exp(-dt*(.55f+1.45f*skill));
+    sfPilot.habitVelocity.vx+=(sfObserved[1].velocity.vx-sfPilot.habitVelocity.vx)*habitBlend;
+    sfPilot.habitVelocity.vy+=(sfObserved[1].velocity.vy-sfPilot.habitVelocity.vy)*habitBlend;
+    if (Spritej1->nrj>28 || Spritej1->pv<(650-120*skill) || sfAiLowEnergy()) sfPilot.aggressiveFor=0;
     if (sfPilot.nextAggression<=0 && sfPilot.mode!=SfAiMode::Retreat) {
-        sfPilot.nextAggression=4+rand()%4;
-        if (Spritej1->nrj<23 && Spritej1->pv>=650 && rand()%3!=0) sfPilot.aggressiveFor=2.5f+(rand()%15)*.1f;
+        sfPilot.nextAggression=(5.5f-2.4f*skill)+(rand()%20)*.10f;
+        const int chance=std::max(2,5-int(skill*3));
+        if (level>=2 && Spritej1->nrj<23 && Spritej1->pv>=600 && rand()%chance!=0)
+            sfPilot.aggressiveFor=(1.4f+1.8f*skill)+(rand()%12)*.1f;
     }
     if (sfPilot.mode==SfAiMode::RaidMine) {
         sfPilot.raidAge+=dt;
         if (Spritej1->y>sfArenaH*.5f) sfPilot.enemyTime+=dt;
         const float radius=std::max(Spritej1->sw,Spritej1->sh)*.43f;
-        if (sfEnemyShotRisk(tupl(Spritej1->x,Spritej1->y),sfPilot.velocity,radius)>.5f) {
+        if (sfEnemyShotRisk(tupl(Spritej1->x,Spritej1->y),sfPilot.velocity,radius)>(.82f-.46f*skill)) {
             sfBeginRetreat(); sfPilot.rethink=0;
         }
     }
-    if (sfPilot.rethink<=0) { sfThinkPilot(); sfPilot.rethink=.10f; }
+    if (sfPilot.rethink<=0) { sfThinkPilot(); sfPilot.rethink=sfAiReactionSeconds(); }
     const float radius=std::max(Spritej1->sw,Spritej1->sh)*.43f;
     const tupl position(Spritej1->x,Spritej1->y);
     const bool excursion=sfPilot.mode==SfAiMode::RaidMine || sfPilot.mode==SfAiMode::Retreat;
     const float maxY=sfArenaH*(excursion ? .60f : .47f);
-    sfPilot.velocity=sfAvoidAsteroids(position,sfPilot.goal,sfPilot.velocity,radius,maxY);
+    const Uint64 miningObstacleToIgnore=
+        (sfPilot.mode==SfAiMode::Mine || sfPilot.mode==SfAiMode::RaidMine) ? sfPilot.asteroidId : 0;
+    sfPilot.velocity=sfAvoidAsteroids(position,sfPilot.goal,sfPilot.velocity,radius,maxY,miningObstacleToIgnore);
     Spritej1->x=std::clamp(position.x+sfPilot.velocity.vx*dt,radius,std::max(radius,sfArenaW-radius));
     Spritej1->y=std::clamp(position.y+sfPilot.velocity.vy*dt,radius,std::max(radius,maxY));
     iago->xy.setxy(Spritej1->x,Spritej1->y);
     iago->v.vx=sfPilot.velocity.vx; iago->v.vy=sfPilot.velocity.vy; iago->v.setvi();
     Spritej1->vx=Spritej1->vy=0; Spritej1->startup();
-    const bool danger=sfAsteroidRisk(position,sfPilot.velocity,radius)>.6f ||
-                      sfEnemyShotRisk(position,sfPilot.velocity,radius)>.6f;
-    const bool aligned=std::abs(sfPilot.aim.x-Spritej1->x)<std::max(sfArenaW*.028f,Spritej2->sw*.20f) &&
+    const float dangerLimit=.86f-.46f*skill;
+    const bool danger=sfAsteroidRisk(position,sfPilot.velocity,radius)>dangerLimit ||
+                      sfEnemyShotRisk(position,sfPilot.velocity,radius)>dangerLimit;
+    const float alignWindow=sfArenaW*(.060f-.030f*skill);
+    const bool aligned=std::abs(sfPilot.aim.x-Spritej1->x)<std::max(alignWindow,Spritej2->sw*(.34f-.14f*skill)) &&
                        sfPilot.aim.y>Spritej1->y+radius;
     sfPilot.aligned=aligned && !danger ? sfPilot.aligned+dt : 0;
+    sfAiUpdateConeStrategy();
     const bool aggressive=sfPilot.aggressiveFor>0 || sfPilot.mode==SfAiMode::RaidMine;
-    const auto mainShots=std::count_if(entitiesj2.begin(),entitiesj2.end(),[](const sprite *s){return !s->defensiveShot;});
-    if (sfPilot.mode!=SfAiMode::Collect && sfPilot.mode!=SfAiMode::Retreat &&
-        sfPilot.aligned>=(aggressive ? .10f : .16f) && sfPilot.cooldown<=0 &&
+    const auto mainShots=std::count_if(entitiesj2.begin(),entitiesj2.end(),[](const sprite *shot){return !shot->defensiveShot;});
+    // Keep the historical ROCK N ROLL (level 3) timing around 0.16 s,
+    // while level 1 remains deliberately slower and high levels react faster.
+    const float requiredAlignment=aggressive
+        ? std::max(.06f,.16f-.24f*skill)
+        : std::max(.06f,.255f-.40f*skill);
+    if (!sfAiLowEnergy() && !sfPilot.surgeOwned &&
+        sfPilot.mode!=SfAiMode::Collect && sfPilot.mode!=SfAiMode::Retreat &&
+        sfPilot.aligned>=requiredAlignment && sfPilot.cooldown<=0 &&
         Spritej1->nrj<43 && mainShots<12) {
-        if (sfFireMain(0,&sfPilot.aim)) sfPilot.cooldown=aggressive ? .16f+Spritej1->nrj*.003f : .30f+Spritej1->nrj*.007f;
+        if (sfFireMain(0,&sfPilot.aim)) {
+            const float base=aggressive ? (.27f-.11f*skill) : (.42f-.16f*skill);
+            sfPilot.cooldown=base+Spritej1->nrj*(.007f-.003f*skill);
+        }
         sfPilot.aligned=0;
     }
 }
@@ -666,6 +940,7 @@ static void sfTacticsBeginFrame(SDL_Renderer *renderer)
     if (sfUiScreen==SF_UI_GAME) sfSceneSeconds+=sfFrameDt;
     if (sfUiScreen==SF_UI_GAME && !sfIsCoop()) {sfKineticAdvanceSurges(sfFrameDt);sfKineticAudioUpdate();}
     if (sfUiScreen==SF_UI_GAME && !setgui) { sfRegenerateHull(Spritej1,sfFrameDt); sfRegenerateHull(Spritej2,sfFrameDt); }
+    if (sfUiScreen==SF_UI_GAME && !sfIsCoop()) sfClassicTouchVectorUpdate(sfFrameDt);
     // Cooperative simulation samples after each movement substep; observing
     // the same position again here would incorrectly damp the velocity ghost.
     if (!sfIsCoop()) {
@@ -710,6 +985,64 @@ static void sfTacticalRainbowRing(SDL_Renderer *renderer,tupl center,float radiu
     }
 }
 
+static void sfDrawKineticSuctionCone(SDL_Renderer *renderer,int owner)
+{
+    if(!renderer || !sfKineticSuctionVisible(owner)) return;
+    const auto *ship=owner==0 ? Spritej1 : Spritej2;
+    if(!ship || ship->pv<=0) return;
+    const float diameter=std::max(1.0f,std::max({ship->sw,ship->sh,ship->w,ship->h}));
+    const float dir=owner==0 ? 1.0f : -1.0f;
+    const float noseY=ship->y+dir*diameter*.42f;
+    const float range=diameter*sfKineticSurgeDustRangeDiameters();
+    const float half=sfKineticSurgeConeHalfWidth(range);
+    const SDL_Color fill{255,132,28,22};
+    const SDL_Vertex wedge[]={{{ship->x,noseY},fill,{0,0}},
+        {{ship->x-half,noseY+dir*range},fill,{0,0}},
+        {{ship->x+half,noseY+dir*range},fill,{0,0}}};
+    const int wi[]={0,1,2};
+    SDL_RenderGeometry(renderer,nullptr,wedge,3,wi,3);
+    SDL_SetRenderDrawColor(renderer,255,142,36,62);
+    SDL_RenderDrawLineF(renderer,ship->x,noseY,ship->x-half,noseY+dir*range);
+    SDL_RenderDrawLineF(renderer,ship->x,noseY,ship->x+half,noseY+dir*range);
+
+    // Five translucent fronts travel from the mouth of the cone toward the
+    // ship; their motion makes the suction direction readable without a 360° halo.
+    const float seconds=float(SDL_GetTicks64())*.001f;
+    for(int i=0;i<5;++i) {
+        const float phase=std::fmod(seconds*.72f+i/5.0f,1.0f);
+        const float outward=1.0f-phase;
+        const float d=diameter*(.18f+(sfKineticSurgeDustRangeDiameters()-.18f)*outward);
+        const float hw=sfKineticSurgeConeHalfWidth(d);
+        const Uint8 alpha=Uint8(52+72*(1.0f-outward));
+        SDL_SetRenderDrawColor(renderer,255,154,52,alpha);
+        SDL_RenderDrawLineF(renderer,ship->x-hw,noseY+dir*d,ship->x+hw,noseY+dir*d);
+        const float centerRadius=std::max(1.0f,diameter*(.010f+.010f*(1.0f-outward)));
+        sfTacticalRing(renderer,tupl(ship->x,noseY+dir*d),centerRadius,SDL_Color{255,188,78,Uint8(alpha*.82f)});
+    }
+}
+
+static SDL_Color sfKineticSuperchargeColor(float progress,Uint8 alpha)
+{
+    progress=std::clamp(progress,0.0f,1.0f);
+    SDL_Color a,b;float t;
+    if(progress<.45f) {a={255,38,24,alpha};b={255,138,24,alpha};t=progress/.45f;}
+    else if(progress<.72f) {a={255,138,24,alpha};b={255,222,42,alpha};t=(progress-.45f)/.27f;}
+    else {a={255,222,42,alpha};b={48,224,104,alpha};t=(progress-.72f)/.28f;}
+    return {Uint8(a.r+(b.r-a.r)*t),Uint8(a.g+(b.g-a.g)*t),Uint8(a.b+(b.b-a.b)*t),alpha};
+}
+static void sfDrawKineticSuperchargeCircle(SDL_Renderer *renderer,int owner)
+{
+    if(!renderer || !sfKineticSurgeVisible(owner)) return;
+    const auto *ship=owner==0 ? Spritej1 : Spritej2;
+    if(!ship || ship->pv<=0) return;
+    const float diameter=std::max(1.0f,std::max({ship->sw,ship->sh,ship->w,ship->h}));
+    const float progress=sfKineticSuperchargeProgress(owner);
+    const float pulse=.5f+.5f*std::sin(float(SDL_GetTicks64())*.010f+owner*1.7f);
+    const float radius=diameter*SF_KINETIC_MAX_SHIELD_DIAMETER*.5f;
+    sfTacticalRing(renderer,tupl(ship->x,ship->y),radius,sfKineticSuperchargeColor(progress,Uint8(132+38*pulse)));
+    sfTacticalRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-3.0f),sfKineticSuperchargeColor(progress,Uint8(70+24*pulse)));
+}
+
 static Uint8 sfKineticWaveFrontAlpha(float progress,float strength)
 {
     progress=std::clamp(progress,0.0f,1.0f);
@@ -723,21 +1056,12 @@ static void sfDrawKineticEffects(SDL_Renderer *renderer)
 {
     if (!renderer || sfUiScreen!=SF_UI_GAME) return;
     const bool surgeVisible=sfKineticSurgeVisible(0) || sfKineticSurgeVisible(1);
-    if(sfKineticWaves.empty() && !surgeVisible) return;
+    const bool suctionVisible=sfKineticSuctionVisible(0) || sfKineticSuctionVisible(1);
+    if(sfKineticWaves.empty() && !surgeVisible && !suctionVisible) return;
     SDL_BlendMode previous;SDL_GetRenderDrawBlendMode(renderer,&previous);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
-    for(int owner=0;owner<2;++owner) if(sfKineticSurgeVisible(owner)) {
-        const auto *ship=owner==0 ? Spritej1 : Spritej2;
-        if(!ship || ship->pv<=0) continue;
-        const float diameter=std::max(1.0f,std::max({ship->sw,ship->sh,ship->w,ship->h}));
-        const float pulse=.5f+.5f*std::sin(float(SDL_GetTicks64())*.010f+owner*1.7f);
-        const float phase=std::fmod(float(SDL_GetTicks64())*.00028f+owner*.17f,1.0f);
-        const float outer=diameter*SF_KINETIC_MAX_SHIELD_DIAMETER*.5f;
-        const float inner=diameter*SF_KINETIC_INNER_MAX_RADIUS_SHIP_DIAMETERS;
-        sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),outer,phase,Uint8(112+36*pulse));
-        sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),outer-2,phase+.19f,Uint8(62+22*pulse));
-        sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),inner,phase+.37f,Uint8(92+28*pulse));
-    }
+    for(int owner=0;owner<2;++owner) if(sfKineticSuctionVisible(owner)) sfDrawKineticSuctionCone(renderer,owner);
+    for(int owner=0;owner<2;++owner) if(sfKineticSurgeVisible(owner)) sfDrawKineticSuperchargeCircle(renderer,owner);
     for(const auto &wave:sfKineticWaves) {
         if(wave.owner<0 || wave.owner>1 || !sfKineticWaveAlive(wave)) continue;
         const auto *ship=wave.owner==0 ? Spritej1 : Spritej2;
@@ -749,10 +1073,9 @@ static void sfDrawKineticEffects(SDL_Renderer *renderer)
         const Uint8 frontAlpha=sfKineticWaveFrontAlpha(p,wave.strength);
         if(frontAlpha<3) continue;
         if(sfKineticSurgeVisible(wave.owner)) {
-            const float phase=std::fmod(float(SDL_GetTicks64())*.00042f+wave.owner*.17f+p*.55f,1.0f);
-            sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),radius,phase,frontAlpha);
-            sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-3.0f),phase+.16f,Uint8(frontAlpha*.72f));
-            sfTacticalRainbowRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-6.0f),phase+.31f,Uint8(frontAlpha*.38f));
+            const auto c=sfKineticSuperchargeColor(sfKineticSuperchargeProgress(wave.owner),frontAlpha);
+            sfTacticalRing(renderer,tupl(ship->x,ship->y),radius,c);
+            sfTacticalRing(renderer,tupl(ship->x,ship->y),std::max(1.0f,radius-3.0f),SDL_Color{c.r,c.g,c.b,Uint8(frontAlpha*.62f)});
         } else {
             const SDL_Color team=wave.owner==0 ? SDL_Color{255,188,96,255} : SDL_Color{96,210,255,255};
             sfTacticalRing(renderer,tupl(ship->x,ship->y),radius,SDL_Color{team.r,team.g,team.b,frontAlpha});

@@ -68,7 +68,9 @@ static void testCoopHumanAim()
             assert(shot.kind==0);
             if (ai && shot.owner==0) assert(shot.velocity.vx>100);
             else {
-                assert(std::abs(shot.velocity.vx)<30);
+                // Human COOP shots now intentionally regain an energy-dependent
+                // random launch spread. Keep it bounded while preserving forward flight.
+                assert(std::abs(shot.velocity.vx)<120);
                 assert(shot.owner==0 ? shot.velocity.vy>0 : shot.velocity.vy<0);
             }
         }
