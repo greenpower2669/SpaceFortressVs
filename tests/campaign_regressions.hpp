@@ -133,7 +133,8 @@ static void testVelocityGhosts()
     sfClassicTouchVectorUpdate(.10f);
     assert(Spritej1->x>topX && Spritej1->x<700);
     assert(Spritej2->x<bottomX && Spritej2->x>80);
-    assert(Spritej1->x-topX<=sfArenaW*.0581f && bottomX-Spritej2->x<=sfArenaW*.0581f);
+    // Updated finite vector-speed cap: 0.95 arena widths/s over 0.10 s.
+    assert(Spritej1->x-topX<=sfArenaW*.0951f && bottomX-Spritej2->x<=sfArenaW*.0951f);
     Spritej1->ctrl=Spritej2->ctrl=false;
 
     setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_AI;setia=true;
