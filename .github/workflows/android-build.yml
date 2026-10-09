@@ -37,6 +37,16 @@ jobs:
             rm -f "$binary"
           done
 
+  solo-sdl2-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install SDL2 headers
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libsdl2-dev
+      - name: Compile and test touchscreen selector
+        run: g++ -std=c++17 -O1 -I src tests/solo_selector_ui_regressions.cpp -o /tmp/solo-selector-test && /tmp/solo-selector-test
+
   build-android:
     runs-on: ubuntu-latest
     timeout-minutes: 45
