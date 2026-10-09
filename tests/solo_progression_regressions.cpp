@@ -16,6 +16,8 @@ int main(){
  assert(restored.unlocked(2,1)&&restored.isCompleted(1,20));
  assert(!restored.deserialize("SFSOLO1:FFFFFFFF"));
  assert(restored.unlocked(2,1)); // invalid data must not overwrite state
+ assert(!restored.deserialize("SFSOLO1:00000005:00000000:00000000:00000000:00000000:00000000"));
+ assert(restored.unlocked(2,1)); // cannot inject skipped stages
  for(unsigned w=2;w<=6;w++)
      for(unsigned i=1;i<=20;i++)assert(restored.complete(w,i,true));
  assert(restored.highestUnlockedWorld()==6);
