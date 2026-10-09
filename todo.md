@@ -23,3 +23,12 @@
 - [x] `src/main.cpp` non modifié.
 - [x] Hall, Danger 9, campagne 200, progression et poussières hors périmètre.
 - [x] Aucune vraie clé Hall ajoutée à Git/logs/mémoires.
+
+## Mission active — aides en jeu / proposition mini-jeux — 09/10/2026
+- [x] Corriger les textes RAPIDE / DETAILLE / ANIME selon les mécaniques de la v1.4.2.
+- [x] Rendre le texte des pages plus lisible sur écran étroit et indiquer la reprise après pause.
+- [x] Renforcer le test de régression de contenu de l'aide.
+- [x] Rédiger une proposition autonome de mini-jeux tutoriels, sans changer le tutoriel actif.
+- [ ] Obtenir une CI complète verte sur la branche dédiée et relever son run/artefacts, si déclenchable.
+- [ ] Essai physique sur téléphone de Fab : lisibilité portrait/paysage, gestes, BACK, pause/reprise et images sans assets.
+- [ ] Accord explicite de Fab sur les mini-jeux avant codage ; aucun merge main, Release ni Play en attendant.
