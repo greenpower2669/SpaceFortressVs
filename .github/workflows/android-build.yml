@@ -9,6 +9,7 @@ on:
       - main
       - ui/start-screen-v1
       - fix/gameplay-campaign-200
+      - fix/help-refresh-on-ci389-20261009
   pull_request:
     branches:
       - main
