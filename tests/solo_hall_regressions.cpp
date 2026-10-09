@@ -1,5 +1,6 @@
 #include "../src/solo_hall.hpp"
 #include <cassert>
+#include <limits>
 int main(){
  using namespace sfsolo;
  Session s(generate({}));
@@ -24,4 +25,6 @@ int main(){
  assert(hall.best.size()==2);
  auto invalid=e;invalid.bossDefeated=false;
  assert(!hall.record(invalid));
+ s.pilot.damageTaken=std::numeric_limits<float>::quiet_NaN();
+ assert(!makeSoloHallEntry(s,"Fab","solo-6",9,1200).valid());
 }
