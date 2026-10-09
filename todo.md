@@ -167,3 +167,13 @@
 - [ ] CI APK/AAB green and main.cpp blob check.
 - [ ] Fab phone test: mining VS IA, borders/boss charge, faster vector tracking, difficulty 1 and 9.
 - [ ] No main merge, no Release without Fab approval.
+
+
+## FAB-DUEL-PARITY-SPEED-2X — 09/10/2026
+- [x] Audit alternate VS-AI remaster and local-duel second-finger controls.
+- [x] Double human vector speed only, no teleports, keep CPU speed.
+- [x] Same lower human finger/surge controls in LOCAL and VS AI.
+- [x] Add regression coverage for both caps and input route.
+- [ ] New Android CI, tests, APK/AAB and historical SHA verification.
+- [ ] Fab phone test of controls, collisions, mining and two duel modes.
+- [ ] Signature, main merge and Release remain on hold.

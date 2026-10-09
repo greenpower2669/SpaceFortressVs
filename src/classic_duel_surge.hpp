@@ -1,7 +1,7 @@
 #pragma once
 #include <array>
 
-// Classic local duel keeps the historical first-finger movement controls.
+// Both classic duels keep the same historical first-finger human controls.
 // A second finger on a player's half owns only that player's shared kinetic
 // surge state. This bridge runs before the historical event switch in the
 // generated Android copy, so src/main.cpp stays byte-for-byte untouched.
@@ -62,7 +62,7 @@ static void sfClassicDuelCancelOwnedSurges()
 static bool sfClassicDuelSurgeHandleEvent(const SDL_Event &event,int fingerId,float y)
 {
     sfClassicDuelSurgeClearStale();
-    if(sfActiveMode!=SF_DUEL_LOCAL) {
+    if(sfActiveMode!=SF_DUEL_LOCAL && sfActiveMode!=SF_DUEL_AI) {
         sfClassicDuelCancelOwnedSurges();
         return false;
     }
@@ -85,6 +85,7 @@ static bool sfClassicDuelSurgeHandleEvent(const SDL_Event &event,int fingerId,fl
     if(event.type!=SDL_FINGERDOWN) return false;
 
     const int owner=y<HEIGHT*.5f ? 0 : 1;
+    if(owner==0 && sfActiveMode==SF_DUEL_AI) return false; // Upper ship belongs to AI.
     if(sfClassicDuelKineticFinger[owner]>=0) return true; // ignore a third finger.
     const sprite *ship=owner==0 ? Spritej1 : Spritej2;
     if(!ship || ship->pv<=0) return false;

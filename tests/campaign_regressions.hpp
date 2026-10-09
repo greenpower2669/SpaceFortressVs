@@ -133,9 +133,26 @@ static void testVelocityGhosts()
     sfClassicTouchVectorUpdate(.10f);
     assert(Spritej1->x>topX && Spritej1->x<700);
     assert(Spritej2->x<bottomX && Spritej2->x>80);
-    // Updated finite vector-speed cap: 0.95 arena widths/s over 0.10 s.
-    assert(Spritej1->x-topX<=sfArenaW*.0951f && bottomX-Spritej2->x<=sfArenaW*.0951f);
+    // Human vector speed 1.90 arena widths/s, twice the original.
+    assert(vlong(Spritej1->x-topX,Spritej1->y-250)>sfArenaW*.15f);
+    assert(vlong(bottomX-Spritej2->x,Spritej2->y-1400)>sfArenaW*.15f);
+    assert(vlong(Spritej1->x-topX,Spritej1->y-250)<=sfArenaW*.1901f);
+    assert(vlong(bottomX-Spritej2->x,Spritej2->y-1400)<=sfArenaW*.1901f);
     Spritej1->ctrl=Spritej2->ctrl=false;
+
+    // Blue human's second finger must behave identically in either duel.
+    for(int mode : {SF_DUEL_LOCAL,SF_DUEL_AI}) {
+        setupTactics();sfActiveMode=sfSelectedMode=mode;setia=mode==SF_DUEL_AI;
+        Spritej2->pv=1000;Spritej2->ctrl=true;Spritej2->id=41;
+        sfKineticResetSurges();sfClassicDuelCancelOwnedSurges();
+        SDL_Event second{};second.type=SDL_FINGERDOWN;
+        assert(sfClassicDuelSurgeHandleEvent(second,42,sfArenaH*.75f));
+        assert(sfClassicDuelKineticFinger[1]==42 && sfKineticSurges[1].held);
+        if(mode==SF_DUEL_AI)
+            assert(!sfClassicDuelSurgeHandleEvent(second,43,sfArenaH*.25f));
+        sfClassicDuelCancelOwnedSurges();
+        assert(sfClassicDuelKineticFinger[1]<0 && !sfKineticSurges[1].held);
+    }
 
     setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_AI;setia=true;
     const int aiOldDanger=sfBossDangerIndex;
@@ -327,7 +344,9 @@ static void testCoopArenaBounds()
         const float startX=Spritej1->x;
         sfCoop.controls[0].down=true;
         sfCoop.controls[0].target=tupl(sfArenaW*.75f,Spritej1->y);
-        for (int frame=0;frame<30;++frame) sfCoopMovePlayers(1.0f/60);
+        sfCoopMovePlayers(1.0f/60);
+        assert(Spritej1->x-startX>sfArenaW*.038f); // New 3.10 W/s cap.
+        for (int frame=1;frame<30;++frame) sfCoopMovePlayers(1.0f/60);
         assert(Spritej1->x>startX && Spritej1->pv==1000);
         for(const auto target:{tupl(0,0),tupl(sfArenaW,sfArenaH)}) {
             sfCoop.controls[0].target=target;

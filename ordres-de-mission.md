@@ -444,3 +444,10 @@ Les autres règles du dernier avenant restent inchangées : boss 55 % non destru
 - AAB SHA-256 : `9428be07957364798c8ea86162f9d086e72469fa61c39d63dbf1646ae664cf40`.
 - `src/main.cpp` reste strictement intact : blob `835059a0ecfe0f74708068b3259cad5db1cdb579`.
 - Aucun merge main, aucune Release. Prochaine validation : téléphone Fab, surtout minage VS IA et lisibilité/efficacité du cône en APOCALYPSE.
+
+## FAB-DUEL-PARITY-SPEED-2X — 2026-10-09 — test branch only
+- Fab suspends Google Play upload-key preparation, main merge and publication. Existing v1.4.2 stays untouched.
+- Double human vector motion cap in both classic duels: 0.95 to 1.90 arena widths/s; in cooperative modes: 1.55 to 3.10 arena widths/s, with proportional response doubled too. No teleportation, no AI/boss acceleration.
+- Both CLASSIC duel modes now share the same second-finger / kinetic charge / mining / release logic for the blue human; retire the conflicting VS-AI remaster touch shortcut. Orange AI remains CPU-controlled.
+- Added native regressions for vector speed bounds, COOP speed and duel touch parity. Phone validation remains mandatory.
+- src/main.cpp historical SHA must remain unchanged. No merge, no Release, no signing key generation until new Fab order.

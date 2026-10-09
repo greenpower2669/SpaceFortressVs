@@ -642,7 +642,7 @@ static void sfCoopMovePlayers(float dt)
         if (owner==0 && sfActiveMode==SF_COOP_AI) control.velocity=sfCoopAiVelocity(dt);
         else if (control.down) {
             const float distance=vlong(control.target.x-ship->x,control.target.y-ship->y);
-            control.velocity=sfUnitVelocity(previous,control.target,std::min(sfArenaW*1.55f,distance*15));
+            control.velocity=sfUnitVelocity(previous,control.target,std::min(sfArenaW*3.10f,distance*30));
         } else { const float decay=std::exp(-dt*8);control.velocity.vx*=decay;control.velocity.vy*=decay; }
         const float halfWidth=std::max(radius,ship->w*.5f),halfHeight=ship->h*.5f;
         ship->x=std::clamp(ship->x+control.velocity.vx*dt,halfWidth,sfArenaW-halfWidth);

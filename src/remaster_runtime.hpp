@@ -424,7 +424,9 @@ static int SpaceFortressRemaster_WaitEvent(SDL_Event *event)
         }
 
         const float py = event->tfinger.y * th;
-        if (setia && !hit1 && !hit2 && py > HEIGHT * 0.5f &&
+        // Human duel VS AI shares the local duel second-finger gesture;
+        // disable the old conflicting remaster shortcut in that mode.
+        if (setia && sfActiveMode!=SF_DUEL_AI && !hit1 && !hit2 && py > HEIGHT * 0.5f &&
             Spritej2 && Spritej2->id == 100) {
             if(sfRmTrackJ2 && fid!=sfRmJ2Finger && sfRmKineticFinger<0) {
                 sfRmKineticFinger=fid;sfKineticSurgePress(1);sfKineticAudioStartCharge(1);

@@ -296,7 +296,7 @@ static void sfClassicTouchSetTarget(int owner,float x,float y,bool acceptX,bool 
 static void sfClassicTouchVectorUpdate(float dt)
 {
     if(dt<=0 || sfIsCoop()) return;
-    const float maxSpeed=sfArenaW*.95f; // higher responsiveness, still finite speed.
+    const float maxSpeed=sfArenaW*1.90f; // Human double-speed, finite vector movement.
     for(int owner=0;owner<2;++owner) {
         auto *ship=owner==0 ? Spritej1 : Spritej2;
         auto &state=sfClassicTouchVectors[owner];
