@@ -30,29 +30,40 @@ struct SfHelpPage {
     int diagram;
 };
 
-inline constexpr std::array<SfHelpPage,8> SF_HELP_QUICK_PAGES{{
-    {"OBJECTIF","SURVIVEZ ET DETRUISEZ","L ADVERSAIRE OU LE BOSS",0},
-    {"CONTROLES","GLISSEZ POUR BOUGER","TAPOTEZ POUR TIRER",1},
-    {"HUD","PV = COQUE","ENERGIE = RESERVE DE COMBAT",2},
-    {"ENERGIE","TIRER CHAUFFE LA RESERVE","POUSSIERE BLANCHE RECHARGE",3},
-    {"POUSSIERES","BLANCHE = ENERGIE PUIS SOIN","ROUGE = VISUELLE",4},
-    {"CINETIQUE","LES ASTEROIDES POUSSENT","DES VAGUES DE PROTECTION",5},
-    {"SURCHARGE","GARDEZ LE 2E DOIGT 2 S","RELACHEZ POUR PURGER",6},
-    {"DANGER","LE NOM REGLE LES DEGATS","LES COEFFICIENTS RESTENT CACHES",7}
+// Gameplay wording is based on the current duel and cooperative input bridges.
+// Keep the bitmap UI uppercase/ASCII; detailed and animated share the same pages.
+inline constexpr std::array<SfHelpPage,10> SF_HELP_QUICK_PAGES{{
+    {"OBJECTIF","DUEL : BATTEZ VOTRE RIVAL","COOP : VAINQUEZ LE BOSS",0},
+    {"MODES","2 JOUEURS OU JOUEUR + IA","CAMPAGNE : 200 COMBATS",10},
+    {"PILOTAGE","1 DOIGT PAR VAISSEAU","GLISSEZ SUR VOTRE MOITIE",1},
+    {"TIR","2E DOIGT BREF = UN TIR","EN COOP IA : ORION TIRE",1},
+    {"HUD","PV = COQUE DU VAISSEAU","ENERGIE = RESERVE PERSONNELLE",2},
+    {"RESERVE","TIRS ET IMPACTS LA FATIGUENT","FAIBLE ENERGIE = CHAMP FAIBLE",3},
+    {"POUSSIERES","BLANCHE : RECHARGE PUIS SOIN","ROUGE : AUCUN BONUS",4},
+    {"CINETIQUE","LE CHAMP FREINE LES ROCHES","LES ONDES PARTENT DU CENTRE",5},
+    {"SURCHARGE","2E DOIGT : MAINTENEZ 2 S","PRET : RELACHEZ POUR PURGER",6},
+    {"DANGER","CHANGE LES DEGATS HOSTILES","PAS LES IMPACTS CINETIQUES",7}
 }};
 
-inline constexpr std::array<SfHelpPage,11> SF_HELP_DETAILED_PAGES{{
-    {"MODES ET OBJECTIF","DUEL LOCAL IA OU COOP","CAMPAGNE = 200 COMBATS",0},
-    {"CONTROLES","GLISSEZ LE VAISSEAU","UN AUTRE DOIGT DECLENCHE LE TIR",1},
-    {"HUD","LES BARRES PV MONTRENT LA COQUE","ENERGIE MONTRE LA RESERVE",2},
-    {"ENERGIE","PLEIN = RESERVE DISPONIBLE","EPUISE = TIRS MOINS CONFORTABLES",3},
-    {"PV ET BOUCLIERS","LE BOUCLIER ABSORBE UNE PART","LE RESTE ATTEINT LA COQUE",8},
-    {"POUSSIERES","BLANCHE RECHARGE PUIS SOIGNE","ROUGE NE DONNE AUCUN BONUS",4},
-    {"BOUCLIER CINETIQUE","IMPACT = MASSE ET VITESSE RELATIVE","LES VAGUES PARTENT DU CENTRE",5},
-    {"VAGUES","ELLES GRANDISSENT VERS L EXTERIEUR","LA POUSSIERE BLANCHE RESTE LIBRE",9},
-    {"SURCHARGE 2 DOIGTS","MAINTENEZ 2 SECONDES","PRET = VULNERABLE JUSQU AU RELACHE",6},
-    {"CAMPAGNE 200","50 BOSS FOIS 4 DIFFICULTES","PROGRESSION ET HALL OF FAME",10},
-    {"DANGER ET ASTUCES","LE NOM CHANGE LES DEGATS HOSTILES","LE CINETIQUE RESTE INDEPENDANT",7}
+inline constexpr std::array<SfHelpPage,18> SF_HELP_DETAILED_PAGES{{
+    {"MODES ET OBJECTIFS","DUEL : BATTRE L ADVERSAIRE","COOP : ABATTRE LE BOSS",0},
+    {"PILOTAGE","1ER DOIGT = DEPLACEMENT","UN PILOTE PAR MOITIE",1},
+    {"TIR EN DUEL","2E DOIGT BREF = UN TIR","GARDEZ LE PREMIER POUR BOUGER",1},
+    {"TIR EN COOP","2E DOIGT BREF = UN TIR","EN COOP IA ORION TIRE SEUL",1},
+    {"HUD","PV = RESISTANCE DE LA COQUE","ENERGIE = RESERVE DU PILOTE",2},
+    {"RESERVE D ENERGIE","TIRER ET SUBIR UN CHOC LA USE","ELLE EST PLEINE AU DEPART",3},
+    {"BOUCLIER ENERGETIQUE","LA RESERVE ABSORBE LES CHOCS","A VIDE LA COQUE PREND PLUS",8},
+    {"POUSSIERE BLANCHE","RECHARGE LA RESERVE","PUIS AIDE A SOIGNER LA COQUE",3},
+    {"POUSSIERE ROUGE","NE RECHARGE NI NE SOIGNE","REAGIT AUX ONDES CINETIQUES",4},
+    {"ATTENTION AU BOSS","BLESSE IL PEUT RAMASSER DU BLANC","POUR RECUPERER DES PV",4},
+    {"BOUCLIER CINETIQUE","FREINE LES ASTEROIDES RAPIDES","SELON LEUR VITESSE RELATIVE",5},
+    {"ONDES ET FATIGUE","DU CENTRE VERS L EXTERIEUR","FAIBLE RESERVE = ONDES ROUGES",9},
+    {"SURCHARGE","GARDEZ UN DEUXIEME DOIGT","APRES 0,30 S : CHAMP DOUBLE",6},
+    {"PRET ET PURGE","A 2 S : CHAMP OFF = DANGER","RELACHEZ POUR PURGER LA ZONE",6},
+    {"SECOURIR UN ALLIE","EN COOP APPROCHEZ DU VAISSEAU KO","RESTEZ PRES DE LUI 2 S",0},
+    {"CAMPAGNE 200","50 BOSS ET 4 DIFFICULTES","PROGRESSION ET HALL OF FAME",10},
+    {"DANGER ET ASTUCES","SEULS DEGATS HOSTILES CONCERNES","PAS LES DEGATS CINETIQUES",7},
+    {"AIDE EN PLEINE PARTIE","LE ? SUSPEND VOTRE COMBAT","RETOUR REPREND SANS RESET",2}
 }};
 
 static int sfHelpPageCount(SfHelpFormat format)
@@ -146,6 +157,15 @@ static void sfHelpDrawButton(SDL_Renderer *renderer,SDL_Rect rect,const char *la
              rect.y+(rect.h-7*scale)/2,label,scale,235,248,255);
 }
 
+// Prefer readable lettering on phones, but never clip a long explanation.
+static void sfHelpCenteredFitText(SDL_Renderer *renderer,int width,int y,const char *message,
+                                  int preferred,Uint8 red,Uint8 green,Uint8 blue)
+{
+    int scale=std::max(1,preferred);
+    while(scale>1 && sfUiTextWidth(message,scale)>int(width*.94f)) --scale;
+    sfUiCenteredText(renderer,width,y,message,scale,red,green,blue);
+}
+
 static void sfHelpDrawArrow(SDL_Renderer *renderer,int x1,int y1,int x2,int y2,SDL_Color color)
 {
     SDL_SetRenderDrawColor(renderer,color.r,color.g,color.b,color.a);
@@ -198,7 +218,9 @@ static void sfHelpDrawDiagram(SDL_Renderer *renderer,int kind,SDL_Rect area,SDL_
         case 2: {
             SDL_Rect pv{area.x+unit/2,cy-unit,area.w-unit,unit/2};
             SDL_Rect energy{area.x+unit/2,cy+unit/2,area.w-unit,unit/2};
-            sfUiPanel(renderer,pv,35,16,24,235,95,90);sfUiPanel(renderer,energy,8,35,54,90,210,245);
+            sfUiPanel(renderer,pv,35,16,24,235,95,90);sfUiPanel(renderer,energy,33,19,58,192,142,245);
+            sfUiText(renderer,pv.x+unit/5,pv.y+std::max(1,pv.h/10),"PV",std::max(1,unit/14),250,240,240);
+            sfUiText(renderer,energy.x+unit/5,energy.y+std::max(1,energy.h/10),"ENERGIE",std::max(1,unit/14),245,235,255);
             break;
         }
         case 3: {
@@ -260,14 +282,18 @@ static void sfHelpDrawHub(SDL_Renderer *renderer,int width,int height)
     const int title=std::max(2,std::min(width/120,height/85));
     const int base=std::max(1,std::min(width/260,height/170));
     sfUiCenteredText(renderer,width,int(height*.06f),"CENTRE D AIDE",title,235,250,255);
-    sfUiCenteredText(renderer,width,int(height*.15f),"CHOISISSEZ VOTRE FORMAT",base,150,210,240);
+    sfHelpCenteredFitText(renderer,width,int(height*.15f),
+        sfHelpState.fromLiveGame ? "PARTIE EN PAUSE - CHOISISSEZ" : "CHOISISSEZ VOTRE FORMAT",
+        std::max(2,base),150,210,240);
     const char *labels[]={"RAPIDE","DETAILLE","ANIME","TUTORIEL"};
     for(int i=0;i<4;++i) {
         const bool selected=i<3 && int(sfHelpState.format)==i;
         sfHelpDrawButton(renderer,sfHelpHubButtonRect(i,width,height),labels[i],selected);
     }
     sfUiCenteredText(renderer,width,int(height*.87f),"ANIME = DETAIL MAXIMAL",base,175,220,245);
-    sfUiCenteredText(renderer,width,int(height*.93f),"RETOUR",base+1,225,245,240);
+    sfHelpCenteredFitText(renderer,width,int(height*.93f),
+        sfHelpState.fromLiveGame ? "REPRENDRE LA PARTIE" : "RETOUR ACCUEIL",
+        base+1,225,245,240);
 }
 
 static void sfHelpDrawPage(SDL_Renderer *renderer,int width,int height,SDL_Texture *shipTexture,SDL_Texture *rockTexture)
@@ -275,10 +301,10 @@ static void sfHelpDrawPage(SDL_Renderer *renderer,int width,int height,SDL_Textu
     sfUiBackground(renderer,width,height);
     const auto &page=sfHelpCurrentPage();
     const int title=std::max(2,std::min(width/135,height/95));
-    const int base=std::max(1,std::min(width/285,height/190));
-    sfUiCenteredText(renderer,width,int(height*.045f),page.title,title,235,250,255);
-    sfUiCenteredText(renderer,width,int(height*.15f),page.line1,base,220,238,250);
-    sfUiCenteredText(renderer,width,int(height*.205f),page.line2,base,190,220,240);
+    const int base=std::max(2,std::min(width/235,height/170));
+    sfHelpCenteredFitText(renderer,width,int(height*.045f),page.title,title,235,250,255);
+    sfHelpCenteredFitText(renderer,width,int(height*.15f),page.line1,base,220,238,250);
+    sfHelpCenteredFitText(renderer,width,int(height*.205f),page.line2,base,190,220,240);
     SDL_Rect diagram{int(width*.08f),int(height*.29f),int(width*.84f),int(height*.43f)};
     sfUiPanel(renderer,diagram,3,10,24,45,90,120);
     sfHelpDrawDiagram(renderer,page.diagram,diagram,shipTexture,rockTexture);
