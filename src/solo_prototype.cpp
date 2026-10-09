@@ -1,0 +1,89 @@
+// Standalone playable SOLO prototype; deliberately does not alter the historical
+// duel/COOP loop. Desktop and Android integration can reuse its session/render.
+#include "solo_renderer.hpp"
+#include <SDL2/SDL.h>
+#include <algorithm>
+#include <cmath>
+#include <memory>
+
+namespace sfsolo {
+struct TouchPilot {
+    SDL_FingerID finger=-1;
+    float targetX=0,targetY=0;
+    bool down=false;
+    void handle(const SDL_Event &e,int width,int height){
+        if(e.type==SDL_FINGERDOWN && !down){
+            finger=e.tfinger.fingerId;down=true;
+        }
+        if((e.type==SDL_FINGERMOTION||e.type==SDL_FINGERDOWN) &&
+           down && e.tfinger.fingerId==finger){
+            targetX=std::clamp(e.tfinger.x,0.0f,1.0f)*width;
+            targetY=std::clamp(e.tfinger.y,0.0f,1.0f)*height;
+        }
+        if(e.type==SDL_FINGERUP && down && e.tfinger.fingerId==finger){
+            down=false;finger=-1;
+        }
+    }
+    void reset(){finger=-1;down=false;}
+};
+inline void pilotInput(const Session &s,const TouchPilot &touch,
+                       int width,int height,float &ax,float &ay){
+    ax=ay=0;
+    if(!touch.down||width<=0||height<=0)return;
+    const float screenX=s.pilot.x/float(s.map.width)*width;
+    // The pilot stays near the camera's lower-middle area.
+    const float cell=float(width)/float(s.map.width);
+    const float visibleRows=float(height)/cell;
+    const float top=std::clamp(s.cameraY-visibleRows*.58f,0.0f,
+                               std::max(0.0f,float(s.map.height)-visibleRows));
+    const float screenY=(s.pilot.y-top)*cell;
+    ax=std::clamp((touch.targetX-screenX)/std::max(1.0f,width*.18f),-1.0f,1.0f);
+    ay=std::clamp((touch.targetY-screenY)/std::max(1.0f,height*.18f),-1.0f,1.0f);
+}
+} // namespace sfsolo
+
+#ifdef SF_SOLO_STANDALONE
+int main(int,char**){
+    if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS)!=0)return 1;
+    SDL_Window *window=SDL_CreateWindow("SpaceFortress SOLO Prototype",
+        SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,540,960,
+        SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
+    if(!window){SDL_Quit();return 2;}
+    SDL_Renderer *renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
+    if(!renderer)renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_SOFTWARE);
+    if(!renderer){SDL_DestroyWindow(window);SDL_Quit();return 3;}
+    sfsolo::Session session(sfsolo::generate({}));
+    if(!session.start()){SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);SDL_Quit();return 4;}
+    sfsolo::TouchPilot touch;
+    bool running=true;Uint64 previous=SDL_GetPerformanceCounter();
+    const double frequency=double(SDL_GetPerformanceFrequency());
+    while(running){
+        SDL_Event e;
+        int w=540,h=960;SDL_GetRendererOutputSize(renderer,&w,&h);
+        while(SDL_PollEvent(&e)){
+            if(e.type==SDL_QUIT)running=false;
+            if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_ESCAPE)running=false;
+            if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_r){
+                session=sfsolo::Session(sfsolo::generate({}));session.start();touch.reset();
+            }
+            touch.handle(e,w,h);
+        }
+        const Uint64 now=SDL_GetPerformanceCounter();
+        const float dt=std::clamp(float(double(now-previous)/frequency),0.0f,.05f);
+        previous=now;
+        float ax=0,ay=0;
+        sfsolo::pilotInput(session,touch,w,h,ax,ay);
+        const Uint8 *keys=SDL_GetKeyboardState(nullptr);
+        if(keys[SDL_SCANCODE_LEFT]||keys[SDL_SCANCODE_A])ax=-1;
+        if(keys[SDL_SCANCODE_RIGHT]||keys[SDL_SCANCODE_D])ax=1;
+        if(keys[SDL_SCANCODE_UP]||keys[SDL_SCANCODE_W])ay=-1;
+        if(keys[SDL_SCANCODE_DOWN]||keys[SDL_SCANCODE_S])ay=1;
+        session.step(ax,ay,dt);
+        sfsolo::drawSession(renderer,session,{0,0,w,h});
+        SDL_RenderPresent(renderer);
+        SDL_Delay(10);
+    }
+    SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);SDL_Quit();
+    return 0;
+}
+#endif
