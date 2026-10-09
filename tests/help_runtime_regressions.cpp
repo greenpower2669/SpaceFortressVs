@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 #include <vector>
 
 #define __ANDROID__ 1
@@ -27,6 +28,21 @@ int main()
 {
     assert(sfHelpState.format==SfHelpFormat::Animated);
     assert(sfHelpAnimationsEnabled());
+    assert(sfHelpPageCount(SfHelpFormat::Quick)==10);
+    assert(sfHelpPageCount(SfHelpFormat::Detailed)==18);
+    // In-game help must describe real post-v1.4.2 controls and dust behavior.
+    assert(std::strcmp(SF_HELP_QUICK_PAGES[3].line1,"2E DOIGT BREF = UN TIR")==0);
+    assert(std::strstr(SF_HELP_DETAILED_PAGES[12].line2,"0,30 S")!=nullptr);
+    assert(std::strstr(SF_HELP_DETAILED_PAGES[13].line1,"CHAMP OFF")!=nullptr);
+    assert(std::strstr(SF_HELP_DETAILED_PAGES[9].line1,"BLESSE")!=nullptr);
+    for(const auto &page:SF_HELP_DETAILED_PAGES) {
+        assert(std::strlen(page.line1)<45 && std::strlen(page.line2)<45);
+        assert(std::strstr(page.line1,"ROUGE = VISUELLE")==nullptr);
+        assert(std::strstr(page.line2,"ROUGE = VISUELLE")==nullptr);
+    }
+    sfHelpOpen(SF_UI_GAME,true);
+    assert(sfHelpState.fromLiveGame && sfHelpState.returnScreen==SF_UI_GAME);
+    sfHelpOpen(SF_UI_HOME,false);
     assert(sfHelpPageCount(SfHelpFormat::Quick)>=6);
     assert(sfHelpPageCount(SfHelpFormat::Detailed)>=9);
     assert(sfHelpPageCount(SfHelpFormat::Animated)==sfHelpPageCount(SfHelpFormat::Detailed));

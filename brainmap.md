@@ -46,3 +46,9 @@ CLASSIQUE DUEL local :
 - Champ normal max 2,0 diamètres ; blast armé 3,0.
 - Hall, Danger 9, campagne 200, poussières et progression hors périmètre.
 - Ne jamais modifier `src/main.cpp`.
+
+## Travaux isolés après v1.4.2 — 09/10/2026
+- Branche `feature/help-refresh-tutorial-minigames-20261009` depuis `main` `56b86302`.
+- Aide intégrée corrigée dans `src/help_runtime.hpp`, tests `tests/help_runtime_regressions.cpp` ; consulter `todo.md` pour validation.
+- Séquences de mini-jeux du tutoriel = **proposition** non implémentée : `docs/proposals/2026-10-09-tutorial-mini-jeux.md`.
+- Aucune modification de gameplay, signature Android, `main`, Release, ni `src/main.cpp`.
