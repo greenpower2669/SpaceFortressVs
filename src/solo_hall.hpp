@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <cmath>
 #include <tuple>
 
 namespace sfsolo {
@@ -18,7 +19,8 @@ struct SoloHallEntry {
     float damageTaken=0;
     bool bossDefeated=false,reachedFinish=false,alive=false;
     bool valid() const {
-        return !submissionId.empty()&&submissionId.size()<=128 &&
+        return std::isfinite(damageTaken) && !std::isnan(damageTaken) &&
+            !submissionId.empty()&&submissionId.size()<=128 &&
             !playerName.empty()&&playerName.size()<=192 &&
             !mapId.empty()&&mapId.size()<=256 &&
             mapVersion>0&&world>=1&&stage>=1&&stage<=20&&
@@ -33,7 +35,9 @@ inline SoloHallEntry makeSoloHallEntry(const Session &session,
     unsigned difficulty,int points){
     SoloHallEntry e;
     if(session.phase!=Phase::Won || !session.bossDefeated ||
-       session.pilot.health<=0)return e;
+       !session.reachedFinish || session.pilot.health<=0 ||
+       !std::isfinite(session.seconds) || !std::isfinite(session.pilot.damageTaken) ||
+       points<0 || session.enemiesDefeated>session.enemiesAvailable)return e;
     e.submissionId=submissionId;e.playerName=player;e.mapId=session.map.id;
     e.mapVersion=session.map.version;e.world=session.map.world;
     e.stage=session.map.stage;e.difficulty=difficulty;
