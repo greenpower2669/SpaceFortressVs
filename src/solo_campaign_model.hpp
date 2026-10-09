@@ -68,7 +68,7 @@ struct ScoreInput {
     float difficultyMultiplier=1;
     bool reachedFinish=false,alive=false,bossDefeated=false;
 };
-inline int score(const ScoreInput &s) {
+// COOP canonical reference: (encounter+1)*500 + remaining allied PV*2 - time*5.\n// SOLO retains this base with one pilot and adds an enemy-count component.\ninline int coopStyleBase(unsigned encounter,float remainingPv,float elapsedSeconds) {\n    return std::max(0,int((encounter+1)*500.0f+std::max(0.0f,remainingPv)*2.0f-std::max(0.0f,elapsedSeconds)*5.0f));\n}\ninline int score(const ScoreInput &s) {
     if(!s.reachedFinish||!s.alive||!s.bossDefeated) return 0;
     const float participation=s.enemiesAvailable ?
         std::clamp(float(s.enemiesDefeated)/float(s.enemiesAvailable),0.0f,1.0f):1.0f;
