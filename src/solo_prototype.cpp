@@ -163,8 +163,15 @@ int runSoloPrototype(){
                                 "SOLO progression not saved; session retained.");
                 }
             }
-            if(campaign.active)sfsolo::drawSession(renderer,*campaign.active,{0,0,w,h});
-            sfsolo::drawCombat(renderer,*campaign.active,combat,{0,0,w,h});
+            if(campaign.active){
+                sfsolo::drawSession(renderer,*campaign.active,{0,0,w,h});
+                sfsolo::drawCombat(renderer,*campaign.active,combat,{0,0,w,h});
+            }else{
+                // A successful victory consumes the session; show the selector
+                // instead of dereferencing an already completed run.
+                sfsolo::drawSelector(renderer,{0,0,w,h},
+                                     selector,campaign.progression);
+            }
         }
         SDL_RenderPresent(renderer);
         SDL_Delay(10);
