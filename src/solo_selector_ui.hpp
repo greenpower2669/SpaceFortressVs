@@ -65,7 +65,7 @@ inline void drawSelector(SDL_Renderer *r,SDL_Rect viewport,
     soloLabel(r,"RETOUR",back,white,pixels);
     soloLabel(r,"SPACEFORTRESS",{left,viewport.y+int(viewport.h*.135f),
                                 wide,int(viewport.h*.048f)},cream,pixels);
-    soloLabel(r,"MODE SOLO",{left,viewport.y+int(viewport.h*.172f),
+    soloLabel(r,"SOLO LABYRINTHE",{left,viewport.y+int(viewport.h*.172f),
                             wide,int(viewport.h*.042f)},white,pixels);
 
     const auto controls=[&](float top,float bottom,const std::string &title,
@@ -105,8 +105,11 @@ inline void drawSelector(SDL_Renderer *r,SDL_Rect viewport,
         SDL_Color{32,142,94,255}:SDL_Color{93,53,60,255});
     soloLabel(r,selectable(progress,selector.selection)?"JOUER":"VERROUILLE",
               play,white,pixels+1);
-    soloLabel(r,"PROTOTYPE TEST",{left,viewport.y+int(viewport.h*.954f),
-                                  wide,int(viewport.h*.035f)},
-              SDL_Color{175,188,210,255},std::max(2,pixels-2));
+    soloLabel(r,"GLISSER LE VAISSEAU = PILOTER",
+              {left,viewport.y+int(viewport.h*.948f),wide,int(viewport.h*.025f)},
+              SDL_Color{187,219,244,255},std::max(2,pixels-1));
+    soloLabel(r,"TAP = TIR   APPUI = CONE",
+              {left,viewport.y+int(viewport.h*.973f),wide,int(viewport.h*.024f)},
+              SDL_Color{255,232,165,255},std::max(2,pixels-1));
 }
 } // namespace sfsolo
