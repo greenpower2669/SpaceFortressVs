@@ -2,6 +2,7 @@ package com.greenpower2669.spacefortressvs;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -12,6 +13,10 @@ import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Debug APK entry point. One visible launcher reaches BOTH the untouched
@@ -23,6 +28,7 @@ import android.widget.TextView;
  */
 public final class SpaceFortressHubActivity extends Activity {
     private static final int WHITE = Color.rgb(246, 250, 255);
+    private static final int SAVE_LOG_REQUEST=26010;
     private static final int MUTED = Color.rgb(184, 207, 234);
 
     private int dp(float value) {
@@ -70,14 +76,58 @@ public final class SpaceFortressHubActivity extends Activity {
         TextView subtitle = label(description, 17, WHITE, false);
         card.addView(button);
         card.addView(subtitle);
-        card.setOnClickListener(v -> startActivity(new Intent(this, activity)));
+        card.setOnClickListener(v -> {
+            SpaceFortressDebugLog.record(this,"HUB_OPEN "+activity.getSimpleName());
+            startActivity(new Intent(this, activity));
+        });
         put(parent, card, 110, 10);
         return button;
+    }
+
+    private void requestLogExport(){
+        SpaceFortressDebugLog.record(this,"EXPORT_REQUEST");
+        Intent save=new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        save.setType("text/plain");
+        save.addCategory(Intent.CATEGORY_OPENABLE);
+        save.putExtra(Intent.EXTRA_TITLE,"SpaceFortress-debug.txt");
+        try{
+            startActivityForResult(save,SAVE_LOG_REQUEST);
+        }catch(Exception e){
+            SpaceFortressDebugLog.record(this,
+                "EXPORT_PICKER_FAILED "+e.getClass().getSimpleName());
+            Toast.makeText(this,"Export indisponible",Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode!=SAVE_LOG_REQUEST)return;
+        if(resultCode!=RESULT_OK || data==null || data.getData()==null){
+            SpaceFortressDebugLog.record(this,"EXPORT_CANCELLED");
+            return;
+        }
+        Uri destination=data.getData();
+        try(OutputStream stream=getContentResolver().openOutputStream(destination,"w")){
+            if(stream==null)throw new java.io.IOException("File stream unavailable");
+            SpaceFortressDebugLog.record(this,"EXPORT_BEGIN");
+            stream.write(SpaceFortressDebugLog.export(this)
+                    .getBytes(StandardCharsets.UTF_8));
+            stream.flush();
+            SpaceFortressDebugLog.record(this,"EXPORT_SAVED");
+            Toast.makeText(this,"Journal exporte : envoie le fichier TXT",
+                    Toast.LENGTH_LONG).show();
+        }catch(Exception e){
+            SpaceFortressDebugLog.record(this,
+                    "EXPORT_FAILED "+e.getClass().getSimpleName());
+            Toast.makeText(this,"Erreur export du journal",Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        SpaceFortressDebugLog.record(this,"HUB_CREATED");
         // The historical SDL theme is fullscreen; the native hub is easier to
         // read when its top and bottom content aren't beneath system bars.
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -115,6 +165,22 @@ public final class SpaceFortressHubActivity extends Activity {
         action(body, "MODE SOLO", "Mondes, niveaux et combats : prototype en test",
                 Color.rgb(28, 143, 108), Color.rgb(14, 74, 87),
                 SpaceFortressSoloActivity.class);
+
+        // Keep the diagnostics available even after a native crash exits SOLO.
+        LinearLayout debugCard=new LinearLayout(this);
+        debugCard.setOrientation(LinearLayout.VERTICAL);
+        debugCard.setGravity(Gravity.CENTER);
+        debugCard.setPadding(dp(12),dp(12),dp(12),dp(12));
+        debugCard.setBackground(background(
+                Color.rgb(112,74,141),Color.rgb(58,43,91),18));
+        debugCard.setClickable(true);
+        debugCard.setFocusable(true);
+        debugCard.setContentDescription(
+                "Exporter le journal debug. Choisir un dossier et sauvegarder un fichier texte.");
+        debugCard.addView(label("EXPORTER JOURNAL DEBUG",22,WHITE,true));
+        debugCard.addView(label("Fichier TXT apres un plantage, sans PC",17,WHITE,false));
+        debugCard.setOnClickListener(v -> requestLogExport());
+        put(body,debugCard,105,10);
 
         put(body, label("TES MODES HISTORIQUES SONT PRESERVES", 16,
                         MUTED, true), 50, 7);
