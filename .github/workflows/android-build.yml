@@ -44,6 +44,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: Install SDL2 headers
         run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libsdl2-dev
+      - name: Verify test hub does not replace release launcher
+        run: python3 scripts/check-solo-launcher.py
       - name: Compile and test touchscreen selector
         run: g++ -std=c++17 -O1 -I src tests/solo_selector_ui_regressions.cpp -o /tmp/solo-selector-test && /tmp/solo-selector-test
       - name: Test two-finger steering and charge ownership
@@ -133,6 +135,22 @@ jobs:
         env:
           SPACEFORTRESS_HOF_API_KEY: ''
         run: gradle -p android --stacktrace :app:assembleDebug
+
+      - name: Verify one Android launcher and both game activities
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="$(mktemp)"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump xmltree \
+            android/app/build/outputs/apk/debug/app-debug.apk AndroidManifest.xml > "$manifest"
+          grep -q 'SpaceFortressHubActivity' "$manifest"
+          grep -q 'SpaceFortressSoloActivity' "$manifest"
+          grep -q 'SpaceFortressActivity' "$manifest"
+          count="$(grep -c 'android.intent.action.MAIN' "$manifest" || true)"
+          if [ "$count" != "1" ]; then
+            echo "Expected one launcher intent in merged debug APK; found $count"
+            exit 1
+          fi
 
       - name: Verify Hall secret hygiene
         shell: bash
