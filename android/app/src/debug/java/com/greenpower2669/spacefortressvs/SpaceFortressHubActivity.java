@@ -154,6 +154,8 @@ public final class SpaceFortressHubActivity extends Activity {
         setContentView(scroll);
 
         put(body, label("SPACE FORTRESS", 34, WHITE, true), 55, 2);
+        put(body, label("VERSION DIAGNOSTIC", 20,
+                        Color.rgb(255, 205, 110), true), 34, 2);
         put(body, label("CHOISIS TON AVENTURE", 20,
                         Color.rgb(255, 222, 120), true), 44, 1);
         put(body, label("CLASSIQUE  ·  DUEL  ·  VS IA\n"
