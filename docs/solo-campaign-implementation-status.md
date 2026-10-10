@@ -48,3 +48,12 @@ Branche : `feature/solo-worlds-tutorials-v1` issue de CI391. Ne pas merger sur m
 - Garder `src/main.cpp` historique intact ; adaptation par composants/points d'entrée dédiés et tests de non-régression.
 - Corrections prototype : tir tactile provisoire (`4ad36077`), boss vaincu supprimé de la carte (`11cd8307`), test (`41656dc7`).
 - Prochaine étape : audit des points d'entrée gameplay COOP et proposition d'adaptateur SOLO minimal avant de continuer le code d'armes.
+
+
+### Audit d'intégration canonique — 10 octobre 2026
+- `src/campaign_runtime.hpp`: `sfCoopFire(int owner)` dépend directement de `sfCoop.phase`, `sfCoopShip(owner)` (`Spritej1`/`Spritej2`), `sfCoop.shots`, `sfCoop.cooldown`, `sfArenaW`, `sfCoopEmit`, et des règles communes d'énergie. Il **ne peut pas** être appelé tel quel depuis `sfsolo::Session` sans détourner l'état COOP.
+- `src/tactical_runtime.hpp`: `sfFireMain(int owner,const tupl *target=nullptr)` et les fonctions `sfKineticSurgePress/Release` utilisent également l'état et les sprites historiques. Le cône doit être raccordé via un adaptateur de contexte, pas réimplémenté arbitrairement.
+- `src/solo_campaign_model.hpp`: `sfsolo::Pilot`/`Physics` sont actuellement autonomes et ne reproduisent pas automatiquement la physique canonique. `solo_prototype.cpp` possède encore `TouchPilot` indépendant et `solo_combat.hpp` une arme provisoire.
+- **Point de raccordement recommandé** : extraire ou encapsuler les calculs purs de pilotage/énergie/cinétique du moteur canonique ; un adaptateur SOLO fournit position, vitesse, réserve, cible et contexte carte. Les effets/armes historiques restent la source de vérité. Éviter toute mutation de `sfCoop` pendant une partie SOLO.
+- **Validation nécessaire avant APK** : même réponse tactile que COOP, cône et temporisations 0,30/2 s, dégâts et coût énergétique identiques, missiles/minage, collisions décor, sauvegarde et retour de mode ; tests garantissant l'absence de régression DUEL/COOP.
+- Audit documentaire uniquement : aucun raccordement réel ni APK SOLO revendiqué à cette étape.
