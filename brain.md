@@ -383,3 +383,13 @@
 - Base CI389 `5ed37a7647f348767f90d913f31fae76bd3b6089`; branche `fix/help-refresh-on-ci389-20261009`.
 - Report limité à `src/help_runtime.hpp`, `tests/help_runtime_regressions.cpp`, `docs/proposals/2026-10-09-tutorial-mini-jeux.md`. Cônes, IA, minage, vitesse et `src/main.cpp` conservés.
 - Mini-jeux proposés seulement. Validation CI/APK téléphone requise. Pas de merge main ni Release.
+
+
+## 2026-10-10 — SOLO labyrinthe jouable, retour Fab
+- Demande validée : abandonner immédiatement le rendu mini-carte à carrés, intégrer vrais assets et exploration non linéaire ; ne pas toucher aux modes historiques ni à main.
+- Vaisseau SOLO = texture historique bleue `assets/pict/sb.png` ; ennemi orange = `so.png` ; ciel `fond4hlow.png` ; roches `ro1.png` ; tirs `tirj1.png`. Chargement SDL_image dans `src/solo_renderer.hpp`.
+- Mobilité tactile canonique partagée via `src/shared_touch_motion.hpp` et `src/tactical_runtime.hpp` (même interpolation ciblée, changement strictement équivalent à l'original) ; SOLO appelle `Session::stepToward`, clavier garde le vecteur séparé.
+- Tapotement hors vaisseau = projectile orienté au doigt à 360 degrés ; appui de 2 s = cône cinétique historique tourné selon le même vecteur, aussi vers l'arrière. Doigt posé et glissé sur le vaisseau = déplacement ; deuxième doigt peut tirer pendant le déplacement. `solo_vector_aim.hpp`, `solo_touch_controls.hpp`, `solo_kinetic_control.hpp`.
+- `solo_map_generator.hpp` version 3 : vraie matrice de galeries rocheuses, impasses, raccourcis et bifurcations; trois relais espacés à trouver, obligeant les détours et retours en arrière, puis boss/porte de sortie. Aucun scrolling imposé (caméra suit vaisseau).
+- Glace et lave temporaires : vitesse réduite uniquement par obstacle ; poussière glacée générée aux impacts avec astéroïde de glace et ralentissante au contact. Exploration révélée au fil du parcours sur la mini-carte.
+- État : tests C++/SDL2 surveillés par GitHub Actions de la branche `feature/solo-worlds-tutorials-v1`, attendre APK Android complète et essai Samsung avant affirmation runtime. Application DIAG à package séparé préservée.

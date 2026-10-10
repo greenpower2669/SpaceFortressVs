@@ -262,3 +262,18 @@
 - [ ] Test Samsung : lancer le jeu ORIGINAL et les modes problématiques, puis SOLO ; après plantage rouvrir accueil → EXPORTER JOURNAL DEBUG → enregistrer TXT, et envoyer le fichier. Ne pas effacer les données de l'app entre-temps.
 - [ ] Analyser le vrai rapport utilisateur avant d'affirmer avoir corrigé le plantage ; en cas de SIGSEGV, utiliser la raison de sortie Android et éventuellement un rapport système opt-in.
 - [ ] Jamais merge `main` ni Release sans validation explicite.
+
+
+## 2026-10-10 — SOLO : vrai jeu d'exploration et visée libre
+- [x] Labyrinthe dense en travers/haut/bas, graphes connectés, raccourcis/impasses et objectifs trois relais obligeant à explorer/revenir sur ses pas (`Map` version 3).
+- [x] Mini-carte d'exploration progressive, libre retour au début, sortie conditionnée boss + relais.
+- [x] Texture du vaisseau original bleu et adversaires orange, roches variées, fonds spatiaux, tirs, poussière ; variations visuelles lave/glace, arrière-plan lié caméra sans défilement imposé.
+- [x] Mathématique de déplacement partagée avec mode CLASSIQUE (cible tactile, vitesse finie), vaisseau non ralenti arbitrairement hors dégâts temporaires.
+- [x] Tapotement 360° = tir, appui de 2s = cône historique dirigé vers le doigt à 360°, possibilité deuxième doigt pendant pilotage.
+- [x] Astéroïdes glacés fracturés par tir ou cône -> poussière blanche mobile -> effet de glace temporaire ; lave ralentit aussi sur collision.
+- [x] Aide sélection lisible, redémarrage sur écran tactile après destruction, logs de relais en mode DIAG.
+- [x] Tests graphes, relais, 4 directions et diagonale, poussière, double-tactile, caméra, ancienne logique conservés.
+- [ ] Attendre **GitHub Android APK + AAB** vert sur le dernier commit applicatif ; corriger échecs éventuels.
+- [ ] Tester sur Samsung : chargement réel de tous les assets originaux, maniabilité canonique, visée arrière, charge 2 s, collecte des relais, boss, navigation retour, glace/lave et sortie.
+- [ ] Améliorer encore les décors monde par monde et les FX audio sans toucher au canon ; raccorder davantage le gameplay historique COOP (bouclier/énergie/tirs) après audit.
+- [ ] Aucun merge main, Release ou signature sans aval Fab.

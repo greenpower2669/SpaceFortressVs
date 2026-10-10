@@ -457,3 +457,7 @@ Les autres règles du dernier avenant restent inchangées : boss 55 % non destru
 - Base CI389 `5ed37a7647f348767f90d913f31fae76bd3b6089`; branche `fix/help-refresh-on-ci389-20261009`.
 - Report limité à `src/help_runtime.hpp`, `tests/help_runtime_regressions.cpp`, `docs/proposals/2026-10-09-tutorial-mini-jeux.md`. Cônes, IA, minage, vitesse et `src/main.cpp` conservés.
 - Mini-jeux proposés seulement. Validation CI/APK téléphone requise. Pas de merge main ni Release.
+
+
+## ORDRE FAB — SOLO LABYRINTHE VISÉE VECTORIELLE 360° (2026-10-10)
+Développer sur `feature/solo-worlds-tutorials-v1` une aventure immédiatement jouable et belle, non une mini-carte technique. La grande carte devient un vrai labyrinthe roche/lave/glace avec bifurcations et zones imposant l'exploration, parfois retour jusqu'au départ. Employez vaisseau et cinématique canonique des autres modes : réactivité intrinsèque identique. Le seul geste différent est la visée 360° : **vecteur position vaisseau → point tapoté ou maintenu**. Tap => tir, appui 2 s => cône cinétique tourné selon ce même vecteur. Défilement uniquement lié au mouvement/événements et non imposé. Lave, glace et poussière glacée : malus temporaires. Préserver CLASSIQUE/DUEL/COOP/VS IA/CAMPAGNE, scores/sauvegardes, debug exportable, et respecter le protocole FabCopilot : jamais de merge main ou Release sans validation explicite. Tests CI + APK Samsung obligatoire.

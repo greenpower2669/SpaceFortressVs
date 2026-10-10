@@ -299,3 +299,11 @@
 - Base CI389 `5ed37a7647f348767f90d913f31fae76bd3b6089`; branche `fix/help-refresh-on-ci389-20261009`.
 - Report limité à `src/help_runtime.hpp`, `tests/help_runtime_regressions.cpp`, `docs/proposals/2026-10-09-tutorial-mini-jeux.md`. Cônes, IA, minage, vitesse et `src/main.cpp` conservés.
 - Mini-jeux proposés seulement. Validation CI/APK téléphone requise. Pas de merge main ni Release.
+
+
+## 2026-10-10 — SOLO labyrinthe/visée 360, incidents d'intégration
+- Capture téléphone initiale : immense carte-matrice de carrés, petit vaisseau, menu SOLO barres muettes et défilement peu réactif. Exigence Fab : vrais décors et gameplay labyrinthique MAINTENANT, conserver maniabilité historique.
+- Premier compilateur C++ : `std::vector<std::array<bool,4>> links(size_t(total));` interprété comme déclaration fonction (most vexing parse), réparé via constructeur à deux arguments `7a95a1a5`.
+- Deuxième compilateur : noms `targetX/targetY` shadowant paramètres de `Session::step`, corrigés `151bb81a`.
+- Nouvelle architecture : `shared_touch_motion.hpp` pure, terrain V3, rendu SDL_image de vrais assets, `SoloAssets` détruit avant SDL renderer, visée directionnelle et cône canonique tourné, appui de 2s, poussière glacée.
+- Tests automatisés compilés par core/UI GitHub Actions ; **aucune preuve d'exécution sur Samsung avant essai utilisateur**. Sur appareil, conserver l'APK DIAG isolée et exporter son TXT si plantage. Release/main interdits sans validation Fab.

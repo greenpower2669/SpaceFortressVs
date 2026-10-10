@@ -302,3 +302,12 @@ CLASSIQUE DUEL local :
 - Base CI389 `5ed37a7647f348767f90d913f31fae76bd3b6089`; branche `fix/help-refresh-on-ci389-20261009`.
 - Report limité à `src/help_runtime.hpp`, `tests/help_runtime_regressions.cpp`, `docs/proposals/2026-10-09-tutorial-mini-jeux.md`. Cônes, IA, minage, vitesse et `src/main.cpp` conservés.
 - Mini-jeux proposés seulement. Validation CI/APK téléphone requise. Pas de merge main ni Release.
+
+
+## 2026-10-10 — Carte SOLO transformation prototype -> labyrinthe
+- **Ordre Fab** : décor/rendu réel, labyrinthes, exploration/backtracking, vaisseau d'origine et commandes d'origine. Seul le **vecteur de tir et de cône à 360°** change.
+- Moteur carte : `src/solo_map_generator.hpp`, `src/solo_session.hpp` (relays 3/3, exploration mémorisée, poussière et malus).
+- Contrôle partagé avec le jeu original : `src/shared_touch_motion.hpp` appelé par `src/tactical_runtime.hpp`, et par `src/solo_campaign_model.hpp` / `src/solo_touch_controls.hpp`.
+- Visée/tirs : `src/solo_vector_aim.hpp`, `src/solo_kinetic_control.hpp`, `src/solo_combat.hpp`, `src/solo_prototype.cpp` (tap vs appui 2s, orientation 360).
+- Graphismes historiques : `src/solo_renderer.hpp` via SDL_image (forteresses sb/so, champ spatial fond4hlow, ro1, tirj1, pousb). Rendu neige/glace/lave enrichi, mini-carte brouillard d'exploration.
+- Tests `tests/solo_maze_exploration_regressions.cpp` + régressions antérieures, CI `.github/workflows/android-build.yml`. Aucun merge main ni Release, vérifier appareil Samsung.
