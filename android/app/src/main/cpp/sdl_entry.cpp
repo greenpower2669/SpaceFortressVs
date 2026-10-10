@@ -1,15 +1,17 @@
-// Android-only bridge between SDLActivity and the historical C++ entry point.
-//
-// The old source defines `int main()`; SDL's main macro turns that into a
-// C++-mangled `SDL_main()` symbol. SDLActivity resolves an unmangled C symbol
-// with the usual argc/argv signature, so expose a tiny stable bridge instead
-// of rewriting the historical game source.
+// SDLActivity dispatch. Preserve the historical default entry point.
+// The SOLO prototype uses an explicitly requested, debug-only Android launcher.
+#include "solo_prototype.hpp"
+#include <cstring>
 
 extern int SDL_main();
 
 extern "C" int SpaceFortressMain(int argc, char **argv)
 {
-    (void)argc;
-    (void)argv;
+    for (int i=0; argv && i<argc; ++i) {
+        if (argv[i] && std::strcmp(argv[i], "--spacefortress-solo-prototype")==0)
+            return runSoloPrototype();
+    }
+    // All existing Android launches remain byte-for-byte equivalent in intent:
+    // without the explicit debug SOLO switch, start the historical game.
     return SDL_main();
 }
