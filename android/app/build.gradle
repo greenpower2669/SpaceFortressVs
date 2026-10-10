@@ -42,6 +42,10 @@ android {
     buildTypes {
         debug {
             minifyEnabled false
+            // Side-by-side test app: each CI debug APK has an ephemeral key.
+            // Never force users to uninstall the signed original / lose saves.
+            // Release applicationId remains com.greenpower2669.spacefortressvs.
+            applicationIdSuffix '.diagnostic'
         }
         release {
             minifyEnabled false
