@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           xmlns:tools="http://schemas.android.com/tools">
-    <application android:name="com.greenpower2669.spacefortressvs.SpaceFortressDebugApplication">
+    <application android:name="com.greenpower2669.spacefortressvs.SpaceFortressDebugApplication"
+                 android:label="SpaceFortress DIAG"
+                 tools:replace="android:label">
         <!-- DEBUG ONLY: remove the classic entry's launcher filter and route
              it through one accessible menu. All historical game code remains. -->
         <activity
@@ -28,7 +30,7 @@
             android:exported="true"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme"
-            android:label="SpaceFortress — tous les modes">
+            android:label="SpaceFortress DIAG">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
