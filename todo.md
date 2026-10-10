@@ -277,3 +277,14 @@
 - [ ] Tester sur Samsung : chargement réel de tous les assets originaux, maniabilité canonique, visée arrière, charge 2 s, collecte des relais, boss, navigation retour, glace/lave et sortie.
 - [ ] Améliorer encore les décors monde par monde et les FX audio sans toucher au canon ; raccorder davantage le gameplay historique COOP (bouclier/énergie/tirs) après audit.
 - [ ] Aucun merge main, Release ou signature sans aval Fab.
+
+
+## 2026-10-11 — Mission zoom ×3, caméra des tiers et stabilisation
+- [x] Demande Fab : zoom décor ×3, **vaisseau inchangé**, couloirs visuellement 3 fois plus larges ; carte réelle et dimensions de collision conservées.
+- [x] Caméra à seuils central 1/3—2/3 en horizontal et vertical ; à l'intérieur aucun pan ; franchissement → décor suit ; retour en arrière → seuil opposé, monde affiché sans saut.
+- [x] Unifier projection visuelle/coordonnées doigt/tir ; désolidariser commande du doigt de la translation de caméra, ancrer au geste initial pour éviter les oscillations.
+- [x] Réactivité vaisseau en pixels/s préservée en fonction de colonnes visibles (ne pas accélérer ×3 le pilote avec la carte zoomée), taille graphique du vaisseau inchangée.
+- [x] Tests de caméra 4 axes, start/finish, changement orientation, zoom x3, taille vaisseau, déplacement tactile indépendant du pan et visée à deux doigts.
+- [ ] CI GitHub Android debug verte du dernier commit puis APK DIAG **directe sans ZIP**.
+- [ ] Test Samsung : doigt stable, caméra tiers des bords, chemins larges, visée 360, pas de collisions incohérentes, mode historique préservé.
+- [ ] Ne pas fusionner `main`, ne pas publier Release sans validation explicite.

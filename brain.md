@@ -393,3 +393,11 @@
 - `solo_map_generator.hpp` version 3 : vraie matrice de galeries rocheuses, impasses, raccourcis et bifurcations; trois relais espacés à trouver, obligeant les détours et retours en arrière, puis boss/porte de sortie. Aucun scrolling imposé (caméra suit vaisseau).
 - Glace et lave temporaires : vitesse réduite uniquement par obstacle ; poussière glacée générée aux impacts avec astéroïde de glace et ralentissante au contact. Exploration révélée au fil du parcours sur la mini-carte.
 - État : tests C++/SDL2 surveillés par GitHub Actions de la branche `feature/solo-worlds-tutorials-v1`, attendre APK Android complète et essai Samsung avant affirmation runtime. Application DIAG à package séparé préservée.
+
+
+## 2026-10-11 — SOLO zoom ×3 / caméra tiers / commandes stables
+- Décision validée Fab : **zoomer le décor/labyrinthe de ×3, jamais le sprite du vaisseau** ; les collisions physiques restent en coordonnées carte ; pas de dilatation artificielle du vaisseau ni des obstacles logiques.
+- Vue initiale : ~6 cases de largeur au lieu de 18, carte 54 colonnes et labyrinthes inchangés. `src/solo_viewport.hpp` fournit un zoom visuel unique et une caméra à zone morte centrale : aucun défilement tant que le vaisseau reste entre 1/3 et 2/3 de l'écran, en X et Y. Poursuite à quatre directions, sans easing ni recentrage brusque.
+- Le suivi du doigt est ancré au **déplacement tactile mesuré depuis le début du geste** avec position initiale du vaisseau dans le monde ; la caméra ne participe jamais au calcul de cette cible. Les visées/tirs/cone restent projetés dans la même caméra cohérente.
+- Visuel du vaisseau : `soloShipRadiusPixels` utilise toujours l'ancienne échelle écran largeur/18. Mouvement canonique du vaisseau en pixels/s : la largeur visible du monde est utilisée pour éviter que zoomer ×3 multiplie sa vélocité affichée par 3.
+- N'affecte que SOLO sur `feature/solo-worlds-tutorials-v1`, APK DIAG à installer côte à côte ; pas de merge main ni Release. Tests Android automatiques à vérifier, sensations Samsung à faire confirmer.

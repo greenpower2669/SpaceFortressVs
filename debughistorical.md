@@ -307,3 +307,11 @@
 - Deuxième compilateur : noms `targetX/targetY` shadowant paramètres de `Session::step`, corrigés `151bb81a`.
 - Nouvelle architecture : `shared_touch_motion.hpp` pure, terrain V3, rendu SDL_image de vrais assets, `SoloAssets` détruit avant SDL renderer, visée directionnelle et cône canonique tourné, appui de 2s, poussière glacée.
 - Tests automatisés compilés par core/UI GitHub Actions ; **aucune preuve d'exécution sur Samsung avant essai utilisateur**. Sur appareil, conserver l'APK DIAG isolée et exporter son TXT si plantage. Release/main interdits sans validation Fab.
+
+
+## 2026-10-11 — Retour Samsung : boyaux étroits et pilotage instable
+- Symptôme utilisateur : malgré vrai labyrinthe, couloirs visuellement étroits et manœuvres peu naturelles ; la carte suit trop constamment le vaisseau, alors que le monde devrait rester fixe jusqu'au seuil du tiers d'un bord.
+- Correction ciblée : zoom visuel de la carte ×3 ; taille sprite vaisseau identique ; caméra mémorisée dans la session, défilement uniquement après franchissement 1/3 ou 2/3 en X/Y ; reprise dans les quatre sens.
+- Diagnostic technique du pilotage : l'ancienne `pilotTarget()` reconvertissait la position du doigt en coordonnées mondiales à chaque image avec une caméra qui suivait le joueur ; boucle de retour susceptible de donner un effet de poursuite/instabilité. Nouveau pilotage ancré au premier contact : le déplacement du doigt donne un déplacement dans le monde indépendant des panoramiques.
+- Zoom cartographique et cinématique : le mouvement cible SOLO prend désormais la largeur de la zone de monde visible, gardant approximativement la même vitesse en pixels/s qu'avant zoom, sans accélération excessive. Les collisions restent inchangées en unités carte.
+- Validation CI + Android build en attente ; vérifier vraie expérience Samsung et export diagnostic si plantage.

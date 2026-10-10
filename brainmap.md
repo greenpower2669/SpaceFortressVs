@@ -311,3 +311,11 @@ CLASSIQUE DUEL local :
 - Visée/tirs : `src/solo_vector_aim.hpp`, `src/solo_kinetic_control.hpp`, `src/solo_combat.hpp`, `src/solo_prototype.cpp` (tap vs appui 2s, orientation 360).
 - Graphismes historiques : `src/solo_renderer.hpp` via SDL_image (forteresses sb/so, champ spatial fond4hlow, ro1, tirj1, pousb). Rendu neige/glace/lave enrichi, mini-carte brouillard d'exploration.
 - Tests `tests/solo_maze_exploration_regressions.cpp` + régressions antérieures, CI `.github/workflows/android-build.yml`. Aucun merge main ni Release, vérifier appareil Samsung.
+
+
+## SOLO — réglage caméra/zoom 2026-10-11
+- `src/solo_viewport.hpp` : zoom décor constant `SOLO_MAP_ZOOM=3`, fenêtre panoramique à seuils des tiers horizontal/vertical, rendu cartographique et coordonnées écran ↔ monde, rayon pixel vaisseau conservé.
+- `src/solo_session.hpp` : cache de caméra (`viewLeft/viewTop/viewReady/viewWidth/viewHeight`) par session ; vitesse de cible ajustée en nombre de cases visibles, sans changer `tactical_runtime.hpp`.
+- `src/solo_touch_controls.hpp` : pilotage en glisser ancré `shipWorldAtDown + (fingerNow-fingerDown)/cell` indépendant de défilement ; deuxième doigt de visée indépendant.
+- `src/solo_prototype.cpp` : mise à jour caméra avant événements et après simulation ; remise à zéro par session ; vector de tir 360 maintenu.
+- `tests/solo_viewport_regressions.cpp` / `tests/solo_touch_controls_regressions.cpp` : assertions zoom x3, vaisseau fixe, seuils X/Y, bordure monde, vitesse pixels/s et drag stable pendant pan.
