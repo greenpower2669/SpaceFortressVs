@@ -70,8 +70,12 @@ int main(int,char**){
                 else {campaign.abandon();selecting=true;touch.reset();}
             }
             if(selecting){
-                if(e.type==SDL_FINGERDOWN){
-                    auto action=selector.touch(e.tfinger.x,e.tfinger.y,campaign.progression);
+                if(e.type==SDL_FINGERDOWN || e.type==SDL_MOUSEBUTTONDOWN){
+                    const float tx=e.type==SDL_FINGERDOWN?e.tfinger.x:
+                        float(e.button.x)/std::max(1,w);
+                    const float ty=e.type==SDL_FINGERDOWN?e.tfinger.y:
+                        float(e.button.y)/std::max(1,h);
+                    auto action=selector.touch(tx,ty,campaign.progression);
                     if(action==sfsolo::SelectAction::Back)running=false;
                     if(action==sfsolo::SelectAction::Play){
                         campaign.selection=selector.selection;
