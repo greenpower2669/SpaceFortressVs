@@ -65,6 +65,7 @@ include("${REPO_ROOT}/scripts/patch-classic-danger.cmake")
 add_library(main SHARED
     "${ANDROID_MAIN}"
     "${CMAKE_CURRENT_LIST_DIR}/sdl_entry.cpp"
+    "${REPO_ROOT}/src/solo_prototype.cpp" # opt-in DEBUG launcher, no duplicate main
     "${CMAKE_CURRENT_LIST_DIR}/hall_sync_jni.cpp"
 )
 
