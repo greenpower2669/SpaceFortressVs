@@ -3,12 +3,14 @@
 #include "solo_renderer.hpp"
 #include "solo_selector_ui.hpp"
 #include "solo_campaign_controller.hpp"
+#include "solo_campaign_persistence.hpp"
 #include "solo_combat.hpp"
 #include "solo_prototype.hpp"
 #include <SDL2/SDL.h>
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <string>
 
 namespace sfsolo {
 struct TouchPilot {
@@ -58,6 +60,14 @@ int runSoloPrototype(){
     if(!renderer)renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_SOFTWARE);
     if(!renderer){SDL_DestroyWindow(window);SDL_Quit();return 3;}
     sfsolo::CampaignController campaign;
+    // SDL supplies the app-private writable directory on Android and desktop.
+    // SOLO owns its save file; never touch historical DUEL/COOP saves.
+    std::string soloSavePath;
+    if(char *pref=SDL_GetPrefPath("greenpower2669","SpaceFortressVs")){
+        soloSavePath=std::string(pref)+"solo-progress-v1.save";
+        SDL_free(pref);
+    }
+    sfsolo::restoreCampaign(campaign,soloSavePath);
     sfsolo::Selector selector;
     bool selecting=true;
     sfsolo::TouchPilot touch;
@@ -121,7 +131,39 @@ int runSoloPrototype(){
                 combat.fire(*campaign.active,campaign.active->pilot.x,
                             campaign.active->pilot.y-10.0f);
             combat.step(*campaign.active,dt);
-            sfsolo::drawSession(renderer,*campaign.active,{0,0,w,h});
+            if(campaign.active->phase==sfsolo::Phase::Won){
+                // Completion is atomic: update SOLO progression only after a
+                // successful persistent save, then unlock the next stage.
+                const auto &finished=*campaign.active;
+                sfsolo::ScoreInput sc;
+                sc.enemiesDefeated=finished.enemiesDefeated;
+                sc.enemiesAvailable=finished.enemiesAvailable;
+                sc.elapsedSeconds=finished.seconds;
+                sc.damageTaken=finished.pilot.damageTaken;
+                sc.reachedFinish=finished.reachedFinish;
+                sc.bossDefeated=finished.bossDefeated;
+                sc.alive=finished.pilot.health>0;
+                sc.difficultyMultiplier=1.0f+.1f*
+                    float(campaign.launchedSelection.difficulty-1);
+                const int points=sfsolo::score(sc);
+                const std::string id="solo-local-"+
+                    std::to_string(static_cast<unsigned long long>(
+                        SDL_GetPerformanceCounter()));
+                if(sfsolo::finishAndSave(campaign,soloSavePath,
+                                          "SoloPilot",id,points)){
+                    campaign.next();
+                    selector.selection=campaign.selection;
+                    selecting=true;
+                    touch.reset();
+                    combat=sfsolo::Combat{};
+                }else{
+                    // Keep the completed session available for a later retry
+                    // rather than unlock a stage that was never persisted.
+                    SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+                                "SOLO progression not saved; session retained.");
+                }
+            }
+            if(campaign.active)sfsolo::drawSession(renderer,*campaign.active,{0,0,w,h});
             sfsolo::drawCombat(renderer,*campaign.active,combat,{0,0,w,h});
         }
         SDL_RenderPresent(renderer);
