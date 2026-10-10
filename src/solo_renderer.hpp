@@ -1,6 +1,7 @@
 #pragma once
 // Isolated SDL2 visual prototype for SOLO. It does not change classic or COOP.
 #include "solo_session.hpp"
+#include "solo_viewport.hpp"
 #include "solo_combat.hpp"
 #include "solo_kinetic_control.hpp"
 #include <SDL2/SDL.h>
@@ -30,46 +31,73 @@ inline void fill(SDL_Renderer *r,SDL_Rect rect,SDL_Color c){
 inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport){
     if(!r||!s.map.valid()||viewport.w<=0||viewport.h<=0)return;
     fill(r,viewport,{5,9,23,255});
-    const float cell=std::max(1.0f,float(viewport.w)/float(s.map.width));
-    const float visibleRows=float(viewport.h)/cell;
-    const float top=std::clamp(s.cameraY-visibleRows*.58f,0.0f,
-                               std::max(0.0f,float(s.map.height)-visibleRows));
-    const int first=std::max(0,int(std::floor(top)));
-    const int last=std::min(s.map.height,int(std::ceil(top+visibleRows))+1);
-    for(int y=first;y<last;y++)for(int x=0;x<s.map.width;x++){
+    const SoloViewport camera=soloViewport(s,viewport);
+    const float cell=camera.cell;
+    const int firstX=std::max(0,int(std::floor(camera.left)));
+    const int lastX=std::min(s.map.width,int(std::ceil(camera.left+camera.visibleColumns()))+1);
+    const int firstY=std::max(0,int(std::floor(camera.top)));
+    const int lastY=std::min(s.map.height,int(std::ceil(camera.top+camera.visibleRows()))+1);
+    // Small fixed star marks give the playfield scale without affecting map
+    // collision data or drawing a zoomed-out topological overview.
+    SDL_SetRenderDrawColor(r,40,60,95,255);
+    for(int y=firstY;y<lastY;++y)for(int x=firstX;x<lastX;++x){
+        const unsigned hash=unsigned(x*92821u+y*68917u+2167u);
+        if(hash%47u==0u){
+            const int px=camera.pixelX(x+.26f),py=camera.pixelY(y+.38f);
+            SDL_RenderDrawPoint(r,px,py);
+        }
+    }
+    for(int y=firstY;y<lastY;y++)for(int x=firstX;x<lastX;x++){
         const Tile t=s.map.at(x,y);
         if(t==Tile::Empty)continue;
-        const int px=viewport.x+int(x*cell);
-        const int py=viewport.y+int((y-top)*cell);
-        const int nextX=viewport.x+int((x+1)*cell);
-        const int nextY=viewport.y+int((y+1-top)*cell);
-        fill(r,{px,py,std::max(1,nextX-px),std::max(1,nextY-py)},tileColor(t));
+        const int px=camera.pixelX(float(x)),py=camera.pixelY(float(y));
+        const int nextX=camera.pixelX(float(x+1)),nextY=camera.pixelY(float(y+1));
+        const SDL_Rect tileRect{px,py,std::max(1,nextX-px),std::max(1,nextY-py)};
+        if(t==Tile::Rock || t==Tile::Lava || t==Tile::Beam){
+            fill(r,tileRect,tileColor(t));
+        }else{
+            // Distinct visible markers in the debug prototype, not the final
+            // original artwork: asteroid = rough cross, enemy = red square.
+            const int cx=camera.pixelX(x+.5f),cy=camera.pixelY(y+.5f);
+            const int radius=std::max(5,int(cell*.30f));
+            if(t==Tile::Asteroid){
+                fill(r,{cx-radius,cy-radius/2,radius*2+1,radius+1},tileColor(t));
+                fill(r,{cx-radius/2,cy-radius,radius+1,radius*2+1},tileColor(t));
+            }else{
+                fill(r,{cx-radius,cy-radius,radius*2+1,radius*2+1},tileColor(t));
+            }
+        }
     }
-    const int shipX=viewport.x+int(s.pilot.x*cell);
-    const int shipY=viewport.y+int((s.pilot.y-top)*cell);
-    const int radius=std::max(4,int(cell*.5f));
-    SDL_SetRenderDrawColor(r,78,233,249,255);
+    // Readable player ship, anchored safely above Android's navigation bar.
+    const int shipX=camera.pixelX(s.pilot.x);
+    const int shipY=camera.pixelY(s.pilot.y);
+    const int radius=std::max(14,int(cell*.52f));
+    SDL_SetRenderDrawColor(r,85,229,255,255);
     SDL_RenderDrawLine(r,shipX,shipY-radius,shipX-radius,shipY+radius);
-    SDL_RenderDrawLine(r,shipX-radius,shipY+radius,shipX+radius,shipY+radius);
+    SDL_RenderDrawLine(r,shipX-radius,shipY+radius,shipX,shipY+radius/2);
+    SDL_RenderDrawLine(r,shipX,shipY+radius/2,shipX+radius,shipY+radius);
     SDL_RenderDrawLine(r,shipX+radius,shipY+radius,shipX,shipY-radius);
-    // Always-visible minimap with ship and boss markers.
-    const int mw=std::max(18,viewport.w/7),mh=std::max(44,viewport.h/4);
-    SDL_Rect mini{viewport.x+viewport.w-mw-8,viewport.y+8,mw,mh};
-    fill(r,mini,{22,28,47,255});
+    SDL_SetRenderDrawColor(r,255,255,255,255);
+    SDL_RenderDrawLine(r,shipX,shipY-radius+3,shipX,shipY+radius/2);
+    fill(r,{shipX-3,shipY-2,7,12},{80,193,255,255});
+    // The REAL minimap remains a separate, smaller upper-right widget.
+    const int mw=std::max(46,viewport.w/7),mh=std::max(66,viewport.h/6);
+    const int hudY=viewport.y+std::max(40,viewport.h/18);
+    SDL_Rect mini{viewport.x+viewport.w-mw-12,hudY,mw,mh};
+    fill(r,mini,{25,35,58,255});
     const auto p=miniMapPosition(s);
-    fill(r,{mini.x+int(p.x*(mw-1))-2,mini.y+int(p.y*(mh-1))-2,5,5},
+    fill(r,{mini.x+int(p.x*(mw-1))-3,mini.y+int(p.y*(mh-1))-3,7,7},
          {70,241,255,255});
     if(!s.bossDefeated)
         fill(r,{mini.x+mw/2-2,mini.y+int(9.5f/s.map.height*mh)-2,5,5},
              {255,54,176,255});
-    // Hull indicator: visual-only until canonical HUD is integrated.
-    fill(r,{viewport.x+8,viewport.y+8,std::max(1,int(viewport.w*.32f)),7},
+    // HUD also clears the phone status bar for a readable health indicator.
+    fill(r,{viewport.x+12,hudY,std::max(1,int(viewport.w*.35f)),11},
          {85,32,38,255});
-    fill(r,{viewport.x+8,viewport.y+8,
-            std::max(0,int(viewport.w*.32f*std::clamp(s.pilot.health/100.0f,0.0f,1.0f))),7},
+    fill(r,{viewport.x+12,hudY,
+            std::max(0,int(viewport.w*.35f*std::clamp(s.pilot.health/100.0f,0.0f,1.0f))),11},
          {90,220,130,255});
 }
-
 
  // Temporary high-contrast charge aid for the SOLO debug prototype.
  // Values and cone geometry come from the real shared kinetic model, not
@@ -89,12 +117,10 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport){
           surge.charged ? SDL_Color{94,255,153,255}
                         : SDL_Color{255,224,94,255});
      if(!sfKineticSurgeVisible(1))return;
-     const float cell=std::max(1.0f,float(viewport.w)/float(s.map.width));
-     const float rows=float(viewport.h)/cell;
-     const float top=std::clamp(s.cameraY-rows*.58f,0.0f,
-                               std::max(0.0f,float(s.map.height)-rows));
-     const int shipX=viewport.x+int(s.pilot.x*cell);
-     const int shipY=viewport.y+int((s.pilot.y-top)*cell);
+     const SoloViewport camera=soloViewport(s,viewport);
+     const float cell=camera.cell;
+     const int shipX=camera.pixelX(s.pilot.x);
+     const int shipY=camera.pixelY(s.pilot.y);
      const float range=2.0f*s.shipRadius*sfKineticSurgeMiningRangeDiameters();
      const int frontY=shipY-int(range*cell);
      const int half=int(sfKineticSurgeConeHalfWidth(range)*cell);
@@ -107,20 +133,18 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport){
 // Render SOLO projectiles and boss health using the same camera transform.
 inline void drawCombat(SDL_Renderer *r,const Session &s,const Combat &combat,SDL_Rect viewport){
     if(!r||!s.map.valid()||viewport.w<=0||viewport.h<=0)return;
-    const float cell=std::max(1.0f,float(viewport.w)/float(s.map.width));
-    const float rows=float(viewport.h)/cell;
-    const float top=std::clamp(s.cameraY-rows*.58f,0.0f,
-                              std::max(0.0f,float(s.map.height)-rows));
+    const SoloViewport camera=soloViewport(s,viewport);
+    const float cell=camera.cell;
     for(const auto &shot:combat.shots){
-        const int px=viewport.x+int(shot.x*cell);
-        const int py=viewport.y+int((shot.y-top)*cell);
-        if(py<viewport.y||py>=viewport.y+viewport.h)continue;
+        const int px=camera.pixelX(shot.x);
+        const int py=camera.pixelY(shot.y);
+        if(px<viewport.x||px>=viewport.x+viewport.w||py<viewport.y||py>=viewport.y+viewport.h)continue;
         fill(r,{px-2,py-4,5,9},{255,232,100,255});
     }
     if(combat.bossHealth<combat.bossMaxHealth && !s.bossDefeated){
         const int width=std::max(1,viewport.w/2);
         const int x=viewport.x+(viewport.w-width)/2;
-        const int y=viewport.y+24;
+        const int y=viewport.y+std::max(50,viewport.h/18)+25;
         fill(r,{x,y,width,9},{76,26,54,255});
         fill(r,{x,y,int(width*std::clamp(combat.bossHealth/
              std::max(1.0f,combat.bossMaxHealth),0.0f,1.0f)),9},
