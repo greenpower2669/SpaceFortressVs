@@ -5,6 +5,7 @@
 // must still bind the canonical COOP ship through solo_canonical_adapter.hpp.
 #include "solo_session.hpp"
 #include "kinetic_shield.hpp"
+#include "solo_vector_aim.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -13,6 +14,17 @@ struct KineticSurgeControl {
     // The SOLO ship starts at the bottom and faces up: canonical owner 1.
     static constexpr int owner=1;
     bool pressed=false;
+    float targetX=0,targetY=0;
+    bool hasAim=false;
+    AimVector axis{0,-1};
+
+    void aimAt(const Session &s,float x,float y){
+        targetX=x;targetY=y;hasAim=true;
+        axis=directionTo(s.pilot.x,s.pilot.y,x,y,axis);
+    }
+    AimVector direction(const Session &s) const {
+        return hasAim ? directionTo(s.pilot.x,s.pilot.y,targetX,targetY,axis) : axis;
+    }
 
     void press(){
         if(pressed)return;
@@ -36,8 +48,8 @@ struct KineticSurgeControl {
         const bool charged=sfKineticSurgeRelease(owner);
         if(!charged)return false;
         if(s.phase!=Phase::Flying && s.phase!=Phase::BossFight)return true;
-        const float range=2.0f*s.shipRadius*
-                          sfKineticSurgeMiningRangeDiameters();
+        const float range=coneRangeForShip(s.shipRadius);
+        const AimVector aimed=direction(s);
         const int left=std::max(0,int(std::floor(s.pilot.x-range-1)));
         const int right=std::min(s.map.width-1,int(std::ceil(s.pilot.x+range+1)));
         const int top=std::max(0,int(std::floor(s.pilot.y-range-1)));
@@ -46,8 +58,8 @@ struct KineticSurgeControl {
             const size_t index=size_t(y)*size_t(s.map.width)+size_t(x);
             if(s.map.tiles[index]!=Tile::Asteroid &&
                s.map.tiles[index]!=Tile::IceAsteroid)continue;
-            if(sfKineticSurgeConeContains(owner,s.pilot.x,s.pilot.y,
-                                          x+.5f,y+.5f,range,.15f)){
+            if(inAimedCanonicalCone(s.pilot.x,s.pilot.y,
+                                     x+.5f,y+.5f,aimed,range,.15f)){
                 s.map.tiles[index]=Tile::Empty;
             }
         }
