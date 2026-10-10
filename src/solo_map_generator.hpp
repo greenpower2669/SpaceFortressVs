@@ -104,7 +104,8 @@ inline Map generate(const MapOptions &o) {
          [&](int a,int b){return std::abs(a-mid)<std::abs(b-mid);})-xs.begin());
     const int startNode=id(middleCol,rows-1);
     std::vector<uint8_t> seen(size_t(total),0);
-    std::vector<std::array<bool,4>> links(size_t(total));
+    std::vector<std::array<bool,4>> links(static_cast<size_t>(total),
+                                          std::array<bool,4>{});
     std::vector<int> stack={startNode};
     seen[startNode]=1;
     for(int yy:ys)for(int xx:xs)carve(xx,yy,2);
