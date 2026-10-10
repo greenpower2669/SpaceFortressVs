@@ -46,15 +46,22 @@ struct Pilot {
     float x=0,y=0,vx=0,vy=0;
     float damageTaken=0,health=100;
 };
+// Only the SOLO prototype is tuned here: canonical CLASSIC/COOP remain untouched.
+constexpr float SOLO_REACTIVITY_MULTIPLIER=4.0f;
 struct Physics {
-    float thrust=5.0f, damping=0.35f, maxSpeed=7.0f;
+    float thrust=5.0f*SOLO_REACTIVITY_MULTIPLIER;
+    float damping=0.35f;
+    float maxSpeed=7.0f*SOLO_REACTIVITY_MULTIPLIER;
     void step(Pilot &p,float inputX,float inputY,float dt) const {
         dt=std::clamp(dt,0.0f,0.05f);
         const float magnitude=std::hypot(inputX,inputY);
         if(magnitude>1.0f){inputX/=magnitude;inputY/=magnitude;}
         p.vx+=inputX*thrust*dt;
         p.vy+=inputY*thrust*dt;
-        const float factor=std::exp(-std::max(0.0f,damping)*dt);
+        // Fourfold stronger braking when no finger/keyboard direction is held.
+        const float drag=std::max(0.0f,damping)*
+                         (magnitude<.001f ? SOLO_REACTIVITY_MULTIPLIER : 1.0f);
+        const float factor=std::exp(-drag*dt);
         p.vx*=factor;p.vy*=factor;
         const float speed=std::hypot(p.vx,p.vy);
         if(speed>maxSpeed && speed>0){p.vx*=maxSpeed/speed;p.vy*=maxSpeed/speed;}

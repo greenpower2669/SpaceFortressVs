@@ -69,7 +69,9 @@ struct Session {
             if(bossDefeated)phase=Phase::Won;
         }
         // Camera follows with a slight look-ahead in direction of travel.
-        const float lookAhead=std::clamp(pilot.vy*.6f,-3.0f,3.0f);
+        // Camera follows actual ship motion every frame. The x4 faster ship
+        // scrolls the map x4 faster; cap prediction to keep the ship onscreen.
+        const float lookAhead=std::clamp(pilot.vy*.25f,-2.0f,2.0f);
         cameraY=std::clamp(pilot.y+lookAhead,0.0f,float(map.height));
     }
 };

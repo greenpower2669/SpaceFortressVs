@@ -42,4 +42,18 @@ int main(){
     assert(boss.y(s.pilot.y)>0 && boss.y(s.pilot.y)<phone.h);
     s.pilot.x=1.5f;
     assert(soloViewport(s,phone).left==0);
+    // The world scrolls with the ship. Faster SOLO ship must also advance the
+    // camera significantly faster, without running past the screen safe area.
+    Session fast(generate({})),slow(generate({}));
+    assert(fast.start() && slow.start());
+    fast.pilot.y=slow.pilot.y=80.5f;
+    fast.cameraY=slow.cameraY=80.5f;
+    slow.physics.thrust=5.0f;slow.physics.maxSpeed=7.0f;
+    const float initialTop=soloViewport(fast,phone).top;
+    for(int n=0;n<12;++n){fast.step(0,-1,.05f);slow.step(0,-1,.05f);}
+    const float fastScroll=std::abs(soloViewport(fast,phone).top-initialTop);
+    const float slowScroll=std::abs(soloViewport(slow,phone).top-initialTop);
+    assert(slowScroll>0 && fastScroll>=3.0f*slowScroll);
+    assert(soloViewport(fast,phone).y(fast.pilot.y)>phone.h*.35f);
+    assert(soloViewport(fast,phone).y(fast.pilot.y)<phone.h*.87f);
 }

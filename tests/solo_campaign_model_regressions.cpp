@@ -8,7 +8,18 @@ int main(){
  assert(m.valid());assert(m.at(-1,0)==Tile::Rock);
  assert(fromRgb(0xff,0x80,0)==Tile::Lava);
  assert(fromRgb(0x12,0x34,0x56)==Tile::Rock);
- Physics physics;Pilot pilot;physics.step(pilot,0,-1,.05f);
+ Physics physics;Pilot pilot;
+ assert(SOLO_REACTIVITY_MULTIPLIER==4.0f);
+ assert(physics.thrust==20.0f && physics.maxSpeed==28.0f);
+ Physics old;old.thrust=5.0f;old.maxSpeed=7.0f;
+ Pilot quick,slow;
+ for(int i=0;i<12;++i){physics.step(quick,0,-1,.05f);old.step(slow,0,-1,.05f);}
+ assert(std::abs(quick.y/slow.y-4.0f)<.02f); // 4x travel, no teleport
+ assert(std::abs(quick.vy/slow.vy-4.0f)<.02f); // 4x response
+ const float before=quick.vy;
+ physics.step(quick,0,0,.05f);
+ assert(std::abs(quick.vy)<std::abs(before)*.95f); // active braking
+ physics.step(pilot,0,-1,.05f);
  assert(pilot.vy<0 && pilot.y<0);
  float oldSpeed=std::abs(pilot.vy);physics.step(pilot,0,0,.05f);
  assert(std::abs(pilot.vy)<oldSpeed);
