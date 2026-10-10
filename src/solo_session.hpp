@@ -7,6 +7,9 @@ namespace sfsolo {
 enum class Phase { Ready, Flying, BossFight, Won, Lost };
 struct Session {
     Map map;
+    // The map gradually reveals previously explored passages, including
+    // backtracked routes on the minimap. Exploration does not expire.
+    std::vector<uint8_t> explored;
     Pilot pilot;
     Physics physics;
     Phase phase=Phase::Ready;
@@ -27,6 +30,15 @@ struct Session {
     bool missionReady() const {
         return bossDefeated && relaysCollected>=relaysNeeded;
     }
+    void reveal(){
+        if(!map.valid())return;
+        if(explored.size()!=map.tiles.size())explored.assign(map.tiles.size(),0);
+        const int cx=int(pilot.x),cy=int(pilot.y);
+        for(int y=std::max(0,cy-8);y<std::min(map.height,cy+9);++y)
+            for(int x=std::max(0,cx-8);x<std::min(map.width,cx+9);++x)
+                if((x-cx)*(x-cx)+(y-cy)*(y-cy)<=64)
+                    explored[size_t(y)*map.width+x]=1;
+    }
     explicit Session(Map source):map(std::move(source)) {
         for(const auto tile:map.tiles){
             if(tile==Tile::Enemy)++enemiesAvailable;
@@ -37,6 +49,7 @@ struct Session {
                 if(map.at(x,y)==Tile::Start){
                     pilot.x=x+.5f;pilot.y=y+.5f;
                     cameraY=pilot.y;
+                    reveal();
                     return;
                 }
     }
@@ -119,6 +132,7 @@ struct Session {
         // while the predictive offset is bounded to keep the pilot visible.
         const float lookAhead=std::clamp(pilot.vy*.25f,-2.0f,2.0f);
         cameraY=std::clamp(pilot.y+lookAhead,0.0f,float(map.height));
+        reveal();
     }
     void stepToward(float worldX,float worldY,float dt) {
         step(0,0,dt,true,worldX,worldY);
