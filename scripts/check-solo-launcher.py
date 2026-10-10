@@ -48,5 +48,11 @@ assert (APP / "debug/java/com/greenpower2669/spacefortressvs/SpaceFortressDebugA
 native = (ROOT / "src/solo_android_diagnostics.hpp").read_text()
 assert "SF_DIAGNOSTICS_DEBUG" in native
 assert "spacefortress-native-" in native
+gradle = (ROOT / "android/app/build.gradle").read_text()
+assert "applicationIdSuffix '.diagnostic'" in gradle, (
+    "debug crash diagnosis must not overwrite the signed original package")
+assert debug[HUB].get(A+"label") == "SpaceFortress DIAG", (
+    "debug app launcher must be visibly identifiable")
+
 
 print("SOLO debug hub static checks OK; release launcher preserved")
