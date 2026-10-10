@@ -232,3 +232,16 @@
 - [ ] Validation téléphone : accueil commun, accès historique, SOLO, sélection, bouton retour et orientation, sans régression.
 - [ ] SOLO n'est encore qu'un prototype : images, assets, mécaniques COOP, diversité des niveaux/boss et UX finale restent à développer.
 - [ ] Aucun merge `main` ou Release sans autorisation explicite.
+
+
+## SOLO — réactivité x4 et malus glace — 10 octobre 2026
+- [x] Retour téléphone Fab : pilotage SOLO et défilement perçus trop lents ; demande d'une réactivité **4 fois supérieure**.
+- [x] `bc428459` : SOLO seul, thrust 5→20, vitesse max 7→28, sensibilité du doigt ×4, freinage sans direction ×4 ; caméra suit immédiatement la position (pas de téléportation), anticipation plafonnée.
+- [x] Tests vitesse/accélération ×4 et défilement lié au déplacement dans `solo_campaign_model_regressions.cpp` et `solo_viewport_regressions.cpp`.
+- [x] Idée malus de glace : astéroïdes blancs distincts des ordinaires, ralentissement temporaire 2,5 s, mobilité 25 %, signal visuel « GLACE ». Paramètres initiaux à faire valider par Fab sur téléphone.
+- [x] `561ed8e8` : `Tile::IceAsteroid` (RGB EAF9FF), répartition rare + apprentissage au niveau 1, cartes générées version V2 ; intégration collisions/tirs/minage/HUD.
+- [x] Sécurité haute vitesse : balayage du trajet de vaisseau par pas de 0,20 case, afin de ne pas ignorer un mur/astéroïde entre deux images.
+- [x] Tests automatisés `solo_ice_regressions.cpp` : détection rapide, ralentissement ×0,25, expiration, mur anti-traversée.
+- [ ] Confirmer CI Android complète pour `561ed8e8` et produire l'APK debug ; ne pas confondre réussite compilation et validation du comportement téléphone.
+- [ ] Test téléphone : sensations ×4, pilotage vertical et horizontal, cadrage caméra, collision, astéroïdes glacés, durée et lisibilité du malus.
+- [ ] Conservé : modes historiques CLASSIQUE, DUEL, VS IA, COOP, CAMPAGNE ; aucune fusion main et aucune Release sans validation.
