@@ -86,7 +86,7 @@ int main(int,char**){
                 }
                 if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_RETURN){
                     campaign.selection=selector.selection;
-                    if(campaign.launch()){selecting=false;touch.reset();}
+                    if(campaign.launch()){selecting=false;touch.reset();combat=sfsolo::Combat{};}
                 }
             }else{
                 if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_r){
@@ -112,7 +112,9 @@ int main(int,char**){
             sfsolo::drawSelector(renderer,{0,0,w,h},selector,campaign.progression);
         }else if(campaign.active){
             campaign.active->step(ax,ay,dt);
-            if(keys[SDL_SCANCODE_SPACE] || keys[SDL_SCANCODE_LCTRL] ||
+            // Temporary touch combat input for prototype validation only.
+            // Final SOLO must reuse the canonical COOP kinetic controls.
+            if(touch.down || keys[SDL_SCANCODE_SPACE] || keys[SDL_SCANCODE_LCTRL] ||
                (SDL_GetMouseState(nullptr,nullptr)&SDL_BUTTON(SDL_BUTTON_RIGHT)))
                 combat.fire(*campaign.active,campaign.active->pilot.x,
                             campaign.active->pilot.y-10.0f);
