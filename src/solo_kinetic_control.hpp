@@ -60,7 +60,9 @@ struct KineticSurgeControl {
                s.map.tiles[index]!=Tile::IceAsteroid)continue;
             if(inAimedCanonicalCone(s.pilot.x,s.pilot.y,
                                      x+.5f,y+.5f,aimed,range,.15f)){
+                const bool icy=s.map.tiles[index]==Tile::IceAsteroid;
                 s.map.tiles[index]=Tile::Empty;
+                if(icy)s.scatterIce(x+.5f,y+.5f);
             }
         }
         return true;
