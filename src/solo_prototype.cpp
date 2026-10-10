@@ -3,6 +3,7 @@
 #include "solo_renderer.hpp"
 #include "solo_selector_ui.hpp"
 #include "solo_campaign_controller.hpp"
+#include "solo_combat.hpp"
 #include <SDL2/SDL.h>
 #include <algorithm>
 #include <cmath>
@@ -58,6 +59,7 @@ int main(int,char**){
     sfsolo::Selector selector;
     bool selecting=true;
     sfsolo::TouchPilot touch;
+    sfsolo::Combat combat;
     bool running=true;Uint64 previous=SDL_GetPerformanceCounter();
     const double frequency=double(SDL_GetPerformanceFrequency());
     while(running){
@@ -79,7 +81,7 @@ int main(int,char**){
                     if(action==sfsolo::SelectAction::Back)running=false;
                     if(action==sfsolo::SelectAction::Play){
                         campaign.selection=selector.selection;
-                        if(campaign.launch()){selecting=false;touch.reset();}
+                        if(campaign.launch()){selecting=false;touch.reset();combat=sfsolo::Combat{};}
                     }
                 }
                 if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_RETURN){
@@ -90,7 +92,7 @@ int main(int,char**){
                 if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_r){
                     campaign.abandon();
                     if(!campaign.launch())selecting=true;
-                    touch.reset();
+                    combat=sfsolo::Combat{};touch.reset();
                 }
                 touch.handle(e,w,h);
             }
@@ -110,7 +112,13 @@ int main(int,char**){
             sfsolo::drawSelector(renderer,{0,0,w,h},selector,campaign.progression);
         }else if(campaign.active){
             campaign.active->step(ax,ay,dt);
+            if(keys[SDL_SCANCODE_SPACE] || keys[SDL_SCANCODE_LCTRL] ||
+               (SDL_GetMouseState(nullptr,nullptr)&SDL_BUTTON(SDL_BUTTON_RIGHT)))
+                combat.fire(*campaign.active,campaign.active->pilot.x,
+                            campaign.active->pilot.y-10.0f);
+            combat.step(*campaign.active,dt);
             sfsolo::drawSession(renderer,*campaign.active,{0,0,w,h});
+            sfsolo::drawCombat(renderer,*campaign.active,combat,{0,0,w,h});
         }
         SDL_RenderPresent(renderer);
         SDL_Delay(10);
