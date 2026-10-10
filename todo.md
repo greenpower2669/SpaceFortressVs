@@ -197,3 +197,14 @@
 - [ ] Raccorder le vrai moteur COOP canonique via `solo_canonical_adapter.hpp` ; tirs, cône, énergie, boucliers, collisions, minage, FX : encore absents du prototype final.
 - [ ] Intégrer un accès SOLO final dans l'application unique après validation des mécaniques ; retirer le lanceur test si devenu inutile.
 - [ ] Ne pas fusionner `main`, ne pas publier de Release sans validation explicite.
+
+
+## SOLO — Canonical kinetic steering/charge (2026-10-10)
+- [x] `src/solo_kinetic_control.hpp` réutilise les vrais `sfKineticSurgePress`, `sfKineticAdvanceSurges`, `sfKineticSurgeRelease` et la géométrie `sfKineticSurgeConeContains` (vaisseau SOLO inférieur = propriétaire cinétique 1).
+- [x] Toucher 1 réservé au pilotage ; toucher 2 ou SPACE : appui court déclenche un tir, appui de 2 secondes déclenche la décharge cinétique à la libération.
+- [x] Première interaction SOLO : suppression des astéroïdes dans le cône historique (simulation de récolte provisoire ; poussières, sons et FX réels encore à raccorder).
+- [x] Jauge visuelle haute lisibilité de charge 2 s, portée et demi-angle issus des constantes cinétiques partagées.
+- [x] Régressions `tests/solo_kinetic_control_regressions.cpp` et `tests/solo_touch_controls_regressions.cpp`, ajoutées à Actions.
+- [ ] Vérifier la CI Android complète au SHA `7faf0eee` ; essais écran Samsung obligatoires.
+- [ ] Coupler moteur COOP réel : énergie/bouclier, vrai tir/missile, poussière blanche, FX et IA. Le prototype reste une démonstration non finale.
+- [ ] Aucun merge vers `main`, ni Release, sans accord explicite.
