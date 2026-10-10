@@ -45,8 +45,10 @@ inline void pilotInput(const Session &s,const TouchPilot &touch,
 }
 } // namespace sfsolo
 
+// Callable entry point for a future Android mode selector; no second SDL main.
+// The historical Android entry point remains unchanged.
 #ifdef SF_SOLO_STANDALONE
-int main(int,char**){
+int runSoloPrototype(){
     if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS)!=0)return 1;
     SDL_Window *window=SDL_CreateWindow("SpaceFortress SOLO Prototype",
         SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,540,960,
@@ -128,4 +130,5 @@ int main(int,char**){
     SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);SDL_Quit();
     return 0;
 }
+int main(int,char**){return runSoloPrototype();}
 #endif
