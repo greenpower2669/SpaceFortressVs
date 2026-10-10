@@ -22,11 +22,11 @@ inline bool finishAndSave(CampaignController &campaign,const std::string &path,
        !campaign.active->bossDefeated || !campaign.active->reachedFinish ||
        campaign.active->pilot.health<=0)return false;
     const auto entry=makeSoloHallEntry(*campaign.active,player,submissionId,
-                                      campaign.selection.difficulty,points);
-    if(!entry.valid() || entry.world!=campaign.selection.world ||
-       entry.stage!=campaign.selection.stage)return false;
+                                      campaign.launchedSelection.difficulty,points);
+    if(!entry.valid() || entry.world!=campaign.launchedSelection.world ||
+       entry.stage!=campaign.launchedSelection.stage)return false;
     Progression updated=campaign.progression;
-    if(!updated.complete(campaign.selection.world,campaign.selection.stage,true))
+    if(!updated.complete(campaign.launchedSelection.world,campaign.launchedSelection.stage,true))
         return false;
     if(!saveProgression(path,updated))return false;
     campaign.progression=updated;
