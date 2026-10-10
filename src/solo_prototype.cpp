@@ -108,6 +108,19 @@ int runSoloPrototype(){
                     }else sfDebugNativeLog("solo","STAGE_LAUNCH_FAILED");
                 }
             }else{
+                // Android needs its own game-over retry: there is no keyboard
+                // "R" button on a phone. One tap relaunches this SAME stage.
+                if(campaign.active &&
+                   campaign.active->phase==sfsolo::Phase::Lost &&
+                   (e.type==SDL_FINGERDOWN ||
+                    (e.type==SDL_MOUSEBUTTONDOWN &&
+                     e.button.button==SDL_BUTTON_LEFT))){
+                    sfDebugNativeLog("solo","RESTART_AFTER_LOSS");
+                    campaign.abandon();
+                    selecting=!campaign.launch();
+                    kinetic.cancel();touch.reset();combat=sfsolo::Combat{};
+                    continue;
+                }
                 if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_r){
                     campaign.abandon();
                     if(!campaign.launch())selecting=true;
@@ -252,6 +265,7 @@ int runSoloPrototype(){
                                    artwork.get());
                 sfsolo::drawKineticCharge(renderer,*campaign.active,
                                           {0,0,w,h},kinetic);
+                sfsolo::drawMissionOverlay(renderer,*campaign.active,{0,0,w,h});
             }else{
                 // A successful victory consumes the session; show the selector
                 // instead of dereferencing an already completed run.
@@ -267,9 +281,11 @@ int runSoloPrototype(){
             if(campaign.active){
                 const auto &p=campaign.active->pilot;
                 std::snprintf(event,sizeof(event),
-                    "HEARTBEAT phase=%d x=%.2f y=%.2f vx=%.2f vy=%.2f hp=%.0f ice=%.2f",
+                    "HEARTBEAT phase=%d x=%.2f y=%.2f vx=%.2f vy=%.2f hp=%.0f ice=%.2f relays=%u/%u",
                     int(campaign.active->phase),p.x,p.y,p.vx,p.vy,
-                    p.health,campaign.active->iceSeconds);
+                    p.health,campaign.active->iceSeconds,
+                    campaign.active->relaysCollected,
+                    campaign.active->relaysNeeded);
             }else{
                 std::snprintf(event,sizeof(event),"HEARTBEAT selector=%d",
                               selecting?1:0);
