@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for source in tests/solo_campaign_model_regressions.cpp tests/solo_map_generator_regressions.cpp tests/solo_session_regressions.cpp tests/solo_tutorial_challenges_regressions.cpp tests/solo_progression_regressions.cpp tests/solo_hall_regressions.cpp tests/solo_stage_selection_regressions.cpp tests/solo_campaign_controller_regressions.cpp tests/solo_progression_storage_regressions.cpp tests/solo_campaign_persistence_regressions.cpp tests/solo_combat_regressions.cpp tests/solo_canonical_adapter_regressions.cpp; do
+          for source in tests/solo_campaign_model_regressions.cpp tests/solo_map_generator_regressions.cpp tests/solo_session_regressions.cpp tests/solo_tutorial_challenges_regressions.cpp tests/solo_progression_regressions.cpp tests/solo_hall_regressions.cpp tests/solo_stage_selection_regressions.cpp tests/solo_campaign_controller_regressions.cpp tests/solo_progression_storage_regressions.cpp tests/solo_campaign_persistence_regressions.cpp tests/solo_combat_regressions.cpp tests/solo_canonical_adapter_regressions.cpp tests/solo_kinetic_control_regressions.cpp; do
             binary="$(mktemp)"
             g++ -std=c++17 -O1 -Wall -Wextra -I src "$source" -o "$binary"
             "$binary"
