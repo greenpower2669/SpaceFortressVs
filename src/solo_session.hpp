@@ -5,11 +5,16 @@
 
 namespace sfsolo {
 enum class Phase { Ready, Flying, BossFight, Won, Lost };
+struct SoloDust {
+    float x=0,y=0,vx=0,vy=0,life=0;
+    bool icy=false;
+};
 struct Session {
     Map map;
     // The map gradually reveals previously explored passages, including
     // backtracked routes on the minimap. Exploration does not expire.
     std::vector<uint8_t> explored;
+    std::vector<SoloDust> dust;
     Pilot pilot;
     Physics physics;
     Phase phase=Phase::Ready;
@@ -52,6 +57,38 @@ struct Session {
                     reveal();
                     return;
                 }
+    }
+    // White ice fragments originate from icy asteroids hit by the kinetic
+    // cone or direct projectile. They float briefly and can slow the ship.
+    void scatterIce(float px,float py){
+        if(dust.size()>128)return;
+        constexpr float directions[8][2]={
+            {1,0},{.70f,.70f},{0,1},{-.70f,.70f},
+            {-1,0},{-.70f,-.70f},{0,-1},{.70f,-.70f}
+        };
+        for(const auto &d:directions)
+            dust.push_back({px,py,d[0]*1.8f,d[1]*1.8f,2.50f,true});
+    }
+    void advanceDust(float dt){
+        for(auto &p:dust){
+            if(p.life<=0)continue;
+            p.life-=dt;
+            // Ice debris drifts towards the moving ship like mining dust.
+            const float dx=pilot.x-p.x,dy=pilot.y-p.y;
+            const float dist=std::hypot(dx,dy);
+            if(dist>.01f){
+                p.vx+=dx/dist*3.0f*dt;
+                p.vy+=dy/dist*3.0f*dt;
+            }
+            p.x+=p.vx*dt;p.y+=p.vy*dt;
+            if(p.icy && std::hypot(p.x-pilot.x,p.y-pilot.y)
+                        <=shipRadius+.24f){
+                iceSeconds=std::max(iceSeconds,ICE_MALUS_SECONDS);
+                p.life=0;
+            }
+        }
+        dust.erase(std::remove_if(dust.begin(),dust.end(),
+            [](const SoloDust &p){return p.life<=0;}),dust.end());
     }
     bool start(){
         if(!map.valid()||phase!=Phase::Ready)return false;
@@ -132,6 +169,7 @@ struct Session {
         // while the predictive offset is bounded to keep the pilot visible.
         const float lookAhead=std::clamp(pilot.vy*.25f,-2.0f,2.0f);
         cameraY=std::clamp(pilot.y+lookAhead,0.0f,float(map.height));
+        advanceDust(dt);
         reveal();
     }
     void stepToward(float worldX,float worldY,float dt) {
