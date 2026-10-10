@@ -30,6 +30,11 @@ def launcher(activity):
 main = activities(APP / "main/AndroidManifest.xml")
 debug = activities(APP / "debug/AndroidManifest.xml")
 assert LEGACY in main and launcher(main[LEGACY]), "release launcher changed"
+assert ET.parse(APP / "debug/AndroidManifest.xml").getroot().find(
+    "./application").get(A+"name", "").endswith(".SpaceFortressDebugApplication"), (
+    "debug application does not register crash journal")
+assert debug[SOLO].get(A+"process") == ":solo", (
+    "SDL SOLO must launch in a separate native process")
 assert SOLO not in main and HUB not in main, "prototype leaked into release"
 assert set(debug) == {LEGACY, SOLO, HUB}, "unexpected debug activities"
 assert debug[LEGACY].get(T+"node") == "replace", "original launcher not replaced"
@@ -37,4 +42,11 @@ assert not launcher(debug[LEGACY]) and not launcher(debug[SOLO])
 assert launcher(debug[HUB]), "single debug launcher missing"
 java = (APP / "debug/java/com/greenpower2669/spacefortressvs/SpaceFortressHubActivity.java").read_text()
 assert "SpaceFortressActivity.class" in java and "SpaceFortressSoloActivity.class" in java
+assert "EXPORTER JOURNAL DEBUG" in java and "ACTION_CREATE_DOCUMENT" in java
+assert (APP / "debug/java/com/greenpower2669/spacefortressvs/SpaceFortressDebugLog.java").is_file()
+assert (APP / "debug/java/com/greenpower2669/spacefortressvs/SpaceFortressDebugApplication.java").is_file()
+native = (ROOT / "src/solo_android_diagnostics.hpp").read_text()
+assert "SF_DIAGNOSTICS_DEBUG" in native
+assert "spacefortress-native-" in native
+
 print("SOLO debug hub static checks OK; release launcher preserved")
