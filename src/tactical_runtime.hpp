@@ -1,3 +1,4 @@
+#include "shared_touch_motion.hpp"
 #pragma once
 #include <array>
 #include <vector>
@@ -307,9 +308,10 @@ static void sfClassicTouchVectorUpdate(float dt)
         const float dx=state.target.x-ship->x,dy=state.target.y-ship->y;
         const float distance=vlong(dx,dy);
         if(distance<=.5f) {ship->x=state.target.x;ship->y=state.target.y;continue;}
-        const float step=std::min(distance,maxSpeed*dt);
-        ship->x=std::clamp(ship->x+dx/distance*step,sfArenaW*.05f,sfArenaW*.95f);
-        ship->y=std::clamp(ship->y+dy/distance*step,sfArenaH*.05f,sfArenaH*.95f);
+        // Shared exact canonical finite vector motion; SOLO uses this helper too.
+        const auto step=sfTouchMovementDelta(dx,dy,maxSpeed,dt);
+        ship->x=std::clamp(ship->x+step.x,sfArenaW*.05f,sfArenaW*.95f);
+        ship->y=std::clamp(ship->y+step.y,sfArenaH*.05f,sfArenaH*.95f);
         ship->startup();
     }
 }
