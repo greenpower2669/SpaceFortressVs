@@ -74,7 +74,7 @@ struct Session {
     // An optional canonical touch target changes only *how* the same ship
     // receives user commands. Keyboard/controller tests keep vector thrust.
     void step(float inputX,float inputY,float dt,
-              bool pointerTarget=false,float targetX=0,float targetY=0){
+              bool pointerTarget=false,float fingerWorldX=0,float fingerWorldY=0){
         if(phase!=Phase::Flying&&phase!=Phase::BossFight)return;
         dt=std::clamp(dt,0.0f,.05f);
         seconds+=dt;
@@ -82,7 +82,7 @@ struct Session {
         iceSeconds=std::max(0.0f,iceSeconds-dt);
         lavaSeconds=std::max(0.0f,lavaSeconds-dt);
         const float oldX=pilot.x,oldY=pilot.y;
-        if(pointerTarget)physics.stepToward(pilot,targetX,targetY,dt,mobility(),
+        if(pointerTarget)physics.stepToward(pilot,fingerWorldX,fingerWorldY,dt,mobility(),
                                               float(map.width));
         else physics.step(pilot,inputX,inputY,dt,mobility());
         const float targetX=std::clamp(pilot.x,shipRadius,float(map.width)-shipRadius);
