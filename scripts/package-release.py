@@ -16,8 +16,23 @@ V131_CERTIFICATE = '8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e56
 
 def update_identity(package_name, code, certificate):
     """Compare the verified APK identity with the published v1.3.1 APK."""
-    if package_name != 'com.greenpower2669.spacefortressvs' or code <= 9:
+    original = 'com.greenpower2669.spacefortressvs'
+    diagnostic = original + '.diagnostic'
+    if code <= 9 or package_name not in (original, diagnostic):
         raise ValueError('APK package/version cannot update the v1.3.1 installation')
+    if package_name == diagnostic:
+        # Explicitly separate: different Android app, cannot replace the
+        # original or claim upload-key/signature continuity. Release AAB keeps
+        # the ORIGINAL package ID, unchanged.
+        return {
+            'referenceVersion': '1.3.1',
+            'referenceCertificateSha256': V131_CERTIFICATE,
+            'compatibleWithV131': False,
+            'sideBySideDiagnostic': True,
+            'message': ('APPLICATION DIAGNOSTIC SEPAREE — installation '
+                        'cote a cote, sans desinstaller le SpaceFortress original. '
+                        'Les sauvegardes et donnees sont isolees.'),
+        }
     compatible = certificate.lower() == V131_CERTIFICATE
     message = ('SIGNATURE IDENTIQUE À LA V1.3.1 — continuité de mise à jour vérifiée.' if compatible else
                'SIGNATURE DIFFÉRENTE DE LA V1.3.1 — APK de test uniquement ; '
@@ -94,7 +109,11 @@ def package():
         ['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     metadata = {
         'game': 'SpaceFortressVs', 'version': name, 'versionCode': code, 'commit': commit,
-        'apk': 'ARM64, debug signing; see updateIdentity before installing', 'aab': 'release bundle, unsigned',
+        'apk': ('ARM64, debug diagnostic, separate Android package' if
+                package_match[1].endswith('.diagnostic') else
+                'ARM64, debug signing; see updateIdentity before installing'),
+        'packageName': package_match[1],
+        'aab': 'release bundle, unsigned',
         'apkCertificateSha256': certificates[0].lower(),
         'updateIdentity': continuity,
         'files': {p.name: {'sha256': digest(p), 'size': p.stat().st_size} for p in destinations},
