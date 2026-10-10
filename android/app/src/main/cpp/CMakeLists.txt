@@ -78,6 +78,8 @@ target_include_directories(main PRIVATE
 )
 
 target_compile_definitions(main PRIVATE GL_GLEXT_PROTOTYPES)
+# Enable on-device persistent crash breadcrumbs in DEBUG APK only.
+target_compile_definitions(main PRIVATE $<$<CONFIG:Debug>:SF_DIAGNOSTICS_DEBUG=1>)
 
 target_link_libraries(main PRIVATE
     SDL2::SDL2
