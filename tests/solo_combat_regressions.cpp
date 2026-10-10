@@ -7,7 +7,7 @@ int main(){
  Combat combat;
  // Put an enemy and boss in a clear firing lane directly ahead.
  const int x=int(s.pilot.x),y=int(s.pilot.y);
- assert(y>1 && y+5<s.map.height);
+ assert(y>=0 && y+5<s.map.height);
  for(int j=y;j<=y+5;j++)s.map.tiles[size_t(j)*s.map.width+x]=Tile::Empty;
  s.map.tiles[size_t(y+2)*s.map.width+x]=Tile::Enemy;
  s.map.tiles[size_t(y+5)*s.map.width+x]=Tile::Boss;
