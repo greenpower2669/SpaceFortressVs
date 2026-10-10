@@ -13,10 +13,13 @@ enum class TouchAction { None, ChargePressed, ChargeReleased };
 struct TouchPilot {
     SDL_FingerID finger=-1,chargeFinger=-1;
     float targetX=0,targetY=0,aimX=0,aimY=0;
+    float startFingerX=0,startFingerY=0,anchorShipX=0,anchorShipY=0;
+    bool hasWorldAnchor=false;
     bool down=false,chargeDown=false;
 
     TouchAction handle(const SDL_Event &e,int width,int height,
-                       float shipScreenX=-1,float shipScreenY=-1){
+                       float shipScreenX=-1,float shipScreenY=-1,
+                       float shipWorldX=NAN,float shipWorldY=NAN){
         if(width<=0||height<=0)return TouchAction::None;
         if(e.type!=SDL_FINGERDOWN && e.type!=SDL_FINGERMOTION &&
            e.type!=SDL_FINGERUP)return TouchAction::None;
@@ -32,6 +35,9 @@ struct TouchPilot {
                 <=std::max(48.0f,float(width)*.17f);
             if(!down && nearShip){
                 finger=id;down=true;targetX=sx;targetY=sy;
+                startFingerX=sx;startFingerY=sy;
+                hasWorldAnchor=std::isfinite(shipWorldX)&&std::isfinite(shipWorldY);
+                if(hasWorldAnchor){anchorShipX=shipWorldX;anchorShipY=shipWorldY;}
                 return TouchAction::None;
             }
             if(!chargeDown && id!=finger){
@@ -49,21 +55,30 @@ struct TouchPilot {
                 chargeDown=false;chargeFinger=-1;
                 return TouchAction::ChargeReleased;
             }
-            if(down&&id==finger){down=false;finger=-1;}
+            if(down&&id==finger){down=false;finger=-1;hasWorldAnchor=false;}
         }
         return TouchAction::None;
     }
-    void reset(){finger=chargeFinger=-1;down=chargeDown=false;}
+    void reset(){finger=chargeFinger=-1;down=chargeDown=false;
+                 hasWorldAnchor=false;}
 };
 inline void pilotTarget(const Session &s,const TouchPilot &touch,
                         int width,int height,float &tx,float &ty) {
     tx=s.pilot.x;ty=s.pilot.y;
     if(!touch.down||width<=0||height<=0)return;
     const SoloViewport camera=soloViewport(s,{0,0,width,height});
-    tx=std::clamp(camera.left+touch.targetX/camera.cell,
-                  s.shipRadius,float(s.map.width)-s.shipRadius);
-    ty=std::clamp(camera.top+touch.targetY/camera.cell,
-                  s.shipRadius,float(s.map.height)-s.shipRadius);
+    if(touch.hasWorldAnchor){
+        // Anchor the drag to the ship's WORLD position at finger-down.
+        // Camera movement never changes the target when the finger is still.
+        tx=touch.anchorShipX+(touch.targetX-touch.startFingerX)/camera.cell;
+        ty=touch.anchorShipY+(touch.targetY-touch.startFingerY)/camera.cell;
+    }else{
+        // Legacy desktop/test fallback for events without a world anchor.
+        tx=camera.left+touch.targetX/camera.cell;
+        ty=camera.top+touch.targetY/camera.cell;
+    }
+    tx=std::clamp(tx,s.shipRadius,float(s.map.width)-s.shipRadius);
+    ty=std::clamp(ty,s.shipRadius,float(s.map.height)-s.shipRadius);
 }
 inline void aimWorldPoint(const Session &s,float screenX,float screenY,
                          int width,int height,float &tx,float &ty) {

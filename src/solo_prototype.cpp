@@ -72,6 +72,8 @@ int runSoloPrototype(){
     while(running){
         SDL_Event e;
         int w=540,h=960;SDL_GetRendererOutputSize(renderer,&w,&h);
+        if(!selecting && campaign.active)
+            sfsolo::soloUpdateCamera(*campaign.active,{0,0,w,h});
         while(SDL_PollEvent(&e)){
             if(e.type==SDL_QUIT){
                 sfDebugNativeLog("solo","SDL_QUIT_EVENT");running=false;
@@ -150,7 +152,9 @@ int runSoloPrototype(){
                         sx=camera.x(campaign.active->pilot.x);
                         sy=camera.y(campaign.active->pilot.y);
                     }
-                    action=touch.handle(e,w,h,sx,sy);
+                    action=touch.handle(e,w,h,sx,sy,
+                        campaign.active?campaign.active->pilot.x:NAN,
+                        campaign.active?campaign.active->pilot.y:NAN);
                 }
                 if(action==sfsolo::TouchAction::ChargePressed){
                     touchAimAt(touch.aimX,touch.aimY);
@@ -210,8 +214,11 @@ int runSoloPrototype(){
             if(touch.down && !keyboard){
                 float tx=0,ty=0;
                 sfsolo::pilotTarget(*campaign.active,touch,w,h,tx,ty);
-                campaign.active->stepToward(tx,ty,dt);
+                const auto cam=sfsolo::soloViewport(
+                    *campaign.active,{0,0,w,h});
+                campaign.active->stepToward(tx,ty,dt,cam.visibleColumns());
             }else campaign.active->step(ax,ay,dt);
+            sfsolo::soloUpdateCamera(*campaign.active,{0,0,w,h});
             if(touch.chargeDown){
                 float aimX=0,aimY=0;
                 sfsolo::aimWorldPoint(*campaign.active,

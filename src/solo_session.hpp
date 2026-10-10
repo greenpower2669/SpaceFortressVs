@@ -19,6 +19,11 @@ struct Session {
     Physics physics;
     Phase phase=Phase::Ready;
     float seconds=0, cameraY=0;
+    // SOLO camera hysteresis. Owned by the level, not recalculated from the
+    // current finger target, so a camera pan cannot feed back into steering.
+    float viewLeft=0,viewTop=0;
+    bool viewReady=false;
+    int viewWidth=0,viewHeight=0;
     unsigned enemiesDefeated=0;
     unsigned enemiesAvailable=0;
     bool reachedFinish=false;
@@ -111,7 +116,8 @@ struct Session {
     // An optional canonical touch target changes only *how* the same ship
     // receives user commands. Keyboard/controller tests keep vector thrust.
     void step(float inputX,float inputY,float dt,
-              bool pointerTarget=false,float fingerWorldX=0,float fingerWorldY=0){
+              bool pointerTarget=false,float fingerWorldX=0,float fingerWorldY=0,
+              float touchSpeedColumns=0){
         if(phase!=Phase::Flying&&phase!=Phase::BossFight)return;
         dt=std::clamp(dt,0.0f,.05f);
         seconds+=dt;
@@ -120,7 +126,7 @@ struct Session {
         lavaSeconds=std::max(0.0f,lavaSeconds-dt);
         const float oldX=pilot.x,oldY=pilot.y;
         if(pointerTarget)physics.stepToward(pilot,fingerWorldX,fingerWorldY,dt,mobility(),
-                                              float(map.width));
+                          touchSpeedColumns>0?touchSpeedColumns:float(map.width));
         else physics.step(pilot,inputX,inputY,dt,mobility());
         const float targetX=std::clamp(pilot.x,shipRadius,float(map.width)-shipRadius);
         const float targetY=std::clamp(pilot.y,shipRadius,float(map.height)-shipRadius);
@@ -172,8 +178,15 @@ struct Session {
         advanceDust(dt);
         reveal();
     }
-    void stepToward(float worldX,float worldY,float dt) {
-        step(0,0,dt,true,worldX,worldY);
+    void stepToward(float worldX,float worldY,float dt,
+                    float visibleWorldColumns=0) {
+        // Same velocity on screen as the historical touch control. Zooming
+        // the scenery x3 must not triple ship speed in screen pixels.
+        if(visibleWorldColumns<=0){step(0,0,dt,true,worldX,worldY);return;}
+        if(phase!=Phase::Flying&&phase!=Phase::BossFight)return;
+        // Reuse collision/ice logic in step(), while passing the display-based
+        // width into Physics::stepToward via an explicit optional parameter.
+        step(0,0,dt,true,worldX,worldY,visibleWorldColumns);
     }
 };
 struct MiniMapPoint { float x=0,y=0; };

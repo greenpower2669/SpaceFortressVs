@@ -196,8 +196,10 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
     }
     const int shipX=camera.pixelX(s.pilot.x);
     const int shipY=camera.pixelY(s.pilot.y);
-    const int radius=std::max(17,int(cell*.90f));
-    const int pulse=std::max(1,int(cell*.09f));
+    // Graphic ship size intentionally remains EXACTLY the old one: zoom x3
+    // applies to terrain only. The pilot's world collision radius is intact.
+    const int radius=soloShipRadiusPixels(viewport);
+    const int pulse=std::max(1,int(float(viewport.w)/18.0f*.09f));
     SDL_SetRenderDrawColor(r,58,204,250,255);
     for(int k=0;k<2;++k){
         SDL_Rect glow{shipX-radius-pulse-k*2,shipY-radius-pulse-k*2,
