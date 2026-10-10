@@ -2,6 +2,7 @@
 // Isolated SDL2 visual prototype for SOLO. It does not change classic or COOP.
 #include "solo_session.hpp"
 #include "solo_combat.hpp"
+#include "solo_kinetic_control.hpp"
 #include <SDL2/SDL.h>
 #include <algorithm>
 #include <cmath>
@@ -68,6 +69,40 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport){
             std::max(0,int(viewport.w*.32f*std::clamp(s.pilot.health/100.0f,0.0f,1.0f))),7},
          {90,220,130,255});
 }
+
+
+ // Temporary high-contrast charge aid for the SOLO debug prototype.
+ // Values and cone geometry come from the real shared kinetic model, not
+ // from a parallel copy of its two-second timer or danger-level formula.
+ inline void drawKineticCharge(SDL_Renderer *r,const Session &s,SDL_Rect viewport){
+     if(!r || viewport.w<=0 || viewport.h<=0 || !sfKineticSurges[1].held)return;
+     const auto &surge=sfKineticSurges[1];
+     const float progress=std::clamp(
+         surge.heldSeconds/SF_KINETIC_SURGE_HOLD_SECONDS,0.0f,1.0f);
+     const int barW=std::max(60,viewport.w/2);
+     const int barH=std::max(12,viewport.h/65);
+     const int barX=viewport.x+(viewport.w-barW)/2;
+     const int barY=viewport.y+viewport.h-barH-18;
+     fill(r,{barX-3,barY-3,barW+6,barH+6},{255,255,255,255});
+     fill(r,{barX,barY,barW,barH},{20,37,62,255});
+     fill(r,{barX,barY,int(barW*progress),barH},
+          surge.charged ? SDL_Color{94,255,153,255}
+                        : SDL_Color{255,224,94,255});
+     if(!sfKineticSurgeVisible(1))return;
+     const float cell=std::max(1.0f,float(viewport.w)/float(s.map.width));
+     const float rows=float(viewport.h)/cell;
+     const float top=std::clamp(s.cameraY-rows*.58f,0.0f,
+                               std::max(0.0f,float(s.map.height)-rows));
+     const int shipX=viewport.x+int(s.pilot.x*cell);
+     const int shipY=viewport.y+int((s.pilot.y-top)*cell);
+     const float range=2.0f*s.shipRadius*sfKineticSurgeMiningRangeDiameters();
+     const int frontY=shipY-int(range*cell);
+     const int half=int(sfKineticSurgeConeHalfWidth(range)*cell);
+     SDL_SetRenderDrawColor(r,115,230,255,255);
+     SDL_RenderDrawLine(r,shipX,shipY,shipX-half,frontY);
+     SDL_RenderDrawLine(r,shipX,shipY,shipX+half,frontY);
+     SDL_RenderDrawLine(r,shipX-half,frontY,shipX+half,frontY);
+ }
 
 // Render SOLO projectiles and boss health using the same camera transform.
 inline void drawCombat(SDL_Renderer *r,const Session &s,const Combat &combat,SDL_Rect viewport){
