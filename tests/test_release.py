@@ -27,6 +27,17 @@ class SignatureContinuity(unittest.TestCase):
         self.assertFalse(status['compatibleWithV131'])
         self.assertIn('SIGNATURE', status['message'])
 
+    def test_side_by_side_debug_package_never_claims_release_compatibility(self):
+        official = '8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868'
+        info = packager.update_identity(
+            'com.greenpower2669.spacefortressvs.diagnostic', 12, official)
+        self.assertFalse(info['compatibleWithV131'])
+        self.assertTrue(info['sideBySideDiagnostic'])
+        self.assertIn('SEPAREE', info['message'])
+        with self.assertRaises(ValueError):
+            packager.update_identity(
+                'com.greenpower2669.spacefortressvs.diagnostic', 8, official)
+
     def test_matching_key_does_not_hide_wrong_package_or_version(self):
         certificate = '8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868'
         for package, code in [('other.app', 10), ('com.greenpower2669.spacefortressvs', 8)]:
