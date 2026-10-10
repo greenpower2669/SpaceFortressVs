@@ -56,8 +56,8 @@ int main(){
     assert(slowScroll>0 && fastScroll>=3.0f*slowScroll);
     assert(soloViewport(fast,phone).y(fast.pilot.y)>phone.h*.35f);
     assert(soloViewport(fast,phone).y(fast.pilot.y)<phone.h*.87f);
-    // A frozen ship needs four times as much thumb displacement for the same
-    // input value, with the physical thrust and speed limited to one quarter.
+    // An environmental ice slowdown changes physics, NEVER changes the
+    // pilot's touch sensitivity or where the player aims.
     const auto view=soloViewport(fast,phone);
     TouchPilot control;control.down=true;
     control.targetX=view.x(fast.pilot.x)+20;
@@ -67,5 +67,5 @@ int main(){
     fast.iceSeconds=2.0f;
     pilotInput(fast,control,phone.w,phone.h,iceX,iceY);
     assert(normalX>0 && iceX>0);
-    assert(std::abs(normalX/iceX-4.0f)<.02f);
+    assert(std::abs(normalX-iceX)<.001f);
 }

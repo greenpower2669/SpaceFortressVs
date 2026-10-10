@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Install SDL2 headers
-        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libsdl2-dev
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev
       - name: Verify test hub does not replace release launcher
         run: python3 scripts/check-solo-launcher.py
       - name: Compile and test touchscreen selector
@@ -53,7 +53,7 @@ jobs:
       - name: Check SOLO camera zoom and ship visibility on Android
         run: g++ -std=c++17 -O1 -Wall -Wextra -I src tests/solo_viewport_regressions.cpp -o /tmp/solo-view-test $(sdl2-config --cflags --libs) && /tmp/solo-view-test
       - name: Build complete SOLO SDL2 prototype executable
-        run: g++ -std=c++17 -O1 -Wall -Wextra -DSF_SOLO_STANDALONE -I src src/solo_prototype.cpp -o /tmp/spacefortress-solo-prototype $(sdl2-config --cflags --libs)
+        run: g++ -std=c++17 -O1 -Wall -Wextra -DSF_SOLO_STANDALONE -I src src/solo_prototype.cpp -o /tmp/spacefortress-solo-prototype $(sdl2-config --cflags --libs) -lSDL2_image
       - name: Check SOLO executable linked to SDL2
         run: test -x /tmp/spacefortress-solo-prototype && ldd /tmp/spacefortress-solo-prototype | grep -q SDL2
       - name: Verify SOLO runner links without defining a second main

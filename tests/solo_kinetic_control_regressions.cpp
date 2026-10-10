@@ -33,5 +33,29 @@ int main(){
     for(int n=0;n<41;++n)control.advance(.05f);
     assert(control.release(s));
     assert(s.map.at(x,y-1)==Tile::Asteroid);
+    // Point at an asteroid BEHIND/LEFT/RIGHT: the same charge must harvest
+    // it, using the same canonical range and cone shape.
+    sfBossDangerIndex=0;
+    const int backY=y+1;
+    s.map.tiles[size_t(backY)*s.map.width+x]=Tile::Asteroid;
+    control.aimAt(s,s.pilot.x,s.pilot.y+15);
+    control.press();
+    for(int n=0;n<41;++n)control.advance(.05f);
+    assert(control.release(s));
+    assert(s.map.at(x,backY)==Tile::Empty);
+    const int leftX=x-1,rightX=x+1;
+    s.map.tiles[size_t(y)*s.map.width+leftX]=Tile::Asteroid;
+    s.map.tiles[size_t(y)*s.map.width+rightX]=Tile::Asteroid;
+    control.aimAt(s,s.pilot.x-15,s.pilot.y);
+    control.press();
+    for(int n=0;n<41;++n)control.advance(.05f);
+    assert(control.release(s));
+    assert(s.map.at(leftX,y)==Tile::Empty);
+    assert(s.map.at(rightX,y)==Tile::Asteroid);
+    control.aimAt(s,s.pilot.x+15,s.pilot.y);
+    control.press();
+    for(int n=0;n<41;++n)control.advance(.05f);
+    assert(control.release(s));
+    assert(s.map.at(rightX,y)==Tile::Empty);
     sfBossDangerIndex=2;
 }

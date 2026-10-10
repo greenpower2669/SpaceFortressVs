@@ -45,4 +45,24 @@ int main(){
     touch.reset();
     assert(!touch.down && !touch.chargeDown);
     assert(touch.chargeFinger==-1);
+    // Ship-relative gesture routing: drag directly from the vessel while a
+    // one-finger tap elsewhere triggers the directional weapon.
+    const float shipX=w*.5f,shipY=h*.67f;
+    assert(touch.handle(finger(SDL_FINGERDOWN,50,.93f,.11f),
+                        w,h,shipX,shipY)==TouchAction::ChargePressed);
+    assert(!touch.down && touch.chargeDown);
+    assert(touch.handle(finger(SDL_FINGERUP,50,.93f,.11f),
+                        w,h,shipX,shipY)==TouchAction::ChargeReleased);
+    assert(touch.handle(finger(SDL_FINGERDOWN,51,.5f,.67f),
+                        w,h,shipX,shipY)==TouchAction::None);
+    assert(touch.down && !touch.chargeDown);
+    assert(touch.handle(finger(SDL_FINGERDOWN,52,.9f,.11f),
+                        w,h,shipX,shipY)==TouchAction::ChargePressed);
+    assert(touch.handle(finger(SDL_FINGERMOTION,52,.12f,.5f),
+                        w,h,shipX,shipY)==TouchAction::None);
+    assert(touch.aimX<w*.2f);
+    assert(touch.handle(finger(SDL_FINGERUP,52,.12f,.5f),
+                        w,h,shipX,shipY)==TouchAction::ChargeReleased);
+    assert(touch.down);
+    touch.reset();
 }

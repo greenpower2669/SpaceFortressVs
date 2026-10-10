@@ -8,13 +8,16 @@ int main(){
  assert(a.at(a.width/2,a.height-3)==Tile::Start);
  assert(a.at(a.width/2,2)==Tile::Finish);
  assert(a.at(a.width/2,9)==Tile::Boss);
- assert(hasVerticalSafeCorridor(a));
+ assert(soloMazeConnected(a));
+ unsigned beacons=0;
+ for(auto tile:a.tiles)beacons+=(tile==Tile::Trigger);
+ assert(beacons==3);
  for(unsigned world=1;world<=12;world++)
    for(unsigned stage=1;stage<=20;stage++)
      for(unsigned difficulty=1;difficulty<=9;difficulty++){
        o.world=world;o.stage=stage;o.difficulty=difficulty;
        Map m=generate(o);
-       assert(m.valid() && hasVerticalSafeCorridor(m));
+       assert(m.valid() && soloMazeConnected(m));
      }
  o.width=12;assert(!generate(o).valid());
  o.width=54;o.stage=21;assert(!generate(o).valid());

@@ -5,8 +5,8 @@
 int main(){
     using namespace sfsolo;
     const Map m=generate({});
-    assert(m.valid() && m.version==2);
-    assert(m.id.find("-V2")!=std::string::npos);
+    assert(m.valid() && m.version==3);
+    assert(m.id.find("-MAZE-V3")!=std::string::npos);
     bool iceTile=false;
     for(const auto tile:m.tiles)if(tile==Tile::IceAsteroid)iceTile=true;
     assert(iceTile); // first stage always teaches the ice mechanic

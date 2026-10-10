@@ -16,6 +16,9 @@ int main(){
  assert(s.phase==Phase::BossFight);
  s.defeatBoss();assert(s.bossDefeated && s.phase==Phase::Flying);
  s.pilot.y=2.5f;s.step(0,0,.01f);
+ assert(s.phase!=Phase::Won); // finish locked until the maze relays are found
+ assert(s.relaysNeeded==3);
+ s.relaysCollected=s.relaysNeeded;s.step(0,0,.01f);
  assert(s.phase==Phase::Won);
  Session loss(m);assert(loss.start());loss.damage(150);
  assert(loss.phase==Phase::Lost);loss.repair(200);
