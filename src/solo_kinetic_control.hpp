@@ -44,7 +44,8 @@ struct KineticSurgeControl {
         const int bottom=std::min(s.map.height-1,int(std::ceil(s.pilot.y+range+1)));
         for(int y=top;y<=bottom;++y)for(int x=left;x<=right;++x){
             const size_t index=size_t(y)*size_t(s.map.width)+size_t(x);
-            if(s.map.tiles[index]!=Tile::Asteroid)continue;
+            if(s.map.tiles[index]!=Tile::Asteroid &&
+               s.map.tiles[index]!=Tile::IceAsteroid)continue;
             if(sfKineticSurgeConeContains(owner,s.pilot.x,s.pilot.y,
                                           x+.5f,y+.5f,range,.15f)){
                 s.map.tiles[index]=Tile::Empty;

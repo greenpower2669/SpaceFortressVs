@@ -55,7 +55,7 @@ struct Combat {
                         }
                     }
                     shot.life=0;
-                }else if(tile==Tile::Rock||tile==Tile::Asteroid){
+                }else if(tile==Tile::Rock||tile==Tile::Asteroid||tile==Tile::IceAsteroid){
                     shot.life=0;
                 }
             }

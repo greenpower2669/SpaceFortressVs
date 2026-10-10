@@ -4,6 +4,7 @@
 #include "solo_viewport.hpp"
 #include "solo_combat.hpp"
 #include "solo_kinetic_control.hpp"
+#include "solo_bitmap_font.hpp"
 #include <SDL2/SDL.h>
 #include <algorithm>
 #include <cmath>
@@ -14,7 +15,8 @@ inline SDL_Color tileColor(Tile tile){
         case Tile::Empty: return {9,13,28,255};
         case Tile::Rock: return {110,118,132,255};
         case Tile::Lava: return {255,104,25,255};
-        case Tile::Asteroid: return {230,231,238,255};
+        case Tile::Asteroid: return {168,180,196,255};
+        case Tile::IceAsteroid: return {238,250,255,255};
         case Tile::Beam: return {160,75,245,255};
         case Tile::Enemy: return {245,64,64,255};
         case Tile::Boss: return {255,40,180,255};
@@ -60,7 +62,7 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport){
             // original artwork: asteroid = rough cross, enemy = red square.
             const int cx=camera.pixelX(x+.5f),cy=camera.pixelY(y+.5f);
             const int radius=std::max(5,int(cell*.30f));
-            if(t==Tile::Asteroid){
+            if(t==Tile::Asteroid || t==Tile::IceAsteroid){
                 fill(r,{cx-radius,cy-radius/2,radius*2+1,radius+1},tileColor(t));
                 fill(r,{cx-radius/2,cy-radius,radius+1,radius*2+1},tileColor(t));
             }else{
@@ -80,6 +82,14 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport){
     SDL_SetRenderDrawColor(r,255,255,255,255);
     SDL_RenderDrawLine(r,shipX,shipY-radius+3,shipX,shipY+radius/2);
     fill(r,{shipX-3,shipY-2,7,12},{80,193,255,255});
+    if(s.iceActive()){
+        SDL_SetRenderDrawColor(r,220,251,255,255);
+        const int halo=radius+std::max(4,radius/3);
+        SDL_RenderDrawLine(r,shipX-halo,shipY,shipX,shipY-halo);
+        SDL_RenderDrawLine(r,shipX,shipY-halo,shipX+halo,shipY);
+        SDL_RenderDrawLine(r,shipX+halo,shipY,shipX,shipY+halo);
+        SDL_RenderDrawLine(r,shipX,shipY+halo,shipX-halo,shipY);
+    }
     // The REAL minimap remains a separate, smaller upper-right widget.
     const int mw=std::max(46,viewport.w/7),mh=std::max(66,viewport.h/6);
     const int hudY=viewport.y+std::max(40,viewport.h/18);
@@ -91,6 +101,13 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport){
     if(!s.bossDefeated)
         fill(r,{mini.x+mw/2-2,mini.y+int(9.5f/s.map.height*mh)-2,5,5},
              {255,54,176,255});
+    if(s.iceActive()){
+        // Accessible status: temporary 2.5-second ice malus, never permanent.
+        const SDL_Rect tag{viewport.x+12,hudY+26,
+                           std::max(135,viewport.w*2/5),std::max(37,viewport.h/30)};
+        fill(r,tag,{28,86,128,255});
+        soloLabel(r,"GLACE",tag,{255,255,255,255},std::max(3,viewport.w/180));
+    }
     // HUD also clears the phone status bar for a readable health indicator.
     fill(r,{viewport.x+12,hudY,std::max(1,int(viewport.w*.35f)),11},
          {85,32,38,255});

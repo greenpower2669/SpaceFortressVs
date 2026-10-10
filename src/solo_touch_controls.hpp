@@ -51,7 +51,8 @@ inline void pilotInput(const Session &s,const TouchPilot &touch,
     const float screenY=camera.y(s.pilot.y);
     // x4 control gain: full steering with a quarter of the old thumb travel.
     // Keep ship speed physically capped: no teleports or instant set-position.
-    ax=std::clamp((touch.targetX-screenX)/std::max(1.0f,width*.18f/SOLO_REACTIVITY_MULTIPLIER),-1.0f,1.0f);
-    ay=std::clamp((touch.targetY-screenY)/std::max(1.0f,height*.18f/SOLO_REACTIVITY_MULTIPLIER),-1.0f,1.0f);
+    const float gain=s.iceActive()?1.0f:SOLO_REACTIVITY_MULTIPLIER;
+    ax=std::clamp((touch.targetX-screenX)/std::max(1.0f,width*.18f/gain),-1.0f,1.0f);
+    ay=std::clamp((touch.targetY-screenY)/std::max(1.0f,height*.18f/gain),-1.0f,1.0f);
 }
 } // namespace sfsolo

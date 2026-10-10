@@ -7,6 +7,8 @@ int main(){
  m.tiles[10]=Tile::Start;m.tiles[1]=Tile::Finish;
  assert(m.valid());assert(m.at(-1,0)==Tile::Rock);
  assert(fromRgb(0xff,0x80,0)==Tile::Lava);
+ assert(fromRgb(0xea,0xf9,0xff)==Tile::IceAsteroid);
+ assert(fromRgb(0xff,0xff,0xff)==Tile::Asteroid);
  assert(fromRgb(0x12,0x34,0x56)==Tile::Rock);
  Physics physics;Pilot pilot;
  assert(SOLO_REACTIVITY_MULTIPLIER==4.0f);

@@ -8,7 +8,7 @@
 #include <vector>
 
 namespace sfsolo {
-enum class Tile : uint8_t { Empty, Rock, Lava, Asteroid, Beam, Enemy, Boss, Start, Finish, Trigger };
+enum class Tile : uint8_t { Empty, Rock, Lava, Asteroid, Beam, Enemy, Boss, Start, Finish, Trigger, IceAsteroid };
 struct Map {
     std::string id;
     unsigned version=1, world=1, stage=1;
@@ -33,6 +33,7 @@ inline Tile fromRgb(uint8_t r,uint8_t g,uint8_t b) {
       case 0x808080: return Tile::Rock;
       case 0xff8000: return Tile::Lava;
       case 0xffffff: return Tile::Asteroid;
+      case 0xeaf9ff: return Tile::IceAsteroid; // rare bright white ice hazard
       case 0x8000ff: return Tile::Beam;
       case 0xff0000: return Tile::Enemy;
       case 0xff00ff: return Tile::Boss;
@@ -52,19 +53,22 @@ struct Physics {
     float thrust=5.0f*SOLO_REACTIVITY_MULTIPLIER;
     float damping=0.35f;
     float maxSpeed=7.0f*SOLO_REACTIVITY_MULTIPLIER;
-    void step(Pilot &p,float inputX,float inputY,float dt) const {
+    void step(Pilot &p,float inputX,float inputY,float dt,float mobility=1.0f) const {
         dt=std::clamp(dt,0.0f,0.05f);
         const float magnitude=std::hypot(inputX,inputY);
         if(magnitude>1.0f){inputX/=magnitude;inputY/=magnitude;}
-        p.vx+=inputX*thrust*dt;
-        p.vy+=inputY*thrust*dt;
+        // Ice restores quarter-speed/quarter-acceleration temporarily.
+        mobility=std::clamp(mobility,.25f,1.0f);
+        p.vx+=inputX*thrust*mobility*dt;
+        p.vy+=inputY*thrust*mobility*dt;
         // Fourfold stronger braking when no finger/keyboard direction is held.
         const float drag=std::max(0.0f,damping)*
-                         (magnitude<.001f ? SOLO_REACTIVITY_MULTIPLIER : 1.0f);
+                         (magnitude<.001f ? SOLO_REACTIVITY_MULTIPLIER*mobility : 1.0f);
         const float factor=std::exp(-drag*dt);
         p.vx*=factor;p.vy*=factor;
         const float speed=std::hypot(p.vx,p.vy);
-        if(speed>maxSpeed && speed>0){p.vx*=maxSpeed/speed;p.vy*=maxSpeed/speed;}
+        const float speedLimit=maxSpeed*mobility;
+        if(speed>speedLimit && speed>0){p.vx*=speedLimit/speed;p.vy*=speedLimit/speed;}
         p.x+=p.vx*dt;p.y+=p.vy*dt;
     }
 };

@@ -26,9 +26,9 @@ inline Map generate(const MapOptions &o) {
     if(o.world==0 || o.stage==0 || o.stage>20 || o.difficulty<1 ||
        o.difficulty>9 || o.width<24 || o.width>512 ||
        o.height<32 || o.height>8192) return m;
-    m.world=o.world;m.stage=o.stage;m.version=1;
+    m.world=o.world;m.stage=o.stage;m.version=2;
     m.id="W"+std::to_string(o.world)+"-S"+std::to_string(o.stage)+
-         "-D"+std::to_string(o.difficulty)+"-V1";
+         "-D"+std::to_string(o.difficulty)+"-V2";
     m.width=o.width;m.height=o.height;
     m.tiles.assign(size_t(m.width)*size_t(m.height),Tile::Empty);
     Rng rng(o.campaignSeed ^ (o.world*0x85ebca6bu) ^
@@ -50,6 +50,10 @@ inline Map generate(const MapOptions &o) {
             // Fewer recovery asteroids on the highest difficulty.
             if(obstacle==Tile::Asteroid && o.difficulty>=8 &&
                rng.next()%3u!=0u) obstacle=Tile::Enemy;
+            // Some white ice asteroids briefly restore the old sluggish
+            // response on contact; ordinary mineable rocks stay distinct.
+            if(obstacle==Tile::Asteroid && rng.next()%4u==0u)
+                obstacle=Tile::IceAsteroid;
             put(x,y,obstacle);
         }
     }
@@ -59,6 +63,8 @@ inline Map generate(const MapOptions &o) {
         if(o.difficulty<8 || (rng.next()%3u==0u))
             put(mid-5,y-5,Tile::Asteroid);
     }
+    // First stage always teaches the rare ice hazard outside the safe lane.
+    if(o.stage==1 && m.height>=64)put(mid+5,m.height-28,Tile::IceAsteroid);
     // Boss before finish; its runtime encounter must be defeated to exit.
     put(mid,m.height>30 ? 9 : 5,Tile::Boss);
     put(mid,m.height-3,Tile::Start);

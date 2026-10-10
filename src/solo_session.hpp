@@ -17,6 +17,9 @@ struct Session {
     bool bossDefeated=false;
     float shipRadius=.30f;
     float collisionCooldown=0;
+    static constexpr float ICE_MALUS_SECONDS=2.50f;
+    float iceSeconds=0;
+    bool iceActive() const {return iceSeconds>0.0f;}
     explicit Session(Map source):map(std::move(source)) {
         for(const auto tile:map.tiles)if(tile==Tile::Enemy)++enemiesAvailable;
         for(int y=0;y<map.height;y++)
@@ -50,27 +53,47 @@ struct Session {
         dt=std::clamp(dt,0.0f,.05f);
         seconds+=dt;
         collisionCooldown=std::max(0.0f,collisionCooldown-dt);
+        iceSeconds=std::max(0.0f,iceSeconds-dt);
         const float oldX=pilot.x,oldY=pilot.y;
-        physics.step(pilot,inputX,inputY,dt);
-        pilot.x=std::clamp(pilot.x,shipRadius,float(map.width)-shipRadius);
-        pilot.y=std::clamp(pilot.y,shipRadius,float(map.height)-shipRadius);
-        const Tile hit=map.at(int(pilot.x),int(pilot.y));
-        if(hit==Tile::Rock){
-            pilot.x=oldX;pilot.y=oldY;pilot.vx=pilot.vy=0;
-            if(collisionCooldown==0){damage(8);collisionCooldown=.45f;}
-        }else if(hit==Tile::Lava||hit==Tile::Beam){
-            if(collisionCooldown==0){damage(hit==Tile::Lava?12:9);collisionCooldown=.45f;}
-        }else if(hit==Tile::Asteroid){
-            if(collisionCooldown==0){damage(5);collisionCooldown=.45f;}
-        }else if(hit==Tile::Boss && !bossDefeated){
-            phase=Phase::BossFight;
-        }else if(hit==Tile::Finish){
-            reachedFinish=true;
-            if(bossDefeated)phase=Phase::Won;
+        physics.step(pilot,inputX,inputY,dt,iceActive()?.25f:1.0f);
+        const float targetX=std::clamp(pilot.x,shipRadius,float(map.width)-shipRadius);
+        const float targetY=std::clamp(pilot.y,shipRadius,float(map.height)-shipRadius);
+        // x4 movement can cross multiple cells per frame. Sweep through the
+        // entire flight path so rocks and icy/ordinary asteroids cannot vanish
+        // between endpoint collision checks.
+        const float dx=targetX-oldX,dy=targetY-oldY;
+        const int samples=std::max(1,int(std::ceil(std::hypot(dx,dy)/.20f)));
+        float safeX=oldX,safeY=oldY;
+        for(int i=1;i<=samples;++i){
+            const float part=float(i)/float(samples);
+            pilot.x=std::clamp(oldX+dx*part,shipRadius,float(map.width)-shipRadius);
+            pilot.y=std::clamp(oldY+dy*part,shipRadius,float(map.height)-shipRadius);
+            const Tile hit=map.at(int(pilot.x),int(pilot.y));
+            if(hit==Tile::Rock){
+                pilot.x=safeX;pilot.y=safeY;pilot.vx=pilot.vy=0;
+                if(collisionCooldown<=0){damage(8);collisionCooldown=.45f;}
+                break;
+            }
+            if(hit==Tile::Asteroid||hit==Tile::IceAsteroid||
+               hit==Tile::Lava||hit==Tile::Beam){
+                if(collisionCooldown<=0){
+                    damage(hit==Tile::Lava?12.0f:
+                           hit==Tile::Beam?9.0f:5.0f);
+                    if(hit==Tile::IceAsteroid)
+                        iceSeconds=ICE_MALUS_SECONDS;
+                    collisionCooldown=.45f;
+                }
+            }else if(hit==Tile::Boss && !bossDefeated){
+                phase=Phase::BossFight;
+            }else if(hit==Tile::Finish){
+                reachedFinish=true;
+                if(bossDefeated)phase=Phase::Won;
+            }
+            if(phase==Phase::Lost || phase==Phase::Won)break;
+            safeX=pilot.x;safeY=pilot.y;
         }
-        // Camera follows with a slight look-ahead in direction of travel.
-        // Camera follows actual ship motion every frame. The x4 faster ship
-        // scrolls the map x4 faster; cap prediction to keep the ship onscreen.
+        // Follow real ship position every frame. x4 motion causes x4 scroll,
+        // while the predictive offset is bounded to keep the pilot visible.
         const float lookAhead=std::clamp(pilot.vy*.25f,-2.0f,2.0f);
         cameraY=std::clamp(pilot.y+lookAhead,0.0f,float(map.height));
     }

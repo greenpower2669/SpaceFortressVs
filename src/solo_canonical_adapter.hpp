@@ -19,6 +19,8 @@ struct CanonicalAdapter {
   bounded.dt=std::clamp(input.dt,0.0f,.05f);
   bounded.x=std::clamp(input.x,-1.0f,1.0f);
   bounded.y=std::clamp(input.y,-1.0f,1.0f);
+  s.iceSeconds=std::max(0.0f,s.iceSeconds-bounded.dt);
+  if(s.iceActive()){bounded.x*=.25f;bounded.y*=.25f;}
   hooks.update(hooks.context,bounded);
   const auto state=hooks.snapshot(hooks.context);
   s.pilot.x=std::clamp(state.x,s.shipRadius,float(s.map.width)-s.shipRadius);
@@ -27,8 +29,9 @@ struct CanonicalAdapter {
   s.seconds+=bounded.dt;
   s.collisionCooldown=std::max(0.0f,s.collisionCooldown-bounded.dt);
   const Tile tile=s.map.at(int(s.pilot.x),int(s.pilot.y));
-  if(s.collisionCooldown<=0 && (tile==Tile::Rock || tile==Tile::Asteroid || tile==Tile::Lava || tile==Tile::Beam)){
-   hooks.collision(hooks.context,tile==Tile::Rock?8.0f:tile==Tile::Asteroid?5.0f:tile==Tile::Lava?12.0f:9.0f);
+  if(s.collisionCooldown<=0 && (tile==Tile::Rock || tile==Tile::Asteroid || tile==Tile::IceAsteroid || tile==Tile::Lava || tile==Tile::Beam)){
+   hooks.collision(hooks.context,tile==Tile::Rock?8.0f:(tile==Tile::Asteroid||tile==Tile::IceAsteroid)?5.0f:tile==Tile::Lava?12.0f:9.0f);
+   if(tile==Tile::IceAsteroid)s.iceSeconds=Session::ICE_MALUS_SECONDS;
    s.collisionCooldown=.45f;
   }
   if(tile==Tile::Boss && !s.bossDefeated)s.phase=Phase::BossFight;
