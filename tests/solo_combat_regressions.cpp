@@ -25,5 +25,6 @@ int main(){
    for(int i=0;i<10;i++)combat.step(s,.05f);
  }
  assert(s.bossDefeated);
+ assert(s.map.at(x,y-5)==Tile::Empty);
  assert(combat.bossHealth==0);
 }
