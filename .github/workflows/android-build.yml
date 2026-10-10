@@ -51,10 +51,15 @@ jobs:
       - name: Check SOLO executable linked to SDL2
         run: test -x /tmp/spacefortress-solo-prototype && ldd /tmp/spacefortress-solo-prototype | grep -q SDL2
       - name: Verify SOLO runner links without defining a second main
+        shell: bash
         run: |
+          set -euo pipefail
           g++ -std=c++17 -O1 -I src -c src/solo_prototype.cpp -o /tmp/spacefortress-solo-runner.o $(sdl2-config --cflags)
-          nm -C /tmp/spacefortress-solo-runner.o | grep -q ' T runSoloPrototype()'
-          if nm -C /tmp/spacefortress-solo-runner.o | grep -Eq ' [TW] main
+          nm -C /tmp/spacefortress-solo-runner.o | grep -Fq 'runSoloPrototype()'
+          if nm -C /tmp/spacefortress-solo-runner.o | grep -Fq ' T main'; then
+            echo 'Unexpected second main entry point'
+            exit 1
+          fi
 
   build-android:
     runs-on: ubuntu-latest
