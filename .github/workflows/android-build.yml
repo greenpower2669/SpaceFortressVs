@@ -46,6 +46,8 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libsdl2-dev
       - name: Compile and test touchscreen selector
         run: g++ -std=c++17 -O1 -I src tests/solo_selector_ui_regressions.cpp -o /tmp/solo-selector-test && /tmp/solo-selector-test
+      - name: Test two-finger steering and charge ownership
+        run: g++ -std=c++17 -O1 -Wall -Wextra -I src tests/solo_touch_controls_regressions.cpp -o /tmp/solo-touch-test $(sdl2-config --cflags --libs) && /tmp/solo-touch-test
       - name: Build complete SOLO SDL2 prototype executable
         run: g++ -std=c++17 -O1 -Wall -Wextra -DSF_SOLO_STANDALONE -I src src/solo_prototype.cpp -o /tmp/spacefortress-solo-prototype $(sdl2-config --cflags --libs)
       - name: Check SOLO executable linked to SDL2
