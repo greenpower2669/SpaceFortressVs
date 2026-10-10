@@ -183,6 +183,17 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
             SDL_RenderDrawRect(r,&exit);
         }
     }
+    for(const auto &particle:s.dust){
+        const int dx=camera.pixelX(particle.x),dy=camera.pixelY(particle.y);
+        if(dx<viewport.x||dx>=viewport.x+viewport.w||
+           dy<viewport.y||dy>=viewport.y+viewport.h)continue;
+        const int diameter=std::max(6,int(cell*.22f));
+        if(assets&&assets->energy)soloCopy(r,assets->energy,
+            {dx-diameter/2,dy-diameter/2,diameter,diameter},
+            particle.icy?SDL_Color{185,244,255,220}:
+                         SDL_Color{250,238,200,220});
+        else fill(r,{dx-2,dy-2,5,5},{230,253,255,255});
+    }
     const int shipX=camera.pixelX(s.pilot.x);
     const int shipY=camera.pixelY(s.pilot.y);
     const int radius=std::max(17,int(cell*.90f));
