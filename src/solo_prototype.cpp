@@ -164,6 +164,7 @@ int runSoloPrototype(){
             if(campaign.active){
                 sfsolo::drawSession(renderer,*campaign.active,{0,0,w,h});
                 sfsolo::drawCombat(renderer,*campaign.active,combat,{0,0,w,h});
+                sfsolo::drawKineticCharge(renderer,*campaign.active,{0,0,w,h});
             }else{
                 // A successful victory consumes the session; show the selector
                 // instead of dereferencing an already completed run.
