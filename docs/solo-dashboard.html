@@ -25,7 +25,7 @@ meter{width:100%;height:1.5rem} .ok{color:#86efac}.bad{color:#ff9898}.pending{co
 .monitor-detail{font-size:.9rem}
 :focus-visible{outline:4px solid #ffdf67;outline-offset:4px}
 </style></head><body>
-<header><h1>🚀 SpaceFortress SOLO</h1><p>Suivi du développement — lisible et actualisé toutes les 5 minutes, selon les limites GitHub.</p>
+<header><h1>🚀 SpaceFortress SOLO</h1><p>Suivi du développement — lisible et actualisation uniquement sur demande, avec le bouton Rafraîchir.</p>
 <button id="refresh" type="button">Actualiser maintenant</button><div class="voice-tools"><button id="speak" type="button">🔊 Lire le bilan à voix haute</button><button id="stop-speech" type="button">⏹ Arrêter la lecture</button></div><p id="voice-status" role="status">Lecture vocale en français, à la demande.</p>
 <p id="status" role="status" aria-live="polite">Chargement des informations GitHub…</p></header>
 <main>
@@ -91,14 +91,13 @@ const el=id=>document.getElementById(id);
 // Les échecs volontaires connus sont déclarés ici. Un échec non déclaré devient un vrai rouge.
 // Exemple : {match:/nom du job ou workflow/i, comment:'Test négatif volontaire : aucune intervention.'}
 const expectedFailures=[];
-const pollInterval=5*60*1000;
 let lastGood=null;
 let nextAllowed=0;
 let refreshing=false;
 async function get(path){const response=await fetch(root+path,{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});if(!response.ok){const remaining=response.headers.get('x-ratelimit-remaining');const reset=Number(response.headers.get('x-ratelimit-reset'));if((response.status===403||response.status===429)&&remaining==='0'&&reset){nextAllowed=Math.max(nextAllowed,reset*1000+60000)}else if(response.status===403||response.status===429){nextAllowed=Math.max(nextAllowed,Date.now()+15*60*1000)}throw Error('GitHub HTTP '+response.status)}return response.json()}
 async function refresh(){
 if(refreshing)return;
-if(Date.now()<nextAllowed){el('status').textContent='🟡 Données GitHub temporairement indisponibles. Prochain essai après '+new Date(nextAllowed).toLocaleTimeString('fr-FR')+'.';return;}
+if(Date.now()<nextAllowed){el('status').textContent='🟡 Données GitHub temporairement indisponibles. Réessaie avec Actualiser maintenant après '+new Date(nextAllowed).toLocaleTimeString('fr-FR')+'.';return;}
 refreshing=true;
 el('status').textContent='Actualisation en cours…';
 try{
@@ -145,12 +144,12 @@ el('apk').replaceChildren(document.createTextNode('Artefacts Android du jeu exis
 }else el('apk').textContent='Pas encore de fichier Android confirmé pour cette compilation.';
 }else{el('ci').textContent='Aucune compilation trouvée';el('apk').textContent='Aucun fichier disponible'}
 lastGood={time:new Date(),state:el('monitor-main').textContent};
-el('status').textContent='Dernière vérification : '+lastGood.time.toLocaleTimeString('fr-FR')+'. Prochaine vérification dans 5 minutes.';
-}catch(error){const monitor=el('monitor');monitor.classList.remove('okstate','blockstate');monitor.classList.add('workstate');el('monitor-main').innerHTML='<span class="status-dot dot-yellow"></span> JAUNE — surveillance indisponible';el('monitor-comment').textContent='Le dashboard ne peut pas vérifier GitHub. Ce n’est PAS une preuve de panne du projet.';el('monitor-details').textContent=lastGood?'Dernier état connu à '+lastGood.time.toLocaleTimeString('fr-FR')+' : '+lastGood.state:'Aucun état récent confirmé.';el('status').textContent='Accès GitHub limité ('+error.message+'). Nouvelle tentative '+(nextAllowed>Date.now()?'après '+new Date(nextAllowed).toLocaleTimeString('fr-FR'):'dans 5 minutes')+'.';}
+el('status').textContent='Dernière vérification : '+lastGood.time.toLocaleTimeString('fr-FR')+'. Appuie sur Actualiser maintenant pour une nouvelle vérification.';
+}catch(error){const monitor=el('monitor');monitor.classList.remove('okstate','blockstate');monitor.classList.add('workstate');el('monitor-main').innerHTML='<span class="status-dot dot-yellow"></span> JAUNE — surveillance indisponible';el('monitor-comment').textContent='Le dashboard ne peut pas vérifier GitHub. Ce n’est PAS une preuve de panne du projet.';el('monitor-details').textContent=lastGood?'Dernier état connu à '+lastGood.time.toLocaleTimeString('fr-FR')+' : '+lastGood.state:'Aucun état récent confirmé.';el('status').textContent='Accès GitHub limité ('+error.message+'). Réessaie avec Actualiser maintenant'+(nextAllowed>Date.now()?' après '+new Date(nextAllowed).toLocaleTimeString('fr-FR'):'')+'.';}
 finally{refreshing=false}
 }
 function speakSummary(){const synth=window.speechSynthesis;if(!synth){el('voice-status').textContent='Lecteur vocal indisponible dans ce navigateur.';return;}synth.cancel();const words=['SpaceFortress Solo.',el('monitor-main').textContent,el('monitor-comment').textContent,el('monitor-details').textContent,'Avancement estimé : '+el('total-percent').textContent,el('ci').textContent,el('status').textContent].filter(Boolean).join('. ');const utterance=new SpeechSynthesisUtterance(words);utterance.lang='fr-FR';utterance.rate=0.85;utterance.volume=1;utterance.onstart=()=>el('voice-status').textContent='Lecture vocale en cours.';utterance.onend=()=>el('voice-status').textContent='Lecture terminée.';utterance.onerror=()=>el('voice-status').textContent='Lecture vocale indisponible ou interrompue.';synth.speak(utterance)}
 el('speak').addEventListener('click',speakSummary);
 el('stop-speech').addEventListener('click',()=>{if(window.speechSynthesis)window.speechSynthesis.cancel();el('voice-status').textContent='Lecture arrêtée.'});
-el('refresh').addEventListener('click',refresh);refresh();setInterval(refresh,pollInterval);
+el('refresh').addEventListener('click',refresh);el('status').textContent='Aucune requête automatique. Appuie sur Actualiser maintenant pour consulter GitHub.';el('monitor-main').innerHTML='<span class="status-dot dot-yellow"></span> EN ATTENTE — rafraîchissement manuel';el('monitor-comment').textContent='Aucune vérification automatique. Les données ne sont chargées que sur demande.';
 </script></body></html>
