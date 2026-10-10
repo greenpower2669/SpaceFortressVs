@@ -38,3 +38,13 @@ Branche : `feature/solo-worlds-tutorials-v1` issue de CI391. Ne pas merger sur m
 - Une erreur de littéraux `\\n` dans le header de score a été identifiée dans les logs CI et corrigée.
 
 **Limites fonctionnelles** : pas encore de vrais tirs, de vagues actives, de boss COOP, de sauvegarde de campagne ni d'intégration au menu. L'entrée tactile ne remplace pas les contrôles canoniques : elle est réservée au prototype autonome. La formule de score reste expérimentale.
+
+
+## Décision Fab — continuité du gameplay (10 octobre 2026)
+- Le SOLO est une transposition du vaisseau SpaceFortress existant dans une carte, **pas** un moteur de jeu indépendant.
+- Référence fonctionnelle : contrôles tactiles et comportement du mode COOP ; préserver les repères des joueurs entre tous les modes.
+- Réutiliser cône/surcharge cinétique, énergie, bouclier, missiles, tirs, minage, effets et inertie depuis le code canonique, sans redéfinir les règles.
+- `solo_combat.hpp` et les commandes SDL2 de `solo_prototype.cpp` restent une **maquette technique temporaire**, non conforme à la cible Android tant que les mécaniques canoniques ne sont pas raccordées.
+- Garder `src/main.cpp` historique intact ; adaptation par composants/points d'entrée dédiés et tests de non-régression.
+- Corrections prototype : tir tactile provisoire (`4ad36077`), boss vaincu supprimé de la carte (`11cd8307`), test (`41656dc7`).
+- Prochaine étape : audit des points d'entrée gameplay COOP et proposition d'adaptateur SOLO minimal avant de continuer le code d'armes.
