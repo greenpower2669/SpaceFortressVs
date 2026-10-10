@@ -18,7 +18,7 @@ inline SDL_Color tileColor(Tile tile){
     switch(tile){
         case Tile::Empty:return {9,13,28,255};
         case Tile::Rock:return {64,78,101,255};
-        case Tile::Lava:return {239,93,32,255};
+        case Tile::Lava:return {255,93,32,255};
         case Tile::IceAsteroid:return {212,242,255,255};
         case Tile::Asteroid:return {170,181,195,255};
         case Tile::Beam:return {145,73,236,255};
