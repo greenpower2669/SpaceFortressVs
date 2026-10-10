@@ -9,6 +9,7 @@ namespace sfsolo {
 struct CampaignController {
     Progression progression;
     StageSelection selection;
+    StageSelection launchedSelection{};
     std::unique_ptr<Session> active;
     SoloHallLocal localHall;
     bool launch(){
@@ -16,6 +17,7 @@ struct CampaignController {
         if(!map.valid())return false;
         auto candidate=std::make_unique<Session>(std::move(map));
         if(!candidate->start())return false;
+        launchedSelection=selection;
         active=std::move(candidate);
         return true;
     }
@@ -26,10 +28,10 @@ struct CampaignController {
         if(!active || active->phase!=Phase::Won || !active->bossDefeated ||
            !active->reachedFinish || active->pilot.health<=0)return false;
         const auto entry=makeSoloHallEntry(*active,player,submissionId,
-                                          selection.difficulty,points);
-        if(!entry.valid() || entry.world!=selection.world ||
-           entry.stage!=selection.stage)return false;
-        if(!progression.complete(selection.world,selection.stage,true))return false;
+                                          launchedSelection.difficulty,points);
+        if(!entry.valid() || entry.world!=launchedSelection.world ||
+           entry.stage!=launchedSelection.stage)return false;
+        if(!progression.complete(launchedSelection.world,launchedSelection.stage,true))return false;
         localHall.record(entry); // A lower replay score does not overwrite a PB.
         active.reset();
         return true;
