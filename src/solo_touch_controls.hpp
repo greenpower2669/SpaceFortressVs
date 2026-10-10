@@ -1,58 +1,85 @@
 #pragma once
-// Isolated first-finger steering and second-finger charge input for SOLO.
-// SDL touch-mouse synthesis is disabled in the prototype loop.
+// Pilot by dragging from the ship, aim anywhere else (tap = shot, hold = cone).
+// A second finger can independently aim while the first steers. Android touch
+// events are authoritative; synthesized mouse touch clicks are disabled.
 #include "solo_session.hpp"
 #include "solo_viewport.hpp"
 #include <SDL2/SDL.h>
 #include <algorithm>
+#include <cmath>
 
 namespace sfsolo {
 enum class TouchAction { None, ChargePressed, ChargeReleased };
 struct TouchPilot {
     SDL_FingerID finger=-1,chargeFinger=-1;
-    float targetX=0,targetY=0;
+    float targetX=0,targetY=0,aimX=0,aimY=0;
     bool down=false,chargeDown=false;
-    TouchAction handle(const SDL_Event &e,int width,int height){
+
+    TouchAction handle(const SDL_Event &e,int width,int height,
+                       float shipScreenX=-1,float shipScreenY=-1){
+        if(width<=0||height<=0)return TouchAction::None;
+        if(e.type!=SDL_FINGERDOWN && e.type!=SDL_FINGERMOTION &&
+           e.type!=SDL_FINGERUP)return TouchAction::None;
+        const float sx=std::clamp(e.tfinger.x,0.0f,1.0f)*width;
+        const float sy=std::clamp(e.tfinger.y,0.0f,1.0f)*height;
+        const auto id=e.tfinger.fingerId;
         if(e.type==SDL_FINGERDOWN){
-            if(!down){
-                finger=e.tfinger.fingerId;down=true;
-            }else if(!chargeDown && e.tfinger.fingerId!=finger){
-                chargeFinger=e.tfinger.fingerId;
-                chargeDown=true;
+            // When no ship position is passed (legacy desktop tests), first
+            // finger remains steering by default. In-game, the ship itself is
+            // an accessible draggable joystick zone.
+            const bool nearShip=(shipScreenX<0||shipScreenY<0) ||
+                std::hypot(sx-shipScreenX,sy-shipScreenY)
+                <=std::max(48.0f,float(width)*.17f);
+            if(!down && nearShip){
+                finger=id;down=true;targetX=sx;targetY=sy;
+                return TouchAction::None;
+            }
+            if(!chargeDown && id!=finger){
+                chargeFinger=id;chargeDown=true;aimX=sx;aimY=sy;
                 return TouchAction::ChargePressed;
             }
         }
-        if((e.type==SDL_FINGERMOTION || e.type==SDL_FINGERDOWN) &&
-           down && e.tfinger.fingerId==finger){
-            targetX=std::clamp(e.tfinger.x,0.0f,1.0f)*width;
-            targetY=std::clamp(e.tfinger.y,0.0f,1.0f)*height;
+        if(e.type==SDL_FINGERMOTION){
+            if(down&&id==finger){targetX=sx;targetY=sy;}
+            if(chargeDown&&id==chargeFinger){aimX=sx;aimY=sy;}
         }
         if(e.type==SDL_FINGERUP){
-            if(chargeDown && e.tfinger.fingerId==chargeFinger){
+            if(chargeDown&&id==chargeFinger){
+                aimX=sx;aimY=sy;
                 chargeDown=false;chargeFinger=-1;
                 return TouchAction::ChargeReleased;
             }
-            if(down && e.tfinger.fingerId==finger){
-                down=false;finger=-1;
-            }
+            if(down&&id==finger){down=false;finger=-1;}
         }
         return TouchAction::None;
     }
     void reset(){finger=chargeFinger=-1;down=chargeDown=false;}
 };
+inline void pilotTarget(const Session &s,const TouchPilot &touch,
+                        int width,int height,float &tx,float &ty) {
+    tx=s.pilot.x;ty=s.pilot.y;
+    if(!touch.down||width<=0||height<=0)return;
+    const SoloViewport camera=soloViewport(s,{0,0,width,height});
+    tx=std::clamp(camera.left+touch.targetX/camera.cell,
+                  s.shipRadius,float(s.map.width)-s.shipRadius);
+    ty=std::clamp(camera.top+touch.targetY/camera.cell,
+                  s.shipRadius,float(s.map.height)-s.shipRadius);
+}
+inline void aimWorldPoint(const Session &s,float screenX,float screenY,
+                         int width,int height,float &tx,float &ty) {
+    const SoloViewport camera=soloViewport(s,{0,0,width,height});
+    tx=camera.left+screenX/camera.cell;
+    ty=camera.top+screenY/camera.cell;
+}
+// Preserved for regression callers. Desktop arrow/controller movement is
+// separate; the real finger mode uses pilotTarget + canonical target motion.
 inline void pilotInput(const Session &s,const TouchPilot &touch,
                        int width,int height,float &ax,float &ay){
     ax=ay=0;
     if(!touch.down||width<=0||height<=0)return;
-    // Identical camera to the renderer: touch tracking must not aim at
-    // the former 54-column overview while the view is zoomed to 18 columns.
-    const SoloViewport camera=soloViewport(s,{0,0,width,height});
-    const float screenX=camera.x(s.pilot.x);
-    const float screenY=camera.y(s.pilot.y);
-    // x4 control gain: full steering with a quarter of the old thumb travel.
-    // Keep ship speed physically capped: no teleports or instant set-position.
-    const float gain=s.iceActive()?1.0f:SOLO_REACTIVITY_MULTIPLIER;
-    ax=std::clamp((touch.targetX-screenX)/std::max(1.0f,width*.18f/gain),-1.0f,1.0f);
-    ay=std::clamp((touch.targetY-screenY)/std::max(1.0f,height*.18f/gain),-1.0f,1.0f);
+    float tx=0,ty=0;
+    pilotTarget(s,touch,width,height,tx,ty);
+    ax=std::clamp((tx-s.pilot.x)*SOLO_REACTIVITY_MULTIPLIER,-1.0f,1.0f);
+    ay=std::clamp((ty-s.pilot.y)*SOLO_REACTIVITY_MULTIPLIER,-1.0f,1.0f);
 }
 } // namespace sfsolo
