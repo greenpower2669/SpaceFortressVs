@@ -260,6 +260,22 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
              {255,222,100,255});
     }
 }
+inline void drawMissionOverlay(SDL_Renderer *r,const Session &s,
+                               SDL_Rect viewport) {
+    if(!r || s.phase!=Phase::Lost)return;
+    const int wide=std::max(200,viewport.w*85/100);
+    const SDL_Rect modal{viewport.x+(viewport.w-wide)/2,
+        viewport.y+viewport.h*42/100,wide,viewport.h*17/100};
+    fill(r,modal,{19,25,45,250});
+    SDL_SetRenderDrawColor(r,255,111,111,255);
+    SDL_RenderDrawRect(r,&modal);
+    soloLabel(r,"VAISSEAU DETRUIT",
+              {modal.x+10,modal.y+10,modal.w-20,modal.h/3},
+              {255,186,171,255},std::max(3,viewport.w/120));
+    soloLabel(r,"TAP = RECOMMENCER",
+              {modal.x+10,modal.y+modal.h/2,modal.w-20,modal.h/3},
+              {255,255,255,255},std::max(3,viewport.w/135));
+}
 inline void drawKineticCharge(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
                               const KineticSurgeControl &kinetic){
     if(!r||viewport.w<=0||viewport.h<=0||!sfKineticSurges[1].held)return;
