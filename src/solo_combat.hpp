@@ -49,6 +49,9 @@ struct Combat {
                         if(bossHealth<=0){
                             s.phase=Phase::BossFight;
                             s.defeatBoss();
+                            // Clear the defeated boss tile: it must no longer
+                            // block the route to the finish.
+                            s.map.tiles[size_t(y)*size_t(s.map.width)+size_t(x)]=Tile::Empty;
                         }
                     }
                     shot.life=0;
