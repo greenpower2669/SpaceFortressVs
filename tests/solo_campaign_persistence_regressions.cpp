@@ -19,10 +19,12 @@ int main(){
  assert(campaign.active);
  assert(!campaign.progression.isCompleted(1,1));
  assert(campaign.localHall.best.empty());
+ campaign.selection.difficulty=9; // Changing the menu cannot reclassify the run.
  assert(finishAndSave(campaign,path,"Fab","success",900));
  assert(!campaign.active);
  assert(campaign.progression.isCompleted(1,1));
  assert(campaign.localHall.best.size()==1);
+ assert(campaign.localHall.best.begin()->second.difficulty==1);
  CampaignController second;
  assert(restoreCampaign(second,path));
  assert(second.progression.isCompleted(1,1));
