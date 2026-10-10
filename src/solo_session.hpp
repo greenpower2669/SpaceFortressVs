@@ -18,10 +18,20 @@ struct Session {
     float shipRadius=.30f;
     float collisionCooldown=0;
     static constexpr float ICE_MALUS_SECONDS=2.50f;
-    float iceSeconds=0;
+    float iceSeconds=0, lavaSeconds=0;
+    unsigned relaysCollected=0,relaysNeeded=0;
     bool iceActive() const {return iceSeconds>0.0f;}
+    bool lavaActive() const {return lavaSeconds>0.0f;}
+    bool slowActive() const {return iceActive()||lavaActive();}
+    float mobility() const {return slowActive()? .25f:1.0f;}
+    bool missionReady() const {
+        return bossDefeated && relaysCollected>=relaysNeeded;
+    }
     explicit Session(Map source):map(std::move(source)) {
-        for(const auto tile:map.tiles)if(tile==Tile::Enemy)++enemiesAvailable;
+        for(const auto tile:map.tiles){
+            if(tile==Tile::Enemy)++enemiesAvailable;
+            if(tile==Tile::Trigger)++relaysNeeded;
+        }
         for(int y=0;y<map.height;y++)
             for(int x=0;x<map.width;x++)
                 if(map.at(x,y)==Tile::Start){
@@ -48,14 +58,20 @@ struct Session {
         if(phase==Phase::BossFight){bossDefeated=true;phase=Phase::Flying;}
     }
     void defeatEnemy(){++enemiesDefeated;}
-    void step(float inputX,float inputY,float dt){
+    // An optional canonical touch target changes only *how* the same ship
+    // receives user commands. Keyboard/controller tests keep vector thrust.
+    void step(float inputX,float inputY,float dt,
+              bool pointerTarget=false,float targetX=0,float targetY=0){
         if(phase!=Phase::Flying&&phase!=Phase::BossFight)return;
         dt=std::clamp(dt,0.0f,.05f);
         seconds+=dt;
         collisionCooldown=std::max(0.0f,collisionCooldown-dt);
         iceSeconds=std::max(0.0f,iceSeconds-dt);
+        lavaSeconds=std::max(0.0f,lavaSeconds-dt);
         const float oldX=pilot.x,oldY=pilot.y;
-        physics.step(pilot,inputX,inputY,dt,iceActive()?.25f:1.0f);
+        if(pointerTarget)physics.stepToward(pilot,targetX,targetY,dt,mobility(),
+                                              float(map.width));
+        else physics.step(pilot,inputX,inputY,dt,mobility());
         const float targetX=std::clamp(pilot.x,shipRadius,float(map.width)-shipRadius);
         const float targetY=std::clamp(pilot.y,shipRadius,float(map.height)-shipRadius);
         // x4 movement can cross multiple cells per frame. Sweep through the
@@ -81,13 +97,20 @@ struct Session {
                            hit==Tile::Beam?9.0f:5.0f);
                     if(hit==Tile::IceAsteroid)
                         iceSeconds=ICE_MALUS_SECONDS;
+                    if(hit==Tile::Lava)
+                        lavaSeconds=ICE_MALUS_SECONDS;
                     collisionCooldown=.45f;
                 }
+            }else if(hit==Tile::Trigger){
+                const size_t location=size_t(int(pilot.y))*map.width+
+                                      size_t(int(pilot.x));
+                map.tiles[location]=Tile::Empty;
+                if(relaysCollected<relaysNeeded)++relaysCollected;
             }else if(hit==Tile::Boss && !bossDefeated){
                 phase=Phase::BossFight;
             }else if(hit==Tile::Finish){
                 reachedFinish=true;
-                if(bossDefeated)phase=Phase::Won;
+                if(missionReady())phase=Phase::Won;
             }
             if(phase==Phase::Lost || phase==Phase::Won)break;
             safeX=pilot.x;safeY=pilot.y;
@@ -96,6 +119,9 @@ struct Session {
         // while the predictive offset is bounded to keep the pilot visible.
         const float lookAhead=std::clamp(pilot.vy*.25f,-2.0f,2.0f);
         cameraY=std::clamp(pilot.y+lookAhead,0.0f,float(map.height));
+    }
+    void stepToward(float worldX,float worldY,float dt) {
+        step(0,0,dt,true,worldX,worldY);
     }
 };
 struct MiniMapPoint { float x=0,y=0; };
