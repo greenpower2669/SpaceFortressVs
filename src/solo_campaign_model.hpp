@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include "shared_touch_motion.hpp"
 
 namespace sfsolo {
 enum class Tile : uint8_t { Empty, Rock, Lava, Asteroid, Beam, Enemy, Boss, Start, Finish, Trigger, IceAsteroid };
@@ -53,6 +54,21 @@ struct Physics {
     float thrust=5.0f*SOLO_REACTIVITY_MULTIPLIER;
     float damping=0.35f;
     float maxSpeed=7.0f*SOLO_REACTIVITY_MULTIPLIER;
+    // Same target-vector and finite linear movement as CLASSIC human touch.
+    // The common helper is called by tactical_runtime.hpp too. SOLO adds
+    // collision sweeps and temporary environmental penalties outside it.
+    void stepToward(Pilot &p,float targetX,float targetY,float dt,
+                    float mobility=1.0f,float worldWidth=54.0f) const {
+        dt=std::clamp(dt,0.0f,.05f);
+        mobility=std::clamp(mobility,.25f,1.0f);
+        const auto delta=sfTouchMovementDelta(
+            targetX-p.x,targetY-p.y,
+            worldWidth*1.90f*mobility,dt);
+        p.vx=dt>0 ? delta.x/dt : 0;
+        p.vy=dt>0 ? delta.y/dt : 0;
+        p.x+=delta.x;
+        p.y+=delta.y;
+    }
     void step(Pilot &p,float inputX,float inputY,float dt,float mobility=1.0f) const {
         dt=std::clamp(dt,0.0f,0.05f);
         const float magnitude=std::hypot(inputX,inputY);
