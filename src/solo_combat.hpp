@@ -55,7 +55,12 @@ struct Combat {
                         }
                     }
                     shot.life=0;
-                }else if(tile==Tile::Rock||tile==Tile::Asteroid||tile==Tile::IceAsteroid){
+                }else if(tile==Tile::IceAsteroid){
+                    // Aimed fire fractures ice into drifting white dust.
+                    s.map.tiles[size_t(y)*s.map.width+x]=Tile::Empty;
+                    s.scatterIce(x+.5f,y+.5f);
+                    shot.life=0;
+                }else if(tile==Tile::Rock||tile==Tile::Asteroid){
                     shot.life=0;
                 }
             }
