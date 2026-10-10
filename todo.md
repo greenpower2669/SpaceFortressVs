@@ -245,3 +245,17 @@
 - [ ] Confirmer CI Android complète pour `561ed8e8` et produire l'APK debug ; ne pas confondre réussite compilation et validation du comportement téléphone.
 - [ ] Test téléphone : sensations ×4, pilotage vertical et horizontal, cadrage caméra, collision, astéroïdes glacés, durée et lisibilité du malus.
 - [ ] Conservé : modes historiques CLASSIQUE, DUEL, VS IA, COOP, CAMPAGNE ; aucune fusion main et aucune Release sans validation.
+
+
+## 2026-10-10 — Plantages Android et journal exportable
+- [x] Retour test téléphone (APK x4 + glace, commit 561ed8e8) : le mode CLASSIQUE semble démarrer, mais les autres modes / SOLO plantent. **Cause encore inconnue**. GitHub Actions vert ne prouve pas que les modes Android marchent.
+- [x] Audit : pas de journal de plantage exportable dans l'ancienne APK. Un Android Bug Report système reste disponible via Options de développement (attention aux informations privées).
+- [x] Activité SOLO Android isolée dans le processus `:solo` (debug seulement) pour éviter une collision possible des états statiques SDL ; **mesure préventive à confirmer sur téléphone**.
+- [x] Application DEBUG enregistre dans des journaux persistants événements de lancement/retour, exceptions Java, phases SDL et heartbeat SOLO, avec rotation de 256 Ko ; journaux JAVA par processus et natifs par mode.
+- [x] Accueil de l'APK debug : bouton accessible **EXPORTER JOURNAL DEBUG**, ACTION_CREATE_DOCUMENT, destination choisie sur Samsung, produit `SpaceFortress-debug.txt` ; pas de compte, de connexion réseau ni de permission de stockage.
+- [x] Collecter `ApplicationExitInfo` (Android 11+) : crash Java, crash natif, ANR, mémoire, heure et processus, sans export du logcat global.
+- [x] CI statique `scripts/check-solo-launcher.py` vérifie manifeste release intact, processus :solo et nouveau bouton ; compilation Java/NDK debug contrôlée par workflow Android.
+- [ ] Attendre le workflow Android de la branche (SHA 956449d2), corriger tout échec ; distribuer **APK directe sans ZIP** après build vert.
+- [ ] Test Samsung : lancer le jeu ORIGINAL et les modes problématiques, puis SOLO ; après plantage rouvrir accueil → EXPORTER JOURNAL DEBUG → enregistrer TXT, et envoyer le fichier. Ne pas effacer les données de l'app entre-temps.
+- [ ] Analyser le vrai rapport utilisateur avant d'affirmer avoir corrigé le plantage ; en cas de SIGSEGV, utiliser la raison de sortie Android et éventuellement un rapport système opt-in.
+- [ ] Jamais merge `main` ni Release sans validation explicite.
