@@ -1,6 +1,7 @@
 #pragma once
 // Isolated SDL2 visual prototype for SOLO. It does not change classic or COOP.
 #include "solo_session.hpp"
+#include "solo_combat.hpp"
 #include <SDL2/SDL.h>
 #include <algorithm>
 #include <cmath>
@@ -66,5 +67,29 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport){
     fill(r,{viewport.x+8,viewport.y+8,
             std::max(0,int(viewport.w*.32f*std::clamp(s.pilot.health/100.0f,0.0f,1.0f))),7},
          {90,220,130,255});
+}
+
+// Render SOLO projectiles and boss health using the same camera transform.
+inline void drawCombat(SDL_Renderer *r,const Session &s,const Combat &combat,SDL_Rect viewport){
+    if(!r||!s.map.valid()||viewport.w<=0||viewport.h<=0)return;
+    const float cell=std::max(1.0f,float(viewport.w)/float(s.map.width));
+    const float rows=float(viewport.h)/cell;
+    const float top=std::clamp(s.cameraY-rows*.58f,0.0f,
+                              std::max(0.0f,float(s.map.height)-rows));
+    for(const auto &shot:combat.shots){
+        const int px=viewport.x+int(shot.x*cell);
+        const int py=viewport.y+int((shot.y-top)*cell);
+        if(py<viewport.y||py>=viewport.y+viewport.h)continue;
+        fill(r,{px-2,py-4,5,9},{255,232,100,255});
+    }
+    if(combat.bossHealth<combat.bossMaxHealth && !s.bossDefeated){
+        const int width=std::max(1,viewport.w/2);
+        const int x=viewport.x+(viewport.w-width)/2;
+        const int y=viewport.y+24;
+        fill(r,{x,y,width,9},{76,26,54,255});
+        fill(r,{x,y,int(width*std::clamp(combat.bossHealth/
+             std::max(1.0f,combat.bossMaxHealth),0.0f,1.0f)),9},
+             {255,65,176,255});
+    }
 }
 } // namespace sfsolo
