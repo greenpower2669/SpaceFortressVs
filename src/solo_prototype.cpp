@@ -1,6 +1,8 @@
 // Standalone playable SOLO prototype; deliberately does not alter the historical
 // duel/COOP loop. Desktop and Android integration can reuse its session/render.
 #include "solo_renderer.hpp"
+#include "solo_selector_ui.hpp"
+#include "solo_campaign_controller.hpp"
 #include <SDL2/SDL.h>
 #include <algorithm>
 #include <cmath>
@@ -52,8 +54,9 @@ int main(int,char**){
     SDL_Renderer *renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
     if(!renderer)renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_SOFTWARE);
     if(!renderer){SDL_DestroyWindow(window);SDL_Quit();return 3;}
-    sfsolo::Session session(sfsolo::generate({}));
-    if(!session.start()){SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);SDL_Quit();return 4;}
+    sfsolo::CampaignController campaign;
+    sfsolo::Selector selector;
+    bool selecting=true;
     sfsolo::TouchPilot touch;
     bool running=true;Uint64 previous=SDL_GetPerformanceCounter();
     const double frequency=double(SDL_GetPerformanceFrequency());
@@ -62,24 +65,49 @@ int main(int,char**){
         int w=540,h=960;SDL_GetRendererOutputSize(renderer,&w,&h);
         while(SDL_PollEvent(&e)){
             if(e.type==SDL_QUIT)running=false;
-            if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_ESCAPE)running=false;
-            if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_r){
-                session=sfsolo::Session(sfsolo::generate({}));session.start();touch.reset();
+            if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_ESCAPE){
+                if(selecting)running=false;
+                else {campaign.abandon();selecting=true;touch.reset();}
             }
-            touch.handle(e,w,h);
+            if(selecting){
+                if(e.type==SDL_FINGERDOWN){
+                    auto action=selector.touch(e.tfinger.x,e.tfinger.y,campaign.progression);
+                    if(action==sfsolo::SelectAction::Back)running=false;
+                    if(action==sfsolo::SelectAction::Play){
+                        campaign.selection=selector.selection;
+                        if(campaign.launch()){selecting=false;touch.reset();}
+                    }
+                }
+                if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_RETURN){
+                    campaign.selection=selector.selection;
+                    if(campaign.launch()){selecting=false;touch.reset();}
+                }
+            }else{
+                if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_r){
+                    campaign.abandon();
+                    if(!campaign.launch())selecting=true;
+                    touch.reset();
+                }
+                touch.handle(e,w,h);
+            }
         }
         const Uint64 now=SDL_GetPerformanceCounter();
         const float dt=std::clamp(float(double(now-previous)/frequency),0.0f,.05f);
         previous=now;
         float ax=0,ay=0;
-        sfsolo::pilotInput(session,touch,w,h,ax,ay);
+        if(!selecting && campaign.active)
+            sfsolo::pilotInput(*campaign.active,touch,w,h,ax,ay);
         const Uint8 *keys=SDL_GetKeyboardState(nullptr);
         if(keys[SDL_SCANCODE_LEFT]||keys[SDL_SCANCODE_A])ax=-1;
         if(keys[SDL_SCANCODE_RIGHT]||keys[SDL_SCANCODE_D])ax=1;
         if(keys[SDL_SCANCODE_UP]||keys[SDL_SCANCODE_W])ay=-1;
         if(keys[SDL_SCANCODE_DOWN]||keys[SDL_SCANCODE_S])ay=1;
-        session.step(ax,ay,dt);
-        sfsolo::drawSession(renderer,session,{0,0,w,h});
+        if(selecting){
+            sfsolo::drawSelector(renderer,{0,0,w,h},selector,campaign.progression);
+        }else if(campaign.active){
+            campaign.active->step(ax,ay,dt);
+            sfsolo::drawSession(renderer,*campaign.active,{0,0,w,h});
+        }
         SDL_RenderPresent(renderer);
         SDL_Delay(10);
     }
