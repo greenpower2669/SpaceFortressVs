@@ -183,3 +183,17 @@
 - Base CI389 `5ed37a7647f348767f90d913f31fae76bd3b6089`; branche `fix/help-refresh-on-ci389-20261009`.
 - Report limité à `src/help_runtime.hpp`, `tests/help_runtime_regressions.cpp`, `docs/proposals/2026-10-09-tutorial-mini-jeux.md`. Cônes, IA, minage, vitesse et `src/main.cpp` conservés.
 - Mini-jeux proposés seulement. Validation CI/APK téléphone requise. Pas de merge main ni Release.
+
+
+## SOLO Android — 2026-10-10 (branche feature/solo-worlds-tutorials-v1)
+- [x] Réparer la duplication et la commande Bash tronquée dans `.github/workflows/android-build.yml` (`509a6310`) : CI à nouveau exécutable.
+- [x] Point d'entrée C++ SOLO distinct du `SDL_main` historique, avec test de liaison sans second `main`.
+- [x] Activité Android `SpaceFortressSoloActivity` et second lanceur **DEBUG uniquement** ; lancement historique inchangé (`SpaceFortressMain` sans option).
+- [x] Lier `src/solo_prototype.cpp` à `libmain.so` ; lancement du prototype via `--spacefortress-solo-prototype`.
+- [x] Progression SOLO chargée via `SDL_GetPrefPath`, sauvegarde atomique à la victoire, sans modifier les sauvegardes historiques.
+- [x] Empêcher une lecture de session détruite après victoire.
+- [ ] Vérifier la compilation Android du commit `a31bd91b` et récupérer l'artefact APK debug ; **aucune validation téléphone à ce stade**.
+- [ ] Tester séparément les deux lanceurs sur téléphone : jeu classique, SOLO prototype, événements Android et retour accueil.
+- [ ] Raccorder le vrai moteur COOP canonique via `solo_canonical_adapter.hpp` ; tirs, cône, énergie, boucliers, collisions, minage, FX : encore absents du prototype final.
+- [ ] Intégrer un accès SOLO final dans l'application unique après validation des mécaniques ; retirer le lanceur test si devenu inutile.
+- [ ] Ne pas fusionner `main`, ne pas publier de Release sans validation explicite.
