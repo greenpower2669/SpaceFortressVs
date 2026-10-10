@@ -255,7 +255,10 @@
 - [x] Accueil de l'APK debug : bouton accessible **EXPORTER JOURNAL DEBUG**, ACTION_CREATE_DOCUMENT, destination choisie sur Samsung, produit `SpaceFortress-debug.txt` ; pas de compte, de connexion réseau ni de permission de stockage.
 - [x] Collecter `ApplicationExitInfo` (Android 11+) : crash Java, crash natif, ANR, mémoire, heure et processus, sans export du logcat global.
 - [x] CI statique `scripts/check-solo-launcher.py` vérifie manifeste release intact, processus :solo et nouveau bouton ; compilation Java/NDK debug contrôlée par workflow Android.
-- [ ] Attendre le workflow Android de la branche (SHA 956449d2), corriger tout échec ; distribuer **APK directe sans ZIP** après build vert.
+- [x] CI verte pour le diagnostic initial SHA `956449d2` ; cependant l'APK de test a un **certificat debug différent** de l'APK précédente, donc Android ne peut pas la mettre à jour directement. Ne jamais demander de désinstaller le SpaceFortress existant (sauvegardes).
+- [x] APK debug **installable à côté** avec `applicationIdSuffix '.diagnostic'` (package `com.greenpower2669.spacefortressvs.diagnostic`) et icône identifiée « SpaceFortress DIAG ». Le package Google Play release demeure strictement inchangé.
+- [ ] Attendre CI du commit `020d07d7`, vérification `aapt` du package séparé ; distribuer l'APK diagnostic directe **sans ZIP**. Reproduire la panne sur l'APK diagnostic, exporter TXT depuis l'accueil.
+- [ ] Attention : le package DIAG a un stockage isolé du SpaceFortress historique, donc une panne liée uniquement aux anciennes sauvegardes peut ne pas se reproduire.
 - [ ] Test Samsung : lancer le jeu ORIGINAL et les modes problématiques, puis SOLO ; après plantage rouvrir accueil → EXPORTER JOURNAL DEBUG → enregistrer TXT, et envoyer le fichier. Ne pas effacer les données de l'app entre-temps.
 - [ ] Analyser le vrai rapport utilisateur avant d'affirmer avoir corrigé le plantage ; en cas de SIGSEGV, utiliser la raison de sortie Android et éventuellement un rapport système opt-in.
 - [ ] Jamais merge `main` ni Release sans validation explicite.
