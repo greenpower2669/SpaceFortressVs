@@ -19,6 +19,10 @@ small{font-size:.85rem}strong{color:#ffdf67}li{margin:.5rem 0}
 .progress-parent .progress-fill{background:#ffdf67}
 .progress-row p{font-size:.85rem;margin:.3rem 0}
 meter{width:100%;height:1.5rem} .ok{color:#86efac}.bad{color:#ff9898}.pending{color:#ffdf67}
+.monitor{border:4px solid #65768c;background:#101b2c}
+.monitor.okstate{border-color:#86efac}.monitor.workstate{border-color:#ffdf67}.monitor.blockstate{border-color:#c084fc}
+.monitor-main{font-size:1.65rem;font-weight:900;margin:.35rem 0}.purple-dot{display:inline-block;width:1em;height:1em;border-radius:50%;background:#c084fc;vertical-align:-.12em;margin-right:.35em;box-shadow:0 0 0 3px #fff}
+.monitor-detail{font-size:.9rem}
 :focus-visible{outline:4px solid #ffdf67;outline-offset:4px}
 </style></head><body>
 <header><h1>🚀 SpaceFortress SOLO</h1><p>Suivi du développement — lisible et actualisé toutes les 60 secondes.</p>
@@ -47,6 +51,12 @@ meter{width:100%;height:1.5rem} .ok{color:#86efac}.bad{color:#ff9898}.pending{co
 <li>⬜ Lancement SOLO dans Android — restant</li>
 <li>⬜ APK SOLO jouable sur téléphone — restant</li>
 </ul><p><small>Ces étapes sont déclaratives : elles ne deviennent pas automatiquement « terminées » après un commit. Seuls les états GitHub ci-dessous se rafraîchissent automatiquement.</small></p></section>
+<section id="monitor" class="monitor" aria-labelledby="monitor-title">
+<h2 id="monitor-title">🛰️ État du travail en cours</h2>
+<p id="monitor-main" class="monitor-main">🟠 Vérification GitHub…</p>
+<p id="monitor-comment">Analyse du dernier workflow et de ses jobs.</p>
+<div id="monitor-details" class="monitor-detail"></div>
+</section>
 <section><h2>Dernier commit</h2><p id="commit">En attente…</p><p id="commitdate"></p></section>
 <section><h2>Compilation GitHub</h2><p id="ci">En attente…</p><p id="runlink"></p></section>
 <section><h2>APK de test</h2><p id="apk">Recherche des fichiers de compilation…</p><p><small>Les fichiers GitHub Actions peuvent nécessiter une connexion GitHub et expirent. Ils ne prouvent pas que le SOLO est jouable.</small></p></section>
@@ -78,6 +88,9 @@ parentBar.setAttribute('aria-valuenow',String(total));parentBar.firstElementChil
 const root='https://api.github.com/repos/greenpower2669/SpaceFortressVs';
 const branch='feature/solo-worlds-tutorials-v1';
 const el=id=>document.getElementById(id);
+// Les échecs volontaires connus sont déclarés ici. Un échec non déclaré devient un vrai rouge.
+// Exemple : {match:/nom du job ou workflow/i, comment:'Test négatif volontaire : aucune intervention.'}
+const expectedFailures=[];
 async function get(path){const response=await fetch(root+path,{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});if(!response.ok)throw Error('GitHub HTTP '+response.status);return response.json()}
 async function refresh(){
 el('status').textContent='Actualisation en cours…';
@@ -89,6 +102,28 @@ const commit=commits[0];const run=runs.workflow_runs[0];
 el('commit').textContent=commit?commit.sha.slice(0,8)+' — '+commit.commit.message.split('\n')[0]:'Aucun commit trouvé';
 el('commitdate').textContent=commit?'Daté du '+new Date(commit.commit.committer.date).toLocaleString('fr-FR'):'';
 if(run){
+let jobs=[];
+try{const jobData=await get('/actions/runs/'+run.id+'/jobs?per_page=100');jobs=jobData.jobs||[]}catch(_){}
+const failedJobs=jobs.filter(j=>['failure','timed_out','startup_failure','action_required'].includes(j.conclusion));
+const expected=failedJobs.filter(j=>expectedFailures.some(rule=>rule.match.test(j.name)));
+const unexpected=failedJobs.filter(j=>!expectedFailures.some(rule=>rule.match.test(j.name)));
+const monitor=el('monitor'),main=el('monitor-main'),comment=el('monitor-comment'),details=el('monitor-details');
+monitor.classList.remove('okstate','workstate','blockstate');
+if(unexpected.length){
+ monitor.classList.add('blockstate');
+ main.innerHTML='<span class="purple-dot" aria-hidden="true"></span>🔴 VRAI BLOCAGE — à regarder';
+ comment.textContent=unexpected.length+' échec(s) inattendu(s). Fab : celui-ci mérite qu’on s’y penche.';
+}else if(run.status!=='completed'){
+ monitor.classList.add('workstate');main.textContent='🟠 GitHub travaille — rien à faire';
+ comment.textContent='Compilation ou tests en cours. Les éventuels rouges déclarés attendus ne sont pas considérés comme un blocage.';
+}else if(run.conclusion==='success'||(failedJobs.length&&failedJobs.length===expected.length)){
+ monitor.classList.add('okstate');main.textContent='🟢 TOUT VA BIEN';
+ comment.textContent=expected.length?expected.length+' rouge(s) attendu(s) : aucune intervention.':'Dernier workflow terminé sans blocage inattendu.';
+}else{
+ monitor.classList.add('blockstate');main.innerHTML='<span class="purple-dot" aria-hidden="true"></span>🔴 ANOMALIE INATTENDUE';
+ comment.textContent='Le workflow ne s’est pas terminé normalement et aucun rouge attendu ne l’explique.';
+}
+details.textContent=(expected.length?'Rouges attendus : '+expected.map(j=>j.name).join(', ')+'. ':'')+(unexpected.length?'Rouges inattendus : '+unexpected.map(j=>j.name).join(', ')+'.':'');
 const label=run.status!=='completed'?'En cours ('+run.status+')':run.conclusion==='success'?'Réussie':run.conclusion==='failure'?'Échec':run.conclusion||'Terminée';
 el('ci').textContent=label+' — commit '+run.head_sha.slice(0,8);
 const link=document.createElement('a');link.href=run.html_url;link.textContent='Ouvrir la compilation sur GitHub';el('runlink').replaceChildren(link);
