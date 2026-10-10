@@ -1,15 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
     <application>
-        <!-- DEBUG ONLY: preserve the original SpaceFortress launcher and release AAB. -->
+        <!-- DEBUG ONLY: remove the classic entry's launcher filter and route
+             it through one accessible menu. All historical game code remains. -->
         <activity
-            android:name="com.greenpower2669.spacefortressvs.SpaceFortressSoloActivity"
+            android:name="com.greenpower2669.spacefortressvs.SpaceFortressActivity"
+            tools:node="replace"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|density"
             android:exported="true"
             android:launchMode="singleTask"
+            android:screenOrientation="portrait" />
+
+        <!-- The SOLO prototype stays opt-in; release never includes this menu. -->
+        <activity
+            android:name="com.greenpower2669.spacefortressvs.SpaceFortressSoloActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|density"
+            android:exported="false"
+            android:launchMode="singleTask"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme"
-            android:label="SOLO prototype (test)">
+            android:label="SOLO prototype (test)" />
+
+        <activity
+            android:name="com.greenpower2669.spacefortressvs.SpaceFortressHubActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"
+            android:label="SpaceFortress — tous les modes">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
