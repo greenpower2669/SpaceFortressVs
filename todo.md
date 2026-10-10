@@ -208,3 +208,13 @@
 - [ ] Vérifier la CI Android complète au SHA `7faf0eee` ; essais écran Samsung obligatoires.
 - [ ] Coupler moteur COOP réel : énergie/bouclier, vrai tir/missile, poussière blanche, FX et IA. Le prototype reste une démonstration non finale.
 - [ ] Aucun merge vers `main`, ni Release, sans accord explicite.
+
+
+## SOLO CAMERA — retour téléphone 2026-10-10
+- [x] Retour screenshot téléphone : premier essai SOLO rendu comme une mini-carte géante (54 cases sur largeur), vaisseau trop petit et collé en bas dans la barre de navigation Android ; la petite mini-carte est bien le rectangle en haut à droite.
+- [x] Corriger cadrage dans `src/solo_viewport.hpp` : ~18 colonnes visibles, suivi du pilote avec marge inférieure, sans toucher à la grille de collisions logique.
+- [x] Réutiliser la projection commune pour `solo_renderer.hpp`, `solo_touch_controls.hpp`, tirs et cône cinétique ; agrandir le vaisseau technique et décaler HUD en dehors de la barre d'état.
+- [x] Ajouter `tests/solo_viewport_regressions.cpp` au workflow SDL2.
+- [ ] Attendre le CI vert du commit `26877a4e`, récupérer nouvel APK ; faire vérifier visuellement sur Samsung que le vaisseau est visible et que pilotage / tirs / cône s'alignent.
+- [ ] Rendu définitif NON livré : remplacer les symboles techniques par les graphismes du vaisseau et assets historiques COOP, intégrer collisions, animations et FX sans recoder le canon.
+- [ ] Aucun merge main ni Release sans validation explicite.
