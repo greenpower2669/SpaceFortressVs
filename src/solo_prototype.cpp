@@ -5,6 +5,7 @@
 #include "solo_campaign_controller.hpp"
 #include "solo_campaign_persistence.hpp"
 #include "solo_combat.hpp"
+#include "solo_kinetic_control.hpp"
 #include "solo_prototype.hpp"
 #include <SDL2/SDL.h>
 #include <algorithm>
@@ -13,24 +14,38 @@
 #include <string>
 
 namespace sfsolo {
+enum class TouchAction { None, ChargePressed, ChargeReleased };
 struct TouchPilot {
-    SDL_FingerID finger=-1;
+    SDL_FingerID finger=-1,chargeFinger=-1;
     float targetX=0,targetY=0;
-    bool down=false;
-    void handle(const SDL_Event &e,int width,int height){
-        if(e.type==SDL_FINGERDOWN && !down){
-            finger=e.tfinger.fingerId;down=true;
+    bool down=false,chargeDown=false;
+    TouchAction handle(const SDL_Event &e,int width,int height){
+        if(e.type==SDL_FINGERDOWN){
+            if(!down){
+                finger=e.tfinger.fingerId;down=true;
+            }else if(!chargeDown && e.tfinger.fingerId!=finger){
+                chargeFinger=e.tfinger.fingerId;
+                chargeDown=true;
+                return TouchAction::ChargePressed;
+            }
         }
-        if((e.type==SDL_FINGERMOTION||e.type==SDL_FINGERDOWN) &&
+        if((e.type==SDL_FINGERMOTION || e.type==SDL_FINGERDOWN) &&
            down && e.tfinger.fingerId==finger){
             targetX=std::clamp(e.tfinger.x,0.0f,1.0f)*width;
             targetY=std::clamp(e.tfinger.y,0.0f,1.0f)*height;
         }
-        if(e.type==SDL_FINGERUP && down && e.tfinger.fingerId==finger){
-            down=false;finger=-1;
+        if(e.type==SDL_FINGERUP){
+            if(chargeDown && e.tfinger.fingerId==chargeFinger){
+                chargeDown=false;chargeFinger=-1;
+                return TouchAction::ChargeReleased;
+            }
+            if(down && e.tfinger.fingerId==finger){
+                down=false;finger=-1;
+            }
         }
+        return TouchAction::None;
     }
-    void reset(){finger=-1;down=false;}
+    void reset(){finger=chargeFinger=-1;down=chargeDown=false;}
 };
 inline void pilotInput(const Session &s,const TouchPilot &touch,
                        int width,int height,float &ax,float &ay){
@@ -51,6 +66,7 @@ inline void pilotInput(const Session &s,const TouchPilot &touch,
 // Callable prototype entry point. The standalone main is optional so that
 // an Android mode dispatcher can link this translation unit without a duplicate main.
 int runSoloPrototype(){
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS,"0"); // prevent duplicate touch mouse clicks
     if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS)!=0)return 1;
     SDL_Window *window=SDL_CreateWindow("SpaceFortress SOLO Prototype",
         SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,540,960,
@@ -71,7 +87,9 @@ int runSoloPrototype(){
     sfsolo::Selector selector;
     bool selecting=true;
     sfsolo::TouchPilot touch;
+    sfsolo::KineticSurgeControl kinetic;
     sfsolo::Combat combat;
+    const int historicalDanger=sfBossDangerIndex;
     bool running=true;Uint64 previous=SDL_GetPerformanceCounter();
     const double frequency=double(SDL_GetPerformanceFrequency());
     while(running){
@@ -81,7 +99,7 @@ int runSoloPrototype(){
             if(e.type==SDL_QUIT)running=false;
             if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_ESCAPE){
                 if(selecting)running=false;
-                else {campaign.abandon();selecting=true;touch.reset();}
+                else {campaign.abandon();selecting=true;touch.reset();kinetic.cancel();}
             }
             if(selecting){
                 if(e.type==SDL_FINGERDOWN || e.type==SDL_MOUSEBUTTONDOWN){
@@ -93,20 +111,48 @@ int runSoloPrototype(){
                     if(action==sfsolo::SelectAction::Back)running=false;
                     if(action==sfsolo::SelectAction::Play){
                         campaign.selection=selector.selection;
-                        if(campaign.launch()){selecting=false;touch.reset();combat=sfsolo::Combat{};}
+                        if(campaign.launch()){selecting=false;touch.reset();kinetic.cancel();sfBossDangerIndex=int(campaign.launchedSelection.difficulty)-1;combat=sfsolo::Combat{};}
                     }
                 }
                 if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_RETURN){
                     campaign.selection=selector.selection;
-                    if(campaign.launch()){selecting=false;touch.reset();combat=sfsolo::Combat{};}
+                    if(campaign.launch()){selecting=false;touch.reset();kinetic.cancel();sfBossDangerIndex=int(campaign.launchedSelection.difficulty)-1;combat=sfsolo::Combat{};}
                 }
             }else{
                 if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_r){
                     campaign.abandon();
                     if(!campaign.launch())selecting=true;
-                    combat=sfsolo::Combat{};touch.reset();
+                    combat=sfsolo::Combat{};touch.reset();kinetic.cancel();
                 }
-                touch.handle(e,w,h);
+                const auto action=touch.handle(e,w,h);
+                if(action==sfsolo::TouchAction::ChargePressed)kinetic.press();
+                if(action==sfsolo::TouchAction::ChargeReleased){
+                    const bool surge=campaign.active && kinetic.release(*campaign.active);
+                    if(!surge && campaign.active)
+                        combat.fire(*campaign.active,campaign.active->pilot.x,
+                                    campaign.active->pilot.y-10.0f);
+                }
+                // Desktop test controls mirror the second finger: hold SPACE
+                // to arm the canonical surge, release early for a single shot.
+                if(e.type==SDL_KEYDOWN && !e.key.repeat &&
+                   e.key.keysym.sym==SDLK_SPACE)kinetic.press();
+                if(e.type==SDL_KEYUP && e.key.keysym.sym==SDLK_SPACE){
+                    const bool surge=campaign.active && kinetic.release(*campaign.active);
+                    if(!surge && campaign.active)
+                        combat.fire(*campaign.active,campaign.active->pilot.x,
+                                    campaign.active->pilot.y-10.0f);
+                }
+                if(e.type==SDL_MOUSEBUTTONDOWN && e.button.button==SDL_BUTTON_RIGHT)
+                    kinetic.press();
+                if(e.type==SDL_MOUSEBUTTONUP && e.button.button==SDL_BUTTON_RIGHT){
+                    const bool surge=campaign.active && kinetic.release(*campaign.active);
+                    if(!surge && campaign.active)
+                        combat.fire(*campaign.active,campaign.active->pilot.x,
+                                    campaign.active->pilot.y-10.0f);
+                }
+                if(e.type==SDL_APP_WILLENTERBACKGROUND){
+                    touch.reset();kinetic.cancel();
+                }
             }
         }
         const Uint64 now=SDL_GetPerformanceCounter();
@@ -124,12 +170,10 @@ int runSoloPrototype(){
             sfsolo::drawSelector(renderer,{0,0,w,h},selector,campaign.progression);
         }else if(campaign.active){
             campaign.active->step(ax,ay,dt);
-            // Temporary touch combat input for prototype validation only.
-            // Final SOLO must reuse the canonical COOP kinetic controls.
-            if(touch.down || keys[SDL_SCANCODE_SPACE] || keys[SDL_SCANCODE_LCTRL] ||
-               (SDL_GetMouseState(nullptr,nullptr)&SDL_BUTTON(SDL_BUTTON_RIGHT)))
-                combat.fire(*campaign.active,campaign.active->pilot.x,
-                            campaign.active->pilot.y-10.0f);
+            kinetic.advance(dt);
+            if(campaign.active->phase==sfsolo::Phase::Lost)kinetic.cancel();
+            // Prototype projectiles remain temporary. Touch 1 steers only;
+            // touch 2 / SPACE charges COOP's real kinetic state machine.
             combat.step(*campaign.active,dt);
             if(campaign.active->phase==sfsolo::Phase::Won){
                 // Completion is atomic: update SOLO progression only after a
@@ -155,6 +199,7 @@ int runSoloPrototype(){
                     selector.selection=campaign.selection;
                     selecting=true;
                     touch.reset();
+                    kinetic.cancel();
                     combat=sfsolo::Combat{};
                 }else{
                     // Keep the completed session available for a later retry
@@ -176,6 +221,7 @@ int runSoloPrototype(){
         SDL_RenderPresent(renderer);
         SDL_Delay(10);
     }
+    kinetic.cancel();sfBossDangerIndex=historicalDanger;
     SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);SDL_Quit();
     return 0;
 }
