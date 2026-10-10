@@ -2,6 +2,7 @@
 // Isolated first-finger steering and second-finger charge input for SOLO.
 // SDL touch-mouse synthesis is disabled in the prototype loop.
 #include "solo_session.hpp"
+#include "solo_viewport.hpp"
 #include <SDL2/SDL.h>
 #include <algorithm>
 
@@ -43,13 +44,11 @@ inline void pilotInput(const Session &s,const TouchPilot &touch,
                        int width,int height,float &ax,float &ay){
     ax=ay=0;
     if(!touch.down||width<=0||height<=0)return;
-    const float screenX=s.pilot.x/float(s.map.width)*width;
-    // The pilot stays near the camera's lower-middle area.
-    const float cell=float(width)/float(s.map.width);
-    const float visibleRows=float(height)/cell;
-    const float top=std::clamp(s.cameraY-visibleRows*.58f,0.0f,
-                               std::max(0.0f,float(s.map.height)-visibleRows));
-    const float screenY=(s.pilot.y-top)*cell;
+    // Identical camera to the renderer: touch tracking must not aim at
+    // the former 54-column overview while the view is zoomed to 18 columns.
+    const SoloViewport camera=soloViewport(s,{0,0,width,height});
+    const float screenX=camera.x(s.pilot.x);
+    const float screenY=camera.y(s.pilot.y);
     ax=std::clamp((touch.targetX-screenX)/std::max(1.0f,width*.18f),-1.0f,1.0f);
     ay=std::clamp((touch.targetY-screenY)/std::max(1.0f,height*.18f),-1.0f,1.0f);
 }
