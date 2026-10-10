@@ -218,3 +218,17 @@
 - [ ] Attendre le CI vert du commit `26877a4e`, récupérer nouvel APK ; faire vérifier visuellement sur Samsung que le vaisseau est visible et que pilotage / tirs / cône s'alignent.
 - [ ] Rendu définitif NON livré : remplacer les symboles techniques par les graphismes du vaisseau et assets historiques COOP, intégrer collisions, animations et FX sans recoder le canon.
 - [ ] Aucun merge main ni Release sans validation explicite.
+
+
+## SOLO — accueil commun et sélecteur lisible (retour téléphone 10/10/2026)
+- [x] Retour utilisateur : sélecteur SOLO uniquement constitué de quatre barres sans texte ; confusion avec tous les autres modes du jeu.
+- [x] Constater que les modes historiques subsistent via `SpaceFortressActivity`; le SOLO était une activité Android de test distincte.
+- [x] Ajouter `SpaceFortressHubActivity` **uniquement dans les sources debug** : accueil unique avec deux choix clairs « Jeu original » (accès au menu historique avec CLASSIQUE/DUEL/VS IA/COOP/CAMPAGNE) et « Mode SOLO » (prototype).
+- [x] Manifest debug : une seule entrée LAUNCHER via l'accueil, activité classique intacte dans le code et activité SOLO sans icône supplémentaire ; manifeste release original non modifié.
+- [x] Rendu de l'écran SOLO : lettres bitmap intégrées, titres centrés, flèches, valeurs MONDE/NIVEAU/DANGER et JOUER/RETOUR ; grands boutons adaptés à la lisibilité.
+- [x] Protection Android 16 : marges de sécurité système pour l'accueil Java.
+- [x] Contrôles automatiques : script `scripts/check-solo-launcher.py`, SDL2 selector, et validation `aapt dump xmltree` du manifest final de l'APK debug.
+- [ ] Attendre CI complète du commit `c5ac97f8` avant de livrer une nouvelle APK dézippée directement.
+- [ ] Validation téléphone : accueil commun, accès historique, SOLO, sélection, bouton retour et orientation, sans régression.
+- [ ] SOLO n'est encore qu'un prototype : images, assets, mécaniques COOP, diversité des niveaux/boss et UX finale restent à développer.
+- [ ] Aucun merge `main` ou Release sans autorisation explicite.
