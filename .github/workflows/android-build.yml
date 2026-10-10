@@ -143,6 +143,11 @@ jobs:
           manifest="$(mktemp)"
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump xmltree \
             android/app/build/outputs/apk/debug/app-debug.apk AndroidManifest.xml > "$manifest"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging \
+            android/app/build/outputs/apk/debug/app-debug.apk > /tmp/spacefortress-debug-badging.txt
+          grep -F "package: name='com.greenpower2669.spacefortressvs.diagnostic'" \
+            /tmp/spacefortress-debug-badging.txt
+
           grep -q 'SpaceFortressHubActivity' "$manifest"
           grep -q 'SpaceFortressSoloActivity' "$manifest"
           grep -q 'SpaceFortressActivity' "$manifest"
