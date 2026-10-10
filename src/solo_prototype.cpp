@@ -8,9 +8,11 @@
 #include "solo_kinetic_control.hpp"
 #include "solo_touch_controls.hpp"
 #include "solo_prototype.hpp"
+#include "solo_android_diagnostics.hpp"
 #include <SDL2/SDL.h>
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <memory>
 #include <string>
 
@@ -20,14 +22,29 @@
 // an Android mode dispatcher can link this translation unit without a duplicate main.
 int runSoloPrototype(){
     SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS,"0"); // prevent duplicate touch mouse clicks
-    if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS)!=0)return 1;
+    if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS)!=0){
+        sfDebugNativeLog("solo",("SDL_INIT_FAILED "+
+            std::string(SDL_GetError())).c_str());
+        return 1;
+    }
+    sfDebugNativeLog("solo","SDL_INIT_OK");
     SDL_Window *window=SDL_CreateWindow("SpaceFortress SOLO Prototype",
         SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,540,960,
         SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
-    if(!window){SDL_Quit();return 2;}
+    if(!window){
+        sfDebugNativeLog("solo",("SDL_WINDOW_FAILED "+
+            std::string(SDL_GetError())).c_str());
+        SDL_Quit();return 2;
+    }
+    sfDebugNativeLog("solo","SDL_WINDOW_OK");
     SDL_Renderer *renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
     if(!renderer)renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_SOFTWARE);
-    if(!renderer){SDL_DestroyWindow(window);SDL_Quit();return 3;}
+    if(!renderer){
+        sfDebugNativeLog("solo",("SDL_RENDERER_FAILED "+
+            std::string(SDL_GetError())).c_str());
+        SDL_DestroyWindow(window);SDL_Quit();return 3;
+    }
+    sfDebugNativeLog("solo","SDL_RENDERER_OK");
     sfsolo::CampaignController campaign;
     // SDL supplies the app-private writable directory on Android and desktop.
     // SOLO owns its save file; never touch historical DUEL/COOP saves.
@@ -36,7 +53,8 @@ int runSoloPrototype(){
         soloSavePath=std::string(pref)+"solo-progress-v1.save";
         SDL_free(pref);
     }
-    sfsolo::restoreCampaign(campaign,soloSavePath);
+    const bool restored=sfsolo::restoreCampaign(campaign,soloSavePath);
+    sfDebugNativeLog("solo",restored?"SAVE_RESTORED":"SAVE_EMPTY_OR_FAILED");
     sfsolo::Selector selector;
     bool selecting=true;
     sfsolo::TouchPilot touch;
@@ -44,12 +62,16 @@ int runSoloPrototype(){
     sfsolo::Combat combat;
     const int historicalDanger=sfBossDangerIndex;
     bool running=true;Uint64 previous=SDL_GetPerformanceCounter();
+    Uint64 lastDebugHeartbeat=SDL_GetTicks64();
+    sfDebugNativeLog("solo","SOLO_LOOP_ENTER");
     const double frequency=double(SDL_GetPerformanceFrequency());
     while(running){
         SDL_Event e;
         int w=540,h=960;SDL_GetRendererOutputSize(renderer,&w,&h);
         while(SDL_PollEvent(&e)){
-            if(e.type==SDL_QUIT)running=false;
+            if(e.type==SDL_QUIT){
+                sfDebugNativeLog("solo","SDL_QUIT_EVENT");running=false;
+            }
             if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_ESCAPE){
                 if(selecting)running=false;
                 else {campaign.abandon();selecting=true;touch.reset();kinetic.cancel();}
@@ -64,12 +86,22 @@ int runSoloPrototype(){
                     if(action==sfsolo::SelectAction::Back)running=false;
                     if(action==sfsolo::SelectAction::Play){
                         campaign.selection=selector.selection;
-                        if(campaign.launch()){selecting=false;touch.reset();kinetic.cancel();sfBossDangerIndex=int(campaign.launchedSelection.difficulty)-1;combat=sfsolo::Combat{};}
+                        if(campaign.launch()){
+                            sfDebugNativeLog("solo","STAGE_LAUNCHED_TOUCH");
+                            selecting=false;touch.reset();kinetic.cancel();
+                            sfBossDangerIndex=int(campaign.launchedSelection.difficulty)-1;
+                            combat=sfsolo::Combat{};
+                        }else sfDebugNativeLog("solo","STAGE_LAUNCH_FAILED");
                     }
                 }
                 if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_RETURN){
                     campaign.selection=selector.selection;
-                    if(campaign.launch()){selecting=false;touch.reset();kinetic.cancel();sfBossDangerIndex=int(campaign.launchedSelection.difficulty)-1;combat=sfsolo::Combat{};}
+                    if(campaign.launch()){
+                        sfDebugNativeLog("solo","STAGE_LAUNCHED_KEYBOARD");
+                        selecting=false;touch.reset();kinetic.cancel();
+                        sfBossDangerIndex=int(campaign.launchedSelection.difficulty)-1;
+                        combat=sfsolo::Combat{};
+                    }else sfDebugNativeLog("solo","STAGE_LAUNCH_FAILED");
                 }
             }else{
                 if(e.type==SDL_KEYDOWN && e.key.keysym.sym==SDLK_r){
@@ -78,7 +110,10 @@ int runSoloPrototype(){
                     combat=sfsolo::Combat{};touch.reset();kinetic.cancel();
                 }
                 const auto action=touch.handle(e,w,h);
-                if(action==sfsolo::TouchAction::ChargePressed)kinetic.press();
+                if(action==sfsolo::TouchAction::ChargePressed){
+                    sfDebugNativeLog("solo","TOUCH2_CHARGE_START");
+                    kinetic.press();
+                }
                 if(action==sfsolo::TouchAction::ChargeReleased){
                     const bool surge=campaign.active && kinetic.release(*campaign.active);
                     if(!surge && campaign.active)
@@ -104,6 +139,7 @@ int runSoloPrototype(){
                                     campaign.active->pilot.y-10.0f);
                 }
                 if(e.type==SDL_APP_WILLENTERBACKGROUND){
+                    sfDebugNativeLog("solo","SDL_APP_BACKGROUND");
                     touch.reset();kinetic.cancel();
                 }
             }
@@ -148,6 +184,7 @@ int runSoloPrototype(){
                         SDL_GetPerformanceCounter()));
                 if(sfsolo::finishAndSave(campaign,soloSavePath,
                                           "SoloPilot",id,points)){
+                    sfDebugNativeLog("solo","STAGE_WIN_SAVED");
                     campaign.next();
                     selector.selection=campaign.selection;
                     selecting=true;
@@ -157,6 +194,7 @@ int runSoloPrototype(){
                 }else{
                     // Keep the completed session available for a later retry
                     // rather than unlock a stage that was never persisted.
+                    sfDebugNativeLog("solo","STAGE_WIN_SAVE_FAILED");
                     SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
                                 "SOLO progression not saved; session retained.");
                 }
@@ -173,8 +211,26 @@ int runSoloPrototype(){
             }
         }
         SDL_RenderPresent(renderer);
+        // One breadcrumb every three seconds: keeps logs small while identifying
+        // which state and screen immediately preceded a native process exit.
+        if(SDL_GetTicks64()-lastDebugHeartbeat>=3000){
+            char event[192];
+            if(campaign.active){
+                const auto &p=campaign.active->pilot;
+                std::snprintf(event,sizeof(event),
+                    "HEARTBEAT phase=%d x=%.2f y=%.2f vx=%.2f vy=%.2f hp=%.0f ice=%.2f",
+                    int(campaign.active->phase),p.x,p.y,p.vx,p.vy,
+                    p.health,campaign.active->iceSeconds);
+            }else{
+                std::snprintf(event,sizeof(event),"HEARTBEAT selector=%d",
+                              selecting?1:0);
+            }
+            sfDebugNativeLog("solo",event);
+            lastDebugHeartbeat=SDL_GetTicks64();
+        }
         SDL_Delay(10);
     }
+    sfDebugNativeLog("solo","SOLO_LOOP_EXIT");
     kinetic.cancel();sfBossDangerIndex=historicalDanger;
     SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);SDL_Quit();
     return 0;
