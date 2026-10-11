@@ -1,5 +1,6 @@
 #pragma once
 #include "solo_map_generator.hpp"
+#include "ship_energy_rules.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -19,6 +20,10 @@ struct Session {
     std::vector<float> asteroidIntegrity;
     Pilot pilot;
     Physics physics;
+    // Real SOLO campaign enables this; legacy standalone tests are unchanged.
+    bool canonicalShipActive=false;
+    float heatSpent=0; // original nrj: 0 full, 50 exhausted
+
     Phase phase=Phase::Ready;
     float seconds=0, cameraY=0;
     // SOLO camera hysteresis. Owned by the level, not recalculated from the
@@ -42,6 +47,8 @@ struct Session {
     bool lavaActive() const {return lavaSeconds>0.0f;}
     bool slowActive() const {return iceActive()||lavaActive();}
     float mobility() const {return slowActive()? .25f:1.0f;}
+    float energyFraction() const {return sfKineticEnergyFraction(heatSpent);}
+    bool spendShotEnergy(){return canonicalShipActive?sfSpendMainEnergyReserve(heatSpent):false;}
     bool missionReady() const {
         return bossDefeated && relaysCollected>=relaysNeeded;
     }
@@ -124,7 +131,11 @@ struct Session {
                         <=shipRadius+.24f){
                 if(p.icy)
                     iceSeconds=std::max(iceSeconds,ICE_MALUS_SECONDS);
-                p.life=0; // non-icy mining dust has no ice malus
+                if(canonicalShipActive){
+                    if(heatSpent>0)heatSpent=std::max(0.0f,heatSpent-1.0f);
+                    else pilot.health=std::min(100.0f,pilot.health+.4f);
+                }
+                p.life=0; // non-icy dust has no ice malus
             }
         }
         dust.erase(std::remove_if(dust.begin(),dust.end(),
@@ -136,7 +147,13 @@ struct Session {
     }
     void damage(float amount){
         if(amount<=0||phase==Phase::Lost||phase==Phase::Won)return;
-        pilot.damageTaken+=amount; // NEVER subtract repairs from cumulative damage.
+        if(canonicalShipActive){
+            const float before=sfShipHeat(heatSpent);
+            const float hull=sfShieldDamage(amount,before);
+            heatSpent=sfShipHeat(before+sfShieldWear(amount,before));
+            amount=hull*.10f; // 100 HP display corresponds to historical 1000 PV
+        }
+        pilot.damageTaken+=amount;
         pilot.health=std::max(0.0f,pilot.health-amount);
         if(pilot.health<=0)phase=Phase::Lost;
     }
@@ -157,6 +174,12 @@ struct Session {
         if(phase!=Phase::Flying&&phase!=Phase::BossFight)return;
         dt=std::clamp(dt,0.0f,.05f);
         seconds+=dt;
+        if(canonicalShipActive){
+            heatSpent=sfCanonicalCoopPassiveRechargeHeat(heatSpent,dt,sfBossDangerIndex);
+            if(pilot.health>0)
+                pilot.health=std::min(100.0f,pilot.health+
+                    sfHullRegenPerSecond(heatSpent)*dt*.10f);
+        }
         collisionCooldown=std::max(0.0f,collisionCooldown-dt);
         iceSeconds=std::max(0.0f,iceSeconds-dt);
         lavaSeconds=std::max(0.0f,lavaSeconds-dt);

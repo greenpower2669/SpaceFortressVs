@@ -152,17 +152,16 @@ static SfVelocityGhost sfShipGhost(int owner)
 
 static float sfMainShotSpeed(float heat)
 {
-    return (60-sfShipHeat(heat+1))*.4f*60*sfArenaW/780.0f;
+    return sfCanonicalMainShotSpeed(heat,sfArenaW);
 }
 
 static float sfMainShotSpreadEnvelope(float heat)
 {
-    const float spent=sfShipHeat(heat)/SF_MAX_SHIP_HEAT;
-    return .018f+.162f*std::pow(spent,1.25f);
+    return sfCanonicalMainShotSpreadEnvelope(heat);
 }
 static float sfMainShotSpreadRadians(float heat,float randomUnit)
 {
-    return std::clamp(randomUnit,-1.0f,1.0f)*sfMainShotSpreadEnvelope(heat);
+    return sfCanonicalMainShotSpreadRadians(heat,randomUnit);
 }
 static float sfMainShotRandomUnit()
 {

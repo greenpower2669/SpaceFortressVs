@@ -1,18 +1,8 @@
 #pragma once
 #include <algorithm>
 #include <cmath>
-#include "kinetic_shield.hpp"
-
-// Historical nrj measures spent energy/heat: 0 is full, 50 is exhausted.
-// Clamp mutations as well as the display; an impact must not create an
-// unbounded reserve deficit that firing then silently erases.
-constexpr float SF_MAX_SHIP_HEAT = 50.0f;
-
-static float sfShipHeat(float heat)
-{
-    return std::isnan(heat) ? SF_MAX_SHIP_HEAT : std::clamp(heat,0.0f,SF_MAX_SHIP_HEAT);
-}
-
+#include "ship_energy_rules.hpp"
+// Historical sprite API delegates to common canonical pure functions.
 static void sfAddShipHeat(sprite *ship,float amount)
 {
     ship->nrj=sfShipHeat(sfShipHeat(ship->nrj)+amount);
@@ -30,27 +20,10 @@ static SDL_Rect sfEnergyMarkerRect(float heat,SDL_Rect full,const SDL_Rect &gun)
 
 static bool sfSpendMainEnergy(sprite *ship)
 {
-    sfAddShipHeat(ship,1);
-    const bool missile=ship->nrj<1.5f;
-    if (missile) sfAddShipHeat(ship,10);
+    float heat=ship->nrj;
+    const bool missile=sfSpendMainEnergyReserve(heat);
+    ship->nrj=heat;
     return missile;
-}
-static float sfShieldSpent(float heat)
-{
-    return sfShipHeat(heat)/SF_MAX_SHIP_HEAT;
-}
-static float sfShieldFraction(float heat)
-{
-    return 1.0f-sfShieldSpent(heat);
-}
-static float sfShieldDamage(float damage,float heat)
-{
-    return std::max(0.0f,damage)*sfShieldSpent(heat);
-}
-static float sfShieldWear(float damage,float heat)
-{
-    const float factor=std::clamp(.1f+sfShieldSpent(heat),.1f,1.0f);
-    return std::max(0.0f,damage)*factor;
 }
 static float sfApplyShieldImpact(sprite *ship,float incomingDamage)
 {

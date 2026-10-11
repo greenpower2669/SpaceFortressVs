@@ -17,6 +17,7 @@ struct CampaignController {
         if(!map.valid())return false;
         auto candidate=std::make_unique<Session>(std::move(map));
         if(!candidate->start())return false;
+        candidate->canonicalShipActive=true;
         launchedSelection=selection;
         active=std::move(candidate);
         return true;

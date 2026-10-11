@@ -7,7 +7,11 @@
 #include <vector>
 
 namespace sfsolo {
-struct Shot {float x=0,y=0,vx=0,vy=0;float life=0;};
+struct Shot {
+    float x=0,y=0,vx=0,vy=0,life=0;
+    bool missile=false;
+    float damage=10,age=0,aimX=0,aimY=0;
+};
 struct ImpactFx {float x=0,y=0,life=.36f;bool frozen=false;};
 struct Combat {
     std::vector<Shot> shots;
@@ -16,14 +20,24 @@ struct Combat {
     float fireCooldown=0;
     float bossHealth=100;
     float bossMaxHealth=100;
-    bool fire(const Session &s,float aimX,float aimY){
+    bool fire(Session &s,float aimX,float aimY){
         if(s.phase!=Phase::Flying && s.phase!=Phase::BossFight)return false;
         if(fireCooldown>0||shots.size()>=64)return false;
         const float dx=aimX-s.pilot.x,dy=aimY-s.pilot.y;
         const float len=std::sqrt(dx*dx+dy*dy);
         if(len<.001f)return false;
-        shots.push_back({s.pilot.x,s.pilot.y,dx/len*22,dy/len*22,3.0f});
-        fireCooldown=.18f;
+        float speed=22.0f,damage=10.0f;
+        bool missile=false;
+        const float heatBefore=sfShipHeat(s.heatSpent);
+        if(s.canonicalShipActive){
+            speed=sfCanonicalMainShotSpeed(heatBefore,float(s.map.width));
+            missile=s.spendShotEnergy();
+            if(missile)speed=float(s.map.width)*.65f;
+            damage=missile?60.0f:12.0f;
+        }
+        shots.push_back({s.pilot.x,s.pilot.y,dx/len*speed,dy/len*speed,
+                         missile?4.0f:3.0f,missile,damage,0,aimX,aimY});
+        fireCooldown=s.canonicalShipActive?.20f+.010f*heatBefore:.18f;
         return true;
     }
     void step(Session &s,float dt){
@@ -35,6 +49,22 @@ struct Combat {
             [](const ImpactFx &fx){return fx.life<=0;}),impacts.end());
         for(auto &shot:shots){
             if(shot.life<=0)continue;
+            if(shot.missile){
+                // Canonical missile acceleration; SOLO adds 360-degree
+                // guidance toward its chosen aim coordinate, not a false orb.
+                const float speed=float(s.map.width)*
+                    std::min(1.5f,.65f+1.8f*(shot.age+dt*.5f));
+                const float dx=shot.aimX-shot.x,dy=shot.aimY-shot.y;
+                const float length=std::hypot(dx,dy);
+                if(length>.001f){
+                    const float maxDelta=float(s.map.width)*1.4f*dt;
+                    shot.vx+=std::clamp(dx/length*speed-shot.vx,-maxDelta,maxDelta);
+                    shot.vy+=std::clamp(dy/length*speed-shot.vy,-maxDelta,maxDelta);
+                    const float magnitude=std::hypot(shot.vx,shot.vy);
+                    if(magnitude>speed){shot.vx*=speed/magnitude;shot.vy*=speed/magnitude;}
+                }
+                shot.age+=dt;
+            }
             const float distance=std::sqrt(shot.vx*shot.vx+shot.vy*shot.vy)*dt;
             const int substeps=std::max(1,int(std::ceil(distance/.25f)));
             const float stepTime=dt/substeps;
@@ -51,7 +81,7 @@ struct Combat {
                     shot.life=0;
                 }else if(tile==Tile::Boss){
                     if(!s.bossDefeated){
-                        bossHealth=std::max(0.0f,bossHealth-10.0f);
+                        bossHealth=std::max(0.0f,bossHealth-shot.damage);
                         if(bossHealth<=0){
                             s.phase=Phase::BossFight;
                             s.defeatBoss();

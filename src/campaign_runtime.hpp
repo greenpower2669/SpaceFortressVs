@@ -540,18 +540,11 @@ static constexpr float SF_COOP_PASSIVE_RECHARGE_EASIEST_MULTIPLIER=4.0f;
 static constexpr float SF_COOP_PASSIVE_RECHARGE_HARDEST_MULTIPLIER=2.0f;
 static float sfCoopPassiveRechargeMultiplier(int dangerIndex)
 {
-    const float t=std::clamp(dangerIndex,0,SF_BOSS_DANGER_COUNT-1)/float(SF_BOSS_DANGER_COUNT-1);
-    return SF_COOP_PASSIVE_RECHARGE_EASIEST_MULTIPLIER+
-        (SF_COOP_PASSIVE_RECHARGE_HARDEST_MULTIPLIER-
-         SF_COOP_PASSIVE_RECHARGE_EASIEST_MULTIPLIER)*t;
+    return sfCanonicalCoopPassiveRechargeMultiplier(dangerIndex);
 }
 static float sfCoopPassiveRechargeHeat(float heat,float dt,int dangerIndex)
 {
-    heat=sfShipHeat(heat);
-    if(dt<=0) return heat;
-    const float updates=SF_COOP_PASSIVE_RECHARGE_BASE_UPDATES_PER_SECOND*
-        sfCoopPassiveRechargeMultiplier(dangerIndex)*dt;
-    return sfShipHeat(heat*std::pow(.997f,updates));
+    return sfCanonicalCoopPassiveRechargeHeat(heat,dt,dangerIndex);
 }
 static float sfCoopPassiveRechargeHeat(float heat,float dt)
 {
