@@ -424,3 +424,12 @@ CLASSIQUE DUEL local :
 - Build/test du code exact `9927f0148486eefb5f49a201b9fd0602151c1905` : GitHub Actions `38169721589` VERT, jobs `solo-core-regressions`, `solo-sdl2-ui`, `build-android` tous success ; `publish-release` skipped. 
 - Décompression validée `38170223921` VERTE : `temp/SpaceFortressVs-1.4.2.apk` dans `feature/solo-coop-core-v1`, 94 119 734 octets, SHA256 `47c575b49877dc1af8bceaa966b8201978612edd794a9b7e17fe987726bfd33c`, package Android diagnostic séparé. AAB non signé SHA256 `635fbc4dfac186a27f51155e34123e90218491af80efb0cf8ae02bdf74279f92`.
 - Le son de charge 0,20s / READY 2,0s est implémenté mais non encore écouté sur Samsung par Fab. Phase2 pont monde/collision/caméra testé isolément, PAS encore disponible dans l'arène interactive. Pas de merge `main`, aucun changement `src/main.cpp`, aucune Release.
+
+
+## 11/10/26 — Entrée exécutable MONDE TEST + boucle COOP canonique
+- Démarrage via HUB DEBUG → SOLO : VRAI MOTEUR COOP → bouton MONDE TEST ; bouton ARENE revient à l'arène canonique. Aussi touches clavier M (bascule)/B (boss uniquement arène).
+- `coop_solo_arena_runtime.hpp`: session map créée à la bascule, pilotage world target par finger immobile mis à jour dans chaque substep 90Hz; appel natif `sfCoopTick`; pan après mouvement réel; fenêtre et HUD conservés.
+- `campaign_runtime.hpp`: callback `SfCoopState::soloWorldResolve` uniquement pour COOP diagnostic propriétaire 1 et drapeau `soloWorldMode`. Aucun second intégrateur. Tirs extents monde, spawn astéroïdes historiques centrés autour du joueur, render projection via viewport et old HUD supprimé seulement MONDE.
+- `coop_solo_world_bridge.hpp`: `draw` parois contiguës visibles/contours + repères, `moveWithoutTunnelling` coque, `soloCirclePan` caméra, combatWidth fixé à l'arène ancienne, carte `generate` existante.
+- `legacy_field_runtime.hpp`: limites optionnelles monde propagées pour expiration/collision des vrais astéroïdes; défaut 0 pour tous anciens modes. Témoin COOP local inchangé.
+- Tests : `tests/coop_solo_world_bridge_regressions.cpp`, `tests/restoration_regressions.hpp::testActualCoopMovementInWorld`, `tests/coop_solo_native_smoke.cpp` 2 boot modes; CI `38171610964` à vérifier. Tests Samsung indispensables (artefacts/visuels/caméra/collisions) ; pas encore progression/relays/animations.

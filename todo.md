@@ -438,3 +438,15 @@
 - Build/test du code exact `9927f0148486eefb5f49a201b9fd0602151c1905` : GitHub Actions `38169721589` VERT, jobs `solo-core-regressions`, `solo-sdl2-ui`, `build-android` tous success ; `publish-release` skipped. 
 - Décompression validée `38170223921` VERTE : `temp/SpaceFortressVs-1.4.2.apk` dans `feature/solo-coop-core-v1`, 94 119 734 octets, SHA256 `47c575b49877dc1af8bceaa966b8201978612edd794a9b7e17fe987726bfd33c`, package Android diagnostic séparé. AAB non signé SHA256 `635fbc4dfac186a27f51155e34123e90218491af80efb0cf8ae02bdf74279f92`.
 - Le son de charge 0,20s / READY 2,0s est implémenté mais non encore écouté sur Samsung par Fab. Phase2 pont monde/collision/caméra testé isolément, PAS encore disponible dans l'arène interactive. Pas de merge `main`, aucun changement `src/main.cpp`, aucune Release.
+
+
+## 11/10/26 — SOLOCOP-WORLD-TEST-005
+- [x] Raccordement EXPLICITE du vrai `sfCoopMovePlayers` à collision de coque monde (`soloWorldResolve` opt-in) ; pas de second pilote ni modification historique DUEL/COOP.
+- [x] Rendu réel `sfCoopDrawArena` projeté par caméra viewport SDL; fond rock/massifs/repères monde généré et dessiné en coordonnées écran, HUD fixe.
+- [x] Premier doigt dirige le pilote COOP vers cible monde avec pan seulement si mouvement réel; deuxième doigt conserve 360°, tirs/minage/son canonique.
+- [x] Extension optionnelle monde aux bornes des projectiles et du champ physique historique (astéroïdes spawn de proximité).
+- [x] Boutons opt-in MONDE TEST/ARENE, arène canonique BOSS TEST inchangée; double smoke native et test 80 pas vrai pilote contre murs.
+- [ ] CI du commit `d86c1bfe`, run `38171610964` ; inspecter erreurs puis seulement exporter APK verte vers `temp/`.
+- [ ] Samsung contrôle visuel du viewport négatif/grande carte, pilotage doigt 1, caméra seuils concentriques, parois massives sans traversée, sons 0,20/2s, fond astral.
+- [ ] Intégrer vrai atlas/scenery sans cases carrées, occlusion collision tirs/missiles/astéroïdes avec murs, objectif/relais, régions miniboss/boss final, sauvegarde de progression `SFSOLO1`, sessions contextuelles multi-tenant. Ne pas réclamer que ces systèmes sont déjà livrés.
+- [ ] Pas de merge main, `src/main.cpp` protégé, pas de Release.
