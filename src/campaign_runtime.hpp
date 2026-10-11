@@ -18,6 +18,7 @@ struct SfCoopWave { tupl origin; float age=0,radius=0; };
 struct SfCoopControl { SDL_FingerID finger=-1; tupl target; bool down=false; tuplv velocity; };
 struct SfCoopState {
     SfCoopPilotRoster pilots{}; // two by default, never infer presence from PV
+    bool bossPresent=true; // future SOLO exploration: no boss before encounter
     SfCoopPhase phase=SfCoopPhase::Intro;
     int boss=0,encounter=0,volley=0,revives=3,phaseNumber=0;
     float time=0,phaseTime=0,health=900,attack=1,warning=0,hit=0;
@@ -144,7 +145,7 @@ static void sfCoopEmitRedDust(int owner,int count)
 
 static void sfCoopEnemyCollectWhiteDust()
 {
-    if (sfCoop.phase!=SfCoopPhase::Combat) return;
+    if (sfCoop.phase!=SfCoopPhase::Combat || !sfCoop.bossPresent) return;
     const float maximum=sfCoopProfile().health;
     if (sfCoop.health>=maximum-.001f) return;
     for(auto *dust:particules) {
@@ -652,7 +653,7 @@ static void sfCoopMovePlayers(float dt)
         ship->nrj=sfCoopPassiveRechargeHeat(ship->nrj,dt);
         const float collision=sfCoopBossRadius()*.72f+radius;
         const float distance=vlong(ship->x-sfCoop.position.x,ship->y-sfCoop.position.y);
-        if (distance<collision) {
+        if (sfCoop.bossPresent && distance<collision) {
             const tuplv push=sfUnitVelocity(sfCoop.position,tupl(ship->x,ship->y),collision);
             ship->x=sfCoop.position.x+push.vx; ship->y=sfCoop.position.y+push.vy;
             sfCoopBossContact(owner,dt); ship->startup();
@@ -704,7 +705,7 @@ static void sfCoopProjectiles(float dt)
     std::vector<SfCoopShot> bursts;
     for (auto &shot : sfCoop.shots) {
         shot.previous=shot.position; shot.age+=dt; shot.life-=dt;
-        if (shot.kind==4) {
+        if (shot.kind==4 && sfCoop.bossPresent) {
             // Same live COOP missile: the extracted function is executed by
             // the historical runtime, not merely copied into SOLO.
             const auto guide=sfCoopGuidedMissileCore(
@@ -760,7 +761,7 @@ static void sfCoopProjectiles(float dt)
                 impact.vx=shot.velocity.vx/60;impact.vy=shot.velocity.vy/60;
                 sfMineAsteroid(rock,&impact);shot.life=0;break;
             }
-            if (shot.life>0 && sfSegmentDistance(shot.previous,shot.position,sfCoop.position)<sfCoopBossRadius()*.75f+shot.radius) {
+            if (sfCoop.bossPresent && shot.life>0 && sfSegmentDistance(shot.previous,shot.position,sfCoop.position)<sfCoopBossRadius()*.75f+shot.radius) {
                 const float energyStress=.018f+.102f*std::clamp(shot.damage/60.0f,0.0f,1.0f);
                 sfCoop.bossEnergyReserve=std::clamp(sfCoop.bossEnergyReserve-energyStress,0.0f,1.0f);
                 sfCoopRegisterBossDamage(shot.owner,shot.damage);
@@ -955,11 +956,13 @@ static void sfCoopAdvanceAsteroidSpawner(float dt)
 
 static void sfCoopResources(float dt)
 {
-    sfCoopRegenerateBossReserves(dt);
-    sfCoopAdvanceBossKineticCooldowns(dt);
+    if(sfCoop.bossPresent){
+        sfCoopRegenerateBossReserves(dt);
+        sfCoopAdvanceBossKineticCooldowns(dt);
+    }
     sfCoopAdvanceAsteroidSpawner(dt);
     sfLegacyFieldFrame(dt,sfCoopAsteroidHurt);
-    sfCoopBossKineticField();
+    if(sfCoop.bossPresent)sfCoopBossKineticField();
 }
 
 static void sfCoopWin()
@@ -1068,6 +1071,19 @@ static void sfCoopTick(float dt)
     sfKineticAdvanceSurges(dt);sfKineticAudioUpdate();
     sfCoop.time+=dt;sfCoop.hit=std::max(0.0f,sfCoop.hit-dt);
     sfCoop.bossKineticFlash=std::max(0.0f,sfCoop.bossKineticFlash-dt);
+    if(!sfCoop.bossPresent){
+        // Exploration reuses the historical ship, physical asteroid field,
+        // dust pickup, kinetic charge and missile loop. There is NO dummy
+        // boss with zero PV and NO call to the COOP victory save.
+        sfCoopMovePlayers(dt);
+        sfCoopProjectiles(dt);
+        sfCoopResources(dt);
+        if(!sfCoopAnyAlive()){
+            sfCoop.phase=SfCoopPhase::Defeat;sfCoop.phaseTime=0;
+            sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
+        }
+        return;
+    }
     const auto &boss=sfCoopProfile();
     sfCoopUpdateBossThreat(dt);
     sfCoopUpdateBossMissileDodge(dt);
@@ -1635,8 +1651,9 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
                               220,185,255,Uint8(std::max(7,int(alpha*.55f))));
         }
     }
-    sfDrawEncounterBoss(renderer,textures.bosses,sfCoop.encounter,sfCoop.position,sfCoopBossRadius(),
-               sfCoop.time+sfCoop.phaseTime,sfCoop.hit,death);
+    if(sfCoop.bossPresent)
+        sfDrawEncounterBoss(renderer,textures.bosses,sfCoop.encounter,sfCoop.position,sfCoopBossRadius(),
+                   sfCoop.time+sfCoop.phaseTime,sfCoop.hit,death);
     if (death>0 && death<1) for (int i=0;i<40;++i) {
         const float angle=i*2.39996f,radius=sfCoopBossRadius()*(.5f+death*(1.5f+(i%4)*.4f));
         sfCoopDisc(renderer,sfCoop.position.x+std::cos(angle)*radius,sfCoop.position.y+std::sin(angle)*radius,
