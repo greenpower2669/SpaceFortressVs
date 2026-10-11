@@ -412,7 +412,8 @@ static bool sfKineticTryLayer(sprite *rock,sprite *ship,int owner,SfKineticLayer
 }
 
 static void sfLegacyFieldStep(void (*hurt)(int,float),unsigned activePilotMask=0x03u,
-                              const SfKineticAimAxes *aims=nullptr)
+                              const SfKineticAimAxes *aims=nullptr,
+                              float soloWorldWidth=0,float soloWorldHeight=0)
 {
     if (sa1.empty()) {setastswall();setasts(2);}
     else if (sa1.size()<8) setasts(2);
@@ -421,7 +422,11 @@ static void sfLegacyFieldStep(void (*hurt)(int,float),unsigned activePilotMask=0
         if (rock->pv<=0) continue;
         const float fromX=rock->x,fromY=rock->y;
         rock->ast();
-        rock->tout=inxy(rock) ? 0 : rock->tout+1;
+        const bool insideField=soloWorldWidth>0 && soloWorldHeight>0 ?
+            (rock->x>-soloWorldWidth*.02f && rock->x<soloWorldWidth*1.02f &&
+             rock->y>-soloWorldHeight*.02f && rock->y<soloWorldHeight*1.02f) :
+            inxy(rock);
+        rock->tout=insideField ? 0 : rock->tout+1;
         if (rock->tout>60*30) rock->pv=0;
         for (int owner=0;owner<2 && rock->pv>0;++owner) {
             if(!(activePilotMask&(1u<<owner)))continue;
@@ -463,7 +468,12 @@ static void sfLegacyFieldStep(void (*hurt)(int,float),unsigned activePilotMask=0
         auto *a=rocks[i];
         for(size_t j=i+1;j<rocks.size() && a->pv>0;++j) {
             auto *b=rocks[j];
-            if (b->pv<=0 || a->timer || b->timer || !(inxy(a)||inxy(b)) || !colee(a,b)) continue;
+            const bool worldClip=soloWorldWidth>0 && soloWorldHeight>0;
+            const bool aInside=worldClip ?
+                (a->x>=0&&a->y>=0&&a->x<soloWorldWidth&&a->y<soloWorldHeight):inxy(a);
+            const bool bInside=worldClip ?
+                (b->x>=0&&b->y>=0&&b->x<soloWorldWidth&&b->y<soloWorldHeight):inxy(b);
+            if (b->pv<=0 || a->timer || b->timer || !(aInside||bInside) || !colee(a,b)) continue;
             sfFieldCollisionSound=true;sfFieldImpact(a,b,true);
             const float h1=std::sqrt(a->w*a->h),h2=std::sqrt(b->w*b->h);
             if (std::min(h1,h2)>0 && std::max(h1,h2)/std::min(h1,h2)<1.05f) {
@@ -495,14 +505,15 @@ static void sfLegacyFieldStep(void (*hurt)(int,float),unsigned activePilotMask=0
 
 static void sfLegacyFieldFrame(float dt,void (*hurt)(int,float),
                                unsigned activePilotMask=0x03u,
-                               const SfKineticAimAxes *aims=nullptr)
+                               const SfKineticAimAxes *aims=nullptr,
+                               float soloWorldWidth=0,float soloWorldHeight=0)
 {
     const int oldW=W,oldH=H,oldWidth=WIDTH,oldHeight=HEIGHT;const float oldK=k0;
     W=WIDTH=std::max(1,int(sfArenaW));H=HEIGHT=std::max(1,int(sfArenaH));k0=1;
     sfFieldRemainder+=std::clamp(dt,0.0f,.1f);
     while(sfFieldRemainder+1e-6f>=1.0f/60) {
         sfFieldRemainder=std::max(0.0f,sfFieldRemainder-1.0f/60);
-        sfLegacyFieldStep(hurt,activePilotMask,aims);
+        sfLegacyFieldStep(hurt,activePilotMask,aims,soloWorldWidth,soloWorldHeight);
         if (hurt) {
             for(auto *p:particules) p->update();for(auto *p:particulesr) p->update();
             sfCollectDust(activePilotMask);

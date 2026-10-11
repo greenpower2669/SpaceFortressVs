@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <optional>
+#include <SDL2/SDL.h>
 
 namespace sfsolo {
 struct CoopWorldPoint { float x=0,y=0; };
@@ -90,6 +91,52 @@ struct CoopSoloWorldBridge {
             else break;
         }
         return cursor;
+    }
+
+    // Draw only the visible part of the immutable real SOLO map, in SCREEN
+    // coordinates, with connected wall masses and subtle inner cracks.
+    void draw(SDL_Renderer *r) const {
+        if(!r||!ready)return;
+        const int x0=std::max(0,int(std::floor(cameraLeft/pixelsPerCell))-1);
+        const int x1=std::min(map.width,int(std::ceil((cameraLeft+visibleWidth())/pixelsPerCell))+1);
+        const int y0=std::max(0,int(std::floor(cameraTop/pixelsPerCell))-1);
+        const int y1=std::min(map.height,int(std::ceil((cameraTop+visibleHeight())/pixelsPerCell))+1);
+        SDL_SetRenderDrawBlendMode(r,SDL_BLENDMODE_BLEND);
+        for(int y=y0;y<y1;++y)for(int x=x0;x<x1;++x){
+            const auto t=map.at(x,y);
+            if(t!=Tile::Rock && t!=Tile::Lava && t!=Tile::Beam
+               && t!=Tile::Trigger && t!=Tile::Boss && t!=Tile::Finish)
+                continue;
+            SDL_Rect rect{
+                int(std::floor((x*pixelsPerCell-cameraLeft)+screen.x)),
+                int(std::floor((y*pixelsPerCell-cameraTop)+screen.y)),
+                int(std::ceil(pixelsPerCell))+1,int(std::ceil(pixelsPerCell))+1};
+            if(t==Tile::Rock){
+                const unsigned noise=(unsigned(x)*83492791u)^(unsigned(y)*2971215073u);
+                const Uint8 c=Uint8(45+(noise%19u));
+                SDL_SetRenderDrawColor(r,c,Uint8(c-4),Uint8(c+10),255);
+                SDL_RenderFillRect(r,&rect);
+                // Only mark a contour where Rock meets traversable space:
+                // adjacent wall cells read as ONE continuous rock mass.
+                SDL_SetRenderDrawColor(r,117,111,129,125);
+                if(map.at(x,y-1)!=Tile::Rock)
+                    SDL_RenderDrawLine(r,rect.x,rect.y,rect.x+rect.w,rect.y);
+                if(map.at(x-1,y)!=Tile::Rock)
+                    SDL_RenderDrawLine(r,rect.x,rect.y,rect.x,rect.y+rect.h);
+                if(map.at(x+1,y)!=Tile::Rock)
+                    SDL_RenderDrawLine(r,rect.x+rect.w-1,rect.y,rect.x+rect.w-1,rect.y+rect.h);
+                if(map.at(x,y+1)!=Tile::Rock)
+                    SDL_RenderDrawLine(r,rect.x,rect.y+rect.h-1,rect.x+rect.w,rect.y+rect.h-1);
+            }else{
+                SDL_Color color=t==Tile::Lava?SDL_Color{205,58,19,65}:
+                    t==Tile::Beam?SDL_Color{110,60,240,65}:
+                    t==Tile::Trigger?SDL_Color{65,205,176,105}:
+                    t==Tile::Finish?SDL_Color{90,240,125,90}:
+                    SDL_Color{245,110,210,90};
+                SDL_SetRenderDrawColor(r,color.r,color.g,color.b,color.a);
+                SDL_RenderFillRect(r,&rect);
+            }
+        }
     }
     void panIfShipActuallyMoved(CoopWorldPoint ship,CoopWorldPoint displacement,float dt){
         if(!ready||dt<=0||!std::isfinite(dt))return;

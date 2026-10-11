@@ -21,6 +21,10 @@ struct SfCoopState {
     bool bossPresent=true; // future SOLO exploration: no boss before encounter
     bool soloDiagnostic=false; // suppress historical campaign save in test
     bool soloFreeAim=false;    // one blue human uses 360-degree direct aim
+    bool soloWorldMode=false;  // opt-in, canonical COOP remains default
+    void *soloWorldContext=nullptr;
+    tupl (*soloWorldResolve)(void *,tupl,tupl,float)=nullptr;
+    float soloWorldWidth=0,soloWorldHeight=0;
     tupl soloAimTarget;
     SfKineticAimAxes soloKineticAxes{};
     SfCoopPhase phase=SfCoopPhase::Intro;
@@ -656,8 +660,18 @@ static void sfCoopMovePlayers(float dt)
             control.velocity=sfUnitVelocity(previous,control.target,std::min(sfArenaW*3.10f,distance*30));
         } else { const float decay=std::exp(-dt*8);control.velocity.vx*=decay;control.velocity.vy*=decay; }
         const float halfWidth=std::max(radius,ship->w*.5f),halfHeight=ship->h*.5f;
-        ship->x=std::clamp(ship->x+control.velocity.vx*dt,halfWidth,sfArenaW-halfWidth);
-        ship->y=std::clamp(ship->y+control.velocity.vy*dt,sfArenaH*.105f+halfHeight,sfArenaH*.895f-halfHeight);
+        if(sfCoop.soloWorldMode && sfCoop.soloWorldResolve && owner==1){
+            // Same actual COOP velocity. Only the collision-bound movement
+            // constraint changes to the world hull (no duplicate pilot).
+            const tupl desired(ship->x+control.velocity.vx*dt,
+                               ship->y+control.velocity.vy*dt);
+            const tupl accepted=sfCoop.soloWorldResolve(
+                sfCoop.soloWorldContext,previous,desired,std::max(halfWidth,halfHeight));
+            ship->x=accepted.x;ship->y=accepted.y;
+        }else{
+            ship->x=std::clamp(ship->x+control.velocity.vx*dt,halfWidth,sfArenaW-halfWidth);
+            ship->y=std::clamp(ship->y+control.velocity.vy*dt,sfArenaH*.105f+halfHeight,sfArenaH*.895f-halfHeight);
+        }
         ship->vx=ship->vy=0; ship->startup();
         sfObserved[owner].observe(tupl(ship->x,ship->y),dt);
         ship->nrj=sfCoopPassiveRechargeHeat(ship->nrj,dt);
@@ -785,7 +799,10 @@ static void sfCoopProjectiles(float dt)
                 }
             }
         }
-        if (shot.position.x<-50 || shot.position.x>sfArenaW+50 || shot.position.y<-50 || shot.position.y>sfArenaH+50) shot.life=0;
+        const float extentX=sfCoop.soloWorldMode ? sfCoop.soloWorldWidth : sfArenaW;
+        const float extentY=sfCoop.soloWorldMode ? sfCoop.soloWorldHeight : sfArenaH;
+        if (shot.position.x<-50 || shot.position.x>extentX+50 ||
+            shot.position.y<-50 || shot.position.y>extentY+50) shot.life=0;
     }
     sfCoop.shots.erase(std::remove_if(sfCoop.shots.begin(),sfCoop.shots.end(),[](const auto &s){return s.life<=0;}),sfCoop.shots.end());
     for (const auto &shot : bursts) if (sfCoop.shots.size()<600) sfCoop.shots.push_back(shot);
@@ -960,7 +977,19 @@ static void sfCoopAdvanceAsteroidSpawner(float dt)
     if(sa1.size()+4>SF_COOP_ASTEROID_CAP) return;
     const int oldW=W,oldH=H,oldWidth=WIDTH,oldHeight=HEIGHT;const float oldK=k0;
     W=WIDTH=std::max(1,int(sfArenaW));H=HEIGHT=std::max(1,int(sfArenaH));k0=1;
+    // Legacy creation retains sizes, mass, speed, collision and the 4
+    // historical spawn patterns. New world spawns receive world coordinates,
+    // never altering the combat reference width used in their physics.
+    const auto oldCount=sa1.size();
     setasts(1);
+    if(sfCoop.soloWorldMode){
+        const float shiftX=sfCoopShip(1)->x-sfArenaW*.5f;
+        const float shiftY=sfCoopShip(1)->y-sfArenaH*.5f;
+        auto it=sa1.begin();std::advance(it,std::min(oldCount,sa1.size()));
+        for(;it!=sa1.end();++it){
+            (*it)->x+=shiftX;(*it)->y+=shiftY;(*it)->startup();
+        }
+    }
     W=oldW;H=oldH;WIDTH=oldWidth;HEIGHT=oldHeight;k0=oldK;
 }
 
@@ -972,7 +1001,9 @@ static void sfCoopResources(float dt)
     }
     sfCoopAdvanceAsteroidSpawner(dt);
     sfLegacyFieldFrame(dt,sfCoopAsteroidHurt,sfCoop.pilots.activeMask,
-                       sfCoop.soloFreeAim?&sfCoop.soloKineticAxes:nullptr);
+                       sfCoop.soloFreeAim?&sfCoop.soloKineticAxes:nullptr,
+                       sfCoop.soloWorldMode?sfCoop.soloWorldWidth:0,
+                       sfCoop.soloWorldMode?sfCoop.soloWorldHeight:0);
     if(sfCoop.bossPresent)sfCoopBossKineticField();
 }
 
@@ -1562,7 +1593,11 @@ static void sfDrawBossRatioBar(SDL_Renderer *renderer,SDL_Rect rect,float ratio,
 static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
 {
     auto &textures=sfCoopTextures(renderer);
-    sfDrawCampaignSpace(renderer,sfCoop.encounter,sfCoop.time+sfCoop.phaseTime,width,height);
+    // WORLD TEST draws its fixed sky and actual maze in the caller's SCREEN
+    // viewport. This historical renderer then draws entities in WORLD coords
+    // under a translated viewport; it must not repaint the terrain.
+    if(!sfCoop.soloWorldMode)
+        sfDrawCampaignSpace(renderer,sfCoop.encounter,sfCoop.time+sfCoop.phaseTime,width,height);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     for (const auto &beam : sfCoop.beams) {
         const bool active=beam.age>=beam.warning;
@@ -1704,6 +1739,7 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
         SDL_Rect rect{int(sfCoop.bonusPosition.x-side*.5f),int(sfCoop.bonusPosition.y-side*.5f),side,side};
         SDL_RenderCopyEx(renderer,textures.bonus,nullptr,&rect,5*std::sin(sfCoop.time*2),nullptr,SDL_FLIP_NONE);
     }
+    if(sfCoop.soloWorldMode)return; // native diagnostic draws a fixed SCREEN HUD
     if (sfCoop.turretTime>0) sfCoopText(renderer,width/4,int(height*.875f),
         "TOURELLES : "+std::to_string(int(std::ceil(sfCoop.turretTime)))+" S",width/2,2,{120,255,150,255});
     const int margin=std::max(8,width/30);

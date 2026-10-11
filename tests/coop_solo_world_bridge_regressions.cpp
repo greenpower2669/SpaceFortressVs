@@ -21,6 +21,7 @@ int main(){
     const auto inverse=bridge.toWorld(originOnScreen);
     assert(same(inverse.x,start.x)&&same(inverse.y,start.y));
     assert(bridge.canOccupy(start,12));
+    assert(bridge.canOccupy(start,40)); // actual historical ship half-width
     // A large step cannot jump through an opaque Rock tile.
     int rockX=-1,rockY=-1;
     for(int y=1;y<opts.height-1&&rockX<0;++y)
