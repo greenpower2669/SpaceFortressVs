@@ -1695,7 +1695,10 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
         }
     }
     sfDrawTacticalEffects(renderer);
-    sfDrawKineticEffects(renderer,sfCoop.soloFreeAim?&sfCoop.soloKineticAxes:nullptr);
+    if(sfCoop.soloFreeAim)
+        sfDrawKineticEffects(renderer,&sfCoop.soloKineticAxes);
+    else
+        sfDrawKineticEffects(renderer); // EXACT protected historical render call
     if (sfCoop.bonusLife>0 && textures.bonus) {
         const int side=int(std::min(sfArenaW,sfArenaH)*.085f);
         SDL_Rect rect{int(sfCoop.bonusPosition.x-side*.5f),int(sfCoop.bonusPosition.y-side*.5f),side,side};
