@@ -1,0 +1,118 @@
+name: Unpack verified SOLO COOP artifact into temp
+
+# Requested by Fab: unpack original verified APK, unsigned AAB and metadata.
+# Never main or Releases, and no redundant Android rebuild.
+on:
+  push:
+    branches:
+      - feature/solo-coop-core-v1
+    paths:
+      - .github/workflows/solo-coop-export-to-temp.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: coop-solo-temp-export
+  cancel-in-progress: false
+
+jobs:
+  unpack-verified-files:
+    if: github.repository == 'greenpower2669/SpaceFortressVs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout only feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/solo-coop-core-v1
+          persist-credentials: true
+
+      - name: Download and verify the green CI artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_id=38163967042
+          source_sha=ca0322e3188988e80d4e321f047e33fd2ba75f6e
+          artifact_dir="$RUNNER_TEMP/coop-solo-green"
+          mkdir -p "$artifact_dir" temp
+          actual_conclusion="$(gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json conclusion --jq '.conclusion')"
+          if [[ "$actual_conclusion" != "success" ]]; then
+            echo "::error::CI source is not GREEN: $actual_conclusion"
+            exit 1
+          fi
+          gh run download "$run_id" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "SpaceFortressVs-1.4.2-release-files" \
+            --dir "$artifact_dir"
+          (cd "$artifact_dir" && sha256sum --check SHA256SUMS)
+          python3 - "$artifact_dir" "$source_sha" <<'PY'
+          import json
+          from pathlib import Path
+          import sys
+          directory, expected = Path(sys.argv[1]), sys.argv[2]
+          manifest = json.loads((directory / "SpaceFortressVs-1.4.2-build.json").read_text(encoding="utf-8"))
+          assert manifest["commit"] == expected, f"Wrong tested commit: {manifest['commit']}"
+          assert manifest["packageName"] == "com.greenpower2669.spacefortressvs.diagnostic"
+          expected_files = ("SpaceFortressVs-1.4.2.apk",
+                            "SpaceFortressVs-1.4.2-unsigned.aab",
+                            "SpaceFortressVs-1.4.2-build.json",
+                            "SHA256SUMS", "release-notes.md")
+          for name in expected_files:
+              path = directory / name
+              assert path.is_file(), f"Missing extracted file: {name}"
+              assert path.stat().st_size < 100_000_000, f"Too large for GitHub Git: {name}"
+              print(f"VERIFIED {name}: {path.stat().st_size} bytes")
+          PY
+          # The artifact download action already unpacks the zip into this
+          # directory. Copy all five uncompressed files to branch temp.
+          cp "$artifact_dir/SpaceFortressVs-1.4.2.apk" temp/
+          cp "$artifact_dir/SpaceFortressVs-1.4.2-unsigned.aab" temp/
+          cp "$artifact_dir/SpaceFortressVs-1.4.2-build.json" temp/
+          cp "$artifact_dir/SHA256SUMS" temp/
+          cp "$artifact_dir/release-notes.md" temp/
+          (cd temp && sha256sum --check SHA256SUMS)
+          cat > temp/README.md <<'TXT'
+          # SpaceFortress — SOLO sur le vrai moteur COOP
+
+          Fichiers extraits (sans ZIP) depuis la CI VERTE :
+          https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38163967042
+
+          Branche : feature/solo-coop-core-v1
+          Commit source testé : ca0322e3188988e80d4e321f047e33fd2ba75f6e
+
+          - SpaceFortressVs-1.4.2.apk : APK diagnostic installable, identité
+            Android indépendante : com.greenpower2669.spacefortressvs.diagnostic.
+          - SpaceFortressVs-1.4.2-unsigned.aab : bundle NON SIGNÉ, ne pas
+            tenter de l'installer comme une APK sur le téléphone.
+          - SpaceFortressVs-1.4.2-build.json : manifeste avec empreintes.
+          - SHA256SUMS : empreintes vérifiées via sha256sum -c.
+          - release-notes.md : notes du build source.
+
+          L'APK inclut le troisième bouton de diagnostic :
+          SOLO : VRAI MOTEUR COOP. Encore une arène sans labyrinthe ni caméra.
+
+          Ne pas fusionner temp/ dans main ni publier de Release. Ces binaires
+          restent dans l'historique Git tant qu'ils ne sont pas purgés.
+          TXT
+
+      - name: Commit extracted files to branch temp
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f --ignore-unmatch temp/SpaceFortress-SOLO-PAROIS-AUTOTILES-7012a3b5-DIAG.apk
+          git add -- temp/README.md temp/SHA256SUMS temp/release-notes.md \
+            temp/SpaceFortressVs-1.4.2-build.json \
+            temp/SpaceFortressVs-1.4.2.apk temp/SpaceFortressVs-1.4.2-unsigned.aab
+          if git diff --cached --quiet; then
+            echo "All files already match green artifact."
+            exit 0
+          fi
+          git commit -m "chore(solo): unpack verified COOP APK+AAB into temp [skip ci]"
+          git push origin HEAD:refs/heads/feature/solo-coop-core-v1
