@@ -2,6 +2,7 @@
 #include "boss_catalog.hpp"
 #include "scenic_mix.hpp"
 #include "campaign_save.hpp"
+#include "coop_pilot_roster.hpp"
 #include <map>
 
 enum class SfCoopPhase { Intro, Combat, Dying, Name, Saved, Defeat, Paused };
@@ -16,6 +17,7 @@ struct SfCoopBeam { tupl origin; float angle=0,age=0,warning=.9f; };
 struct SfCoopWave { tupl origin; float age=0,radius=0; };
 struct SfCoopControl { SDL_FingerID finger=-1; tupl target; bool down=false; tuplv velocity; };
 struct SfCoopState {
+    SfCoopPilotRoster pilots{}; // two by default, never infer presence from PV
     SfCoopPhase phase=SfCoopPhase::Intro;
     int boss=0,encounter=0,volley=0,revives=3,phaseNumber=0;
     float time=0,phaseTime=0,health=900,attack=1,warning=0,hit=0;
@@ -73,6 +75,10 @@ inline std::array<SfDuelShipStyle,2> sfDuelShipStyles{};
 inline bool sfDuelShipStylesSaved=false;
 
 static sprite *sfCoopShip(int owner) { return owner==0 ? Spritej1 : Spritej2; }
+static bool sfCoopPilotActive(int owner){return sfCoop.pilots.active(owner);}
+static bool sfCoopAnyAlive(){
+    return sfCoop.pilots.anyAlive(Spritej1->pv,Spritej2->pv);
+}
 static const SfBossProfile &sfCoopProfile() { return sfEncounterProfile(sfCoop.encounter); }
 static float sfCoopBossRadius() { return std::min(sfArenaW,sfArenaH)*(.11f+.00065f*sfCoop.boss); }
 static float sfCoopShipRadius() { return std::min(sfArenaW,sfArenaH)*.053f; }
@@ -91,7 +97,7 @@ static float sfCoopBossAiSkill()
 }
 static void sfCoopRegisterBossDamage(int owner,float damage)
 {
-    if(owner<0 || owner>1 || damage<=0 || sfCoop.health<=0) return;
+    if(!sfCoopPilotActive(owner) || damage<=0 || sfCoop.health<=0) return;
     sfCoop.bossThreat[owner]+=damage;
 }
 static SfVelocityGhost sfBossGhost() { return {sfCoop.position,sfCoop.motion.velocity}; }
@@ -148,7 +154,7 @@ static void sfCoopEnemyCollectWhiteDust()
         bool enemyWins=false;
         for(int owner=0;owner<2;++owner) {
             const auto *ship=sfCoopShip(owner);
-            if (ship->pv<=0) continue;
+            if (!sfCoopPilotActive(owner)||ship->pv<=0) continue;
             const float distance=vlong(dust->x-ship->x,dust->y-ship->y);
             if (distance<ship->sh*.5f && distance<nearest) nearest=distance;
         }
@@ -195,7 +201,7 @@ static void sfCoopPattern(int pattern)
     const int tier=boss.tier,count=3+tier+(boss.difficulty>=2 ? 1 : 0);
     const float rotation=sfCoop.volley*.37f+boss.index*.11f;
     if (pattern==3) {
-        for (int owner=0;owner<2;++owner) if (sfCoopShip(owner)->pv>0) {
+        for (int owner=0;owner<2;++owner) if (sfCoopPilotActive(owner)&&sfCoopShip(owner)->pv>0) {
             const tupl aim=sfShipGhost(owner).intercept(sfCoop.position,speed,.6f);
             sfCoop.beams.push_back({sfCoop.position,std::atan2(aim.y-sfCoop.position.y,aim.x-sfCoop.position.x),0,1.0f-tier*.05f});
         }
@@ -218,7 +224,7 @@ static void sfCoopPattern(int pattern)
                             sfCoop.position.y+std::sin(angle)*sfCoopBossRadius()),angle,speed*.32f,-1,boss.damage*1.5f,2);
         }
     } else {
-        for (int owner=0;owner<2;++owner) if (sfCoopShip(owner)->pv>0) {
+        for (int owner=0;owner<2;++owner) if (sfCoopPilotActive(owner)&&sfCoopShip(owner)->pv>0) {
             tupl origin=sfCoop.position;
             if (pattern==9) origin.x+=sfCoopBossRadius()*std::sin(rotation+owner*float(PI))*1.3f;
             const tupl aim=sfShipGhost(owner).intercept(origin,speed,.45f+.12f*boss.difficulty);
@@ -420,7 +426,7 @@ static void sfCoopUpdateBossThreat(float dt)
     sfCoop.bossAggroTime=std::max(0.0f,sfCoop.bossAggroTime-dt);
 
     int candidate=-1;float threat=0;
-    for(int owner=0;owner<2;++owner) if(sfCoopShip(owner)->pv>0 && sfCoop.bossThreat[owner]>threat) {
+    for(int owner=0;owner<2;++owner) if(sfCoopPilotActive(owner)&&sfCoopShip(owner)->pv>0 && sfCoop.bossThreat[owner]>threat) {
         threat=sfCoop.bossThreat[owner];candidate=owner;
     }
     const float threshold=sfCoopProfile().health*(.030f-.020f*skill);
@@ -553,7 +559,7 @@ static float sfCoopPassiveRechargeHeat(float heat,float dt)
 static bool sfCoopFire(int owner)
 {
     auto *ship=sfCoopShip(owner);
-    if (sfCoop.phase!=SfCoopPhase::Combat || ship->pv<=0 || sfCoop.shots.size()>=600 ||
+    if (!sfCoopPilotActive(owner)||sfCoop.phase!=SfCoopPhase::Combat || ship->pv<=0 || sfCoop.shots.size()>=600 ||
         sfCoop.cooldown[owner]>0) return false;
     const float heatBefore=sfShipHeat(ship->nrj);
     const float speed=sfMainShotSpeed(heatBefore);
@@ -626,6 +632,7 @@ static void sfCoopMovePlayers(float dt)
 {
     const float radius=sfCoopShipRadius();
     for (int owner=0;owner<2;++owner) {
+        if(!sfCoopPilotActive(owner))continue;
         auto *ship=sfCoopShip(owner); auto &control=sfCoop.controls[owner];
         sfCoop.redDustCooldown[owner]=std::max(0.0f,sfCoop.redDustCooldown[owner]-dt);
         ship->vib(sfCoop.time);
@@ -656,7 +663,8 @@ static void sfCoopMovePlayers(float dt)
             if(sfCoop.cooldown[owner]<=0 && sfCoopAiShouldFire()) sfCoopFire(owner);
         }
     }
-    for (int owner=0;owner<2;++owner) if (sfCoopShip(owner)->pv<=0) {
+    for (int owner=0;owner<2;++owner) if (sfCoopPilotActive(owner)&&sfCoopShip(owner)->pv<=0) {
+        if(!sfCoopPilotActive(1-owner)){sfCoop.reviveProgress[owner]=0;continue;}
         const auto *ally=sfCoopShip(1-owner); auto *down=sfCoopShip(owner);
         if (ally->pv>0 && sfCoop.revives>0 && vlong(ally->x-down->x,ally->y-down->y)<sfArenaW*.16f) {
             sfCoop.reviveProgress[owner]+=dt;
@@ -708,19 +716,28 @@ static void sfCoopProjectiles(float dt)
             shot.velocity=tuplv(guide.vx,guide.vy);
         }
         if (shot.kind==1 && shot.age<.75f) {
-            const int target=Spritej1->pv<=0 ? 1 : Spritej2->pv<=0 ? 0 :
-                (vlong(shot.position.x-Spritej1->x,shot.position.y-Spritej1->y)<vlong(shot.position.x-Spritej2->x,shot.position.y-Spritej2->y) ? 0 : 1);
-            const auto aim=sfShipGhost(target).intercept(shot.position,sfArenaW*sfCoopProfile().shotSpeed,.35f);
-            const float desired=std::atan2(aim.y-shot.position.y,aim.x-shot.position.x);
-            shot.phase+=std::clamp(std::remainder(desired-shot.phase,2*float(PI)),-dt*.8f,dt*.8f);
-            const float speed=vlong(shot.velocity.vx,shot.velocity.vy);
-            shot.velocity=tuplv(std::cos(shot.phase)*speed,std::sin(shot.phase)*speed);
+            int target=-1;
+            float nearest=std::numeric_limits<float>::max();
+            for(int owner=0;owner<2;++owner){
+                if(!sfCoopPilotActive(owner)||sfCoopShip(owner)->pv<=0)continue;
+                const float d=vlong(shot.position.x-sfCoopShip(owner)->x,
+                                    shot.position.y-sfCoopShip(owner)->y);
+                if(d<nearest){nearest=d;target=owner;}
+            }
+            if(target>=0){
+                const auto aim=sfShipGhost(target).intercept(
+                    shot.position,sfArenaW*sfCoopProfile().shotSpeed,.35f);
+                const float desired=std::atan2(aim.y-shot.position.y,aim.x-shot.position.x);
+                shot.phase+=std::clamp(std::remainder(desired-shot.phase,2*float(PI)),-dt*.8f,dt*.8f);
+                const float speed=vlong(shot.velocity.vx,shot.velocity.vy);
+                shot.velocity=tuplv(std::cos(shot.phase)*speed,std::sin(shot.phase)*speed);
+            }
         }
         if (shot.kind==2) {
             shot.velocity.vx*=std::exp(-dt*1.4f);shot.velocity.vy*=std::exp(-dt*1.4f);
             if (shot.age>1.2f && shot.life>0) for (int owner=0;owner<2;++owner) {
                 const auto *ship=sfCoopShip(owner);
-                if (ship->pv>0 && vlong(ship->x-shot.position.x,ship->y-shot.position.y)<sfArenaW*.13f) {
+                if (sfCoopPilotActive(owner)&&ship->pv>0 && vlong(ship->x-shot.position.x,ship->y-shot.position.y)<sfArenaW*.13f) {
                     shot.life=0;
                     for (int ray=0;ray<8;++ray) {
                         SfCoopShot burst;burst.position=burst.previous=shot.position;
@@ -752,7 +769,7 @@ static void sfCoopProjectiles(float dt)
         } else if (shot.kind!=2 || shot.age>1.2f) {
             for (int owner=0;owner<2;++owner) {
                 auto *ship=sfCoopShip(owner);
-                if (ship->pv>0 && sfSegmentDistance(shot.previous,shot.position,tupl(ship->x,ship->y))<sfCoopShipRadius()+shot.radius) {
+                if (sfCoopPilotActive(owner)&&ship->pv>0 && sfSegmentDistance(shot.previous,shot.position,tupl(ship->x,ship->y))<sfCoopShipRadius()+shot.radius) {
                     sfCoopHurt(owner,shot.damage);shot.life=0;break;
                 }
             }
@@ -767,7 +784,7 @@ static void sfCoopProjectiles(float dt)
             const tupl end(beam.origin.x+std::cos(beam.angle)*sfArenaH*2,beam.origin.y+std::sin(beam.angle)*sfArenaH*2);
             for (int owner=0;owner<2;++owner) {
                 auto *ship=sfCoopShip(owner);
-                if (sfSegmentDistance(beam.origin,end,tupl(ship->x,ship->y))<sfCoopShipRadius()+sfArenaW*.016f)
+                if (sfCoopPilotActive(owner)&&sfSegmentDistance(beam.origin,end,tupl(ship->x,ship->y))<sfCoopShipRadius()+sfArenaW*.016f)
                     sfCoopHurt(owner,sfCoopProfile().damage*1.6f);
             }
         }
@@ -779,7 +796,7 @@ static void sfCoopProjectiles(float dt)
         if (wave.age>.7f) for (int owner=0;owner<2;++owner) {
             auto *ship=sfCoopShip(owner);
             const float distance=vlong(ship->x-wave.origin.x,ship->y-wave.origin.y);
-            if (distance+sfCoopShipRadius()>=previous && distance-sfCoopShipRadius()<=wave.radius)
+            if (sfCoopPilotActive(owner)&&distance+sfCoopShipRadius()>=previous && distance-sfCoopShipRadius()<=wave.radius)
                 sfCoopHurt(owner,sfCoopProfile().damage*1.3f);
         }
     }
@@ -803,7 +820,7 @@ static void sfCoopBonus(float dt)
     if ((p.y<sfArenaH*.15f && v.vy<0) || (p.y>sfArenaH*.85f && v.vy>0)) v.vy=-v.vy;
     for (int owner=0;owner<2;++owner) {
         const auto *ship=sfCoopShip(owner);
-        if (ship->pv>0 && vlong(ship->x-p.x,ship->y-p.y)<sfCoopShipRadius()+std::min(sfArenaW,sfArenaH)*.032f) {
+        if (sfCoopPilotActive(owner)&&ship->pv>0 && vlong(ship->x-p.x,ship->y-p.y)<sfCoopShipRadius()+std::min(sfArenaW,sfArenaH)*.032f) {
             sfCoop.bonusLife=0;sfCoop.turretTime=14;break;
         }
     }
@@ -1069,8 +1086,8 @@ static void sfCoopTick(float dt)
         ++sfCoop.volley;
     }
     sfCoopProjectiles(dt);sfCoopApplyMiningConeBossDamage(dt);sfCoopResources(dt);sfCoopBonus(dt);
-    if (sfCoop.health<=0 && (Spritej1->pv>0 || Spritej2->pv>0)) sfCoopWin();
-    else if (Spritej1->pv<=0 && Spritej2->pv<=0) {
+    if (sfCoop.health<=0 && sfCoopAnyAlive()) sfCoopWin();
+    else if (!sfCoopAnyAlive()) {
         sfCoop.phase=SfCoopPhase::Defeat;sfCoop.phaseTime=0;
         sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
     }
@@ -1540,7 +1557,7 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
         bool weakShieldNearby=false;
         for(int owner=0;owner<2;++owner) {
             const auto *ship=sfCoopShip(owner);
-            if(!ship || ship->pv<=0 || sfShieldFraction(ship->nrj)>=.35f) continue;
+            if(!sfCoopPilotActive(owner)||!ship || ship->pv<=0 || sfShieldFraction(ship->nrj)>=.35f) continue;
             if(vlong(effect->x-ship->x,effect->y-ship->y)<sfCoopShipRadius()*2.2f) {
                 weakShieldNearby=true;break;
             }
@@ -1626,6 +1643,7 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
                    std::max(1.0f,(1-death)*7),{255,Uint8(90+i%120),100,Uint8(255*(1-death))});
     }
     for (int owner=0;owner<2;++owner) {
+        if(!sfCoopPilotActive(owner))continue;
         const auto *ship=sfCoopShip(owner);SDL_Texture *texture=owner==0 ? textures.orange : textures.blue;
         const int size=int(std::min(sfArenaW,sfArenaH)*.15f);
         SDL_Rect rect{int(ship->x-ship->w*.5f),int(ship->y-ship->h*.5f),int(ship->w),int(ship->h)};
@@ -1673,6 +1691,7 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
     sfDrawBossRatioBar(renderer,sfBossKineticRect(true,width,height),sfCoop.bossKineticReserve,bossKineticColor,true);
 
     for (int owner=0;owner<2;++owner) {
+        if(!sfCoopPilotActive(owner))continue;
         const auto *ship=sfCoopShip(owner);const bool upper=owner==0;
         const SDL_Color team=upper ? SDL_Color{255,180,95,255} : SDL_Color{100,210,255,255};
         const float pvRatio=std::clamp(ship->pv/1000.0f,0.0f,1.0f);
