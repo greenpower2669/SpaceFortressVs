@@ -161,6 +161,41 @@ static void testCollectedBonusAndShield()
     std::puts("PASS: random floating bonus, collection, independent turret energy, expiration and reserve-dependent shield");
 }
 
+// Actual historical COOP runtime, not a FakeShip: exercise one active
+// participant with NO active boss. No campaign victory save is permitted.
+static void testCoopSoloFoundation()
+{
+    setupCampaign();
+    sfCoop.pilots=SfCoopPilotRoster::single(1);
+    sfCoop.bossPresent=false;
+    const float absentX=Spritej1->x,absentY=Spritej1->y;
+    const float realX=Spritej2->x;
+    Spritej1->pv=1000;Spritej2->pv=1000;
+    sfCoop.health=0; // a missing boss must NOT trigger campaign victory
+    sfCoop.controls[1].down=true;
+    sfCoop.controls[1].target=tupl(std::min(sfArenaW*.8f,realX+100),Spritej2->y);
+    sfCoop.controls[0].down=true; // even a bogus input cannot move absent owner
+    sfCoop.controls[0].target=tupl(sfArenaW*.8f,sfArenaH*.5f);
+    sfCoopTick(1.0f/60.0f);
+    assert(sfCoop.phase==SfCoopPhase::Combat);
+    assert(sfCoop.health==0);
+    assert(Spritej1->x==absentX&&Spritej1->y==absentY);
+    assert(Spritej2->x>realX);
+    assert(!sfCoopFire(0));
+    assert(sfCoopFire(1));
+    assert(!sfCoop.shots.empty()&&sfCoop.shots.back().owner==1);
+    // The absent first pilot is not a surviving rescue teammate.
+    Spritej2->pv=0;
+    assert(sfCoop.pilots.allDefeated(Spritej1->pv,Spritej2->pv));
+    sfCoopTick(1.0f/60.0f);
+    assert(sfCoop.phase==SfCoopPhase::Defeat);
+    setupCampaign();
+    assert(sfCoop.pilots.count()==2&&sfCoop.bossPresent);
+    sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;
+    sfCampaignRestoreDuelShips();
+    std::puts("PASS: real COOP tick permits one participant and bossless arena without historical victory");
+}
+
 static void testRealCoopField()
 {
     setupCampaign();
