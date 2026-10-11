@@ -16,6 +16,26 @@ struct TouchPilot {
     float startFingerX=0,startFingerY=0,anchorShipX=0,anchorShipY=0;
     bool hasWorldAnchor=false;
     bool down=false,chargeDown=false;
+    // Latched steering: unlike a world-space destination, the vector and the
+    // last finger-zone remain active when the steering finger is released.
+    float cruiseX=0,cruiseY=0,cruiseThrottle=0;
+    float cameraControlX=.5f,cameraControlY=.5f;
+    bool cruiseSet=false;
+    void updateCruise(int width,int height){
+        if(width<=0||height<=0)return;
+        const float dx=targetX-startFingerX,dy=targetY-startFingerY;
+        const float distance=std::hypot(dx,dy);
+        // Near-zero drags must not erase an existing cruising direction.
+        if(distance<12.0f)return;
+        cruiseX=dx/distance;
+        cruiseY=dy/distance;
+        cruiseThrottle=std::clamp((distance-12.0f)/
+            (float(std::min(width,height))*.30f),0.05f,1.0f);
+        cameraControlX=std::clamp(targetX/width,0.0f,1.0f);
+        cameraControlY=std::clamp(targetY/height,0.0f,1.0f);
+        cruiseSet=true;
+    }
+
 
     TouchAction handle(const SDL_Event &e,int width,int height,
                        float shipScreenX=-1,float shipScreenY=-1,
@@ -46,7 +66,8 @@ struct TouchPilot {
             }
         }
         if(e.type==SDL_FINGERMOTION){
-            if(down&&id==finger){targetX=sx;targetY=sy;}
+            if(down&&id==finger){targetX=sx;targetY=sy;
+                updateCruise(width,height);}
             if(chargeDown&&id==chargeFinger){aimX=sx;aimY=sy;}
         }
         if(e.type==SDL_FINGERUP){
@@ -55,12 +76,20 @@ struct TouchPilot {
                 chargeDown=false;chargeFinger=-1;
                 return TouchAction::ChargeReleased;
             }
-            if(down&&id==finger){down=false;finger=-1;hasWorldAnchor=false;}
+            if(down&&id==finger){
+                targetX=sx;targetY=sy;
+                updateCruise(width,height);
+                down=false;finger=-1;hasWorldAnchor=false;
+                // CRITICAL: leave cruiseX/Y, throttle and finger-zone latched.
+            }
         }
         return TouchAction::None;
     }
     void reset(){finger=chargeFinger=-1;down=chargeDown=false;
-                 hasWorldAnchor=false;}
+                 hasWorldAnchor=false;
+                 cruiseX=cruiseY=cruiseThrottle=0;
+                 cameraControlX=cameraControlY=.5f;
+                 cruiseSet=false;}
 };
 inline void pilotTarget(const Session &s,const TouchPilot &touch,
                         int width,int height,float &tx,float &ty) {
