@@ -35,7 +35,7 @@ int main(){
     assert(std::hypot(moved.x-start.x,moved.y-start.y)<
            std::hypot(rock.x-start.x,rock.y-start.y));
     // No physical displacement means no camera pan, regardless of the zone.
-    bridge.cameraLeft=start.x-540*.2f;
+    bridge.cameraLeft=start.x-540*.88f; // ship near rightmost concentric ring
     bridge.cameraTop=start.y-960*.5f;
     const float oldX=bridge.cameraLeft,oldY=bridge.cameraTop;
     bridge.panIfShipActuallyMoved(start,{0,0},.05f);
@@ -43,7 +43,7 @@ int main(){
     // When a ship really moves toward outer circle, camera can follow,
     // bounded by the actual permitted physical displacement.
     bridge.panIfShipActuallyMoved({start.x+20,start.y},{20,0},.05f);
-    assert(bridge.cameraLeft>=oldX);
+    assert(bridge.cameraLeft>oldX);  // actual radial pan followed live movement
     assert(bridge.cameraLeft<=oldX+20.001f);
     assert(same(bridge.combatWidth,540));
     return 0;
