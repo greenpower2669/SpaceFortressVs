@@ -96,7 +96,7 @@ extern "C" int runCoopSoloArena(){
     SDL_FingerID moveFinger=-1,aimFinger=-1;
     float moveScreenX=width*.5f,moveScreenY=height*.5f;
     float aimScreenX=width*.5f,aimScreenY=height*.4f;
-    bool mouseAimHeld=false,running=true;
+    bool mouseAimHeld=false,running=true,smokeVisible=true;
     Uint64 previous=SDL_GetPerformanceCounter(),lastLog=SDL_GetTicks64();
     const double frequency=double(SDL_GetPerformanceFrequency());
     auto fromFinger=[&](float tx,float ty)->tupl{
@@ -299,6 +299,34 @@ extern "C" int runCoopSoloArena(){
             world.draw(renderer);
             sfCoopSoloWorldActors(renderer,world);
         }else sfCoopDrawArena(renderer,width,height);
+        if(worldActive && smokeFrames>0 && smokeVisible){
+            // Deterministic REAL SDL2 pixel readback, not just a geometry
+            // assertion. Protect Android from losing the ship again because
+            // of oversized viewport dimensions or an absent texture.
+            SDL_Rect viewport{};
+            SDL_RenderGetViewport(renderer,&viewport);
+            const auto shipOnScreen=world.toScreen({Spritej2->x,Spritej2->y});
+            SDL_Rect pixel{int(std::lround(shipOnScreen.x)),
+                           int(std::lround(shipOnScreen.y)),1,1};
+            Uint32 rgba=0;
+            SDL_PixelFormat *format=SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888);
+            Uint8 r=0,g=0,b=0,a=0;
+            const bool sampled=format &&
+                pixel.x>=0 && pixel.x<width &&
+                pixel.y>=0 && pixel.y<height &&
+                SDL_RenderReadPixels(renderer,&pixel,
+                    SDL_PIXELFORMAT_RGBA8888,&rgba,4)==0;
+            if(sampled)SDL_GetRGBA(rgba,format,&r,&g,&b,&a);
+            smokeVisible=sampled && viewport.x==0 && viewport.y==0 &&
+                viewport.w==width && viewport.h==height &&
+                g>=150 && b>=160;
+            if(!smokeVisible)
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                    "SOLO_COOP_WORLD_SHIP_NOT_VISIBLE screen=(%d,%d) rgba=(%d,%d,%d,%d) viewport=(%d,%d,%d,%d)",
+                    pixel.x,pixel.y,int(r),int(g),int(b),int(a),
+                    viewport.x,viewport.y,viewport.w,viewport.h);
+            SDL_FreeFormat(format);
+        }
         const float energy=sfKineticEnergyFraction(Spritej2->nrj);
         const int margin=std::max(8,width/30),barW=std::max(100,int(width*.43f));
         SDL_Rect lifeBg{margin,height-58,barW,12};
@@ -360,5 +388,5 @@ extern "C" int runCoopSoloArena(){
     sfCampaignForgetRenderer(renderer);
     SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);
     IMG_Quit();SDL_Quit();
-    return 0;
+    return smokeVisible?0:7;
 }
