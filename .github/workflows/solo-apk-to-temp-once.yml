@@ -1,0 +1,86 @@
+name: SOLO diagnostic APK to temp (one-time)
+
+# One-time handoff requested by Fab. Re-run manually only if the same
+# verified CI build needs to be exported again. NO main/release publishing.
+on:
+  push:
+    branches:
+      - feature/solo-worlds-tutorials-v1
+    paths:
+      - .github/workflows/solo-apk-to-temp-once.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  export-apk:
+    if: github.repository == 'greenpower2669/SpaceFortressVs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout SOLO branch only
+        uses: actions/checkout@v4
+        with:
+          ref: feature/solo-worlds-tutorials-v1
+          persist-credentials: true
+          fetch-depth: 1
+
+      - name: Extract the verified APK from successful Android artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # CI 38136673247 is GREEN on source SHA 993bbdd3cc047bfc2ccc6b283a3e2f4de018d683.
+          mkdir -p "$RUNNER_TEMP/solo-ci-artifact" temp
+          gh run download 38136673247 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "SpaceFortressVs-1.4.2-release-files" \
+            --dir "$RUNNER_TEMP/solo-ci-artifact"
+          (
+            cd "$RUNNER_TEMP/solo-ci-artifact"
+            sha256sum -c SHA256SUMS
+            python3 - <<'PY'
+          import json
+          with open("SpaceFortressVs-1.4.2-build.json", encoding="utf-8") as fp:
+              manifest = json.load(fp)
+          assert manifest["commit"] == "993bbdd3cc047bfc2ccc6b283a3e2f4de018d683"
+          assert manifest["packageName"] == "com.greenpower2669.spacefortressvs.diagnostic"
+          PY
+          )
+          cp "$RUNNER_TEMP/solo-ci-artifact/SpaceFortressVs-1.4.2.apk" \
+            "temp/SpaceFortress-SOLO-DIAG-993bbdd3.apk"
+          (cd temp && sha256sum SpaceFortress-SOLO-DIAG-993bbdd3.apk > SHA256SUMS)
+          cat > temp/README.md <<'TXT'
+          # SpaceFortress SOLO — diagnostic temporaire
+
+          APK Android arm64 directe (pas un ZIP). C'est le build DIAG de
+          la branche `feature/solo-worlds-tutorials-v1`, commit
+          `993bbdd3cc047bfc2ccc6b283a3e2f4de018d683`.
+
+          Fichier : `SpaceFortress-SOLO-DIAG-993bbdd3.apk`
+          SHA-256 : `4c438f2642da1ae34c05a07cd08d90b6483b65e8df49b1e69883e4cad5a50cfe`
+
+          Application de test séparée : `com.greenpower2669.spacefortressvs.diagnostic`.
+          Ne pas désinstaller le SpaceFortress historique pour ce test.
+
+          TEMP est un dépôt de passage demandé pour téléchargement direct.
+          Ce fichier volumineux reste dans l'historique Git tant qu'il n'est
+          pas purgé explicitement. Ne pas faire de merge vers main / Release.
+          TXT
+
+      - name: Commit APK as a temporary branch-only GitHub file
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add temp/SpaceFortress-SOLO-DIAG-993bbdd3.apk temp/SHA256SUMS temp/README.md
+          if git diff --cached --quiet; then
+            echo "APK was already exported unchanged."
+            exit 0
+          fi
+          git commit -m "chore(solo): place verified diagnostic APK directly in temp"
+          git push origin HEAD:refs/heads/feature/solo-worlds-tutorials-v1
