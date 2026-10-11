@@ -461,3 +461,9 @@ CLASSIQUE DUEL local :
 - Symptôme après correction vaisseau visible : arrêt de défilement du monde avec doigt fixe. L'impasse vient de la cible de déplacement COOP exactement sous le doigt : vitesse nulle après rattrapage et donc caméra inactive. Il faut continuer la propulsion radiale sous le doigt sans contourner le moteur physique.
 - `src/coop_solo_world_bridge.hpp::heldFingerPilotTarget` convertit écran→MONDE puis ajoute cible avancée radiale seulement hors cercle central, amplitude `circleCameraSpeedPixelsPerSecond/30` (COOP vrai speed=distance*30, capped3.10*W). `src/coop_solo_arena_runtime.hpp` attribue cette cible avant `sfCoopTick`. Camera continue `panIfShipActuallyMoved` avec excess finger clamp : no fake movement.
 - Tests `coop_solo_world_bridge_regressions.cpp` zones caméra et `restoration_regressions.hpp::testCoopHeldFingerContinuousWorldCruise` vrai pilote réel, doigt tenu, Rock stop. CI `38178296951` à vérifier. Conserver vaisseau BLUE rendu par `coop_solo_world_draw.hpp` sans viewport XXL.
+
+
+## 12/10/2026 — CAMERA-HOLD-007 livrée (attente essai Samsung)
+- Code source `908749e7` vert CI `38178801383` ; seul pilote COOP, `heldFingerPilotTarget` alimente vrai contrôle, laisse pan limité au mouvement réel / à l'écart au doigt. Tests cohérents centre + couronnes et maintien vrai COOP 2s/butée ROCK.
+- CI rouge précédent était un TEST invalide hors bornes caméra, corrigé et tracé. Nouvelle APK décompressée dans `temp/` par `38179331501` verte ; empreinte 372b13765231cfe4b6fe591ea91e90a5dd55df375236ade05971ffcaff4d5730 ; NE PAS confondre avec précédente `1088c265` sans défilement.
+- Reprise : retour Samsung, si OK enchaîner habillage parois/progression ; ne jamais sacrifier vaisseau visible ni contrôle COOP.

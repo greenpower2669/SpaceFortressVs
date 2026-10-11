@@ -487,3 +487,12 @@
 - [ ] Contrôle Samsung : maintenir doigt hors HUD dans bande extérieure (sans le bouger) => décor déroule et vaisseau demeure sous le doigt ; doigts centre => STOP ; roche => vaisseau et caméra STOP ; lever => STOP, cône sonore 0.2→2s.
 - [ ] Plus tard : visuels définitifs des parois, objectifs et collisions missiles/parois.
 - [ ] AUCUN merge main, Release ou changement src/main.cpp.
+
+
+## CAMERA-HOLD-007 — livraison contrôlée Android
+- [x] Corriger propulsion continue avec doigt immobile en zones concentriques + limite max du vrai COOP, sans mouvement factice de la caméra.
+- [x] Test C++ véritable 2s + butée paroi, tests vitesses toutes zones, sprite bleu déjà vérifié par SDL pixel.
+- [x] Réparer condition initiale hors-bornes du test sans relâcher ses assertions.
+- [x] GitHub CI `38178801383` verte et APK/AAB décompressés dans `temp/` par `38179331501` verte (source 908749e, APK SHA 372b1376...).
+- [ ] Essai réel Samsung : tenir un doigt fixe dans zone extérieure hors menu, suivre décor + vaisseau sous doigt, blocage murs, STOP levé ou centre ; deuxième doigt toujours tir/minage/cône.
+- [ ] Si validé par Fab : poursuivre vrai jeu SOLO (arts, collisions tirs/rochers/parois, relais, rencontres et persistance). Pas de main ni Release.

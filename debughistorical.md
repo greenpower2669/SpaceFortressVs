@@ -465,3 +465,9 @@ Référence `1d8a48e2`. [Preuves, chemins et propositions](docs/audits/2026-10-1
 - Le code de la version `1088c265` avait un pan qui refusait de consommer le déplacement avant que le vaisseau atteigne le doigt (`excess` correct), mais la cible monde, elle, était toujours `toWorld(finger)`. À l'alignement, vitesse COOP zéro → camera delta zéro. Pas un problème GPU ! L'ancien GPU gros viewport a été corrigé et ne doit pas revenir.
 - Fix : générer une cible monde « légèrement au-delà du doigt » uniquement dans l'anneau extérieur, direction de `soloCirclePan`, lookahead calibré `panSpeedPixels/30` au véritable contrôle 3.10W max. Ainsi doigt immobile commande encore un mouvement physique : pan se cale sur CE déplacement, coque + obstacles prioritaires.
 - Ne JAMAIS traduire artificiellement le monde ou la caméra sans mouvement accepté ; ne JAMAIS toucher aux vitesses CLASSIQUE/COOP. Tests véritable pilote au mur et 4 cercles. Vérification Samsung nécessaire après CI `38178296951`.
+
+
+## CAMERA-HOLD-007 — diagnostic CI complet et correctif validé 12/10/2026
+- Le gel écran provenait de la cible physique `toWorld(doigt)` : à l'arrivée, vitesse `distance*30`=0 donc caméra0. Non du rendu! Ajouter avance radiale proportionnelle à la vitesse de zone/30, recalcul à chaque sous-pas; vraie collision et vitesse historique restent souveraines.
+- Les premières CI rouges étaient un faux échec du **nouveau test** : la carte générée place START presque à la limite sud, et un simulateur de doigt à y160 plaçait artificiellement la caméra au-delà de max `worldHeight-visibleHeight*.5`, provoquant dès frame0 un re-clamp de ~95px interprété comme drift. Test corrigé : position initiale du vrai pilote 250px plus au nord dans le couloir ouvert et assertion préalable de validité de la caméra ; validations strictes poursuivies.
+- CI 38178801383 ENTIÈREMENT VERTE, export 38179331501 VERT vers temp. Voir manifest 908749e et SHA APK 372b1376... Vrai téléphone à re-tester.
