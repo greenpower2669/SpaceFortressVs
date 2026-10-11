@@ -459,3 +459,9 @@ Référence `1d8a48e2`. [Preuves, chemins et propositions](docs/audits/2026-10-1
 - Export GitHub `38174728231` **VERT**, fichiers DÉCOMPRESSÉS dans `temp/` sur `feature/solo-coop-core-v1`. Manifeste testé commit `1088c2657642b603fb85b5cba5e7e839152f9890`; APK `temp/SpaceFortressVs-1.4.2.apk` SHA256 `a23c9d0cc5e1222b703504ea35bbd5e824b6119dcfddc30eb6a799fe1f85d76d`, taille 94 136 121 octets, package `com.greenpower2669.spacefortressvs.diagnostic`. AAB non signé SHA256 `55e40cf1000a67975a6afb0433f5747d0e0210e4aedc936204d9800944f8c2fe`.
 - **À faire sur Samsung** : installer le DIAG, MONDE TEST, identifier le vrai vaisseau BLEU sous l'anneau vert de supercharge, vérifier l'adhérence au doigt immobile pendant défilement, test rapide doigt → rattrapage physique, blocage mur; signaler toute dérive sur le screenshot. Vert CI ≠ validation ergonomique téléphone.
 - Jamais de merge `main`, jamais de Release, `src/main.cpp` inchangé.
+
+
+## 11/10/2026 — RÉGRESSION : Vaisseau corrigé mais caméra plus de défilement
+- Le code de la version `1088c265` avait un pan qui refusait de consommer le déplacement avant que le vaisseau atteigne le doigt (`excess` correct), mais la cible monde, elle, était toujours `toWorld(finger)`. À l'alignement, vitesse COOP zéro → camera delta zéro. Pas un problème GPU ! L'ancien GPU gros viewport a été corrigé et ne doit pas revenir.
+- Fix : générer une cible monde « légèrement au-delà du doigt » uniquement dans l'anneau extérieur, direction de `soloCirclePan`, lookahead calibré `panSpeedPixels/30` au véritable contrôle 3.10W max. Ainsi doigt immobile commande encore un mouvement physique : pan se cale sur CE déplacement, coque + obstacles prioritaires.
+- Ne JAMAIS traduire artificiellement le monde ou la caméra sans mouvement accepté ; ne JAMAIS toucher aux vitesses CLASSIQUE/COOP. Tests véritable pilote au mur et 4 cercles. Vérification Samsung nécessaire après CI `38178296951`.

@@ -477,3 +477,13 @@
 - Export GitHub `38174728231` **VERT**, fichiers DÉCOMPRESSÉS dans `temp/` sur `feature/solo-coop-core-v1`. Manifeste testé commit `1088c2657642b603fb85b5cba5e7e839152f9890`; APK `temp/SpaceFortressVs-1.4.2.apk` SHA256 `a23c9d0cc5e1222b703504ea35bbd5e824b6119dcfddc30eb6a799fe1f85d76d`, taille 94 136 121 octets, package `com.greenpower2669.spacefortressvs.diagnostic`. AAB non signé SHA256 `55e40cf1000a67975a6afb0433f5747d0e0210e4aedc936204d9800944f8c2fe`.
 - **À faire sur Samsung** : installer le DIAG, MONDE TEST, identifier le vrai vaisseau BLEU sous l'anneau vert de supercharge, vérifier l'adhérence au doigt immobile pendant défilement, test rapide doigt → rattrapage physique, blocage mur; signaler toute dérive sur le screenshot. Vert CI ≠ validation ergonomique téléphone.
 - Jamais de merge `main`, jamais de Release, `src/main.cpp` inchangé.
+
+
+## SOLO COOP CAMERA-HOLD-007 — nouveau feedback Samsung 11/10 23h48
+- [x] Fab confirme : vrai vaisseau bleu visible avec l'APK `1088c265`, MAIS CAMERA maintenant immobile au doigt maintenu.
+- [x] Analyse et correctif minimal : target MONDE de propulsion radiale devant doigt fixe uniquement hors cercle central ; longueur `panSpeed/30` alignée à la vraie loi vitesse COOP et au profil de caméra; caméra à nouveau bornée par déplacement effectif.
+- [x] Tests unitaires boucle caméra+finger, milieu et extérieur ; test intégration réel COOP tenu 2 sec sur couloir, puis butée mur = pas de pan.
+- [ ] Dernière CI `38178296951` : voir résultat, corriger si rouge, construire APK et exporter temp uniquement VERT.
+- [ ] Contrôle Samsung : maintenir doigt hors HUD dans bande extérieure (sans le bouger) => décor déroule et vaisseau demeure sous le doigt ; doigts centre => STOP ; roche => vaisseau et caméra STOP ; lever => STOP, cône sonore 0.2→2s.
+- [ ] Plus tard : visuels définitifs des parois, objectifs et collisions missiles/parois.
+- [ ] AUCUN merge main, Release ou changement src/main.cpp.

@@ -455,3 +455,9 @@ CLASSIQUE DUEL local :
 - Export GitHub `38174728231` **VERT**, fichiers DÉCOMPRESSÉS dans `temp/` sur `feature/solo-coop-core-v1`. Manifeste testé commit `1088c2657642b603fb85b5cba5e7e839152f9890`; APK `temp/SpaceFortressVs-1.4.2.apk` SHA256 `a23c9d0cc5e1222b703504ea35bbd5e824b6119dcfddc30eb6a799fe1f85d76d`, taille 94 136 121 octets, package `com.greenpower2669.spacefortressvs.diagnostic`. AAB non signé SHA256 `55e40cf1000a67975a6afb0433f5747d0e0210e4aedc936204d9800944f8c2fe`.
 - **À faire sur Samsung** : installer le DIAG, MONDE TEST, identifier le vrai vaisseau BLEU sous l'anneau vert de supercharge, vérifier l'adhérence au doigt immobile pendant défilement, test rapide doigt → rattrapage physique, blocage mur; signaler toute dérive sur le screenshot. Vert CI ≠ validation ergonomique téléphone.
 - Jamais de merge `main`, jamais de Release, `src/main.cpp` inchangé.
+
+
+## 11/10/2026 — Carte reprise CAMERA-HOLD-007
+- Symptôme après correction vaisseau visible : arrêt de défilement du monde avec doigt fixe. L'impasse vient de la cible de déplacement COOP exactement sous le doigt : vitesse nulle après rattrapage et donc caméra inactive. Il faut continuer la propulsion radiale sous le doigt sans contourner le moteur physique.
+- `src/coop_solo_world_bridge.hpp::heldFingerPilotTarget` convertit écran→MONDE puis ajoute cible avancée radiale seulement hors cercle central, amplitude `circleCameraSpeedPixelsPerSecond/30` (COOP vrai speed=distance*30, capped3.10*W). `src/coop_solo_arena_runtime.hpp` attribue cette cible avant `sfCoopTick`. Camera continue `panIfShipActuallyMoved` avec excess finger clamp : no fake movement.
+- Tests `coop_solo_world_bridge_regressions.cpp` zones caméra et `restoration_regressions.hpp::testCoopHeldFingerContinuousWorldCruise` vrai pilote réel, doigt tenu, Rock stop. CI `38178296951` à vérifier. Conserver vaisseau BLUE rendu par `coop_solo_world_draw.hpp` sans viewport XXL.
