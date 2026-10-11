@@ -42,7 +42,11 @@ g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/hall_sync_regressions.cpp" 
 read -r -a sf_sdl_cflags <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
 read -r -a sf_sdl_libs <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \
-    "$sf_repo/tests/solo_renderer_regressions.cpp" "${sf_sdl_libs[@]}" -o "$sf_test_dir/solo-renderer"
+    "$sf_repo/tests/solo_renderer_regressions.cpp" "${sf_sdl_libs[@]}" -o 
+g++ -std=c++17 -O1 -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \
+    "$sf_repo/tests/solo_cruise_gesture_regressions.cpp" "${sf_sdl_libs[@]}" -o "$sf_test_dir/solo-cruise-gesture"
+"$sf_test_dir/solo-cruise-gesture"
+"$sf_test_dir/solo-renderer"
 g++ -std=c++17 -O1 -DSF_SOLO_STANDALONE -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \
     "$sf_repo/src/solo_prototype.cpp" "${sf_sdl_libs[@]}" -o "$sf_test_dir/solo-playable"
 "$sf_test_dir/solo-renderer"

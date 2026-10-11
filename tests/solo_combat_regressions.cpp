@@ -16,6 +16,8 @@ int main(){
  assert(!combat.fire(s,x+.5f,y-5.5f)); // cooldown
  for(int i=0;i<10;i++)combat.step(s,.05f);
  assert(s.enemiesDefeated==1);
+ assert(combat.pendingImpacts>=1);
+ assert(!combat.impacts.empty());
  assert(s.map.at(x,y-2)==Tile::Empty);
  assert(combat.fire(s,x+.5f,y-5.5f));
  for(int i=0;i<10;i++)combat.step(s,.05f);
@@ -27,4 +29,8 @@ int main(){
  assert(s.bossDefeated);
  assert(s.map.at(x,y-5)==Tile::Empty);
  assert(combat.bossHealth==0);
+ assert(combat.pendingImpacts>=2);
+ combat.pendingImpacts=0;
+ for(int i=0;i<12;++i)combat.step(s,.05f);
+ assert(combat.impacts.empty());
 }

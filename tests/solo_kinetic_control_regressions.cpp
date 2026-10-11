@@ -19,6 +19,13 @@ int main(){
     for(int n=0;n<41;++n)control.advance(.05f);
     assert(sfKineticSurges[1].charged);
     assert(control.release(s));
+    assert(control.burstSeconds>.4f);
+    assert(control.burstOriginX==s.pilot.x &&
+           control.burstOriginY==s.pilot.y);
+    control.advance(.20f);
+    assert(control.burstSeconds>0);
+    control.advance(.30f);
+    assert(control.burstSeconds==0);
     assert(s.map.at(x,y-1)==Tile::Empty); // forward/up, canonical cone.
     assert(s.map.at(x,y+1)==Tile::Asteroid); // never harvest backwards.
     assert(!control.release(s)); // one release, one blast.
