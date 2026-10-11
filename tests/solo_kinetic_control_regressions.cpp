@@ -73,5 +73,23 @@ int main(){
     assert(m.asteroidIntegrityAt(mx-1,my-2)<1);
     assert(m.asteroidIntegrityAt(mx+1,my-2)<1);
     both.cancel();
+    // Canonical release creates the SAME radial purge as COOP, including
+    // behind the ship; ordinary 2-second holding stays aimed and 360-degree.
+    Session canonical(generate({}));assert(canonical.start());
+    canonical.canonicalShipActive=true;
+    const int bx=int(canonical.pilot.x),by=int(canonical.pilot.y);
+    const size_t rear=size_t(by+1)*canonical.map.width+bx;
+    canonical.map.tiles[rear]=Tile::Asteroid;
+    canonical.asteroidIntegrity[rear]=1.0f;
+    KineticSurgeControl release;
+    release.aimAt(canonical,canonical.pilot.x,canonical.pilot.y-10);
+    release.press();
+    for(int i=0;i<41;++i)release.advance(canonical,.05f);
+    assert(canonical.map.at(bx,by+1)==Tile::Asteroid);
+    assert(release.release(canonical));
+    assert(canonical.map.at(bx,by+1)==Tile::Empty);
+    assert(!canonical.dust.empty());
+    assert(!sfKineticWaves.empty());
+    sfKineticWaves.clear();
     sfBossDangerIndex=2;
 }

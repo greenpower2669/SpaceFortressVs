@@ -352,3 +352,12 @@
 - [ ] CI core SDL2 Android ; essai Samsung à effectuer avec nouvelle APK DIAG.
 - [ ] Intégration **exacte** canon COOP : orbes, bouclier cinétique, coût énergétique, jauge, missile, dégâts, méga décharge. Moteur séparé actuellement : NE PAS déclarer parité achevée.
 - [ ] Ne pas fusionner main, aucune Release sans approbation Fab.
+
+## SOLO-CANONICAL-VESSEL-005 — raccordement historique (11/10/2026)
+- [x] Factoriser les vraies équations historiques d'énergie, recharge, tir, réserve, usure/bouclier, utiliser en SOLO et modes historiques.
+- [x] Sprites canon orbe/missile/bouclier et jauge énergie, 2 s charge et purge RADIALE canon au relâchement.
+- [x] Tests de cadence, énergie, missiles, effet bouclier, purge à l'arrière, onde partagée, fichier de test ciblé.
+- [ ] CI sur HEAD corrigé complète verte, APK Android DIAG installable et test sur Samsung.
+- [ ] Intégrer les composants historiques restants (orbes FX exhaustifs, boss dynamique, guidance missile sur cible mobile, champs cinétiques/collisions avec masse réelle).
+- [ ] Inspecter et éventuellement découper au pixel les planches pour éliminer les éventuelles bordures de la maquette graphique.
+- [ ] AUCUN merge main ni Release avant ordre explicite.

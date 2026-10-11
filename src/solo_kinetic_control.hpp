@@ -85,6 +85,29 @@ struct KineticSurgeControl {
         burstSeconds=.42f;
         burstOriginX=s.pilot.x;burstOriginY=s.pilot.y;
         burstAxis=direction(s);
+        if(s.canonicalShipActive){
+            // Same historical sfKineticPurgeAsteroids rule: radial burst,
+            // radius = ship diameter * BLAST_DIAMETER * .5, independent of
+            // mining cone Danger scale; walls are NOT destructible.
+            const float radius=2.0f*s.shipRadius*
+                  SF_KINETIC_SURGE_BLAST_DIAMETER*.5f;
+            const int minX=std::max(0,int(std::floor(s.pilot.x-radius-1)));
+            const int maxX=std::min(s.map.width-1,int(std::ceil(s.pilot.x+radius+1)));
+            const int minY=std::max(0,int(std::floor(s.pilot.y-radius-1)));
+            const int maxY=std::min(s.map.height-1,int(std::ceil(s.pilot.y+radius+1)));
+            int purged=0;
+            for(int y=minY;y<=maxY;++y)for(int x=minX;x<=maxX;++x){
+                if(s.asteroidIntegrityAt(x,y)<=0)continue;
+                // Half of a tile models the original asteroid sprite radius.
+                if(std::hypot(x+.5f-s.pilot.x,y+.5f-s.pilot.y)
+                                      >radius+.5f)continue;
+                if(s.erodeAsteroid(x,y,1.0f))++purged;
+            }
+            if(purged>0)
+                sfKineticTriggerWave(owner,
+                    SF_KINETIC_SURGE_BLAST_DIAMETER*.5f,
+                    1.0f,s.energyFraction());
+        }
         return true;
     }
 };
