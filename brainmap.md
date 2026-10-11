@@ -467,3 +467,7 @@ CLASSIQUE DUEL local :
 - Code source `908749e7` vert CI `38178801383` ; seul pilote COOP, `heldFingerPilotTarget` alimente vrai contrôle, laisse pan limité au mouvement réel / à l'écart au doigt. Tests cohérents centre + couronnes et maintien vrai COOP 2s/butée ROCK.
 - CI rouge précédent était un TEST invalide hors bornes caméra, corrigé et tracé. Nouvelle APK décompressée dans `temp/` par `38179331501` verte ; empreinte 372b13765231cfe4b6fe591ea91e90a5dd55df375236ade05971ffcaff4d5730 ; NE PAS confondre avec précédente `1088c265` sans défilement.
 - Reprise : retour Samsung, si OK enchaîner habillage parois/progression ; ne jamais sacrifier vaisseau visible ni contrôle COOP.
+
+
+## 12/10/2026 — SOLO WORLD CLEANUP-008
+- `src/campaign_runtime.hpp`: garde `soloWorldMode` sur routines tourelles/bonus et rendu; purge des états/projectiles hérités à l'entrée depuis `src/coop_solo_arena_runtime.hpp`. `tests/restoration_regressions.hpp::testSoloWorldExcludesTurretsAndBonuses` + appel depuis `tests/regressions.cpp`. Ne jamais toucher à la caméra validée ni aux combats historiques. CI à contrôler, APK du `temp/` antérieure inchangée tant que non verte.

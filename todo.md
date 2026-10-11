@@ -496,3 +496,13 @@
 - [x] GitHub CI `38178801383` verte et APK/AAB décompressés dans `temp/` par `38179331501` verte (source 908749e, APK SHA 372b1376...).
 - [ ] Essai réel Samsung : tenir un doigt fixe dans zone extérieure hors menu, suivre décor + vaisseau sous doigt, blocage murs, STOP levé ou centre ; deuxième doigt toujours tir/minage/cône.
 - [ ] Si validé par Fab : poursuivre vrai jeu SOLO (arts, collisions tirs/rochers/parois, relais, rencontres et persistance). Pas de main ni Release.
+
+
+## SOLO WORLD CLEANUP-008 — 12/10/2026
+- [x] Auditer les boucles `sfCoopTick`, `sfCoopDefences`, `sfCoopBonus`, le rendu et la bascule MONDE TEST.
+- [x] Exclure en MONDE TEST l'IA tourelles, leurs tirs/projections et tout bonus même invisible; nettoyage de tout état résiduel à l'entrée; préserver la boucle de minage/caméra du véritable COOP.
+- [x] Ajouter une régression de niveau moteur: WORLD avec boss fictif, projectile tourelle préexistant, absence d'apparition; vérifier retour COOP historique toujours actif.
+- [ ] Vérifier la CI SDL2, tests historiques et Android du NOUVEAU commit; ne déclarer aucune nouvelle APK prête tant qu'elle n'est pas verte.
+- [ ] Après CI verte, décompresser et vérifier la nouvelle APK, AAB et empreintes sous `temp/`, sans remplacer l'APK antérieure avant validation Samsung de Fab.
+- [ ] Phase 2 ultérieure: atlas de roches définitif, collisions tirs/astéroïdes/parois, chemins/relai, ennemis/boss, sauvegardes.
+- [ ] Aucun merge main ni Release publique; `src/main.cpp` intact.

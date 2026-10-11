@@ -471,3 +471,8 @@ Référence `1d8a48e2`. [Preuves, chemins et propositions](docs/audits/2026-10-1
 - Le gel écran provenait de la cible physique `toWorld(doigt)` : à l'arrivée, vitesse `distance*30`=0 donc caméra0. Non du rendu! Ajouter avance radiale proportionnelle à la vitesse de zone/30, recalcul à chaque sous-pas; vraie collision et vitesse historique restent souveraines.
 - Les premières CI rouges étaient un faux échec du **nouveau test** : la carte générée place START presque à la limite sud, et un simulateur de doigt à y160 plaçait artificiellement la caméra au-delà de max `worldHeight-visibleHeight*.5`, provoquant dès frame0 un re-clamp de ~95px interprété comme drift. Test corrigé : position initiale du vrai pilote 250px plus au nord dans le couloir ouvert et assertion préalable de validité de la caméra ; validations strictes poursuivies.
 - CI 38178801383 ENTIÈREMENT VERTE, export 38179331501 VERT vers temp. Voir manifest 908749e et SHA APK 372b1376... Vrai téléphone à re-tester.
+
+
+## 12/10/2026 — SOLO WORLD CLEANUP-008 / prévention régression future
+- Audit: `sfCoopTick` sans boss ne lançait déjà pas les routines bonus/tourelles, mais un boss futur les aurait réactivées. Correction explicite sur le drapeau `soloWorldMode`: aucune mise à jour de l'IA tourelles ni minuteur/apparition/collision de bonus; purge d'entrée des projectiles kind=5 et de l'état tourelles/bonus. Rendues invisibles ET physiquement absentes. Le reste (astéroïdes, poussière, tirs, énergie, caméra) est conservé.
+- Vérification C++ ajoutée avec un boss fictivement présent et un retour à l'arène historique; CI nouvelle à vérifier. Test caméra hors borne corrigé précédemment et non neutralisé.

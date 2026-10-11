@@ -568,3 +568,8 @@
 - CI complète `38178801383` **VERTE** (régressions 2 sec de doigt maintenu avec défilement + butée ROCK, tests d'anneaux et test SDL pixels, APK/AAB Android). Les précédents runs rouges `38178097623` etc reflétaient UNIQUEMENT un défaut du test : scénario initialisé à y14175 avec cameraTop14015 > borne max13920, qui se faisait légitimement borner au 1er tick ; test corrigé en démarrant 250px avant limite, en vérifiant explicitement les bornes; jamais retiré l'assertion.
 - Workflow export `38179331501` **VERT** : `temp/SpaceFortressVs-1.4.2.apk`, 94 136 126 octets, SHA256 `372b13765231cfe4b6fe591ea91e90a5dd55df375236ade05971ffcaff4d5730` ; AAB NON SIGNÉ SHA256 `4ed3b3865a1f7d445e385f14f7d393e1f175eff62774ebff50e10224feba96c9`. Manifest dans temp pointe exactement sur source `908749e` et package diagnostic indépendant.
 - **Essai Samsung encore nécessaire** : vaisseau bleu visible, doigt immobile en couronne hors HUD, caméra reprend défilement, le centre et mur arrêtent, lever du doigt arrête, son charge 0.20s/READY 2s. Aucune modification main, src/main.cpp ou Release.
+
+
+## 2026-10-12 — SOLO WORLD CLEANUP-008 (CI à vérifier)
+- Fab a confirmé sur Samsung le pilote bleu / caméra / cône 0,20 s et READY 2 s; préserver CAMERA-HOLD-007. Dans MONDE TEST uniquement, entrée de mode nettoie sfTurrets, durée de tourelles, bonus et projectiles de tourelles; `sfCoopDefences` et `sfCoopBonus` sont inactifs sous `soloWorldMode`, jamais uniquement masqués. Rendu tactique/bonus exclu en WORLD. COOP/CLASSIQUE/DUEL historiques non impactés; test C++ historique dédié.
+- `src/main.cpp` non modifié. CI Android/SDL2/régressions **en attente** pour cette modification, aucune nouvelle APK livrée avant vert. Toujours aucune fusion main/Release.

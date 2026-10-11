@@ -590,3 +590,9 @@ Mission prioritaire : supprimer régression du gel caméra SANS réintroduire av
 
 ## Exécution terminée CAMERA-HOLD-007 (12/10/26)
 Instruction Fab « Oui le vaisseau est là mais le déplacement camera à disparu cette fois ». Correction code `908749e` : en zone hors dead-zone, un doigt immobile devient un objectif physique COOP avancé dans la direction concentrique, calibré à la vitesse réelle `distance*30`; pan ne consomme que déplacement réel pour garder le pilote sous doigt. Tous autres canons préservés (pilot unique, vrai sprite, charge 0.20/2sec, murs, boss démo séparé). CI verte `38178801383`, APK diagnostique décompressée et vérifiée dans `temp/` par `38179331501`, SHA 372b1376... ; Samsung reste à confirmer. Interdictions main, release, `src/main.cpp` respectées.
+
+
+## Ordre Fab — 12/10/2026 : SOLO WORLD CLEANUP-008
+- Sur branche `feature/solo-coop-core-v1`, exclure totalement tourelles défensives et bonus hérités du COOP dans le SOLO exploratoire; les conserver intégralement dans CLASSIQUE/DUEL/COOP. Ne pas simplement les masquer: stopper IA, apparitions, collisions, effets et purger les états avant toute simulation monde.
+- Ne pas modifier `src/main.cpp`, ni la caméra/maniabilité et charge 0.20s/READY 2s déjà validées. Corriger uniquement les tests véritablement erronés; précédent défaut de borne caméra résolu par scénario valide, assertions intactes.
+- Tests historiques + SDL2 + Android obligatoires avant APK; extraction nouvelle APK/AAB vérifiée dans `temp/` après CI verte et conservation de l'ancienne APK. Aucun merge, aucune Release sans validation de Fab. État immédiat: code/test en vérification CI.

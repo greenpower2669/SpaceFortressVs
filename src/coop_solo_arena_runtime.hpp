@@ -130,6 +130,7 @@ extern "C" int runCoopSoloArena(){
         sfCoop.phase=SfCoopPhase::Combat;
         sfCoop.bossPresent=false;sfCoop.health=sfCoopProfile().health;
         sfCoop.soloWorldMode=enabled;
+        if(enabled)sfCoopDisableWorldTurretsAndBonuses();
         sfCoop.soloWorldContext=enabled?&world:nullptr;
         sfCoop.soloWorldWidth=enabled?world.worldWidth():0;
         sfCoop.soloWorldHeight=enabled?world.worldHeight():0;

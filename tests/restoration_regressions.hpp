@@ -369,6 +369,48 @@ static void testCoopHeldFingerContinuousWorldCruise()
     std::puts("PASS: held finger drives REAL COOP ship, camera cruises, rocks stop both");
 }
 
+
+static void testSoloWorldExcludesTurretsAndBonuses()
+{
+    setupCampaign();
+    // Simulate stale COOP extras before entering WORLD TEST, including a
+    // previously emitted turret projectile. These must not persist invisibly.
+    sfCoop.soloWorldMode=true;
+    sfCoop.bossPresent=true; // future SOLO boss must not re-enable extras
+    sfCoop.turretTime=14;
+    sfCoop.bonusLife=18;
+    sfCoop.bonusTimer=-1;
+    sfCoop.bonusVelocity.set(5,5);
+    sfTurrets[0].deploy=1;
+    sfTurrets[0].alert=true;
+    sfCoop.shots.clear();
+    sfCoopEmit(tupl(120,120),0,100,1,12,0); // genuine pilot shot survives
+    sfCoopEmit(tupl(130,130),0,100,1,2.5f,5); // turret shot must disappear
+    assert(sfCoop.shots.size()==2);
+    sfCoopDisableWorldTurretsAndBonuses();
+    assert(sfCoop.turretTime==0 && sfCoop.bonusLife==0);
+    assert(sfCoop.bonusTimer>0);
+    assert(sfCoop.bonusVelocity.vx==0 && sfCoop.bonusVelocity.vy==0);
+    assert(sfCoop.shots.size()==1 && sfCoop.shots.front().kind==0);
+    for(const auto &t:sfTurrets)assert(!t.alert && t.deploy==0 && t.flash==0);
+    // Even with a boss present, neither updater can spawn/animate/collect.
+    sfCoopDefences(.2f);
+    sfCoopBonus(.2f);
+    assert(sfCoop.turretTime==0 && sfCoop.bonusLife==0);
+    assert(sfCoop.shots.size()==1);
+    for(const auto &t:sfTurrets)assert(!t.alert && t.deploy==0);
+    // The exact same historical functions stay enabled outside WORLD TEST.
+    sfCoop.soloWorldMode=false;
+    sfCoop.bonusTimer=-1;sfCoop.bonusLife=0;
+    sfCoopBonus(.01f);
+    assert(sfCoop.bonusLife>0);
+    sfCoop.turretTime=14;
+    sfCoopDefences(.1f);
+    assert(sfCoop.turretTime<14);
+    setupCampaign();
+    std::puts("PASS: SOLO world blocks real COOP turrets/bonus; historical COOP intact");
+}
+
 static void testRealCoopField()
 {
     setupCampaign();
