@@ -67,10 +67,14 @@ struct CoopSoloWorldBridge {
         if(zone.speed<=0.0f)return exact;
         const float vectorLength=std::hypot(zone.vx,zone.vy);
         if(vectorLength<=.0001f)return exact;
-        // Maintain constant propulsion at a stationary fingertip in an
-        // exterior ring (the exact max velocity stays in REAL COOP code).
-        // Reduce the lead smoothly for the 0.1 -> 2 middle circle.
-        const float lead=visibleWidth()*.40f*std::clamp(zone.speed/6.0f,0.0f,1.0f);
+        // Historical COOP speed = min(3.10*W, distanceToTarget*30).
+        // The target's look-ahead distance must therefore give the SAME
+        // velocity as the SOLO 0.1 -> 2 -> 6 circular pan request.
+        // A larger arbitrary lead made the ship overshoot the finger by
+        // ~45 screen pixels in the MIDDLE ring, even as the background moved.
+        // Outer ring is naturally limited by the existing COOP max speed.
+        const float desiredCameraPxPerSecond=vectorLength*pixelsPerCell;
+        const float lead=desiredCameraPxPerSecond/30.0f;
         return {exact.x+zone.vx/vectorLength*lead,
                 exact.y+zone.vy/vectorLength*lead};
     }
