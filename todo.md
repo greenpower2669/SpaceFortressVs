@@ -334,5 +334,5 @@
 - [x] Dernière CI #38136673247 réussie pour `993bbdd3` : APK diagnostic 87 871 264 octets, SHA-256 `4c438f2642da1ae34c05a07cd08d90b6483b65e8df49b1e69883e4cad5a50cfe`.
 - [x] Extraction et contrôle depuis le ZIP Actions pour téléchargement APK directe.
 - [x] Workflow ponctuel `.github/workflows/solo-apk-to-temp-once.yml` créé sur branche SOLO seulement pour placer l'APK dans `temp/` GitHub, sous réserve de réussite de son exécution.
-- [ ] Vérifier run workflow, présence effective APK GitHub et hash avant de déclarer le lien GitHub disponible.
+- [x] Workflow #38140932745 SUCCESS ; APK vérifiée dans `temp/SpaceFortress-SOLO-DIAG-993bbdd3.apk` (87 871 264 octets), SHA-256 `4c438f2642da1ae34c05a07cd08d90b6483b65e8df49b1e69883e4cad5a50cfe` ; commit GitHub du dépôt temp `71b5bab7` ; aucun merge ni Release.
 - [ ] Essai Samsung, aucune fusion main / Release sans accord de Fab.
