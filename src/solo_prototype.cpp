@@ -7,6 +7,7 @@
 #include "solo_combat.hpp"
 #include "solo_kinetic_control.hpp"
 #include "solo_touch_controls.hpp"
+#include "solo_navigation.hpp"
 #include "solo_prototype.hpp"
 #include "solo_android_diagnostics.hpp"
 #include "solo_audio.hpp"
@@ -217,26 +218,19 @@ int runSoloPrototype(){
         if(selecting){
             sfsolo::drawSelector(renderer,{0,0,w,h},selector,campaign.progression);
         }else if(campaign.active){
-            // The old finger-target approach STOPPED after a short drag:
-            // one gesture produced one finite world-space destination.
-            // Now a steering drag stores direction and throttle, which remain
-            // active on finger release, so a single gesture crosses the map.
+            // Ship follows the absolute fingertip. Only the WORLD scrolls
+            // continuously in the side/top/bottom progressive camera zones.
             const bool keyboard=std::abs(ax)>0||std::abs(ay)>0;
             if(keyboard){
-                // Physical keys override the persistent touch cruise.
-                touch.cruiseSet=false;
+                touch.steeringEngaged=false;touch.cruiseSet=false;
                 campaign.active->step(ax,ay,dt);
-            }else if(touch.cruiseSet){
-                const auto cam=sfsolo::soloViewport(
-                    *campaign.active,{0,0,w,h});
-                campaign.active->stepCruise(touch.cruiseX,touch.cruiseY,
-                    touch.cruiseThrottle,cam.visibleColumns(),dt);
+                sfsolo::soloUpdateCamera(*campaign.active,{0,0,w,h},dt);
+            }else if(touch.steeringEngaged){
+                sfsolo::soloNavigateFinger(*campaign.active,touch,{0,0,w,h},dt);
             }else{
                 campaign.active->step(0,0,dt);
+                sfsolo::soloUpdateCamera(*campaign.active,{0,0,w,h},dt);
             }
-            // Only the ship's real screen position and velocity govern
-            // the two camera acceleration zones, whether held or released.
-            sfsolo::soloUpdateCamera(*campaign.active,{0,0,w,h},dt);
             if(touch.chargeDown){
                 float aimX=0,aimY=0;
                 sfsolo::aimWorldPoint(*campaign.active,
@@ -315,14 +309,14 @@ int runSoloPrototype(){
                 std::snprintf(event,sizeof(event),
                     "HEARTBEAT phase=%d ship=(%.2f,%.2f) vel=(%.2f,%.2f) "
                     "cam=(%.2f,%.2f) pan=(%.2f,%.2f) hp=%.0f "
-                    "ice=%.2f relays=%u/%u cruise=%d held=%d",
+                    "ice=%.2f relays=%u/%u follow=%d held=%d",
                     int(campaign.active->phase),p.x,p.y,p.vx,p.vy,
                     campaign.active->viewLeft,campaign.active->viewTop,
                     campaign.active->viewVelocityX,campaign.active->viewVelocityY,
                     p.health,campaign.active->iceSeconds,
                     campaign.active->relaysCollected,
                     campaign.active->relaysNeeded,
-                    touch.cruiseSet?1:0,touch.down?1:0);
+                    touch.steeringEngaged?1:0,touch.down?1:0);
             }else{
                 std::snprintf(event,sizeof(event),"HEARTBEAT selector=%d",
                               selecting?1:0);

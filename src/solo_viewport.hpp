@@ -44,6 +44,15 @@ inline float soloRectangularCameraGain(float normalizedPosition){
            (1.0f-SOLO_RECT_ZONE1_END_SPEED)*soloSmoothstep(t);
 }
 
+// Screen-zone camera law: no dependence on ship velocity. One stationary
+// fingertip in either exterior band therefore keeps the terrain scrolling.
+inline float soloFingerZonePanSpeed(float normalized,float columns){
+    if(!std::isfinite(normalized)||columns<=0)return 0.0f;
+    const float gain=soloRectangularCameraGain(normalized);
+    if(normalized<SOLO_DEADZONE_THIRD)return -columns*1.90f*gain;
+    if(normalized>1.0f-SOLO_DEADZONE_THIRD)return columns*1.90f*gain;
+    return 0.0f;
+}
 inline float soloMapCellPixels(SDL_Rect screen) {
     return screen.w>0?std::max(1.0f,float(screen.w)/
                   (SOLO_REFERENCE_COLUMNS/SOLO_MAP_ZOOM)):1.0f;

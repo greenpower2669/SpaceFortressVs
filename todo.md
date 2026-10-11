@@ -336,3 +336,11 @@
 - [x] Workflow ponctuel `.github/workflows/solo-apk-to-temp-once.yml` créé sur branche SOLO seulement pour placer l'APK dans `temp/` GitHub, sous réserve de réussite de son exécution.
 - [x] Workflow #38140932745 SUCCESS ; APK vérifiée dans `temp/SpaceFortress-SOLO-DIAG-993bbdd3.apk` (87 871 264 octets), SHA-256 `4c438f2642da1ae34c05a07cd08d90b6483b65e8df49b1e69883e4cad5a50cfe` ; commit GitHub du dépôt temp `71b5bab7` ; aucun merge ni Release.
 - [ ] Essai Samsung, aucune fusion main / Release sans accord de Fab.
+
+## SOLO-FINGER-ZONES-003 — 11/10/2026
+- [x] Vaisseau suit la position écran du doigt, plus de croisière au vecteur dans la boucle réelle.
+- [x] Caméra autonome deux zones progressives, continu quand le doigt reste fixe ou levé, arrêt au centre ; axes indépendants.
+- [x] Collisions empêchent pan fantôme à travers mur, zoom ×3, visée 360° et moteur historique préservés.
+- [x] Régressions doigt fixe, reprise, mur, vertical, central et branche CI.
+- [ ] CI Android + APK DIAG sur commit correctif ; essai Samsung obligatoire.
+- [ ] Aucun merge main ni Release sans accord Fab.

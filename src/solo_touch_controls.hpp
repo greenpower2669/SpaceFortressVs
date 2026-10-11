@@ -16,8 +16,11 @@ struct TouchPilot {
     float startFingerX=0,startFingerY=0,anchorShipX=0,anchorShipY=0;
     bool hasWorldAnchor=false;
     bool down=false,chargeDown=false;
-    // Latched steering: unlike a finite world-space destination, the vector
-    // and throttle persist after release. Camera zones follow the SHIP.
+    // TRUE screen-position target: stays engaged after finger-up so a ship
+    // already in an edge zone can continue panning without moving the finger.
+    bool steeringEngaged=false;
+    // Legacy joystick telemetry is retained for old regression callers,
+    // but is NOT used by the live SOLO navigation loop.
     float cruiseX=0,cruiseY=0,cruiseThrottle=0;
     bool cruiseSet=false;
     void updateCruise(int width,int height){
@@ -52,6 +55,7 @@ struct TouchPilot {
                 <=std::max(48.0f,float(width)*.17f);
             if(!down && nearShip){
                 finger=id;down=true;targetX=sx;targetY=sy;
+                steeringEngaged=true;
                 startFingerX=sx;startFingerY=sy;
                 hasWorldAnchor=std::isfinite(shipWorldX)&&std::isfinite(shipWorldY);
                 if(hasWorldAnchor){anchorShipX=shipWorldX;anchorShipY=shipWorldY;}
@@ -77,13 +81,13 @@ struct TouchPilot {
                 targetX=sx;targetY=sy;
                 updateCruise(width,height);
                 down=false;finger=-1;hasWorldAnchor=false;
-                // Keep direction and throttle after release, not finger zones.
+                // Keep final screen position (not direction/throttle) after finger-up.
             }
         }
         return TouchAction::None;
     }
     void reset(){finger=chargeFinger=-1;down=chargeDown=false;
-                 hasWorldAnchor=false;
+                 hasWorldAnchor=false;steeringEngaged=false;
                  cruiseX=cruiseY=cruiseThrottle=0;
                  cruiseSet=false;}
 };
