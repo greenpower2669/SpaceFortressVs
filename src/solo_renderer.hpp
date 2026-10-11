@@ -37,6 +37,7 @@ inline void fill(SDL_Renderer *r,SDL_Rect rect,SDL_Color c){
 struct SoloAssets {
     SDL_Texture *ship=nullptr,*enemy=nullptr,*rock=nullptr,*space=nullptr;
     SDL_Texture *projectile=nullptr,*energy=nullptr;
+    SDL_Texture *plasma=nullptr,*spark=nullptr,*explosion=nullptr;
     SDL_Renderer *renderer=nullptr;
     static SDL_Texture *load(SDL_Renderer *renderer,const char *file){
         // SDL_RWFromFile supports Android APK assets via SDL's asset manager.
@@ -54,11 +55,15 @@ struct SoloAssets {
         space=load(r,"fond4hlow.png");
         projectile=load(r,"tirj1.png");
         energy=load(r,"pousb.png");
+        plasma=load(r,"energie.png");
+        spark=load(r,"pousc.png");
+        explosion=load(r,"explo.png");
         SDL_Log("SOLO original assets: ship=%d enemy=%d rock=%d space=%d",
                 ship!=nullptr,enemy!=nullptr,rock!=nullptr,space!=nullptr);
     }
     ~SoloAssets(){
-        for(SDL_Texture *p:{ship,enemy,rock,space,projectile,energy})
+        for(SDL_Texture *p:{ship,enemy,rock,space,projectile,energy,
+                            plasma,spark,explosion})
             if(p)SDL_DestroyTexture(p);
     }
     SoloAssets(const SoloAssets&)=delete;
@@ -279,32 +284,78 @@ inline void drawMissionOverlay(SDL_Renderer *r,const Session &s,
               {255,255,255,255},std::max(3,viewport.w/135));
 }
 inline void drawKineticCharge(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
-                              const KineticSurgeControl &kinetic){
-    if(!r||viewport.w<=0||viewport.h<=0||!sfKineticSurges[1].held)return;
+                              const KineticSurgeControl &kinetic,
+                              SoloAssets *assets=nullptr){
+    if(!r||viewport.w<=0||viewport.h<=0)return;
     const auto &surge=sfKineticSurges[1];
-    const float progress=std::clamp(
-        surge.heldSeconds/SF_KINETIC_SURGE_HOLD_SECONDS,0.0f,1.0f);
-    const int barW=std::max(70,viewport.w/2);
-    const int barH=std::max(12,viewport.h/65);
-    const int barX=viewport.x+(viewport.w-barW)/2;
-    const int barY=viewport.y+viewport.h-barH-60;
-    fill(r,{barX-3,barY-3,barW+6,barH+6},{255,255,255,255});
-    fill(r,{barX,barY,barW,barH},{25,35,57,255});
-    fill(r,{barX,barY,int(barW*progress),barH},surge.charged?
-         SDL_Color{103,255,166,255}:SDL_Color{255,216,95,255});
-    if(!sfKineticSurgeVisible(1))return;
+    const bool charging=surge.held;
+    const bool pulse=kinetic.burstSeconds>0;
+    if(!charging && !pulse)return;
+    if(charging){
+        const float progress=std::clamp(
+            surge.heldSeconds/SF_KINETIC_SURGE_HOLD_SECONDS,0.0f,1.0f);
+        const int barW=std::max(70,viewport.w/2);
+        const int barH=std::max(12,viewport.h/65);
+        const int barX=viewport.x+(viewport.w-barW)/2;
+        const int barY=viewport.y+viewport.h-barH-60;
+        fill(r,{barX-3,barY-3,barW+6,barH+6},{255,255,255,255});
+        fill(r,{barX,barY,barW,barH},{25,35,57,255});
+        fill(r,{barX,barY,int(barW*progress),barH},
+             surge.charged?SDL_Color{103,255,166,255}:
+                           SDL_Color{255,216,95,255});
+    }
+    if(!sfKineticSurgeVisible(1) && !pulse)return;
     const SoloViewport camera=soloViewport(s,viewport);
-    const int px=camera.pixelX(s.pilot.x),py=camera.pixelY(s.pilot.y);
-    const AimVector d=kinetic.direction(s);
+    const float originX=pulse?kinetic.burstOriginX:s.pilot.x;
+    const float originY=pulse?kinetic.burstOriginY:s.pilot.y;
+    const int px=camera.pixelX(originX),py=camera.pixelY(originY);
+    const AimVector d=pulse?kinetic.burstAxis:kinetic.direction(s);
     const float range=coneRangeForShip(s.shipRadius);
     const float half=sfKineticSurgeConeHalfWidth(range);
-    const int forwardX=int(range*camera.cell*d.x),forwardY=int(range*camera.cell*d.y);
-    const int sideX=int(half*camera.cell*-d.y),sideY=int(half*camera.cell*d.x);
+    const int forwardX=int(range*camera.cell*d.x);
+    const int forwardY=int(range*camera.cell*d.y);
+    const int sideX=int(half*camera.cell*-d.y);
+    const int sideY=int(half*camera.cell*d.x);
     const int ex=px+forwardX,ey=py+forwardY;
-    SDL_SetRenderDrawColor(r,135,238,255,255);
+    const float opacity=pulse?std::clamp(kinetic.burstSeconds/.42f,0.0f,1.0f):.8f;
+
+    // Real original plasma/dust assets make a volumetric-looking 360-degree
+    // blast rather than the old three-line outline. The *hit footprint* is
+    // still supplied by exactly the canonical kinetic_shield.hpp geometry.
+    for(int along=2;along<21;++along){
+        const float fraction=float(along)/21.0f;
+        const float forward=range*fraction;
+        const float width=sfKineticSurgeConeHalfWidth(forward);
+        for(int strand=-2;strand<=2;++strand){
+            const float offset=float(strand)/2.2f;
+            const float travel=forward+std::sin(s.seconds*21+along*7+strand)*.018f;
+            const float wx=originX+d.x*travel-d.y*width*offset;
+            const float wy=originY+d.y*travel+d.x*width*offset;
+            const int sx=camera.pixelX(wx),sy=camera.pixelY(wy);
+            const int diameter=std::max(4,int(camera.cell*
+                  (.17f+.11f*(1.0f-fraction))));
+            const Uint8 alpha=Uint8(200*opacity*(.65f+.35f*(1.f-fraction)));
+            if(assets && (assets->plasma||assets->spark)){
+                SDL_Texture *texture=(along+strand)%3?
+                                       assets->plasma:assets->spark;
+                if(!texture)texture=assets->plasma?
+                                       assets->plasma:assets->spark;
+                soloCopy(r,texture,{sx-diameter/2,sy-diameter/2,
+                                   diameter,diameter},
+                         {145,236,255,alpha});
+            }else{
+                fill(r,{sx-2,sy-2,5,5},{139,231,255,alpha});
+            }
+        }
+    }
+    SDL_SetRenderDrawColor(r,131,235,255,Uint8(235*opacity));
+    SDL_BlendMode previous=SDL_BLENDMODE_NONE;
+    SDL_GetRenderDrawBlendMode(r,&previous);
+    SDL_SetRenderDrawBlendMode(r,SDL_BLENDMODE_BLEND);
     SDL_RenderDrawLine(r,px,py,ex+sideX,ey+sideY);
     SDL_RenderDrawLine(r,px,py,ex-sideX,ey-sideY);
     SDL_RenderDrawLine(r,ex-sideX,ey-sideY,ex+sideX,ey+sideY);
+    SDL_SetRenderDrawBlendMode(r,previous);
 }
 inline void drawCombat(SDL_Renderer *r,const Session &s,const Combat &combat,
                        SDL_Rect viewport,SoloAssets *assets=nullptr){
@@ -320,6 +371,25 @@ inline void drawCombat(SDL_Renderer *r,const Session &s,const Combat &combat,
                      {235,247,255,255},
                      std::atan2(shot.vy,shot.vx)*180.0/3.14159265+90.0);
         else fill(r,{px-d/2,py-d/2,d,d},{255,236,114,255});
+    }
+    for(const auto &hit:combat.impacts){
+        const int px=camera.pixelX(hit.x),py=camera.pixelY(hit.y);
+        if(px<viewport.x-80||px>viewport.x+viewport.w+80||
+           py<viewport.y-80||py>viewport.y+viewport.h+80)continue;
+        const float progress=1.0f-std::clamp(hit.life/.36f,0.0f,1.0f);
+        const int diameter=std::max(10,int(camera.cell*(.5f+progress*.85f)));
+        if(assets&&assets->explosion)
+            soloCopy(r,assets->explosion,
+                     {px-diameter/2,py-diameter/2,diameter,diameter},
+                     hit.frozen?SDL_Color{154,237,255,
+                         Uint8(230*(1-progress))}:
+                         SDL_Color{255,165,98,Uint8(230*(1-progress))});
+        else{
+            SDL_Rect blast{px-diameter/2,py-diameter/2,diameter,diameter};
+            SDL_SetRenderDrawColor(r,255,hit.frozen?220:130,
+                                   hit.frozen?255:70,Uint8(220*(1-progress)));
+            SDL_RenderDrawRect(r,&blast);
+        }
     }
     if(combat.bossHealth<combat.bossMaxHealth&&!s.bossDefeated){
         const int width=std::max(1,viewport.w/2);
