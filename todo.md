@@ -344,3 +344,11 @@
 - [x] Régressions doigt fixe, reprise, mur, vertical, central et branche CI.
 - [x] GitHub Actions #38142855123 : SOLO core, SDL2 UI, Android APK/AAB tous SUCCESS sur `47e92eac` ; APK DIAG ARM64 extraite en fichier direct, 87 871 261 octets, SHA-256 `d03ec935ecb28a2035e14c3ec460b8c612e8a47bebb82b2e4067ddbd34104274` ; test Samsung restant.
 - [ ] Aucun merge main ni Release sans accord Fab.
+
+## SOLO-CONCENTRIC-ATLAS-004 — 11 octobre 2026
+- [x] Cercles concentriques vitesse 0 / 0.1→2 / 2.1→6 / 6 au-delà ; stabilisation extérieure / poursuite doigt.
+- [x] Assets originaux depuis main par SHA Git ; atlas rendu par thèmes et transparence de présentation, sans modifier main.
+- [x] Tests géométrie cercle, diagonal, plateau, rectangles sources atlas, CI et validation PNG.
+- [ ] CI core SDL2 Android ; essai Samsung à effectuer avec nouvelle APK DIAG.
+- [ ] Intégration **exacte** canon COOP : orbes, bouclier cinétique, coût énergétique, jauge, missile, dégâts, méga décharge. Moteur séparé actuellement : NE PAS déclarer parité achevée.
+- [ ] Ne pas fusionner main, aucune Release sans approbation Fab.

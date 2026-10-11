@@ -133,7 +133,11 @@ def assemble(source, output):
     for name in ('bosses.png', 'planets.png', 'nebulae.png'):
         path = output / 'pict/campaign' / name
         validate_png(path.read_bytes(), name)
-    print(f'Validated {len(images)} remaster PNGs; incomplete scenic transports excluded.')
+    # SOLO art atlases are exact authored binary blobs reused from main.
+    # Fail the Android build if either atlas is missing or corrupt.
+    for name in ('ParoisModeSolo.png', 'EnvironnementsModeSolo.png'):
+        validate_png((output / 'pict/solo' / name).read_bytes(), name)
+    print(f'Validated {len(images)} remaster PNGs and both SOLO atlases.')
 
 
 if __name__ == '__main__':
