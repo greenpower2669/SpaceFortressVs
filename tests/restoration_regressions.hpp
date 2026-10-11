@@ -279,6 +279,11 @@ static void testCoopHeldFingerContinuousWorldCruise()
             world.map.tiles[size_t(y)*world.map.width+size_t(x)]=sfsolo::Tile::Empty;
         }
     }
+    // The generated map may have its own cross corridors. Put an explicit
+    // test-only solid ROCK wall at the end of the long northbound runway;
+    // otherwise the "stop against a wall" assertion could be nondeterministic.
+    for(int x=sx-2;x<=sx+2;++x)
+        world.map.tiles[size_t(sy-65)*world.map.width+size_t(x)]=sfsolo::Tile::Rock;
     sfCoop.pilots=SfCoopPilotRoster::single(1);
     sfCoop.bossPresent=false;sfCoop.soloWorldMode=true;
     sfCoop.soloWorldContext=&world;
