@@ -5,6 +5,8 @@ on:
     paths-ignore:
       - todo.md
       - docs/delivery.md
+      # This one-time handoff reuses an already-GREEN artifact; no new Android build.
+      - .github/workflows/solo-coop-export-to-temp.yml
     branches:
       - main
       - ui/start-screen-v1
