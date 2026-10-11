@@ -421,3 +421,14 @@
 - `temp/SpaceFortressVs-1.4.2.apk` : 94 119 741 octets, SHA256 `806da4277b599c7d1b19fb3c8a4ff45531bffe503475c8bb8d3b99f08d99546a`, package séparé `com.greenpower2669.spacefortressvs.diagnostic`.
 - `temp/SpaceFortressVs-1.4.2-unsigned.aab` : 91 464 418 octets, SHA256 `d52c91ffb664165f0d9fd8f8d3aba1f3797a06384a6fd87835d5095c9840d10b`.
 - **Attendre validation sur Samsung** : vraie arène COOP visible sans menu de sélection CLASSIQUE, avec sons, vaisseau, tir/cône et bouton boss. Pas de merge main ni publication.
+
+
+## 11/10/2026 — Son cinétique + phase 2 progressive
+- [x] Seuil confirmé dans moteur : début vrai cône 0.20s, prêt 2.00s, fond discret au maintien.
+- [x] Supprimer lecture charge dès second FINGERDOWN ; déclencher vrai `sfKineticAudioStartCharge` sur transition à 0.20s ; READY/hold par moteur commun; release/cancel + pause.
+- [x] Tests unitaires audio `coop_solo_charge_audio_regressions.cpp`.
+- [x] Première préparation phase2 : map/générateur historiques + projection caméra monde/écran et collision swept par coque avec glissement, pan borné par mouvement physique, tests dédiés.
+- [ ] CI du commit `9927f014` et tests Android complets puis nouvelle APK diagnostic dans `temp/` avec manifeste SHA. Ne pas livrer l'ancienne `b9072d24` sans son corrigé.
+- [ ] Essai Samsung auditif : appui <.20s = tir sans son charge ; maintien .20–2.00s = charge ; 2.00s = READY et fond discret ; relâchement chargé = purge et son ; pause/reset annule.
+- [ ] **Phase 2 non achevée :** raccordement du bridge à un vrai pilote COOP en coordonnées monde et rendu caméra. Ne pas translater fictivement les acteurs pour simuler pan ; valider collision et choix unité de vitesse en préservant les fonctions classiques.
+- [ ] Contrôler que CLASSIQUE/COOP conservent son original et leurs états ; aucun merge main/Release.

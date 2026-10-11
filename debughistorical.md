@@ -415,3 +415,10 @@ Référence `1d8a48e2`. [Preuves, chemins et propositions](docs/audits/2026-10-1
 - `temp/SpaceFortressVs-1.4.2.apk` : 94 119 741 octets, SHA256 `806da4277b599c7d1b19fb3c8a4ff45531bffe503475c8bb8d3b99f08d99546a`, package séparé `com.greenpower2669.spacefortressvs.diagnostic`.
 - `temp/SpaceFortressVs-1.4.2-unsigned.aab` : 91 464 418 octets, SHA256 `d52c91ffb664165f0d9fd8f8d3aba1f3797a06384a6fd87835d5095c9840d10b`.
 - **Attendre validation sur Samsung** : vraie arène COOP visible sans menu de sélection CLASSIQUE, avec sons, vaisseau, tir/cône et bouton boss. Pas de merge main ni publication.
+
+
+## 2026-10-11 — Son de charge cinétique décalé dans l'arène COOP/SOLO
+- Reproduit par lecture code : l'arène expérimentale `coop_solo_arena_runtime.hpp` jouait `kinetic_charge.wav` dès le FINGERDOWN du deuxième doigt / espace. Le canon COOP verrouille au contraire l'activation physique du cône à 0.20s depuis la pression, et le signal READY à 2.00s. Deux pipelines audio (manual + historique) provoquaient des séquences confuses.
+- Fix `74206425` : enlever le son immédiat et les duplications de Mix_Chunk ; surveiller `sfKineticSurges[1].heldSeconds` après vraie simulation `sfCoopTick`, déclencher une seule fois `sfKineticAudioStartCharge` à 0.20s ; `sfKineticAudioUpdate` (appelé dans la boucle historique) gère READY/quiet hold à 2.00s ; relâchement total joue release + purge, annulation ferme canal. Pause efface état de son.
+- Test déterministe cas 0/.1/.199/.2/2s, double appui, annulation, relâchement. Restent : test audible Samsung, asset charge/ready/release présents dans paquet, aucune garantie sur perception sonore avant essai.
+- L'adaptateur technique phase 2 monde/camera/collision est seulement préparé, non branché : `coop_solo_world_bridge.hpp`. Pas d'écart caché de vitesse (4.32 versus 3.10 à arbitrer).

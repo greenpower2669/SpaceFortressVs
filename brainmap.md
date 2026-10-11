@@ -412,3 +412,9 @@ CLASSIQUE DUEL local :
 - `temp/SpaceFortressVs-1.4.2.apk` : 94 119 741 octets, SHA256 `806da4277b599c7d1b19fb3c8a4ff45531bffe503475c8bb8d3b99f08d99546a`, package séparé `com.greenpower2669.spacefortressvs.diagnostic`.
 - `temp/SpaceFortressVs-1.4.2-unsigned.aab` : 91 464 418 octets, SHA256 `d52c91ffb664165f0d9fd8f8d3aba1f3797a06384a6fd87835d5095c9840d10b`.
 - **Attendre validation sur Samsung** : vraie arène COOP visible sans menu de sélection CLASSIQUE, avec sons, vaisseau, tir/cône et bouton boss. Pas de merge main ni publication.
+
+
+## 11/10/2026 — Prochaine reprise : son cinétique et phase 2
+- Branche : `feature/solo-coop-core-v1`. Fix diagnostic sonore `74206425` : déclenchement WAV charge au vrai seuil 0.20s, READY 2s par `sfKineticAudioUpdate`, fond discret post READY, stop/purge au lever et reset Android. Contrôle `coop_solo_charge_audio.hpp` et test correspondant.
+- Interface monde `coop_solo_world_bridge.hpp` : depuis vraie carte `solo_map_generator`, projection monde/écran, caméra concentrique réutilisée, contrôle collision/swept glissement coque et pan fondé sur delta autorisé du pilote. Tests `coop_solo_world_bridge_regressions.cpp`. Unités combat indépendantes de l'étendue carte.
+- **NE PAS annoncer phase2 jouable** ; bridge reste isolé du rendu/tick COOP de production. Ensuite choix d'intégration de la caméra et du rendu historique avec tests Android, sans deuxième moteur.

@@ -548,3 +548,7 @@ Fab confirme l'écran est le menu de sélection CLASSIQUE, tandis que les sons d
 - `temp/SpaceFortressVs-1.4.2.apk` : 94 119 741 octets, SHA256 `806da4277b599c7d1b19fb3c8a4ff45531bffe503475c8bb8d3b99f08d99546a`, package séparé `com.greenpower2669.spacefortressvs.diagnostic`.
 - `temp/SpaceFortressVs-1.4.2-unsigned.aab` : 91 464 418 octets, SHA256 `d52c91ffb664165f0d9fd8f8d3aba1f3797a06384a6fd87835d5095c9840d10b`.
 - **Attendre validation sur Samsung** : vraie arène COOP visible sans menu de sélection CLASSIQUE, avec sons, vaisseau, tir/cône et bouton boss. Pas de merge main ni publication.
+
+
+## 11/10/2026 — Ordre Fab : son de charge + lancement deuxième phase d'Astra
+Fab valide visuellement le nouveau SOLO/COOP après correction du menu ; signale que le son de charge du cône à 2 doigts ne démarre plus au bon seuil, le reste fonctionne. Demande de le corriger **avec** la deuxième phase architecturale. Seuils canon confirmés en code : activation 0.20s, READY 2.00s, fond discret puis déflagration sur purge. Code `74206425` isole le son local et réutilise vrai moteur sonore COOP ; tests audio ajoutés. Démarrage technique phase2 en `f5197d2b` puis `9927f014` : `coop_solo_world_bridge.hpp` reliant carte existante, projections, caméra et collisions swept, indépendamment de la largeur de combat. **Ne pas confondre tests bridge avec intégration monde visible/active**. Vérifier CI et APK Samsung, puis brancher au vrai COOP par lots sans duplication ni modification de `src/main.cpp`, merge main ou Release.
