@@ -374,3 +374,8 @@ CLASSIQUE DUEL local :
 - Après 2 s de charge, au relâchement, purge RADIALE selon la règle exacte `sfKineticPurgeAsteroids` (rayon = diamètre vaisseau × 3 × .5, sans Danger), conversion astéroïdes/grille SOLO et onde partagée si une roche détruite. Ne touche pas aux murs ; la fonte progressive du cône avant relâchement persiste.
 - Limites honnêtes : nous n'avons pas encore branché le moteur de combat global complet COOP dans le labyrinthe : boss/IA/effets multicouches, collisions astéroïdes libres, simulation guidage dynamique et états historiques complets requièrent intégration/adaptation supplémentaire. Graphismes atlas sont extraits dynamiquement et doivent être inspectés sur Samsung ; pas de prétendue parité complète validée.
 - Tests CI core/SDL2/Android requis, aucune fusion main/Release, `src/main.cpp` inchangé.
+
+
+## SOLO — reprise rapide du lot 006, parois réellement orientées
+- Code : `src/solo_scenery.hpp` (autotiling 4 voisins, 16 masques, rotations et hash stables) et `src/solo_renderer.hpp` (découpe des vraies planches en textures individuelles transparentes, rendu par masque, animations discrètes sans oscillation de variante).
+- Tests : `tests/solo_atlas_regressions.cpp`. Sources originalement issues de `main`, à `assets/pict/solo/*.png` sur branche de travail. Ni physique, ni arme, ni camera circulaire modifiées par cette mission. CI Android run `38154338078` lancé sur `7012a3b5`; retester sur téléphone.

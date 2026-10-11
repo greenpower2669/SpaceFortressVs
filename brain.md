@@ -459,3 +459,10 @@
 - Après 2 s de charge, au relâchement, purge RADIALE selon la règle exacte `sfKineticPurgeAsteroids` (rayon = diamètre vaisseau × 3 × .5, sans Danger), conversion astéroïdes/grille SOLO et onde partagée si une roche détruite. Ne touche pas aux murs ; la fonte progressive du cône avant relâchement persiste.
 - Limites honnêtes : nous n'avons pas encore branché le moteur de combat global complet COOP dans le labyrinthe : boss/IA/effets multicouches, collisions astéroïdes libres, simulation guidage dynamique et états historiques complets requièrent intégration/adaptation supplémentaire. Graphismes atlas sont extraits dynamiquement et doivent être inspectés sur Samsung ; pas de prétendue parité complète validée.
 - Tests CI core/SDL2/Android requis, aucune fusion main/Release, `src/main.cpp` inchangé.
+
+
+## SOLO-SCENERY-AUTOTILE-006 — 11 octobre 2026 (correction après photo Samsung)
+- Branche `feature/solo-worlds-tutorials-v1`. Le rendu avait des bandes horizontales répétées, parois mal orientées et des vignettes violettes/brunes carrées collées.
+- Correctif dans `src/solo_scenery.hpp` : masque N/E/S/W (16 configurations), sélection des formes isolé/H/V/coin/T/croix/extrémité, rotation basée sur la direction physique de la planche, variantes déterministes hachées en coordonnées MONDE.
+- Correctif `src/solo_renderer.hpp` : extraction transparente UNE FOIS au chargement des vrais PNG `assets/pict/solo/ParoisModeSolo.png` et `EnvironnementsModeSolo.png`. Pas de découpe live d'un morceau entier de planche; fonds de carte supprimés par alpha, bordures adoucies, décorations indépendantes/non-collidables et animation alpha/taille/translation douce avec phase stable.
+- Les deux sources PNG restent inchangées et `main`/modes historiques restent intacts; tests 16 configurations et bornes images dans `tests/solo_atlas_regressions.cpp`. Validation visuelle sur Samsung nécessaire après CI Android.

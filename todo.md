@@ -361,3 +361,14 @@
 - [ ] Intégrer les composants historiques restants (orbes FX exhaustifs, boss dynamique, guidance missile sur cible mobile, champs cinétiques/collisions avec masse réelle).
 - [ ] Inspecter et éventuellement découper au pixel les planches pour éliminer les éventuelles bordures de la maquette graphique.
 - [ ] AUCUN merge main ni Release avant ordre explicite.
+
+
+## 11/10/2026 — SOLO-SCENERY-AUTOTILE-006
+- [x] Audit photo Samsung : répétition horizontale et carrés dans les décors.
+- [x] Autotiling 16 masques, orientations contrôlées par quatre voisins, vrais modèles verticaux et coins; orientation «┐» du PNG source corrigée.
+- [x] Découpage en sprites transparents à chargement unique depuis les 2 atlas d'origine ; pas de labels, panneaux ni rectangles plaqués.
+- [x] Variantes de décor stables par coordonnées MONDE ; fumée/énergie/lave avec pulsations douces, aucun frame RNG à l'affichage ; collisions inchangées.
+- [x] Tests 16 masques/rotations/bornes/IDs stables compilés et passés sur GitHub SOLO/SDL2.
+- [ ] Android : attendre validation du workflow `38154338078` sur `7012a3b5`; récupérer APK diagnostic dès vert et tester Samsung sur couloirs H/V/L/T/croix.
+- [ ] Vérifier qualité des dégradés et jonctions sur téléphone; retoucher si restes de carrés ou découpes aberrantes.
+- [ ] Ne pas merger `main` ni créer Release sans validation Fab.

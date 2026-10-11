@@ -370,3 +370,9 @@
 - Après 2 s de charge, au relâchement, purge RADIALE selon la règle exacte `sfKineticPurgeAsteroids` (rayon = diamètre vaisseau × 3 × .5, sans Danger), conversion astéroïdes/grille SOLO et onde partagée si une roche détruite. Ne touche pas aux murs ; la fonte progressive du cône avant relâchement persiste.
 - Limites honnêtes : nous n'avons pas encore branché le moteur de combat global complet COOP dans le labyrinthe : boss/IA/effets multicouches, collisions astéroïdes libres, simulation guidage dynamique et états historiques complets requièrent intégration/adaptation supplémentaire. Graphismes atlas sont extraits dynamiquement et doivent être inspectés sur Samsung ; pas de prétendue parité complète validée.
 - Tests CI core/SDL2/Android requis, aucune fusion main/Release, `src/main.cpp` inchangé.
+
+
+## 2026-10-11 — SOLO mauvais rendu suite à atlas de présentation
+- Symptômes photo Fab : parois répétitives toujours horizontales, coins tournés à l'envers, collage de vignettes brunes et bleu-violet carrées et animation peu naturelle.
+- Cause prouvée : `soloWallAtlasSample(theme,x,y)` renvoyait chaque fois une bande horizontale de l'illustration, étirée au carré pour tous les murs, sans tenir compte des voisins; `soloEnvironmentAtlasSample` copiait des zones de présentation trop larges avec fond parasite. Le découpage alpha par seuil RGB supprimait même des zones sombres du rocher.
+- Remède : masque topology N/E/S/W dans `solo_scenery.hpp`; vraie image coin source est une forme «┐» (liaisons Ouest+Sud=masque12, angle0), rotations corrigées pour tous les coins; extrémités horizontales/verticales orientées séparément. Images découpées au chargement, seuil alpha et adoucissement des bords, décorations peu nombreuses et phase calculée depuis coordonnées fixes. Tests systématiques de tous les masques, de leurs rotations, des bornes/catégories du sprite.
