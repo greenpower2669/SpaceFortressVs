@@ -1,80 +1,77 @@
 #include "../src/solo_kinetic_control.hpp"
 #include <cassert>
+#include <initializer_list>
+
+static void hold(sfsolo::KineticSurgeControl &c,sfsolo::Session &s,int n){
+    for(int i=0;i<n;++i)c.advance(s,.05f);
+}
 int main(){
     using namespace sfsolo;
-    sfBossDangerIndex=0; // difficulty one: maximum canonical cone reach.
-    Session s(generate({}));
-    assert(s.start());
-    const int x=int(s.pilot.x), y=int(s.pilot.y);
-    assert(s.map.at(x,y-1)==Tile::Empty);
-    s.map.tiles[size_t(y-1)*s.map.width+x]=Tile::Asteroid;
-    s.map.tiles[size_t(y+1)*s.map.width+x]=Tile::Asteroid;
-    KineticSurgeControl control;
-    control.press();
-    for(int n=0;n<10;++n)control.advance(.05f);
-    assert(!sfKineticSurges[1].charged);
-    assert(!control.release(s)); // short press fires rather than mining.
-    assert(s.map.at(x,y-1)==Tile::Asteroid);
-    control.press();
-    for(int n=0;n<41;++n)control.advance(.05f);
-    assert(sfKineticSurges[1].charged);
-    assert(control.release(s));
-    assert(control.burstSeconds>.4f);
-    assert(control.burstOriginX==s.pilot.x &&
-           control.burstOriginY==s.pilot.y);
-    control.advance(.05f);
-    assert(control.burstSeconds>0);
-    // The game clamps frame dt to 50 ms; test a real 500 ms animation.
-    for(int i=0;i<10;++i)control.advance(.05f);
-    assert(control.burstSeconds==0);
-    assert(s.map.at(x,y-1)==Tile::Empty); // forward/up, canonical cone.
-    assert(s.dust.size()>=8); // normal rock now emits white particles.
-    for(const auto &p:s.dust)assert(!p.icy);
-    assert(s.map.at(x,y+1)==Tile::Asteroid); // never harvest backwards.
-    assert(!control.release(s)); // one release, one blast.
-    s.map.tiles[size_t(y-1)*s.map.width+x]=Tile::Asteroid;
-    control.press();
-    for(int n=0;n<41;++n)control.advance(.05f);
-    control.cancel(); // app/menu interruption must not purge.
-    assert(!control.release(s));
-    assert(s.map.at(x,y-1)==Tile::Asteroid);
-    sfBossDangerIndex=8; // Apocalypse: much shorter canonical cone.
-    control.press();
-    for(int n=0;n<41;++n)control.advance(.05f);
-    assert(control.release(s));
-    assert(s.map.at(x,y-1)==Tile::Asteroid);
-    // Point at an asteroid BEHIND/LEFT/RIGHT: the same charge must harvest
-    // it, using the same canonical range and cone shape.
     sfBossDangerIndex=0;
-    const int backY=y+1;
-    s.map.tiles[size_t(backY)*s.map.width+x]=Tile::Asteroid;
-    control.aimAt(s,s.pilot.x,s.pilot.y+15);
-    control.press();
-    for(int n=0;n<41;++n)control.advance(.05f);
-    assert(control.release(s));
-    assert(s.map.at(x,backY)==Tile::Empty);
-    const int leftX=x-1,rightX=x+1;
-    s.map.tiles[size_t(y)*s.map.width+leftX]=Tile::Asteroid;
-    s.map.tiles[size_t(y)*s.map.width+rightX]=Tile::Asteroid;
-    control.aimAt(s,s.pilot.x-15,s.pilot.y);
-    control.press();
-    for(int n=0;n<41;++n)control.advance(.05f);
-    assert(control.release(s));
-    assert(s.map.at(leftX,y)==Tile::Empty);
-    assert(s.map.at(rightX,y)==Tile::Asteroid);
-    control.aimAt(s,s.pilot.x+15,s.pilot.y);
-    control.press();
-    for(int n=0;n<41;++n)control.advance(.05f);
-    assert(control.release(s));
-    assert(s.map.at(rightX,y)==Tile::Empty);
-    s.map.tiles[size_t(y-1)*s.map.width+x]=Tile::IceAsteroid;
-    control.aimAt(s,s.pilot.x,s.pilot.y-15);
-    control.press();
-    for(int n=0;n<41;++n)control.advance(.05f);
-    assert(control.release(s));
+    Session s(generate({}));assert(s.start());
+    const int x=int(s.pilot.x),y=int(s.pilot.y);
+    const auto place=[&](int rx,int ry,Tile tile=Tile::Asteroid){
+        const size_t id=size_t(ry)*s.map.width+size_t(rx);
+        s.map.tiles[id]=tile;s.asteroidIntegrity[id]=1.0f;
+    };
+    place(x,y-1);place(x,y+1);
+    KineticSurgeControl c;
+    c.press();hold(c,s,3); // below 0.2 sec must not mine
+    assert(s.asteroidIntegrityAt(x,y-1)==1);
+    hold(c,s,7);
+    assert(!sfKineticSurges[1].charged);
+    const float small=s.asteroidIntegrityAt(x,y-1);
+    assert(small>0&&small<1);
+    assert(s.asteroidIntegrityAt(x,y+1)==1);
+    assert(!c.release(s));
+    assert(s.asteroidIntegrityAt(x,y-1)==small);
+    c.press();hold(c,s,42); // ready, still mining
+    assert(sfKineticSurges[1].charged);
+    assert(s.asteroidIntegrityAt(x,y-1)<small);
+    hold(c,s,250); // keep holding AFTER ready
     assert(s.map.at(x,y-1)==Tile::Empty);
-    bool icyDust=false;
-    for(const auto &p:s.dust)icyDust=icyDust||p.icy;
-    assert(icyDust);
+    assert(s.map.at(x,y+1)==Tile::Asteroid);
+    assert(s.dust.size()>=8);
+    assert(c.release(s)&&c.burstSeconds>.4f);
+    assert(!c.release(s));
+    for(int i=0;i<10;++i)c.advance(.05f);
+    assert(c.burstSeconds==0);
+    place(x,y-1);
+    c.press();hold(c,s,10);
+    const float partial=s.asteroidIntegrityAt(x,y-1);
+    assert(partial>0&&partial<1);
+    c.cancel();
+    assert(!c.release(s)&&s.asteroidIntegrityAt(x,y-1)==partial);
+    sfBossDangerIndex=8;
+    c.press();hold(c,s,200);
+    assert(c.release(s));
+    assert(s.asteroidIntegrityAt(x,y-1)==partial);
+    sfBossDangerIndex=0;
+    const auto harvest=[&](int rx,int ry,float tx,float ty){
+        place(rx,ry);
+        c.aimAt(s,tx,ty);c.press();hold(c,s,320);
+        assert(s.map.at(rx,ry)==Tile::Empty);
+        assert(c.release(s));
+    };
+    harvest(x,y+1,s.pilot.x,s.pilot.y+15);
+    harvest(x-1,y,s.pilot.x-15,s.pilot.y);
+    harvest(x+1,y,s.pilot.x+15,s.pilot.y);
+    place(x,y-1,Tile::IceAsteroid);
+    c.aimAt(s,s.pilot.x,s.pilot.y-15);c.press();hold(c,s,320);
+    assert(s.map.at(x,y-1)==Tile::Empty&&c.release(s));
+    bool icy=false;for(const auto &p:s.dust)icy=icy||p.icy;
+    assert(icy);
+    Session m(generate({}));assert(m.start());m.shipRadius=1.2f;
+    const int mx=int(m.pilot.x),my=int(m.pilot.y);
+    for(int dx:{-1,1}){
+        const size_t i=size_t(my-2)*m.map.width+size_t(mx+dx);
+        m.map.tiles[i]=Tile::Asteroid;m.asteroidIntegrity[i]=1;
+    }
+    KineticSurgeControl both;
+    both.aimAt(m,m.pilot.x,m.pilot.y-30);
+    both.press();hold(both,m,10);
+    assert(m.asteroidIntegrityAt(mx-1,my-2)<1);
+    assert(m.asteroidIntegrityAt(mx+1,my-2)<1);
+    both.cancel();
     sfBossDangerIndex=2;
 }

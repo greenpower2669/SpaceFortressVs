@@ -244,7 +244,7 @@ int runSoloPrototype(){
                 kinetic.aimAt(*campaign.active,aimX,aimY);
             }
             const bool wasCharged=sfKineticSurges[1].charged;
-            kinetic.advance(dt);
+            kinetic.advance(*campaign.active,dt);
             if(!wasCharged && sfKineticSurges[1].charged)
                 audio->play(sfsolo::SoundCue::Ready);
             if(campaign.active->phase==sfsolo::Phase::Lost)kinetic.cancel();

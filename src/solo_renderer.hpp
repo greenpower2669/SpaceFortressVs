@@ -151,18 +151,20 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
             continue;
         }
         if(t==Tile::Asteroid || t==Tile::IceAsteroid){
+            // Actual rock sprite shrinks as the held cone melts its mass.
+            const int reduced=std::max(2,int(radius*s.asteroidIntegrityAt(x,y)));
             if(assets&&assets->rock){
                 const SDL_Color tint=t==Tile::IceAsteroid?
                     SDL_Color{158,233,255,255}:SDL_Color{215,218,229,255};
-                soloCopy(r,assets->rock,{cx-radius,cy-radius,radius*2,radius*2},
+                soloCopy(r,assets->rock,{cx-reduced,cy-reduced,reduced*2,reduced*2},
                          tint,double(hash%8u)*45.0);
             }else{
-                fill(r,{cx-radius,cy-radius,radius*2,radius*2},tileColor(t));
+                fill(r,{cx-reduced,cy-reduced,reduced*2,reduced*2},tileColor(t));
             }
             if(t==Tile::IceAsteroid){
                 SDL_SetRenderDrawColor(r,220,253,255,255);
-                SDL_RenderDrawLine(r,cx-radius,cy,cx+radius,cy);
-                SDL_RenderDrawLine(r,cx,cy-radius,cx,cy+radius);
+                SDL_RenderDrawLine(r,cx-reduced,cy,cx+reduced,cy);
+                SDL_RenderDrawLine(r,cx,cy-reduced,cx,cy+reduced);
             }
             continue;
         }

@@ -15,6 +15,8 @@ struct Session {
     // backtracked routes on the minimap. Exploration does not expire.
     std::vector<uint8_t> explored;
     std::vector<SoloDust> dust;
+    // Mass remains owned by the world, never by a single touch gesture.
+    std::vector<float> asteroidIntegrity;
     Pilot pilot;
     Physics physics;
     Phase phase=Phase::Ready;
@@ -53,6 +55,10 @@ struct Session {
                     explored[size_t(y)*map.width+x]=1;
     }
     explicit Session(Map source):map(std::move(source)) {
+        asteroidIntegrity.assign(map.tiles.size(),0.0f);
+        for(size_t i=0;i<map.tiles.size();++i)
+            if(map.tiles[i]==Tile::Asteroid||map.tiles[i]==Tile::IceAsteroid)
+                asteroidIntegrity[i]=1.0f;
         for(const auto tile:map.tiles){
             if(tile==Tile::Enemy)++enemiesAvailable;
             if(tile==Tile::Trigger)++relaysNeeded;
@@ -69,6 +75,26 @@ struct Session {
     // White ice fragments originate from icy asteroids hit by the kinetic
     // cone or direct projectile. They float briefly and can slow the ship.
     // Visual white debris after harvesting; ice alone retains its slowdown.
+    float asteroidIntegrityAt(int x,int y) const {
+        if(x<0||y<0||x>=map.width||y>=map.height)return 0.0f;
+        const size_t id=size_t(y)*size_t(map.width)+size_t(x);
+        if(map.tiles[id]!=Tile::Asteroid&&map.tiles[id]!=Tile::IceAsteroid)
+            return 0.0f;
+        return id<asteroidIntegrity.size()?asteroidIntegrity[id]:0.0f;
+    }
+    bool erodeAsteroid(int x,int y,float loss){
+        if(!(loss>0.0f)||x<0||y<0||x>=map.width||y>=map.height)
+            return false;
+        const size_t id=size_t(y)*size_t(map.width)+size_t(x);
+        if(id>=asteroidIntegrity.size())return false;
+        const Tile type=map.tiles[id];
+        if(type!=Tile::Asteroid&&type!=Tile::IceAsteroid)return false;
+        asteroidIntegrity[id]=std::max(0.0f,asteroidIntegrity[id]-loss);
+        if(asteroidIntegrity[id]>0.0f)return false;
+        map.tiles[id]=Tile::Empty;
+        scatterMining(x+.5f,y+.5f,type==Tile::IceAsteroid);
+        return true;
+    }
     void scatterMining(float px,float py,bool icy=false){
         if(dust.size()>=128)return;
         constexpr float directions[8][2]={

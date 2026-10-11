@@ -21,6 +21,9 @@ struct KineticSurgeControl {
     float targetX=0,targetY=0;
     bool hasAim=false;
     AimVector axis{0,-1};
+    // SOLO-only experiment converting canonical arena-fraction melt rate
+    // into tile visual mass. The shared COOP rates stay untouched.
+    static constexpr float SOLO_TILE_REFERENCE_ARENA_FRACTION=.08f;
 
     void aimAt(const Session &s,float x,float y){
         targetX=x;targetY=y;hasAim=true;
@@ -41,14 +44,38 @@ struct KineticSurgeControl {
         if(!pressed)return;
         sfKineticAdvanceSurges(dt);
     }
+    // Active from canonical 0.20 s, including after READY at 2 s.
+    // All asteroids inside the moving cone erode simultaneously.
+    void advance(Session &s,float dt){
+        advance(dt);
+        if(!pressed||!sfKineticSuperchargeActive(owner)||dt<=0.0f||
+           (s.phase!=Phase::Flying&&s.phase!=Phase::BossFight))return;
+        const float range=coneRangeForShip(s.shipRadius);
+        if(range<=0.0f)return;
+        const AimVector dir=direction(s);
+        const int left=std::max(0,int(std::floor(s.pilot.x-range-1)));
+        const int right=std::min(s.map.width-1,int(std::ceil(s.pilot.x+range+1)));
+        const int top=std::max(0,int(std::floor(s.pilot.y-range-1)));
+        const int bottom=std::min(s.map.height-1,int(std::ceil(s.pilot.y+range+1)));
+        for(int y=top;y<=bottom;++y)for(int x=left;x<=right;++x){
+            if(s.asteroidIntegrityAt(x,y)<=0.0f)continue;
+            const float cx=x+.5f,cy=y+.5f;
+            if(!inAimedCanonicalCone(s.pilot.x,s.pilot.y,cx,cy,dir,range,.15f))
+                continue;
+            const float distance=std::clamp(
+                std::hypot(cx-s.pilot.x,cy-s.pilot.y)/range,0.0f,1.0f);
+            const float loss=sfKineticMiningArenaFractionPerSecond(distance)*
+                            dt/SOLO_TILE_REFERENCE_ARENA_FRACTION;
+            s.erodeAsteroid(x,y,loss);
+        }
+    }
     void cancel(){
         pressed=false;
         burstSeconds=0;
         sfKineticSurgeCancel(owner);
     }
-    // Return true when the canonical 2s surge was released; do NOT also fire.
-    // The only world interaction here is harvesting nearby asteroid tiles.
-    // Real particle suction, damage, sound and FX still belong to COOP.
+    // At 2s the final sound/FX fires; no instant deletion of intact rocks.
+    // True COOP energy, shield and minage FX remain for later integration.
     bool release(Session &s){
         if(!pressed)return false;
         pressed=false;
@@ -58,23 +85,6 @@ struct KineticSurgeControl {
         burstSeconds=.42f;
         burstOriginX=s.pilot.x;burstOriginY=s.pilot.y;
         burstAxis=direction(s);
-        const float range=coneRangeForShip(s.shipRadius);
-        const AimVector aimed=burstAxis;
-        const int left=std::max(0,int(std::floor(s.pilot.x-range-1)));
-        const int right=std::min(s.map.width-1,int(std::ceil(s.pilot.x+range+1)));
-        const int top=std::max(0,int(std::floor(s.pilot.y-range-1)));
-        const int bottom=std::min(s.map.height-1,int(std::ceil(s.pilot.y+range+1)));
-        for(int y=top;y<=bottom;++y)for(int x=left;x<=right;++x){
-            const size_t index=size_t(y)*size_t(s.map.width)+size_t(x);
-            if(s.map.tiles[index]!=Tile::Asteroid &&
-               s.map.tiles[index]!=Tile::IceAsteroid)continue;
-            if(inAimedCanonicalCone(s.pilot.x,s.pilot.y,
-                                     x+.5f,y+.5f,aimed,range,.15f)){
-                const bool icy=s.map.tiles[index]==Tile::IceAsteroid;
-                s.map.tiles[index]=Tile::Empty;
-                s.scatterMining(x+.5f,y+.5f,icy);
-            }
-        }
         return true;
     }
 };

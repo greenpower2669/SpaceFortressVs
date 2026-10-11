@@ -321,3 +321,11 @@
 - [ ] Tester sur Samsung poussières, flash, traînée et non-régressions caméra/croisière.
 - [ ] Raccorder véritablement énergie, bouclier, minage continu, projectiles/missiles et FX du COOP canonique.
 - [ ] Pas de merge main ni Release avant accord Fab.
+
+## SOLO-CONTINUOUS-CONE-002 — 11/10/2026
+- [x] Fonte simultanée multi-astéroïdes dès 0,20 s, prolongée après 2 s READY, distance et Danger via modèle cinétique historique.
+- [x] Intégrité persistante par case, diminution progressive du sprite, poussières à fonte finale (glace distincte), pas d'effacement instantané au relâchement.
+- [x] Tests seuil, maintien, annulation, 4 orientations, multi-cibles, difficulté 9 et débris glacés.
+- [ ] CI Android APK/AAB verte du dernier commit, APK DIAG directe et intégrité SHA-256 ; test Samsung calibrage masse .08.
+- [ ] Raccordement réel armes, missiles, énergie, bouclier, poussière et boss du COOP, sans états globaux détournés.
+- [ ] Aucun merge main ni Release sans accord Fab.
