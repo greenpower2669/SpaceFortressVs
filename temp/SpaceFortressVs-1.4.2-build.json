@@ -2,11 +2,11 @@
   "game": "SpaceFortressVs",
   "version": "1.4.2",
   "versionCode": 12,
-  "commit": "9927f0148486eefb5f49a201b9fd0602151c1905",
+  "commit": "82825ed5e2889ac630fe2379183bc068f0105d01",
   "apk": "ARM64, debug diagnostic, separate Android package",
   "packageName": "com.greenpower2669.spacefortressvs.diagnostic",
   "aab": "release bundle, unsigned",
-  "apkCertificateSha256": "9375393f2d251ffd0cbd5cc6af60902501659f4054991da54b99fc23ca855c92",
+  "apkCertificateSha256": "efd434c97a0959baa36b86a480516761d2c0507176626f59573a7f4ef4ab74da",
   "updateIdentity": {
     "referenceVersion": "1.3.1",
     "referenceCertificateSha256": "8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868",
@@ -16,12 +16,12 @@
   },
   "files": {
     "SpaceFortressVs-1.4.2.apk": {
-      "sha256": "47c575b49877dc1af8bceaa966b8201978612edd794a9b7e17fe987726bfd33c",
-      "size": 94119734
+      "sha256": "635c936e0b4fc1335077c2da9d2f236b92e69d8446761703012aa4b65754d5d2",
+      "size": 94136117
     },
     "SpaceFortressVs-1.4.2-unsigned.aab": {
-      "sha256": "635fbc4dfac186a27f51155e34123e90218491af80efb0cf8ae02bdf74279f92",
-      "size": 91465274
+      "sha256": "14c0df866eba3f704912b1241a2bbbb066311691e8a1d6ad13dca0b110b06c9c",
+      "size": 91476077
     }
   }
 }
