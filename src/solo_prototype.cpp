@@ -218,7 +218,7 @@ int runSoloPrototype(){
                     *campaign.active,{0,0,w,h});
                 campaign.active->stepToward(tx,ty,dt,cam.visibleColumns());
             }else campaign.active->step(ax,ay,dt);
-            sfsolo::soloUpdateCamera(*campaign.active,{0,0,w,h});
+            sfsolo::soloUpdateCamera(*campaign.active,{0,0,w,h},dt);
             if(touch.chargeDown){
                 float aimX=0,aimY=0;
                 sfsolo::aimWorldPoint(*campaign.active,
