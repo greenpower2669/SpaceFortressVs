@@ -120,7 +120,8 @@ struct Session {
     // receives user commands. Keyboard/controller tests keep vector thrust.
     void step(float inputX,float inputY,float dt,
               bool pointerTarget=false,float fingerWorldX=0,float fingerWorldY=0,
-              float touchSpeedColumns=0){
+              float touchSpeedColumns=0,
+              bool continuousCruise=false,float cruiseThrottle=0){
         if(phase!=Phase::Flying&&phase!=Phase::BossFight)return;
         dt=std::clamp(dt,0.0f,.05f);
         seconds+=dt;
@@ -128,8 +129,13 @@ struct Session {
         iceSeconds=std::max(0.0f,iceSeconds-dt);
         lavaSeconds=std::max(0.0f,lavaSeconds-dt);
         const float oldX=pilot.x,oldY=pilot.y;
-        if(pointerTarget)physics.stepToward(pilot,fingerWorldX,fingerWorldY,dt,mobility(),
-                          touchSpeedColumns>0?touchSpeedColumns:float(map.width));
+        if(continuousCruise)
+            physics.stepCruise(pilot,inputX,inputY,cruiseThrottle,
+                touchSpeedColumns>0?touchSpeedColumns:float(map.width),
+                dt,mobility());
+        else if(pointerTarget)
+            physics.stepToward(pilot,fingerWorldX,fingerWorldY,dt,mobility(),
+                touchSpeedColumns>0?touchSpeedColumns:float(map.width));
         else physics.step(pilot,inputX,inputY,dt,mobility());
         const float targetX=std::clamp(pilot.x,shipRadius,float(map.width)-shipRadius);
         const float targetY=std::clamp(pilot.y,shipRadius,float(map.height)-shipRadius);
@@ -180,6 +186,10 @@ struct Session {
         cameraY=std::clamp(pilot.y+lookAhead,0.0f,float(map.height));
         advanceDust(dt);
         reveal();
+    }
+    void stepCruise(float dirX,float dirY,float throttle,
+                    float visibleWorldColumns,float dt){
+        step(dirX,dirY,dt,false,0,0,visibleWorldColumns,true,throttle);
     }
     void stepToward(float worldX,float worldY,float dt,
                     float visibleWorldColumns=0) {
