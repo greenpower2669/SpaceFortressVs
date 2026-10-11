@@ -279,7 +279,8 @@ extern "C" int runCoopSoloArena(){
                 sfCoopTick(subDt); // ORIGINAL physics in world coords, not a copy
                 if(worldActive&&moveFinger>=0)
                     world.panIfShipActuallyMoved({Spritej2->x,Spritej2->y},
-                        {Spritej2->x-oldX,Spritej2->y-oldY},subDt);
+                        {Spritej2->x-oldX,Spritej2->y-oldY},subDt,
+                        sfsolo::CoopWorldPoint{moveScreenX,moveScreenY});
                 // Start the true kinetic charge sound only when the actual
                 // COOP field becomes visible and vulnerable (0.20 s).
                 if(chargeCueGate.startWhenVisible(sfKineticSurges[1])){
