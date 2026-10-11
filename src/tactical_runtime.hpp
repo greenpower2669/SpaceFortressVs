@@ -975,25 +975,32 @@ static void sfTacticalRainbowRing(SDL_Renderer *renderer,tupl center,float radiu
     }
 }
 
-static void sfDrawKineticSuctionCone(SDL_Renderer *renderer,int owner)
+static void sfDrawKineticSuctionCone(SDL_Renderer *renderer,int owner,
+                                     const SfKineticAimAxes *aims=nullptr)
 {
     if(!renderer || !sfKineticSuctionVisible(owner)) return;
     const auto *ship=owner==0 ? Spritej1 : Spritej2;
     if(!ship || ship->pv<=0) return;
     const float diameter=std::max(1.0f,std::max({ship->sw,ship->sh,ship->w,ship->h}));
-    const float dir=owner==0 ? 1.0f : -1.0f;
-    const float noseY=ship->y+dir*diameter*.42f;
+    const SfKineticVector axis=aims&&aims->active(owner)?
+        aims->direction(owner):SfKineticVector{0,owner==0?1.0f:-1.0f};
+    const float noseX=ship->x+axis.x*diameter*.42f;
+    const float noseY=ship->y+axis.y*diameter*.42f;
     const float range=diameter*sfKineticSurgeDustRangeDiameters();
     const float half=sfKineticSurgeConeHalfWidth(range);
+    const float perpX=-axis.y,perpY=axis.x;
+    const float endX=noseX+axis.x*range,endY=noseY+axis.y*range;
+    const float leftX=endX+perpX*half,leftY=endY+perpY*half;
+    const float rightX=endX-perpX*half,rightY=endY-perpY*half;
     const SDL_Color fill{255,132,28,22};
-    const SDL_Vertex wedge[]={{{ship->x,noseY},fill,{0,0}},
-        {{ship->x-half,noseY+dir*range},fill,{0,0}},
-        {{ship->x+half,noseY+dir*range},fill,{0,0}}};
+    const SDL_Vertex wedge[]={{{noseX,noseY},fill,{0,0}},
+        {{leftX,leftY},fill,{0,0}},
+        {{rightX,rightY},fill,{0,0}}};
     const int wi[]={0,1,2};
     SDL_RenderGeometry(renderer,nullptr,wedge,3,wi,3);
     SDL_SetRenderDrawColor(renderer,255,142,36,62);
-    SDL_RenderDrawLineF(renderer,ship->x,noseY,ship->x-half,noseY+dir*range);
-    SDL_RenderDrawLineF(renderer,ship->x,noseY,ship->x+half,noseY+dir*range);
+    SDL_RenderDrawLineF(renderer,noseX,noseY,leftX,leftY);
+    SDL_RenderDrawLineF(renderer,noseX,noseY,rightX,rightY);
 
     // Five translucent fronts travel from the mouth of the cone toward the
     // ship; their motion makes the suction direction readable without a 360° halo.
@@ -1005,9 +1012,11 @@ static void sfDrawKineticSuctionCone(SDL_Renderer *renderer,int owner)
         const float hw=sfKineticSurgeConeHalfWidth(d);
         const Uint8 alpha=Uint8(52+72*(1.0f-outward));
         SDL_SetRenderDrawColor(renderer,255,154,52,alpha);
-        SDL_RenderDrawLineF(renderer,ship->x-hw,noseY+dir*d,ship->x+hw,noseY+dir*d);
+        const float centerX=noseX+axis.x*d,centerY=noseY+axis.y*d;
+        SDL_RenderDrawLineF(renderer,centerX-perpX*hw,centerY-perpY*hw,
+                            centerX+perpX*hw,centerY+perpY*hw);
         const float centerRadius=std::max(1.0f,diameter*(.010f+.010f*(1.0f-outward)));
-        sfTacticalRing(renderer,tupl(ship->x,noseY+dir*d),centerRadius,SDL_Color{255,188,78,Uint8(alpha*.82f)});
+        sfTacticalRing(renderer,tupl(centerX,centerY),centerRadius,SDL_Color{255,188,78,Uint8(alpha*.82f)});
     }
 }
 
@@ -1042,7 +1051,8 @@ static Uint8 sfKineticWaveFrontAlpha(float progress,float strength)
     return Uint8(std::clamp(245.0f*birth*fade*(.50f+.50f*strength),0.0f,245.0f));
 }
 
-static void sfDrawKineticEffects(SDL_Renderer *renderer)
+static void sfDrawKineticEffects(SDL_Renderer *renderer,
+                                const SfKineticAimAxes *aims=nullptr)
 {
     if (!renderer || sfUiScreen!=SF_UI_GAME) return;
     const bool surgeVisible=sfKineticSurgeVisible(0) || sfKineticSurgeVisible(1);
@@ -1050,7 +1060,8 @@ static void sfDrawKineticEffects(SDL_Renderer *renderer)
     if(sfKineticWaves.empty() && !surgeVisible && !suctionVisible) return;
     SDL_BlendMode previous;SDL_GetRenderDrawBlendMode(renderer,&previous);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
-    for(int owner=0;owner<2;++owner) if(sfKineticSuctionVisible(owner)) sfDrawKineticSuctionCone(renderer,owner);
+    for(int owner=0;owner<2;++owner) if(sfKineticSuctionVisible(owner))
+        sfDrawKineticSuctionCone(renderer,owner,aims);
     for(int owner=0;owner<2;++owner) if(sfKineticSurgeVisible(owner)) sfDrawKineticSuperchargeCircle(renderer,owner);
     for(const auto &wave:sfKineticWaves) {
         if(wave.owner<0 || wave.owner>1 || !sfKineticWaveAlive(wave)) continue;

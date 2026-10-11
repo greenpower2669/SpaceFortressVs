@@ -82,6 +82,7 @@ extern "C" int runCoopSoloArena(){
     const double frequency=double(SDL_GetPerformanceFrequency());
     auto aimAt=[&](float tx,float ty){
         sfCoop.soloAimTarget=tupl(tx,ty);
+        sfCoop.soloKineticAxes.aimAt(1,tx-Spritej2->x,ty-Spritej2->y);
     };
     auto beginBoss=[&](){
         // Same boss profile/pattern, not a simplified tile enemy.

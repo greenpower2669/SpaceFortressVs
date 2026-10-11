@@ -4,6 +4,8 @@ sf_repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 sf_test_dir="$(mktemp -d)"
 trap 'rm -rf "$sf_test_dir"' EXIT
 
+g++ -std=c++17 -O2 -Wall -Wextra "$sf_repo/tests/coop_solo_cone_axis_regressions.cpp" -o "$sf_test_dir/coop-cone"
+"$sf_test_dir/coop-cone"
 g++ -std=c++17 -O2 -Wall -Wextra "$sf_repo/tests/coop_pilot_roster_regressions.cpp" -o "$sf_test_dir/coop-pilots"
 "$sf_test_dir/coop-pilots"
 g++ -std=c++17 -O2 -Wall -Wextra "$sf_repo/tests/coop_shared_projectile_regressions.cpp" -o "$sf_test_dir/coop-parity"

@@ -38,6 +38,26 @@ constexpr float SF_KINETIC_SURGE_MINING_NEAR_ARENA_FRACTION_PER_SECOND = .020f;
 constexpr float SF_KINETIC_SURGE_MINING_FAR_ARENA_FRACTION_PER_SECOND = .004f;
 
 struct SfKineticVector { float x=0,y=0; };
+// Per-session aim context. FabLib vectors continue to be used by the legacy
+// engine; only cone direction is injected by the new SOLO control facade.
+struct SfKineticAimAxes {
+    std::array<SfKineticVector,2> directions{{{0,1},{0,-1}}};
+    std::array<bool,2> customized{{false,false}};
+    void aimAt(int owner,float dx,float dy){
+        if(owner<0||owner>1)return;
+        const float magnitude=std::hypot(dx,dy);
+        if(magnitude>.0001f){
+            directions[owner]={dx/magnitude,dy/magnitude};
+            customized[owner]=true;
+        } // Null vector: keep the last valid direction.
+    }
+    SfKineticVector direction(int owner) const {
+        return owner>=0&&owner<2?directions[owner]:SfKineticVector{};
+    }
+    bool active(int owner) const {
+        return owner>=0&&owner<2&&customized[owner];
+    }
+};
 enum class SfKineticLayer { None, Inner, Outer };
 struct SfKineticSolution {
     SfKineticLayer suggestedLayer=SfKineticLayer::None;
@@ -158,15 +178,27 @@ static float sfKineticSurgeConeHalfWidth(float forwardDistance)
 {
     return std::max(0.0f,forwardDistance)*SF_KINETIC_SURGE_CONE_TAN_HALF*sfKineticConeDifficultyScale();
 }
+// Original cone geometry expressed on an explicit unit axis. The two
+// historic vertical axes produce IDENTICAL equations without branching.
+static bool sfKineticSurgeConeContainsAxis(float originX,float originY,
+                                           float axisX,float axisY,
+                                           float pointX,float pointY,
+                                           float range,float padding=0.0f){
+    if(range<=0)return false;
+    const float dx=pointX-originX,dy=pointY-originY;
+    const float forward=dx*axisX+dy*axisY;
+    if(forward<=0)return false;
+    if(std::sqrt(dx*dx+dy*dy)>range+std::max(0.0f,padding))return false;
+    const float side=std::abs(dx*axisY-dy*axisX);
+    return side<=sfKineticSurgeConeHalfWidth(forward)+std::max(0.0f,padding);
+}
 static bool sfKineticSurgeConeContains(int owner,float shipX,float shipY,
                                        float pointX,float pointY,float range,float padding=0.0f)
 {
-    if(owner<0 || owner>1 || range<=0) return false;
-    const float dx=pointX-shipX,dy=pointY-shipY;
-    const float forward=(owner==0 ? dy : -dy); // top pilot looks down; bottom pilot looks up.
-    if(forward<=0) return false;
-    if(std::sqrt(dx*dx+dy*dy)>range+std::max(0.0f,padding)) return false;
-    return std::abs(dx)<=sfKineticSurgeConeHalfWidth(forward)+std::max(0.0f,padding);
+    if(owner<0||owner>1)return false;
+    return sfKineticSurgeConeContainsAxis(
+        shipX,shipY,0.0f,owner==0?1.0f:-1.0f,
+        pointX,pointY,range,padding);
 }
 static bool sfKineticSurgeVulnerable(int owner)
 {

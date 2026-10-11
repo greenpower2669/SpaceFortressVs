@@ -43,17 +43,22 @@ static float sfKineticSurgeNoseY(int owner,const sprite *ship,float diameter)
 {
     return ship->y+(owner==0 ? 1.0f : -1.0f)*diameter*.42f;
 }
-static void sfKineticAttractWhiteDust(int owner,float dt)
+static void sfKineticAttractWhiteDust(int owner,float dt,
+                                     const SfKineticAimAxes *aims=nullptr)
 {
     auto *ship=owner==0 ? Spritej1 : Spritej2;
     if(!ship || ship->pv<=0 || dt<=0 || !sfKineticSurgeMiningActive(owner)) return;
     const float diameter=sfKineticShipDiameter(ship);
     const float range=diameter*sfKineticSurgeDustRangeDiameters();
-    const float noseY=sfKineticSurgeNoseY(owner,ship,diameter);
+    const SfKineticVector axis=aims&&aims->active(owner)?
+        aims->direction(owner):SfKineticVector{0,owner==0?1.0f:-1.0f};
+    const float noseX=ship->x+axis.x*diameter*.42f;
+    const float noseY=ship->y+axis.y*diameter*.42f;
     const float pull=1.0f-std::exp(-8.0f*dt);
     for(auto *dust:particules) {
         if(!dust || dust->pv<=0) continue;
-        if(!sfKineticSurgeConeContains(owner,ship->x,noseY,dust->x,dust->y,range)) continue;
+        if(!sfKineticSurgeConeContainsAxis(
+            noseX,noseY,axis.x,axis.y,dust->x,dust->y,range))continue;
         const float dx=ship->x-dust->x,dy=ship->y-dust->y;
         dust->x+=dx*pull;dust->y+=dy*pull;
         dust->vx=dx*12.0f;dust->vy=dy*12.0f;
@@ -71,10 +76,13 @@ static void sfKineticTideVisual(sprite *rock,sprite *ship,float diameter)
     partsforiw(rock,&tideProbe);
     sfFieldImpact(rock,&tideProbe);
 }
-static void sfKineticSurgeMineAsteroids(float dt)
+static void sfKineticSurgeMineAsteroids(float dt,
+                                        const SfKineticAimAxes *aims=nullptr,
+                                        unsigned activePilotMask=0x03u)
 {
     if(dt<=0) return;
     for(int owner=0;owner<2;++owner) {
+        if(!(activePilotMask&(1u<<owner)))continue;
         if(!sfKineticSurgeMiningActive(owner)) {
             sfKineticSurgeMiningVisualClock[owner]=0;
             continue;
@@ -83,7 +91,10 @@ static void sfKineticSurgeMineAsteroids(float dt)
         if(!ship || ship->pv<=0) continue;
         const float diameter=sfKineticShipDiameter(ship);
         const float range=diameter*sfKineticSurgeMiningRangeDiameters();
-        const float noseY=sfKineticSurgeNoseY(owner,ship,diameter);
+        const SfKineticVector axis=aims&&aims->active(owner)?
+            aims->direction(owner):SfKineticVector{0,owner==0?1.0f:-1.0f};
+        const float noseX=ship->x+axis.x*diameter*.42f;
+        const float noseY=ship->y+axis.y*diameter*.42f;
         sfKineticSurgeMiningVisualClock[owner]+=dt;
         const bool visualPulse=sfKineticSurgeMiningVisualClock[owner]>=SF_KINETIC_SURGE_MINING_VISUAL_INTERVAL;
         if(visualPulse) sfKineticSurgeMiningVisualClock[owner]=std::fmod(sfKineticSurgeMiningVisualClock[owner],SF_KINETIC_SURGE_MINING_VISUAL_INTERVAL);
@@ -91,10 +102,11 @@ static void sfKineticSurgeMineAsteroids(float dt)
         for(auto *rock:sa1) {
             if(!rock || rock->pv<=0) continue;
             const float rockRadius=std::max(rock->w,rock->h)*.5f;
-            const float centerDistance=vlong(rock->x-ship->x,rock->y-noseY);
+            const float centerDistance=vlong(rock->x-noseX,rock->y-noseY);
             const float surface=std::max(0.0f,centerDistance-rockRadius);
             if(surface>range) continue;
-            if(!sfKineticSurgeConeContains(owner,ship->x,noseY,rock->x,rock->y,range,rockRadius)) continue;
+            if(!sfKineticSurgeConeContainsAxis(
+                noseX,noseY,axis.x,axis.y,rock->x,rock->y,range,rockRadius))continue;
             const float normalized=std::clamp(surface/std::max(1.0f,range),0.0f,1.0f);
             const float shrink=sfArenaH*sfKineticMiningArenaFractionPerSecond(normalized)*dt;
             if(shrink<=0) continue;
@@ -116,7 +128,7 @@ static void sfKineticSurgeMineAsteroids(float dt)
                 }
             }
         }
-        sfKineticAttractWhiteDust(owner,dt);
+        sfKineticAttractWhiteDust(owner,dt,aims);
     }
 }
 static SfKineticSolution sfKineticRockSolution(const sprite *rock,const sprite *ship,int owner)
@@ -399,7 +411,8 @@ static bool sfKineticTryLayer(sprite *rock,sprite *ship,int owner,SfKineticLayer
     return false;
 }
 
-static void sfLegacyFieldStep(void (*hurt)(int,float),unsigned activePilotMask=0x03u)
+static void sfLegacyFieldStep(void (*hurt)(int,float),unsigned activePilotMask=0x03u,
+                              const SfKineticAimAxes *aims=nullptr)
 {
     if (sa1.empty()) {setastswall();setasts(2);}
     else if (sa1.size()<8) setasts(2);
@@ -471,7 +484,7 @@ static void sfLegacyFieldStep(void (*hurt)(int,float),unsigned activePilotMask=0
             sfMineAsteroid(rock,shot);break;
         }
     }
-    sfKineticSurgeMineAsteroids(1.0f/60.0f);
+    sfKineticSurgeMineAsteroids(1.0f/60.0f,aims,activePilotMask);
     for(auto i=sa1.begin();i!=sa1.end();) {
         if ((*i)->pv<=0) {delete *i;i=sa1.erase(i);} else ++i;
     }
@@ -481,14 +494,15 @@ static void sfLegacyFieldStep(void (*hurt)(int,float),unsigned activePilotMask=0
 }
 
 static void sfLegacyFieldFrame(float dt,void (*hurt)(int,float),
-                               unsigned activePilotMask=0x03u)
+                               unsigned activePilotMask=0x03u,
+                               const SfKineticAimAxes *aims=nullptr)
 {
     const int oldW=W,oldH=H,oldWidth=WIDTH,oldHeight=HEIGHT;const float oldK=k0;
     W=WIDTH=std::max(1,int(sfArenaW));H=HEIGHT=std::max(1,int(sfArenaH));k0=1;
     sfFieldRemainder+=std::clamp(dt,0.0f,.1f);
     while(sfFieldRemainder+1e-6f>=1.0f/60) {
         sfFieldRemainder=std::max(0.0f,sfFieldRemainder-1.0f/60);
-        sfLegacyFieldStep(hurt,activePilotMask);
+        sfLegacyFieldStep(hurt,activePilotMask,aims);
         if (hurt) {
             for(auto *p:particules) p->update();for(auto *p:particulesr) p->update();
             sfCollectDust(activePilotMask);

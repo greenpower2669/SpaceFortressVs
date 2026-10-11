@@ -22,6 +22,7 @@ struct SfCoopState {
     bool soloDiagnostic=false; // suppress historical campaign save in test
     bool soloFreeAim=false;    // one blue human uses 360-degree direct aim
     tupl soloAimTarget;
+    SfKineticAimAxes soloKineticAxes{};
     SfCoopPhase phase=SfCoopPhase::Intro;
     int boss=0,encounter=0,volley=0,revives=3,phaseNumber=0;
     float time=0,phaseTime=0,health=900,attack=1,warning=0,hit=0;
@@ -970,7 +971,8 @@ static void sfCoopResources(float dt)
         sfCoopAdvanceBossKineticCooldowns(dt);
     }
     sfCoopAdvanceAsteroidSpawner(dt);
-    sfLegacyFieldFrame(dt,sfCoopAsteroidHurt,sfCoop.pilots.activeMask);
+    sfLegacyFieldFrame(dt,sfCoopAsteroidHurt,sfCoop.pilots.activeMask,
+                       sfCoop.soloFreeAim?&sfCoop.soloKineticAxes:nullptr);
     if(sfCoop.bossPresent)sfCoopBossKineticField();
 }
 
@@ -1693,7 +1695,7 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
         }
     }
     sfDrawTacticalEffects(renderer);
-    sfDrawKineticEffects(renderer);
+    sfDrawKineticEffects(renderer,sfCoop.soloFreeAim?&sfCoop.soloKineticAxes:nullptr);
     if (sfCoop.bonusLife>0 && textures.bonus) {
         const int side=int(std::min(sfArenaW,sfArenaH)*.085f);
         SDL_Rect rect{int(sfCoop.bonusPosition.x-side*.5f),int(sfCoop.bonusPosition.y-side*.5f),side,side};
