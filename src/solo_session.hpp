@@ -139,22 +139,31 @@ struct Session {
         else physics.step(pilot,inputX,inputY,dt,mobility());
         const float targetX=std::clamp(pilot.x,shipRadius,float(map.width)-shipRadius);
         const float targetY=std::clamp(pilot.y,shipRadius,float(map.height)-shipRadius);
-        // x4 movement can cross multiple cells per frame. Sweep through the
+        // Fast movement can cross multiple cells per frame. Sweep through the
         // entire flight path so rocks and icy/ordinary asteroids cannot vanish
         // between endpoint collision checks.
         const float dx=targetX-oldX,dy=targetY-oldY;
         const int samples=std::max(1,int(std::ceil(std::hypot(dx,dy)/.20f)));
-        float safeX=oldX,safeY=oldY;
+        // Physics already computed its desired endpoint. Rewind to the start
+        // and sweep each axis independently in <=.20 world-cell increments.
+        // This prevents tunnelling but permits sliding ALONG rocky corridors.
+        pilot.x=oldX;pilot.y=oldY;
         for(int i=1;i<=samples;++i){
             const float part=float(i)/float(samples);
-            pilot.x=std::clamp(oldX+dx*part,shipRadius,float(map.width)-shipRadius);
-            pilot.y=std::clamp(oldY+dy*part,shipRadius,float(map.height)-shipRadius);
-            const Tile hit=map.at(int(pilot.x),int(pilot.y));
-            if(hit==Tile::Rock){
-                pilot.x=safeX;pilot.y=safeY;pilot.vx=pilot.vy=0;
-                if(collisionCooldown<=0){damage(8);collisionCooldown=.45f;}
-                break;
+            const float nextX=std::clamp(oldX+dx*part,shipRadius,
+                                          float(map.width)-shipRadius);
+            const float nextY=std::clamp(oldY+dy*part,shipRadius,
+                                          float(map.height)-shipRadius);
+            bool blockedX=map.at(int(nextX),int(pilot.y))==Tile::Rock;
+            if(!blockedX)pilot.x=nextX;
+            else pilot.vx=0;
+            bool blockedY=map.at(int(pilot.x),int(nextY))==Tile::Rock;
+            if(!blockedY)pilot.y=nextY;
+            else pilot.vy=0;
+            if((blockedX||blockedY) && collisionCooldown<=0){
+                damage(8);collisionCooldown=.45f;
             }
+            const Tile hit=map.at(int(pilot.x),int(pilot.y));
             if(hit==Tile::Asteroid||hit==Tile::IceAsteroid||
                hit==Tile::Lava||hit==Tile::Beam){
                 if(collisionCooldown<=0){
@@ -178,7 +187,6 @@ struct Session {
                 if(missionReady())phase=Phase::Won;
             }
             if(phase==Phase::Lost || phase==Phase::Won)break;
-            safeX=pilot.x;safeY=pilot.y;
         }
         // Follow real ship position every frame. x4 motion causes x4 scroll,
         // while the predictive offset is bounded to keep the pilot visible.

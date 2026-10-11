@@ -85,8 +85,21 @@ inline SoloViewport soloViewport(const Session &s,SDL_Rect screen) {
     }
     return view;
 }
-inline void soloUpdateCamera(Session &s,SDL_Rect screen,float dt=0.0f,
-                             float fingerZoneX=NAN,float fingerZoneY=NAN){
+// A ship controls camera scrolling by its ACTUAL position inside the outer
+// rectangular bands. A finger release does not change this rule. Only the
+// ship's world velocity determines the pan direction, never the finger zone.
+inline float soloShipCameraTarget(float normalizedShipPosition,float shipVelocity){
+    if(!std::isfinite(normalizedShipPosition)||!std::isfinite(shipVelocity))
+        return 0.0f;
+    // Flying back toward the centre must not drag the camera in reverse while
+    // the ship is still in the old outer zone. This also ensures a stable
+    // rest state in the whole central third of the screen.
+    if((normalizedShipPosition<=.5f && shipVelocity>=0.0f) ||
+       (normalizedShipPosition>=.5f && shipVelocity<=0.0f))
+        return 0.0f;
+    return shipVelocity*soloRectangularCameraGain(normalizedShipPosition);
+}
+inline void soloUpdateCamera(Session &s,SDL_Rect screen,float dt=0.0f){
     if(!s.map.valid() || screen.w<=0 || screen.h<=0)return;
     const float cell=soloMapCellPixels(screen);
     const float cols=screen.w/cell,rows=screen.h/cell;
@@ -96,33 +109,22 @@ inline void soloUpdateCamera(Session &s,SDL_Rect screen,float dt=0.0f,
         s.viewVelocityX=0;s.viewVelocityY=0;
         s.viewReady=true;s.viewWidth=screen.w;s.viewHeight=screen.h;
     }
-    // The initial event-loop call (dt=0) just initializes the camera, so
-    // rendering, touch projection and keyboard input see one stable transform.
+    // dt=0 is initialization only; all code paths in the frame use the same
+    // screen-to-world camera transform.
     if(dt<=0 || !std::isfinite(dt))return;
     dt=std::min(dt,.05f);
-
     const float screenX=(s.pilot.x-s.viewLeft)/cols;
     const float screenY=(s.pilot.y-s.viewTop)/rows;
-    // Real game: camera rate follows the FINGER ZONE, not the current screen
-    // position of a ship that the camera itself has displaced.
-    // The controls retain fingerZoneX/Y after release, so scrolling persists
-    // until a later steering gesture changes the direction/speed.
-    const bool fingerDrive=std::isfinite(fingerZoneX)&&
-                           std::isfinite(fingerZoneY);
-    const float gainX=soloRectangularCameraGain(
-        fingerDrive?fingerZoneX:screenX);
-    const float gainY=soloRectangularCameraGain(
-        fingerDrive?fingerZoneY:screenY);
-    // Keep older ship-relative behavior for keyboard and camera-only tests.
-    const float desiredX=(!fingerDrive &&
-                          s.pilot.vx*(screenX-.5f)<=0.0f)?
-                          0.0f:s.pilot.vx*gainX;
-    const float desiredY=(!fingerDrive &&
-                          s.pilot.vy*(screenY-.5f)<=0.0f)?
-                          0.0f:s.pilot.vy*gainY;
+    const float desiredX=soloShipCameraTarget(screenX,s.pilot.vx);
+    const float desiredY=soloShipCameraTarget(screenY,s.pilot.vy);
     const float response=1.0f-std::exp(-SOLO_CAMERA_RESPONSE_HZ*dt);
-    s.viewVelocityX+=(desiredX-s.viewVelocityX)*response;
-    s.viewVelocityY+=(desiredY-s.viewVelocityY)*response;
+    // HARD STOP when the ship returns to the centre (or reverses inward).
+    // Easing a previous velocity through the dead zone would still visibly
+    // scroll the world and violates the agreed one-third rule.
+    if(desiredX==0.0f)s.viewVelocityX=0.0f;
+    else s.viewVelocityX+=(desiredX-s.viewVelocityX)*response;
+    if(desiredY==0.0f)s.viewVelocityY=0.0f;
+    else s.viewVelocityY+=(desiredY-s.viewVelocityY)*response;
     if(std::abs(s.viewVelocityX)<.0005f)s.viewVelocityX=0;
     if(std::abs(s.viewVelocityY)<.0005f)s.viewVelocityY=0;
 
@@ -136,8 +138,8 @@ inline void soloUpdateCamera(Session &s,SDL_Rect screen,float dt=0.0f,
         s.viewVelocityY=0;
     s.viewLeft=nextLeft;s.viewTop=nextTop;
 
-    // Guard against very fast keyboard movement / dropped frames. Never
-    // hide the ship beyond the viewport when the following acceleration lags.
+    // Guard against dropped frames and map edges. Keep the fixed-size ship
+    // visible; no camera input is ever fed into the physics integrator.
     constexpr float margin=SOLO_RECT_MAX_SPEED_MARGIN;
     const float minX=s.viewLeft+cols*margin;
     const float maxX=s.viewLeft+cols*(1.0f-margin);

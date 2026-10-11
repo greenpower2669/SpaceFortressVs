@@ -234,9 +234,9 @@ int runSoloPrototype(){
             }else{
                 campaign.active->step(0,0,dt);
             }
-            sfsolo::soloUpdateCamera(*campaign.active,{0,0,w,h},dt,
-                touch.cruiseSet?touch.cameraControlX:NAN,
-                touch.cruiseSet?touch.cameraControlY:NAN);
+            // Only the ship's real screen position and velocity govern
+            // the two camera acceleration zones, whether held or released.
+            sfsolo::soloUpdateCamera(*campaign.active,{0,0,w,h},dt);
             if(touch.chargeDown){
                 float aimX=0,aimY=0;
                 sfsolo::aimWorldPoint(*campaign.active,
@@ -309,12 +309,16 @@ int runSoloPrototype(){
         // One breadcrumb every three seconds: keeps logs small while identifying
         // which state and screen immediately preceded a native process exit.
         if(SDL_GetTicks64()-lastDebugHeartbeat>=3000){
-            char event[192];
+            char event[320];
             if(campaign.active){
                 const auto &p=campaign.active->pilot;
                 std::snprintf(event,sizeof(event),
-                    "HEARTBEAT phase=%d x=%.2f y=%.2f vx=%.2f vy=%.2f hp=%.0f ice=%.2f relays=%u/%u cruise=%d held=%d",
+                    "HEARTBEAT phase=%d ship=(%.2f,%.2f) vel=(%.2f,%.2f) "
+                    "cam=(%.2f,%.2f) pan=(%.2f,%.2f) hp=%.0f "
+                    "ice=%.2f relays=%u/%u cruise=%d held=%d",
                     int(campaign.active->phase),p.x,p.y,p.vx,p.vy,
+                    campaign.active->viewLeft,campaign.active->viewTop,
+                    campaign.active->viewVelocityX,campaign.active->viewVelocityY,
                     p.health,campaign.active->iceSeconds,
                     campaign.active->relaysCollected,
                     campaign.active->relaysNeeded,

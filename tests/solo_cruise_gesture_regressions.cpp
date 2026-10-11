@@ -40,14 +40,12 @@ int main(){
             phone.w,phone.h)==TouchAction::None);
     assert(finger.cruiseSet && finger.cruiseY<-.99f);
     assert(finger.cruiseThrottle>.9f);
-    assert(near(finger.cameraControlY,.06f));
     const float initialY=flight.pilot.y, initialTop=flight.viewTop;
     for(int frame=0;frame<100;++frame){
         flight.stepCruise(finger.cruiseX,finger.cruiseY,
                           finger.cruiseThrottle,
                           soloViewport(flight,phone).visibleColumns(),dt);
-        soloUpdateCamera(flight,phone,dt,finger.cameraControlX,
-                                        finger.cameraControlY);
+        soloUpdateCamera(flight,phone,dt);
     }
     const float afterHold=flight.pilot.y;
     const float topAfterHold=flight.viewTop;
@@ -58,7 +56,6 @@ int main(){
     assert(finger.handle(touchEvent(SDL_FINGERUP,11,sx/phone.w,.06f),
             phone.w,phone.h)==TouchAction::None);
     assert(!finger.down && finger.cruiseSet && finger.cruiseY<-.99f);
-    const float savedControlY=finger.cameraControlY;
     const float savedSpeed=finger.cruiseThrottle;
     for(int frame=0;frame<100;++frame){
         flight.stepCruise(finger.cruiseX,finger.cruiseY,
@@ -69,38 +66,38 @@ int main(){
     }
     assert(afterHold-flight.pilot.y>20.0f);
     assert(topAfterHold-flight.viewTop>10.0f);
-    assert(near(savedControlY,finger.cameraControlY));
     assert(near(savedSpeed,finger.cruiseThrottle));
     assert(flight.pilot.health>0);
 
-    // Both rectangular bands are accelerated by FINGER position, not ship
-    // position. Sample 3 distinct values WITHIN each progressive band.
-    TouchPilot zones;
-    const float x=.5f,y=.5f;
-    zones.handle(touchEvent(SDL_FINGERDOWN,21,x,y),
-                 phone.w,phone.h);
+    // Both outer bands progressively respond to SHIP position.
+    // A finger held at the centre or released at .06 makes no difference.
     const float values[6]={.31f,.25f,.19f,.145f,.09f,.075f};
     float previous=0;
     for(float v:values){
-        zones.handle(touchEvent(SDL_FINGERMOTION,21,x,v),phone.w,phone.h);
-        assert(zones.cruiseSet);
-        assert(near(zones.cameraControlY,v));
-        const float next=soloRectangularCameraGain(zones.cameraControlY);
+        const float next=soloRectangularCameraGain(v);
         assert(next>previous);
         previous=next;
     }
     assert(previous<1.0f);
+    assert(near(soloRectangularCameraGain(.06f),1.0f));
+    assert(near(soloShipCameraTarget(.50f,12.0f),0.0f));
+    assert(soloShipCameraTarget(.25f,-12.0f)<0.0f);
+    assert(soloShipCameraTarget(.75f,12.0f)>0.0f);
+    assert(near(soloShipCameraTarget(.25f,12.0f),0.0f));
+
+    TouchPilot zones;
+    const float x=.5f,y=.5f;
+    zones.handle(touchEvent(SDL_FINGERDOWN,21,x,y),phone.w,phone.h);
     zones.handle(touchEvent(SDL_FINGERMOTION,21,x,.06f),phone.w,phone.h);
-    assert(near(soloRectangularCameraGain(zones.cameraControlY),1));
+    assert(zones.cruiseSet);
     zones.handle(touchEvent(SDL_FINGERUP,21,x,.06f),phone.w,phone.h);
     assert(zones.cruiseSet);
-    assert(near(zones.cameraControlY,.06f));
     // A second steering gesture can reverse direction, replacing the cruise.
     zones.handle(touchEvent(SDL_FINGERDOWN,22,.50f,.50f),
                  phone.w,phone.h);
     zones.handle(touchEvent(SDL_FINGERMOTION,22,.50f,.96f),
                  phone.w,phone.h);
-    assert(zones.cruiseY>.99f && zones.cameraControlY>.95f);
+    assert(zones.cruiseY>.99f);
     zones.handle(touchEvent(SDL_FINGERUP,22,.50f,.96f),
                  phone.w,phone.h);
     assert(zones.cruiseY>.99f && zones.cruiseSet);
@@ -119,6 +116,42 @@ int main(){
     // An intentional reset (restart/quit/background) must stop old momentum.
     zones.reset();
     assert(!zones.cruiseSet && near(zones.cruiseThrottle,0));
-    assert(near(zones.cameraControlX,.5f));
-    assert(near(zones.cameraControlY,.5f));
+    Session stopped(generate({}));assert(stopped.start());
+    stopped.pilot.x=stopped.map.width*.5f;
+    stopped.pilot.y=stopped.map.height*.5f;
+    // Build a clear horizontal lane in the ACTUAL maze model to isolate the
+    // exact centre-to-zone transition from rock collisions.
+    for(int cx=int(stopped.pilot.x)-5;cx<int(stopped.pilot.x)+12;++cx)
+        stopped.map.tiles[size_t(int(stopped.pilot.y))*stopped.map.width+cx]
+            =Tile::Empty;
+    soloUpdateCamera(stopped,phone);
+    const auto first=soloViewport(stopped,phone);
+    const float fingerX=first.x(stopped.pilot.x);
+    const float fingerY=first.y(stopped.pilot.y);
+    TouchPilot latch;
+    latch.handle(touchEvent(SDL_FINGERDOWN,88,fingerX/phone.w,
+                            fingerY/phone.h),phone.w,phone.h,
+                 fingerX,fingerY,stopped.pilot.x,stopped.pilot.y);
+    latch.handle(touchEvent(SDL_FINGERMOTION,88,.98f,
+                            fingerY/phone.h),phone.w,phone.h);
+    assert(latch.cruiseSet && latch.cruiseX>.9f);
+    latch.handle(touchEvent(SDL_FINGERUP,88,.98f,
+                            fingerY/phone.h),phone.w,phone.h);
+    assert(!latch.down && latch.cruiseSet);
+    const float startLeft=stopped.viewLeft;
+    bool sawCentralMovement=false,sawOuterPan=false;
+    for(int i=0;i<35;++i){
+        const float lastX=stopped.pilot.x;
+        const float lastCam=stopped.viewLeft;
+        const float pos=(stopped.pilot.x-stopped.viewLeft)/
+                         soloViewport(stopped,phone).visibleColumns();
+        stopped.stepCruise(latch.cruiseX,latch.cruiseY,latch.cruiseThrottle,
+                            soloViewport(stopped,phone).visibleColumns(),dt);
+        soloUpdateCamera(stopped,phone,dt);
+        if(pos>1.f/3.f && pos<2.f/3.f && stopped.pilot.x>lastX)
+            sawCentralMovement=true;
+        if(stopped.viewLeft>lastCam+.001f)sawOuterPan=true;
+    }
+    assert(sawCentralMovement && sawOuterPan);
+    assert(stopped.viewLeft>startLeft);
 }

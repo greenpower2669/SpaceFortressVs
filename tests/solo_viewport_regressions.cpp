@@ -97,7 +97,8 @@ int main(){
     assert(close(cruiser.viewVelocityX,0));
     assert(cruiser.viewLeft-beforeStop<2.0f); // inertia finite, not forever
 
-    // When the pilot turns inwards the camera eases out of its former speed.
+    // Turning inwards instantly halts pan, even while the ship is still
+    // physically inside the outer zone.
     Session reversing(generate({}));assert(reversing.start());
     reversing.pilot.x=reversing.map.width*.5f;
     reversing.pilot.y=reversing.map.height*.5f;
@@ -133,7 +134,7 @@ int main(){
     for(int i=0;i<80;++i)soloUpdateCamera(diagonal,phone,.05f);
     assert(close(diagonal.viewVelocityY,0));
     assert(diagonal.viewVelocityX>0);
-    assert(diagonal.viewTop<topBefore);
+    assert(close(diagonal.viewTop,topBefore)); // no inertial creep at centre
 
     // Level boundaries must not hide the ship or exceed the world.
     for(auto point:std::array<std::array<float,2>,4>{{
@@ -146,6 +147,47 @@ int main(){
         assert(cam.x(s.pilot.x)>=0 && cam.x(s.pilot.x)<=phone.w);
         assert(cam.y(s.pilot.y)>=0 && cam.y(s.pilot.y)<=phone.h);
     }
+
+    // Regression for real bug: finger was lifted with its last location at
+    // SCREEN CENTRE, causing old camera to return zero in the outer band.
+    // The viewport no longer accepts finger coordinates: only pilot position
+    // and velocity can scroll it, even after touch-up.
+    Session released(generate({}));assert(released.start());
+    released.pilot.x=released.map.width*.5f;
+    released.pilot.y=released.map.height*.5f;
+    soloUpdateCamera(released,phone);
+    const float initialLeft=released.viewLeft;
+    released.pilot.x=released.viewLeft+cols*.90f;
+    released.pilot.vx=6.0f; // latched cruise, NO finger currently held
+    soloUpdateCamera(released,phone,.05f);
+    assert(released.viewLeft>initialLeft);
+    assert(released.viewVelocityX>0);
+    const float afterOuter=released.viewLeft;
+    // Return the ship to the central third while still moving right. The
+    // previous camera inertia MUST be discarded in this same simulation step.
+    released.pilot.x=released.viewLeft+cols*.5f;
+    soloUpdateCamera(released,phone,.05f);
+    assert(close(released.viewLeft,afterOuter));
+    assert(close(released.viewVelocityX,0.0f));
+    for(int i=0;i<10;++i)soloUpdateCamera(released,phone,.05f);
+    assert(close(released.viewLeft,afterOuter));
+    // Same rule with a finger held: the code is intentionally agnostic to
+    // touch ownership. Only the ship can re-arm horizontal/vertical pans.
+    released.pilot.x=released.viewLeft+cols*.06f;
+    released.pilot.vx=-7.0f;
+    soloUpdateCamera(released,phone,.05f);
+    assert(released.viewVelocityX<0 && released.viewLeft<afterOuter);
+    const float opposite=released.viewLeft;
+    released.pilot.x=released.viewLeft+cols*.5f;
+    soloUpdateCamera(released,phone,.05f);
+    assert(close(released.viewLeft,opposite));
+    assert(close(released.viewVelocityX,0));
+    // A ship in the left band heading back INTO centre must not scroll.
+    released.pilot.x=released.viewLeft+cols*.10f;
+    released.pilot.vx=7.0f;
+    soloUpdateCamera(released,phone,.05f);
+    assert(close(released.viewLeft,opposite));
+    assert(close(released.viewVelocityX,0));
 
     // Zoom multiplies the terrain size but never the graphical ship size or
     // apparent steering speed when the world has not begun to scroll.

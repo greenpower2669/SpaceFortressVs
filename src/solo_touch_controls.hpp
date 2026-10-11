@@ -16,10 +16,9 @@ struct TouchPilot {
     float startFingerX=0,startFingerY=0,anchorShipX=0,anchorShipY=0;
     bool hasWorldAnchor=false;
     bool down=false,chargeDown=false;
-    // Latched steering: unlike a world-space destination, the vector and the
-    // last finger-zone remain active when the steering finger is released.
+    // Latched steering: unlike a finite world-space destination, the vector
+    // and throttle persist after release. Camera zones follow the SHIP.
     float cruiseX=0,cruiseY=0,cruiseThrottle=0;
-    float cameraControlX=.5f,cameraControlY=.5f;
     bool cruiseSet=false;
     void updateCruise(int width,int height){
         if(width<=0||height<=0)return;
@@ -31,8 +30,6 @@ struct TouchPilot {
         cruiseY=dy/distance;
         cruiseThrottle=std::clamp((distance-12.0f)/
             (float(std::min(width,height))*.30f),0.05f,1.0f);
-        cameraControlX=std::clamp(targetX/width,0.0f,1.0f);
-        cameraControlY=std::clamp(targetY/height,0.0f,1.0f);
         cruiseSet=true;
     }
 
@@ -80,7 +77,7 @@ struct TouchPilot {
                 targetX=sx;targetY=sy;
                 updateCruise(width,height);
                 down=false;finger=-1;hasWorldAnchor=false;
-                // CRITICAL: leave cruiseX/Y, throttle and finger-zone latched.
+                // Keep direction and throttle after release, not finger zones.
             }
         }
         return TouchAction::None;
@@ -88,7 +85,6 @@ struct TouchPilot {
     void reset(){finger=chargeFinger=-1;down=chargeDown=false;
                  hasWorldAnchor=false;
                  cruiseX=cruiseY=cruiseThrottle=0;
-                 cameraControlX=cameraControlY=.5f;
                  cruiseSet=false;}
 };
 inline void pilotTarget(const Session &s,const TouchPilot &touch,

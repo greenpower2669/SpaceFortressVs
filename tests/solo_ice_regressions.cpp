@@ -50,4 +50,34 @@ int main(){
     rock.step(0,0,.05f);
     assert(rock.pilot.y>=81.0f);
     assert(rock.pilot.vy==0.0f && rock.pilot.health==92.0f);
+
+    // Actual diagonal motion along a vertical wall: contact in X must
+    // never cancel free Y movement, even at high speed in a narrow corridor.
+    Session slide(m);assert(slide.start());
+    for(int yy=80;yy<=82;++yy)
+        for(int xx=x-1;xx<=x+2;++xx)
+            slide.map.tiles[size_t(yy)*m.width+xx]=Tile::Empty;
+    slide.pilot.x=x+.90f;slide.pilot.y=81.50f;
+    slide.map.tiles[size_t(81)*m.width+(x+1)]=Tile::Rock;
+    slide.pilot.vx=10.0f;slide.pilot.vy=-3.0f;
+    slide.step(0,0,.05f);
+    assert(slide.pilot.x<x+1.0f);
+    assert(slide.pilot.y<81.5f); // still glides upward
+    assert(slide.pilot.vx==0.0f);
+    assert(slide.pilot.vy<0.0f);
+    assert(slide.pilot.health==92.0f);
+    // Horizontal travel survives contact against an upper rock.
+    Session slideY(m);assert(slideY.start());
+    for(int yy=79;yy<=82;++yy)
+        for(int xx=x-1;xx<=x+2;++xx)
+            slideY.map.tiles[size_t(yy)*m.width+xx]=Tile::Empty;
+    slideY.pilot.x=x+.50f;slideY.pilot.y=81.10f;
+    slideY.map.tiles[size_t(80)*m.width+x]=Tile::Rock;
+    slideY.pilot.vx=3.0f;slideY.pilot.vy=-10.0f;
+    slideY.step(0,0,.05f);
+    assert(slideY.pilot.y>=81.0f);
+    assert(slideY.pilot.x>x+.50f); // still glides right
+    assert(slideY.pilot.vy==0.0f);
+    assert(slideY.pilot.vx>0.0f);
+    assert(slideY.pilot.health==92.0f);
 }
