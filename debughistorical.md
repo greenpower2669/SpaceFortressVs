@@ -406,3 +406,12 @@ Référence `1d8a48e2`. [Preuves, chemins et propositions](docs/audits/2026-10-1
 - Preuve Samsung: `SpaceFortressCoopSoloActivity` lancée, aucune exception, sortie 0 après ~27 s ; son du jeu entendu, UI mode CLASSIQUE au premier plan. Ce n'était PAS une activité Android superposée ; le menu était redessiné par le wrapper SDL HISTORIQUE.
 - Dépendance : `th2.h` inclut `start_ui.hpp`, `remaster_runtime.hpp`, `remaster_visual_restore.hpp`, `help_live_bridge.hpp`. Ce dernier définit `#define SDL_RenderPresent SpaceFortressHelpLive_RenderPresent`. Le wrapper appelle `sfFixApplyUiRequests` qui remet l'écran HOME si `sfFixRequestedScreen` (défaut HOME) n'a jamais été mis à GAME. Puis `SpaceFortressUi_RenderPresent` peint `sfUiDrawHome` SUR le rendu COOP, ce que la CI de 7 images headless ne détectait pas.
 - Correction `b9072d24` : restaurer temporairement le vrai symbole SDL_RenderPresent uniquement dans l'inclusion de l'arène diagnostic, puis remettre l'interception CLASSIQUE/COOP intacte. Build-time asserts préprocesseur dans l'arène et dans la smoke. Ne pas 'réparer' ceci en ajoutant un menu officiel ou en modifiant `src/main.cpp`.
+
+
+## SOLO-COOP-PRESENT-002 — livraison contrôlée après CI (11/10/2026)
+- Correction code `b9072d24fd0b7452a88f8ec4cccb4b70e9cf51ae` : vrai appel `SDL_RenderPresent` exclusif à l'arène, routeur CLASSIQUE restauré pour modes historiques.
+- Workflow Android `38167735625` entièrement VERT (SOLO, SDL2, regressions C++ historiques, compilation APK/AAB), aucune Release.
+- Workflow extraction `38168138218` VERT : nouveaux binaires du commit corrigé dans `temp/` sur `feature/solo-coop-core-v1`, remplacement confirmé par manifeste.
+- `temp/SpaceFortressVs-1.4.2.apk` : 94 119 741 octets, SHA256 `806da4277b599c7d1b19fb3c8a4ff45531bffe503475c8bb8d3b99f08d99546a`, package séparé `com.greenpower2669.spacefortressvs.diagnostic`.
+- `temp/SpaceFortressVs-1.4.2-unsigned.aab` : 91 464 418 octets, SHA256 `d52c91ffb664165f0d9fd8f8d3aba1f3797a06384a6fd87835d5095c9840d10b`.
+- **Attendre validation sur Samsung** : vraie arène COOP visible sans menu de sélection CLASSIQUE, avec sons, vaisseau, tir/cône et bouton boss. Pas de merge main ni publication.

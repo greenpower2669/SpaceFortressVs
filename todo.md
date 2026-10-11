@@ -412,3 +412,12 @@
 - [ ] CI verte du correctif `38167735625` et récupération artifact APK de ce commit, ne pas réutiliser l'APK `ca0322e` en temp.
 - [ ] Remplacer `temp/SpaceFortressVs-1.4.2.apk` (et AAB, manifest, SHA256SUMS) par les nouveaux binaires uniquement après CI verte, sans main/Release.
 - [ ] Samsung : vérifier que l'arène COOP vraie apparaît, le pilote est visible, le bouton BOSS TEST marche, sons et toucher persistent.
+
+
+## SOLO-COOP-PRESENT-002 — livraison contrôlée après CI (11/10/2026)
+- Correction code `b9072d24fd0b7452a88f8ec4cccb4b70e9cf51ae` : vrai appel `SDL_RenderPresent` exclusif à l'arène, routeur CLASSIQUE restauré pour modes historiques.
+- Workflow Android `38167735625` entièrement VERT (SOLO, SDL2, regressions C++ historiques, compilation APK/AAB), aucune Release.
+- Workflow extraction `38168138218` VERT : nouveaux binaires du commit corrigé dans `temp/` sur `feature/solo-coop-core-v1`, remplacement confirmé par manifeste.
+- `temp/SpaceFortressVs-1.4.2.apk` : 94 119 741 octets, SHA256 `806da4277b599c7d1b19fb3c8a4ff45531bffe503475c8bb8d3b99f08d99546a`, package séparé `com.greenpower2669.spacefortressvs.diagnostic`.
+- `temp/SpaceFortressVs-1.4.2-unsigned.aab` : 91 464 418 octets, SHA256 `d52c91ffb664165f0d9fd8f8d3aba1f3797a06384a6fd87835d5095c9840d10b`.
+- **Attendre validation sur Samsung** : vraie arène COOP visible sans menu de sélection CLASSIQUE, avec sons, vaisseau, tir/cône et bouton boss. Pas de merge main ni publication.
