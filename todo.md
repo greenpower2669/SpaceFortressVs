@@ -357,7 +357,7 @@
 - [x] Factoriser les vraies équations historiques d'énergie, recharge, tir, réserve, usure/bouclier, utiliser en SOLO et modes historiques.
 - [x] Sprites canon orbe/missile/bouclier et jauge énergie, 2 s charge et purge RADIALE canon au relâchement.
 - [x] Tests de cadence, énergie, missiles, effet bouclier, purge à l'arrière, onde partagée, fichier de test ciblé.
-- [ ] CI sur HEAD corrigé complète verte, APK Android DIAG installable et test sur Samsung.
+- [x] CI #38149636477 COMPLÈTEMENT VERTE sur `fd7bdc8a` (SOLO logic / SDL2 UI / APK+AAB Android). APK diagnostic ARM64 `SpaceFortress-SOLO-CERCLES-ATLAS-DIAG-fd7bdc8a.apk`, 94 103 112 octets, SHA-256 `714aea507c3494820d88015d5ba2c11c88518db99c9b67fc189481b97caec7cf`, atlas parois/environnements inclus dans l'APK. Tests Samsung encore nécessaires.
 - [ ] Intégrer les composants historiques restants (orbes FX exhaustifs, boss dynamique, guidance missile sur cible mobile, champs cinétiques/collisions avec masse réelle).
 - [ ] Inspecter et éventuellement découper au pixel les planches pour éliminer les éventuelles bordures de la maquette graphique.
 - [ ] AUCUN merge main ni Release avant ordre explicite.
