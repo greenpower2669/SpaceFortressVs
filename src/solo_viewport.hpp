@@ -16,6 +16,9 @@ inline constexpr float SOLO_DEADZONE_THIRD=1.0f/3.0f;
 // progressive bands toward every screen edge. Future round/circular masks can
 // replace this weighting function without touching physics or saved levels.
 inline constexpr float SOLO_RECT_ZONE2_START=1.0f/6.0f;
+// Final perimeter includes the ship's unchanged graphical radius: reach
+// full speed BEFORE touching/clipping the screen edge.
+inline constexpr float SOLO_RECT_MAX_SPEED_MARGIN=.06f;
 inline constexpr float SOLO_RECT_ZONE1_END_SPEED=.55f;
 inline constexpr float SOLO_CAMERA_RESPONSE_HZ=10.0f;
 inline float soloSmoothstep(float t){
@@ -33,8 +36,10 @@ inline float soloRectangularCameraGain(float normalizedPosition){
                       (SOLO_DEADZONE_THIRD-SOLO_RECT_ZONE2_START);
         return SOLO_RECT_ZONE1_END_SPEED*soloSmoothstep(t);
     }
-    // SECOND rectangle: edge between 1/6 and 0, speed 55 -> 100%.
-    const float t=(SOLO_RECT_ZONE2_START-edge)/SOLO_RECT_ZONE2_START;
+    // SECOND rectangle: edge 1/6 -> 6% of screen, speed 55 -> 100%.
+    // The last 6% is full-speed cruising, keeping the ship fully visible.
+    const float t=(SOLO_RECT_ZONE2_START-edge)/
+                  (SOLO_RECT_ZONE2_START-SOLO_RECT_MAX_SPEED_MARGIN);
     return SOLO_RECT_ZONE1_END_SPEED+
            (1.0f-SOLO_RECT_ZONE1_END_SPEED)*soloSmoothstep(t);
 }
@@ -124,7 +129,7 @@ inline void soloUpdateCamera(Session &s,SDL_Rect screen,float dt=0.0f){
 
     // Guard against very fast keyboard movement / dropped frames. Never
     // hide the ship beyond the viewport when the following acceleration lags.
-    constexpr float margin=.06f;
+    constexpr float margin=SOLO_RECT_MAX_SPEED_MARGIN;
     const float minX=s.viewLeft+cols*margin;
     const float maxX=s.viewLeft+cols*(1.0f-margin);
     const float minY=s.viewTop+rows*margin;

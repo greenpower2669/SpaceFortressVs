@@ -45,8 +45,12 @@ int main(){
                  SOLO_RECT_ZONE1_END_SPEED));
     const float z21=soloRectangularCameraGain(.145f);
     const float z22=soloRectangularCameraGain(.09f);
-    const float z23=soloRectangularCameraGain(.04f);
+    const float z23=soloRectangularCameraGain(.075f);
     assert(SOLO_RECT_ZONE1_END_SPEED<z21 && z21<z22 && z22<z23);
+    assert(z23<1.0f);
+    // Full cruise speed is reached BEFORE the fixed-size ship is clipped.
+    assert(close(soloRectangularCameraGain(.06f),1));
+    assert(close(soloRectangularCameraGain(.04f),1));
     assert(close(soloRectangularCameraGain(0),1));
     assert(close(soloRectangularCameraGain(1),1));
     assert(close(soloRectangularCameraGain(.25f),
