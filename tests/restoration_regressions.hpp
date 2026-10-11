@@ -299,7 +299,7 @@ static void testCoopHeldFingerContinuousWorldCruise()
     Spritej2->pv=1000;Spritej2->nrj=0;
     sfCoop.controls[1].down=true;
     sfCoop.controls[1].velocity.set(0,0);
-    const sfsolo::CoopWorldPoint finger{270,90}; // outer ring, never moved
+    const sfsolo::CoopWorldPoint finger{270,160}; // outer ring, below menu buttons, never moved
     world.cameraLeft=start.x-finger.x;
     world.cameraTop=start.y-finger.y;
     const float initialCamera=world.cameraTop;
