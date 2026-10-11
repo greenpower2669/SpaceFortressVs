@@ -25,7 +25,8 @@ int main(){
     assert(runCoopSoloArena()==0); // real CANONICAL COOP loop in generated maze
     assert(!sfCoop.soloWorldMode); // no dangling world session on exit
     assert(sfCoop.soloWorldContext==nullptr);
-    SDL_unsetenv("SF_COOP_SOLO_TEST_WORLD");
+    // SDL2 has SDL_setenv, but not SDL_unsetenv. This CI smoke exits now;
+    // leaving its test-only variable within the process is harmless.
     // The experimental runner must neither invoke the historical campaign
     // victory saving function nor change the Android release mode.
     return 0;
