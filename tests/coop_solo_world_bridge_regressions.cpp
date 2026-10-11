@@ -59,10 +59,28 @@ int main(){
     const auto outside=bridge.heldFingerPilotTarget(outer);
     const auto outsideWorld=bridge.toWorld(outer);
     assert(same(outside.x,outsideWorld.x));
-    assert(outside.y<outsideWorld.y-100);
+    assert(outside.y<outsideWorld.y-70);
+    // Canonical COOP uses target distance*30 below its speed cap. Verify the
+    // lead chosen for each circular ring drives at the SAME velocity as its
+    // camera request, preventing a new 40px drift in the intermediate ring.
+    for(const CoopWorldPoint held:{
+        CoopWorldPoint{384,480}, // just outside central dead zone
+        CoopWorldPoint{440,480}, // middle circle
+        CoopWorldPoint{270,160}, // outer circle, outside HUD controls
+        CoopWorldPoint{270,850}}){
+        const auto goal=bridge.heldFingerPilotTarget(held);
+        const auto exact=bridge.toWorld(held);
+        const auto pan=soloCirclePan(held.x,held.y,bridge.screen,
+                                     bridge.visibleWidth()/bridge.pixelsPerCell);
+        const float requestedVelocity=std::hypot(pan.vx,pan.vy)*bridge.pixelsPerCell;
+        const float trueCoopVelocity=std::min(bridge.combatWidth*3.10f,
+                                              std::hypot(goal.x-exact.x,goal.y-exact.y)*30.0f);
+        assert(std::abs(trueCoopVelocity-
+                        std::min(bridge.combatWidth*3.10f,requestedVelocity))<.02f);
+    }
     // Reverse held zone pushes in reverse direction without teleporting.
     const auto reverse=bridge.heldFingerPilotTarget({270,850});
-    assert(reverse.y>bridge.toWorld({270,850}).y+100);
+    assert(reverse.y>bridge.toWorld({270,850}).y+70);
     // Finger-locked panning: a ship that is still behind the held fingertip
     // must not have all its progress consumed by the concentric camera.
     bridge.cameraLeft=start.x-540*.75f;
