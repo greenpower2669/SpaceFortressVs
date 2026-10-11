@@ -107,6 +107,11 @@ extern "C" int runCoopSoloArena(){
             if(mixerOpen&&releaseCue)Mix_PlayChannel(-1,releaseCue,0);
         }
     };
+    // CI-only deterministic lifetime. No timer or in-game automation in user
+    // builds unless a test runner explicitly sets this environment variable.
+    int smokeFrames=-1;
+    if(const char *frames=SDL_getenv("SF_COOP_SOLO_TEST_FRAMES"))
+        smokeFrames=std::clamp(std::atoi(frames),1,60);
     while(running){
         SDL_Event event{};
         while(SDL_PollEvent(&event)){
@@ -204,6 +209,7 @@ extern "C" int runCoopSoloArena(){
                 sfCoop.shots.size(),sa1.size(),sfCoop.bossPresent);
         }
         SDL_Delay(1);
+        if(smokeFrames>0&&--smokeFrames==0)running=false;
     }
     sfCampaignSuspend();
     sfFixResetAsteroidField();sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
