@@ -41,15 +41,17 @@ inline SoloWallPresentation soloWallPresentation(uint8_t rawMask,int x,int y){
     out.variant=uint8_t(soloWorldDecorHash(x,y,0xAC101u)%3u);
     switch(mask){
         case 0: out.shape=SoloWallShape::Isolated;break;
-        case 1: case 4: out.shape=SoloWallShape::End;out.rotation=mask==4?180:0;break;
-        case 2: case 8: out.shape=SoloWallShape::End;out.rotation=mask==2?90:270;break;
+        // Authored end-cap is horizontal: rotate 90° for vertical walls.
+        case 1: case 4: out.shape=SoloWallShape::End;out.rotation=mask==1?90:270;break;
+        case 2: case 8: out.shape=SoloWallShape::End;out.rotation=mask==2?180:0;break;
         case 5: out.shape=SoloWallShape::Vertical;break;
         case 10:out.shape=SoloWallShape::Horizontal;break;
-        // Authored L corner has open left/bottom and stone top/right.
-        case 3: out.shape=SoloWallShape::Corner;out.rotation=0;break;
-        case 6: out.shape=SoloWallShape::Corner;out.rotation=90;break;
-        case 12:out.shape=SoloWallShape::Corner;out.rotation=180;break;
-        case 9: out.shape=SoloWallShape::Corner;out.rotation=270;break;
+        // Authored L: stone points LEFT and DOWN (shape ┐).
+        // The connectivity mask therefore starts at West|South = 12.
+        case 12:out.shape=SoloWallShape::Corner;out.rotation=0;break;
+        case 9: out.shape=SoloWallShape::Corner;out.rotation=90;break;
+        case 3: out.shape=SoloWallShape::Corner;out.rotation=180;break;
+        case 6: out.shape=SoloWallShape::Corner;out.rotation=270;break;
         // T has three neighbors: rotate toward the missing side.
         case 7: out.shape=SoloWallShape::Tee;out.rotation=0;break;
         case 14:out.shape=SoloWallShape::Tee;out.rotation=90;break;

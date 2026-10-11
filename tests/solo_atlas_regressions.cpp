@@ -25,10 +25,12 @@ int main(){
         assert(soloWallPresentation(uint8_t(mask),44,97).variant==a.variant);
         assert(soloWallSpriteIndex(a)>=0&&soloWallSpriteIndex(a)<8);
     }
-    assert(soloWallPresentation(3,2,8).rotation==0);
-    assert(soloWallPresentation(6,2,8).rotation==90);
-    assert(soloWallPresentation(12,2,8).rotation==180);
-    assert(soloWallPresentation(9,2,8).rotation==270);
+    assert(soloWallPresentation(12,2,8).rotation==0); // actual art opens SW
+    assert(soloWallPresentation(9,2,8).rotation==90);
+    assert(soloWallPresentation(3,2,8).rotation==180);
+    assert(soloWallPresentation(6,2,8).rotation==270);
+    assert(soloWallPresentation(1,2,8).rotation==90);  // vertical cap
+    assert(soloWallPresentation(2,2,8).rotation==180); // horizontal cap
     assert(soloWallPresentation(5,2,8).shape==SoloWallShape::Vertical);
     assert(soloWallPresentation(10,2,8).shape==SoloWallShape::Horizontal);
     assert(soloWallPresentation(15,2,8).shape==SoloWallShape::Cross);
