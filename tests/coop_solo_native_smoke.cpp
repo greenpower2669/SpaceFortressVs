@@ -20,6 +20,12 @@ int main(){
     SDL_setenv("SDL_RENDER_DRIVER","software",1);
     SDL_setenv("SF_COOP_SOLO_TEST_FRAMES","7",1);
     assert(runCoopSoloArena()==0);
+    assert(!sfCoop.soloWorldMode);
+    SDL_setenv("SF_COOP_SOLO_TEST_WORLD","1",1);
+    assert(runCoopSoloArena()==0); // real CANONICAL COOP loop in generated maze
+    assert(!sfCoop.soloWorldMode); // no dangling world session on exit
+    assert(sfCoop.soloWorldContext==nullptr);
+    SDL_unsetenv("SF_COOP_SOLO_TEST_WORLD");
     // The experimental runner must neither invoke the historical campaign
     // victory saving function nor change the Android release mode.
     return 0;

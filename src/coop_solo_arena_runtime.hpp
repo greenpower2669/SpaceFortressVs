@@ -179,6 +179,9 @@ extern "C" int runCoopSoloArena(){
         }else if(mixerOpen)sfKineticAudioCancel(1);
         if(fire)sfCoopFire(1);
     };
+    // CI-only real-world smoke: opt-in ONLY when the test runner requests it.
+    // The ordinary phone launch ALWAYS opens in the previously validated arena.
+    if(SDL_getenv("SF_COOP_SOLO_TEST_WORLD"))setWorldMode(true);
     // CI-only deterministic lifetime. No timer or in-game automation in user
     // builds unless a test runner explicitly sets this environment variable.
     int smokeFrames=-1;
@@ -335,6 +338,9 @@ extern "C" int runCoopSoloArena(){
         if(smokeFrames>0&&--smokeFrames==0)running=false;
     }
     sfCampaignSuspend();chargeCueGate.reset();
+    sfCoop.soloWorldMode=false;sfCoop.soloWorldContext=nullptr;
+    sfCoop.soloWorldResolve=nullptr;
+    sfCoop.soloWorldWidth=sfCoop.soloWorldHeight=0;
     sfFixResetAsteroidField();sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
     if(mixerOpen)Mix_HaltChannel(-1);
     for(Mix_Chunk *p:{shotCue,hitCue})if(p)Mix_FreeChunk(p);

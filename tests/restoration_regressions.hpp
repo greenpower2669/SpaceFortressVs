@@ -202,6 +202,61 @@ static void testCoopSoloFoundation()
     std::puts("PASS: real COOP tick permits one participant and bossless arena without historical victory");
 }
 
+// Run real historical COOP movement against our generated WORLD walls.
+// Collision callback only replaces the COOP arena clamp, NEVER its velocity,
+// recharge, PV, sound, AI, weapons or two-player historical state.
+static void testActualCoopMovementInWorld()
+{
+    setupCampaign();
+    sfsolo::CoopSoloWorldBridge world;
+    assert(world.create({}, {0,0,540,960}, 540));
+    const auto start=world.start();
+    sfCoop.pilots=SfCoopPilotRoster::single(1);
+    sfCoop.bossPresent=false;
+    sfCoop.soloWorldMode=true;
+    sfCoop.soloWorldContext=&world;
+    sfCoop.soloWorldWidth=world.worldWidth();
+    sfCoop.soloWorldHeight=world.worldHeight();
+    sfCoop.soloWorldResolve=+[](void *context,tupl from,tupl to,float radius)->tupl{
+        auto *map=static_cast<sfsolo::CoopSoloWorldBridge*>(context);
+        const auto p=map->moveWithoutTunnelling({from.x,from.y},{to.x,to.y},radius);
+        return tupl(p.x,p.y);
+    };
+    Spritej2->x=start.x;Spritej2->y=start.y;
+    Spritej2->w=Spritej2->h=Spritej2->sw=Spritej2->sh=81;
+    Spritej2->pv=1000;Spritej2->nrj=10;
+    sfCoop.controls[1].down=true;
+    // Choose a nearby ROCK cell and attempt to drive the CANONICAL pilot
+    // through it. Swept collision must stop the hull, even over many ticks.
+    float rockX=0,rockY=0;
+    const int sx=int(start.x/world.pixelsPerCell),
+              sy=int(start.y/world.pixelsPerCell);
+    bool found=false;
+    for(int radius=1;radius<10&&!found;++radius)
+      for(int y=sy-radius;y<=sy+radius&&!found;++y)
+        for(int x=sx-radius;x<=sx+radius&&!found;++x)
+          if(world.map.at(x,y)==sfsolo::Tile::Rock){
+              rockX=(x+.5f)*world.pixelsPerCell;
+              rockY=(y+.5f)*world.pixelsPerCell;
+              found=true;
+          }
+    assert(found);
+    sfCoop.controls[1].target=tupl(rockX,rockY);
+    const float beforeX=Spritej2->x,beforeY=Spritej2->y;
+    for(int frame=0;frame<80;++frame){
+        sfCoopMovePlayers(1.0f/60.0f);
+        assert(world.canOccupy({Spritej2->x,Spritej2->y},40.5f));
+        assert(Spritej2->pv==1000);
+    }
+    assert(std::hypot(Spritej2->x-beforeX,Spritej2->y-beforeY)>0);
+    assert(std::hypot(Spritej2->x-rockX,Spritej2->y-rockY)>40.5f);
+    sfCoop.soloWorldResolve=nullptr;
+    sfCoop.soloWorldContext=nullptr;
+    sfCoop.soloWorldMode=false;
+    setupCampaign();
+    std::puts("PASS: genuine COOP pilot moves and is blocked by real SOLO world walls");
+}
+
 static void testRealCoopField()
 {
     setupCampaign();
