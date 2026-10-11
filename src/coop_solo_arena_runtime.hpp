@@ -216,8 +216,8 @@ extern "C" int runCoopSoloArena(){
                 mouseAimHeld=false;chargeRelease();
             }
             if(event.type==SDL_FINGERDOWN||event.type==SDL_FINGERMOTION||event.type==SDL_FINGERUP){
-                // SDL touch coords are normalized 0..1; this arena's camera
-                // is IDENTITY. The next milestone will inject world projection.
+                // SDL touch coords are normalized 0..1. The WORLD mode
+                // converts both steering and targeting using its live camera.
                 const float tx=event.tfinger.x*sfArenaW;
                 const float ty=event.tfinger.y*sfArenaH;
                 const SDL_FingerID id=event.tfinger.fingerId;
@@ -273,8 +273,14 @@ extern "C" int runCoopSoloArena(){
             for(int i=0;i<substeps;++i){
                 const float subDt=dt/substeps;
                 const float oldX=Spritej2->x,oldY=Spritej2->y;
-                if(worldActive&&moveFinger>=0)
-                    sfCoop.controls[1].target=fromFinger(moveScreenX,moveScreenY);
+                if(worldActive&&moveFinger>=0){
+                    // One still fingertip = continuing exploration if it is
+                    // outside the INNER circle. Exact target at finger caused
+                    // the freeze regression once the ship arrived underneath.
+                    const auto aim=world.heldFingerPilotTarget(
+                        {moveScreenX,moveScreenY});
+                    sfCoop.controls[1].target=tupl(aim.x,aim.y);
+                }
                 if(worldActive&&aimFinger>=0)aimAt(aimScreenX,aimScreenY);
                 sfCoopTick(subDt); // ORIGINAL physics in world coords, not a copy
                 if(worldActive&&moveFinger>=0)

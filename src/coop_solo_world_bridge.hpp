@@ -51,6 +51,29 @@ struct CoopSoloWorldBridge {
     CoopWorldPoint toWorld(CoopWorldPoint pixel) const {
         return {pixel.x-screen.x+cameraLeft,pixel.y-screen.y+cameraTop};
     }
+    // The held first fingertip has TWO meanings: a precise on-screen ship
+    // position, and (outside the inner circular dead zone) a persistent world
+    // exploration direction. Merely aiming the canonical COOP pilot at the
+    // fingertip's current world position would make the pilot STOP as soon as
+    // it caught the finger; the camera, correctly limited by actual movement,
+    // would then stop too. Aim the SAME historical pilot a little beyond the
+    // fingertip so the real sfCoopMovePlayers physics keeps making progress.
+    // No new pilot physics, no fake camera motion and no ship teleportation.
+    CoopWorldPoint heldFingerPilotTarget(CoopWorldPoint finger) const {
+        const auto exact=toWorld(finger);
+        if(!ready)return exact;
+        const auto zone=soloCirclePan(finger.x,finger.y,screen,
+                                       visibleWidth()/pixelsPerCell);
+        if(zone.speed<=0.0f)return exact;
+        const float vectorLength=std::hypot(zone.vx,zone.vy);
+        if(vectorLength<=.0001f)return exact;
+        // Maintain constant propulsion at a stationary fingertip in an
+        // exterior ring (the exact max velocity stays in REAL COOP code).
+        // Reduce the lead smoothly for the 0.1 -> 2 middle circle.
+        const float lead=visibleWidth()*.40f*std::clamp(zone.speed/6.0f,0.0f,1.0f);
+        return {exact.x+zone.vx/vectorLength*lead,
+                exact.y+zone.vy/vectorLength*lead};
+    }
     bool canOccupy(CoopWorldPoint world,float radius) const {
         if(!ready || radius<0 || !std::isfinite(world.x)||!std::isfinite(world.y))return false;
         // Circle-vs-tile AABB: the ship's HULL, not only its centre,

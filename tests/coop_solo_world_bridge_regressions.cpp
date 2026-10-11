@@ -47,6 +47,22 @@ int main(){
     assert(bridge.cameraLeft>oldX);  // actual radial pan followed live movement
     assert(bridge.cameraLeft<=oldX+20.001f);
     assert(same(bridge.combatWidth,540));
+    // Stationary finger at centre uses EXACT world target (no auto-cruise).
+    const CoopWorldPoint centre{270,480};
+    const auto centerTarget=bridge.heldFingerPilotTarget(centre);
+    const auto exactCenter=bridge.toWorld(centre);
+    assert(same(centerTarget.x,exactCenter.x));
+    assert(same(centerTarget.y,exactCenter.y));
+    // Outer-zone stationary finger must request further WORLD travel;
+    // otherwise sfCoopMovePlayers reaches it and stops after 1-2 frames.
+    const CoopWorldPoint outer{270,90};
+    const auto outside=bridge.heldFingerPilotTarget(outer);
+    const auto outsideWorld=bridge.toWorld(outer);
+    assert(same(outside.x,outsideWorld.x));
+    assert(outside.y<outsideWorld.y-100);
+    // Reverse held zone pushes in reverse direction without teleporting.
+    const auto reverse=bridge.heldFingerPilotTarget({270,850});
+    assert(reverse.y>bridge.toWorld({270,850}).y+100);
     // Finger-locked panning: a ship that is still behind the held fingertip
     // must not have all its progress consumed by the concentric camera.
     bridge.cameraLeft=start.x-540*.75f;

@@ -257,6 +257,96 @@ static void testActualCoopMovementInWorld()
     std::puts("PASS: genuine COOP pilot moves and is blocked by real SOLO world walls");
 }
 
+// Regression for the REAL COOP movement loop: a stationary fingertip in
+// the outer circular ring MUST continue moving the ship AND the world camera,
+// while preserving the ship's on-screen position. This failed on Samsung when
+// the correction only clamped camera to "excess beyond the finger", but the
+// physical pilot target remained EXACTLY under the fingertip.
+static void testCoopHeldFingerContinuousWorldCruise()
+{
+    setupCampaign();
+    sfsolo::CoopSoloWorldBridge world;
+    assert(world.create({}, {0,0,540,960},540));
+    const auto start=world.start();
+    const int sx=int(start.x/world.pixelsPerCell);
+    const int sy=int(start.y/world.pixelsPerCell);
+    // A deterministic long northward corridor: actual COOP hull must obey
+    // the walls, no shortcut through ROCK, and eventually stop at the end.
+    for(int y=sy-64;y<=sy;++y){
+        assert(y>1);
+        for(int x=sx-1;x<=sx+1;++x){
+            assert(x>1 && x<world.map.width-2);
+            world.map.tiles[size_t(y)*world.map.width+size_t(x)]=sfsolo::Tile::Empty;
+        }
+    }
+    sfCoop.pilots=SfCoopPilotRoster::single(1);
+    sfCoop.bossPresent=false;sfCoop.soloWorldMode=true;
+    sfCoop.soloWorldContext=&world;
+    sfCoop.soloWorldWidth=world.worldWidth();
+    sfCoop.soloWorldHeight=world.worldHeight();
+    sfCoop.soloWorldResolve=+[](void *ctx,tupl from,tupl to,float hull)->tupl{
+        const auto *w=static_cast<sfsolo::CoopSoloWorldBridge*>(ctx);
+        const auto p=w->moveWithoutTunnelling({from.x,from.y},{to.x,to.y},hull);
+        return tupl(p.x,p.y);
+    };
+    Spritej2->setxywh(start.x,start.y,81,81);
+    Spritej2->sw=Spritej2->sh=81;
+    Spritej2->pv=1000;Spritej2->nrj=0;
+    sfCoop.controls[1].down=true;
+    sfCoop.controls[1].velocity.set(0,0);
+    const sfsolo::CoopWorldPoint finger{270,90}; // outer ring, never moved
+    world.cameraLeft=start.x-finger.x;
+    world.cameraTop=start.y-finger.y;
+    const float initialCamera=world.cameraTop;
+    const float initialShip=Spritej2->y;
+    constexpr float dt=1.0f/60.0f;
+    for(int frame=0;frame<120;++frame){
+        const float priorX=Spritej2->x,priorY=Spritej2->y;
+        const auto requested=world.heldFingerPilotTarget(finger);
+        sfCoop.controls[1].target=tupl(requested.x,requested.y);
+        sfCoopMovePlayers(dt); // actual historical COOP engine
+        const sfsolo::CoopWorldPoint moved{Spritej2->x-priorX,
+                                           Spritej2->y-priorY};
+        world.panIfShipActuallyMoved({Spritej2->x,Spritej2->y},moved,dt,finger);
+        const auto screen=world.toScreen({Spritej2->x,Spritej2->y});
+        assert(std::abs(screen.x-finger.x)<2);
+        assert(std::abs(screen.y-finger.y)<2);
+        assert(world.canOccupy({Spritej2->x,Spritej2->y},40.5f));
+    }
+    assert(initialShip-Spritej2->y>700);   // canonical pilot never stopped
+    assert(initialCamera-world.cameraTop>700); // actual terrain scroll resumed
+    const float beforeRock=world.cameraTop;
+    for(int frame=0;frame<360;++frame){
+        const auto target=world.heldFingerPilotTarget(finger);
+        sfCoop.controls[1].target=tupl(target.x,target.y);
+        const float previous=Spritej2->y;
+        sfCoopMovePlayers(dt);
+        world.panIfShipActuallyMoved({Spritej2->x,Spritej2->y},
+                                      {0,Spritej2->y-previous},dt,finger);
+        assert(world.canOccupy({Spritej2->x,Spritej2->y},40.5f));
+    }
+    assert(world.cameraTop<beforeRock);
+    const float blockedCamera=world.cameraTop,blockedY=Spritej2->y;
+    // The end of the corridor is Rock; continuing to hold cannot cause
+    // camera-only movement once the ship physically stops.
+    for(int frame=0;frame<60;++frame){
+        const auto target=world.heldFingerPilotTarget(finger);
+        sfCoop.controls[1].target=tupl(target.x,target.y);
+        const float previous=Spritej2->y;
+        sfCoopMovePlayers(dt);
+        world.panIfShipActuallyMoved({Spritej2->x,Spritej2->y},
+                                      {0,Spritej2->y-previous},dt,finger);
+    }
+    assert(std::abs(world.cameraTop-blockedCamera)<2.0f);
+    assert(std::abs(Spritej2->y-blockedY)<2.0f);
+    sfCoop.controls[1].down=false;
+    sfCoop.soloWorldContext=nullptr;
+    sfCoop.soloWorldResolve=nullptr;
+    sfCoop.soloWorldMode=false;
+    setupCampaign();
+    std::puts("PASS: held finger drives REAL COOP ship, camera cruises, rocks stop both");
+}
+
 static void testRealCoopField()
 {
     setupCampaign();
