@@ -111,27 +111,15 @@ struct SfMotionSample {
 };
 inline std::array<SfMotionSample, 2> sfObserved;
 
-static tupl sfPredictIntercept(tupl origin, tupl target, tuplv velocity, float speed,
-                                float horizon = .8f)
-{
-    const float dx = target.x-origin.x, dy = target.y-origin.y;
-    const float a = velocity.vx*velocity.vx + velocity.vy*velocity.vy - speed*speed;
-    const float b = 2*(dx*velocity.vx + dy*velocity.vy), c = dx*dx + dy*dy;
-    float time = vlong(dx,dy)/std::max(1.0f,speed);
-    if (std::abs(a) < .001f) {
-        if (b < -.001f) time = -c/b;
-    } else {
-        const float discriminant = b*b-4*a*c;
-        if (discriminant >= 0) {
-            const float root = std::sqrt(discriminant);
-            const float t1 = (-b-root)/(2*a), t2 = (-b+root)/(2*a);
-            if (t1>0 && t2>0) time = std::min(t1,t2);
-            else if (t1>0) time = t1;
-            else if (t2>0) time = t2;
-        }
-    }
-    time = std::clamp(time,0.0f,horizon);
-    return tupl(target.x+velocity.vx*time,target.y+velocity.vy*time);
+#include "coop_shared_projectile.hpp"
+// Keep the EXACT FabLib signature for all legacy callers. Both legacy COOP
+// and future SOLO use the ONE actual equation above.
+static tupl sfPredictIntercept(tupl origin,tupl target,tuplv velocity,
+                               float speed,float horizon=.8f){
+    const auto p=sfCoopPredictInterceptCore(
+        {origin.x,origin.y},{target.x,target.y},
+        {velocity.vx,velocity.vy},speed,horizon);
+    return tupl(p.x,p.y);
 }
 
 // A velocity ghost is a mathematical target only: never rendered, collected

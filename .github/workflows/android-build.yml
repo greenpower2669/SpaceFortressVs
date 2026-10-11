@@ -11,6 +11,7 @@ on:
       - fix/gameplay-campaign-200
       - fix/help-refresh-on-ci389-20261009
       - feature/solo-worlds-tutorials-v1
+      - feature/solo-coop-core-v1
   pull_request:
     branches:
       - main
@@ -26,6 +27,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
+      - name: Historical COOP projectile parity (deterministic reference)
+        run: g++ -std=c++17 -O2 -Wall -Wextra tests/coop_shared_projectile_regressions.cpp -o /tmp/coop-core-parity && /tmp/coop-core-parity
       - name: Compile and run isolated SOLO logic
         shell: bash
         run: |

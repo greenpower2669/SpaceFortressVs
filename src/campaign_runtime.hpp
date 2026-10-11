@@ -697,11 +697,15 @@ static void sfCoopProjectiles(float dt)
     for (auto &shot : sfCoop.shots) {
         shot.previous=shot.position; shot.age+=dt; shot.life-=dt;
         if (shot.kind==4) {
-            const float speed=sfArenaW*std::min(1.5f,.65f+1.8f*shot.age);
-            const auto aim=sfBossGhost().intercept(shot.position,speed,.7f);
-            const float desired=std::atan2(aim.y-shot.position.y,aim.x-shot.position.x);
-            shot.phase+=std::clamp(std::remainder(desired-shot.phase,2*float(PI)),-dt*1.1f,dt*1.1f);
-            shot.velocity=tuplv(std::cos(shot.phase)*speed,std::sin(shot.phase)*speed);
+            // Same live COOP missile: the extracted function is executed by
+            // the historical runtime, not merely copied into SOLO.
+            const auto guide=sfCoopGuidedMissileCore(
+                {shot.position.x,shot.position.y},
+                {sfCoop.position.x,sfCoop.position.y},
+                {sfCoop.motion.velocity.vx,sfCoop.motion.velocity.vy},
+                shot.phase,shot.age,dt,sfArenaW);
+            shot.phase=guide.phase;
+            shot.velocity=tuplv(guide.vx,guide.vy);
         }
         if (shot.kind==1 && shot.age<.75f) {
             const int target=Spritej1->pv<=0 ? 1 : Spritej2->pv<=0 ? 0 :

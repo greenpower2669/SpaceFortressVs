@@ -4,6 +4,8 @@ sf_repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 sf_test_dir="$(mktemp -d)"
 trap 'rm -rf "$sf_test_dir"' EXIT
 
+g++ -std=c++17 -O2 -Wall -Wextra "$sf_repo/tests/coop_shared_projectile_regressions.cpp" -o "$sf_test_dir/coop-parity"
+"$sf_test_dir/coop-parity"
 python3 "$sf_repo/scripts/prepare-assets.py" --output "$sf_test_dir/resources/assets"
 python3 "$sf_repo/tests/test_assets.py"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/solo_campaign_model_regressions.cpp" -o "$sf_test_dir/solo-model"
