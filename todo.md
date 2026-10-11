@@ -342,5 +342,5 @@
 - [x] Caméra autonome deux zones progressives, continu quand le doigt reste fixe ou levé, arrêt au centre ; axes indépendants.
 - [x] Collisions empêchent pan fantôme à travers mur, zoom ×3, visée 360° et moteur historique préservés.
 - [x] Régressions doigt fixe, reprise, mur, vertical, central et branche CI.
-- [ ] CI Android + APK DIAG sur commit correctif ; essai Samsung obligatoire.
+- [x] GitHub Actions #38142855123 : SOLO core, SDL2 UI, Android APK/AAB tous SUCCESS sur `47e92eac` ; APK DIAG ARM64 extraite en fichier direct, 87 871 261 octets, SHA-256 `d03ec935ecb28a2035e14c3ec460b8c612e8a47bebb82b2e4067ddbd34104274` ; test Samsung restant.
 - [ ] Aucun merge main ni Release sans accord Fab.
