@@ -85,7 +85,8 @@ inline SoloViewport soloViewport(const Session &s,SDL_Rect screen) {
     }
     return view;
 }
-inline void soloUpdateCamera(Session &s,SDL_Rect screen,float dt=0.0f){
+inline void soloUpdateCamera(Session &s,SDL_Rect screen,float dt=0.0f,
+                             float fingerZoneX=NAN,float fingerZoneY=NAN){
     if(!s.map.valid() || screen.w<=0 || screen.h<=0)return;
     const float cell=soloMapCellPixels(screen);
     const float cols=screen.w/cell,rows=screen.h/cell;
@@ -102,15 +103,23 @@ inline void soloUpdateCamera(Session &s,SDL_Rect screen,float dt=0.0f){
 
     const float screenX=(s.pilot.x-s.viewLeft)/cols;
     const float screenY=(s.pilot.y-s.viewTop)/rows;
-    const float gainX=soloRectangularCameraGain(screenX);
-    const float gainY=soloRectangularCameraGain(screenY);
-    // Only when moving OUTWARD from the middle may a camera band accelerate.
-    // Returning to the centre or stopping smoothly brakes the CAMERA.
-    // These speeds are never fed back into the ship or its touch target.
-    const float desiredX=(s.pilot.vx*(screenX-.5f)>0.0f)?
-                           s.pilot.vx*gainX:0.0f;
-    const float desiredY=(s.pilot.vy*(screenY-.5f)>0.0f)?
-                           s.pilot.vy*gainY:0.0f;
+    // Real game: camera rate follows the FINGER ZONE, not the current screen
+    // position of a ship that the camera itself has displaced.
+    // The controls retain fingerZoneX/Y after release, so scrolling persists
+    // until a later steering gesture changes the direction/speed.
+    const bool fingerDrive=std::isfinite(fingerZoneX)&&
+                           std::isfinite(fingerZoneY);
+    const float gainX=soloRectangularCameraGain(
+        fingerDrive?fingerZoneX:screenX);
+    const float gainY=soloRectangularCameraGain(
+        fingerDrive?fingerZoneY:screenY);
+    // Keep older ship-relative behavior for keyboard and camera-only tests.
+    const float desiredX=(!fingerDrive &&
+                          s.pilot.vx*(screenX-.5f)<=0.0f)?
+                          0.0f:s.pilot.vx*gainX;
+    const float desiredY=(!fingerDrive &&
+                          s.pilot.vy*(screenY-.5f)<=0.0f)?
+                          0.0f:s.pilot.vy*gainY;
     const float response=1.0f-std::exp(-SOLO_CAMERA_RESPONSE_HZ*dt);
     s.viewVelocityX+=(desiredX-s.viewVelocityX)*response;
     s.viewVelocityY+=(desiredY-s.viewVelocityY)*response;
