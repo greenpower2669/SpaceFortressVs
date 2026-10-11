@@ -14,6 +14,10 @@ struct KineticSurgeControl {
     // The SOLO ship starts at the bottom and faces up: canonical owner 1.
     static constexpr int owner=1;
     bool pressed=false;
+    // Short visible plasma afterglow AFTER releasing the charged cone, so
+    // the blast does not vanish in the same frame as the finger lift.
+    float burstSeconds=0.0f,burstOriginX=0.0f,burstOriginY=0.0f;
+    AimVector burstAxis{0,-1};
     float targetX=0,targetY=0;
     bool hasAim=false;
     AimVector axis{0,-1};
@@ -32,11 +36,14 @@ struct KineticSurgeControl {
         pressed=true;
     }
     void advance(float dt){
+        dt=std::clamp(dt,0.0f,.05f);
+        burstSeconds=std::max(0.0f,burstSeconds-dt);
         if(!pressed)return;
-        sfKineticAdvanceSurges(std::clamp(dt,0.0f,.05f));
+        sfKineticAdvanceSurges(dt);
     }
     void cancel(){
         pressed=false;
+        burstSeconds=0;
         sfKineticSurgeCancel(owner);
     }
     // Return true when the canonical 2s surge was released; do NOT also fire.
@@ -48,8 +55,11 @@ struct KineticSurgeControl {
         const bool charged=sfKineticSurgeRelease(owner);
         if(!charged)return false;
         if(s.phase!=Phase::Flying && s.phase!=Phase::BossFight)return true;
+        burstSeconds=.42f;
+        burstOriginX=s.pilot.x;burstOriginY=s.pilot.y;
+        burstAxis=direction(s);
         const float range=coneRangeForShip(s.shipRadius);
-        const AimVector aimed=direction(s);
+        const AimVector aimed=burstAxis;
         const int left=std::max(0,int(std::floor(s.pilot.x-range-1)));
         const int right=std::min(s.map.width-1,int(std::ceil(s.pilot.x+range+1)));
         const int top=std::max(0,int(std::floor(s.pilot.y-range-1)));
