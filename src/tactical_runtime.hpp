@@ -799,7 +799,7 @@ static void sfUpdatePilot(float dt)
 inline constexpr float SF_WHITE_DUST_ENERGY_RESTORE = 1.0f;
 inline constexpr float SF_WHITE_DUST_FULL_ENERGY_HEAL = 4.0f;
 
-static void sfCollectDust()
+static void sfCollectDust(unsigned activePilotMask=0x03u)
 {
     if (!sfRoundActive()) return;
     for (auto *dust : particules) {
@@ -807,6 +807,7 @@ static void sfCollectDust()
         sprite *winner=nullptr; int owner=-1;
         float nearest=std::numeric_limits<float>::max();
         for (int i=0;i<2;++i) {
+            if(!(activePilotMask&(1u<<i)))continue;
             sprite *ship=i==0 ? Spritej1 : Spritej2;
             if (ship->pv<=0) continue;
             const float distance=vlong(dust->x-ship->x,dust->y-ship->y);

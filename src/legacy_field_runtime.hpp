@@ -399,7 +399,7 @@ static bool sfKineticTryLayer(sprite *rock,sprite *ship,int owner,SfKineticLayer
     return false;
 }
 
-static void sfLegacyFieldStep(void (*hurt)(int,float))
+static void sfLegacyFieldStep(void (*hurt)(int,float),unsigned activePilotMask=0x03u)
 {
     if (sa1.empty()) {setastswall();setasts(2);}
     else if (sa1.size()<8) setasts(2);
@@ -411,6 +411,7 @@ static void sfLegacyFieldStep(void (*hurt)(int,float))
         rock->tout=inxy(rock) ? 0 : rock->tout+1;
         if (rock->tout>60*30) rock->pv=0;
         for (int owner=0;owner<2 && rock->pv>0;++owner) {
+            if(!(activePilotMask&(1u<<owner)))continue;
             auto *ship=owner==0 ? Spritej1 : Spritej2;
             if (ship->pv<=0) continue;
             const float diameter=sfKineticShipDiameter(ship),rockRadius=std::max(rock->w,rock->h)*.5f;
@@ -479,15 +480,18 @@ static void sfLegacyFieldStep(void (*hurt)(int,float))
     sfKineticUpdateEffects(1.0f/60.0f);
 }
 
-static void sfLegacyFieldFrame(float dt,void (*hurt)(int,float))
+static void sfLegacyFieldFrame(float dt,void (*hurt)(int,float),
+                               unsigned activePilotMask=0x03u)
 {
     const int oldW=W,oldH=H,oldWidth=WIDTH,oldHeight=HEIGHT;const float oldK=k0;
     W=WIDTH=std::max(1,int(sfArenaW));H=HEIGHT=std::max(1,int(sfArenaH));k0=1;
     sfFieldRemainder+=std::clamp(dt,0.0f,.1f);
     while(sfFieldRemainder+1e-6f>=1.0f/60) {
-        sfFieldRemainder=std::max(0.0f,sfFieldRemainder-1.0f/60);sfLegacyFieldStep(hurt);
+        sfFieldRemainder=std::max(0.0f,sfFieldRemainder-1.0f/60);
+        sfLegacyFieldStep(hurt,activePilotMask);
         if (hurt) {
-            for(auto *p:particules) p->update();for(auto *p:particulesr) p->update();sfCollectDust();
+            for(auto *p:particules) p->update();for(auto *p:particulesr) p->update();
+            sfCollectDust(activePilotMask);
             for(auto i=explos.begin();i!=explos.end();) {
                 (*i)->upexpl();if((*i)->pv<=0) {delete *i;i=explos.erase(i);} else ++i;
             }

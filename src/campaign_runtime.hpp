@@ -961,7 +961,7 @@ static void sfCoopResources(float dt)
         sfCoopAdvanceBossKineticCooldowns(dt);
     }
     sfCoopAdvanceAsteroidSpawner(dt);
-    sfLegacyFieldFrame(dt,sfCoopAsteroidHurt);
+    sfLegacyFieldFrame(dt,sfCoopAsteroidHurt,sfCoop.pilots.activeMask);
     if(sfCoop.bossPresent)sfCoopBossKineticField();
 }
 

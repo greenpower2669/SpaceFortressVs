@@ -172,6 +172,11 @@ static void testCoopSoloFoundation()
     const float realX=Spritej2->x;
     Spritej1->pv=1000;Spritej2->pv=1000;
     sfCoop.health=0; // a missing boss must NOT trigger campaign victory
+    // The absent orange ship must not absorb white dust that belongs to
+    // the real field. Keep a white particle on it during the historical tick.
+    auto *ghostDust=new parts(Spritej1->x,Spritej1->y);
+    ghostDust->pv=600;ghostDust->vx=ghostDust->vy=0;
+    particules.push_back(ghostDust);
     sfCoop.controls[1].down=true;
     sfCoop.controls[1].target=tupl(std::min(sfArenaW*.8f,realX+100),Spritej2->y);
     sfCoop.controls[0].down=true; // even a bogus input cannot move absent owner
@@ -181,6 +186,7 @@ static void testCoopSoloFoundation()
     assert(sfCoop.health==0);
     assert(Spritej1->x==absentX&&Spritej1->y==absentY);
     assert(Spritej2->x>realX);
+    assert(ghostDust->pv>0); // absent owner is never a physical collector
     assert(!sfCoopFire(0));
     assert(sfCoopFire(1));
     assert(!sfCoop.shots.empty()&&sfCoop.shots.back().owner==1);
