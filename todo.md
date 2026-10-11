@@ -312,3 +312,12 @@
 - [ ] Vérifier CI Android complète du dernier commit + extraire APK DIAG directe hors ZIP.
 - [ ] Essai Samsung : centre fixe, zone 1/2 croissante, finger-up croisière, retour au centre, virages dans vrai labyrinthe, FX/SFX.
 - [ ] Aucun merge main ni Release sans autorisation Fab.
+
+## SOLO-FX-MINING-001 — 11 octobre 2026
+- [x] Débris blancs d'astéroïdes ordinaires et glacés après cône 2 s, limite 128.
+- [x] Traînée par vitesse du pilote et halo d'impact avec asset bouclier historique, sans mécanique de bouclier fictive.
+- [x] Tests automatiques d'émission, glace, plafond, collecte et alpha.
+- [ ] CI Android et APK/AAB vérifiées, récupérer APK DIAG directe (pas ZIP), SHA-256.
+- [ ] Tester sur Samsung poussières, flash, traînée et non-régressions caméra/croisière.
+- [ ] Raccorder véritablement énergie, bouclier, minage continu, projectiles/missiles et FX du COOP canonique.
+- [ ] Pas de merge main ni Release avant accord Fab.

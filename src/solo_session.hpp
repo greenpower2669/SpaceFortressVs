@@ -68,15 +68,20 @@ struct Session {
     }
     // White ice fragments originate from icy asteroids hit by the kinetic
     // cone or direct projectile. They float briefly and can slow the ship.
-    void scatterIce(float px,float py){
-        if(dust.size()>128)return;
+    // Visual white debris after harvesting; ice alone retains its slowdown.
+    void scatterMining(float px,float py,bool icy=false){
+        if(dust.size()>=128)return;
         constexpr float directions[8][2]={
             {1,0},{.70f,.70f},{0,1},{-.70f,.70f},
             {-1,0},{-.70f,-.70f},{0,-1},{.70f,-.70f}
         };
-        for(const auto &d:directions)
-            dust.push_back({px,py,d[0]*1.8f,d[1]*1.8f,2.50f,true});
+        for(const auto &d:directions){
+            if(dust.size()>=128)break;
+            dust.push_back({px,py,d[0]*1.8f,d[1]*1.8f,
+                            icy?2.50f:1.75f,icy});
+        }
     }
+    void scatterIce(float px,float py){scatterMining(px,py,true);}
     void advanceDust(float dt){
         for(auto &p:dust){
             if(p.life<=0)continue;
@@ -89,10 +94,11 @@ struct Session {
                 p.vy+=dy/dist*3.0f*dt;
             }
             p.x+=p.vx*dt;p.y+=p.vy*dt;
-            if(p.icy && std::hypot(p.x-pilot.x,p.y-pilot.y)
+            if(std::hypot(p.x-pilot.x,p.y-pilot.y)
                         <=shipRadius+.24f){
-                iceSeconds=std::max(iceSeconds,ICE_MALUS_SECONDS);
-                p.life=0;
+                if(p.icy)
+                    iceSeconds=std::max(iceSeconds,ICE_MALUS_SECONDS);
+                p.life=0; // non-icy mining dust has no ice malus
             }
         }
         dust.erase(std::remove_if(dust.begin(),dust.end(),

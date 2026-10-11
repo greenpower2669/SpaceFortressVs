@@ -334,3 +334,11 @@ CLASSIQUE DUEL local :
 - **Croisière** `src/solo_touch_controls.hpp` : `cruiseX/Y`, `cruiseThrottle`, `cruiseSet` sont latched après finger-up ; la position du doigt est une donnée de pilotage, jamais un curseur de caméra.
 - **Moteur/collision** `src/solo_session.hpp` : sweep collision par axes indépendants, blocage de l'axe impacté jusqu'à fin de frame pour ne pas téléporter à travers roc; glissement possible sur axe libre. `src/solo_prototype.cpp` met à jour caméra après step de pilotage.
 - **Régressions** : `tests/solo_viewport_regressions.cpp` (centre stop immédiat vs zone active), `tests/solo_cruise_gesture_regressions.cpp` (toucher-glisser-relâcher, vitesse maintenue) et `tests/solo_ice_regressions.cpp` (rocher haute vélocité et wall sliding).
+
+
+## 2026-10-11 — SOLO-FX-MINING-001 (autorisation Fab « Ok, code »)
+- SOLO seul : après décharge cinétique, les astéroïdes ordinaires comme glacés émettent des poussières visibles via `Session::scatterMining`. Collection de particules plafonnée à 128 ; seuls les fragments glacés infligent GLACE. L'énergie n'est pas inventée.
+- FX originaux : `shield.png` pour le FLASH D'IMPACT visuel (pas un bouclier gameplay COOP), `pousc.png` pour la traînée selon vitesse réelle, `pousb.png` pour les débris.
+- Préservés : zones de caméra selon position/vitesse du vaisseau, croisière après finger-up, zoom terrain ×3, taille pilote fixe, tir/cone 360°, modes historiques et `src/main.cpp`.
+- Régressions poussière/plafond/collecte, release cône, flash ajoutées. CI Android APK/AAB et essai Samsung à confirmer.
+- À faire : raccordement réel COOP énergie/bouclier, tirs/missiles et minage continu, FX exhaustifs. Aucune fusion `main` ni Release sans Fab.

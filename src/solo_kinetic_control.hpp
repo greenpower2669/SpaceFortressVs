@@ -72,7 +72,7 @@ struct KineticSurgeControl {
                                      x+.5f,y+.5f,aimed,range,.15f)){
                 const bool icy=s.map.tiles[index]==Tile::IceAsteroid;
                 s.map.tiles[index]=Tile::Empty;
-                if(icy)s.scatterIce(x+.5f,y+.5f);
+                s.scatterMining(x+.5f,y+.5f,icy);
             }
         }
         return true;

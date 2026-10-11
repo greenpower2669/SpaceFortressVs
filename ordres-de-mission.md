@@ -474,3 +474,11 @@ Exécution SOLO strictement sur `feature/solo-worlds-tutorials-v1`; CI #38121160
 
 ### Exécution sur autorisation Fab — CAMERA-SHIP-ZONE-001 (2026-10-11)
 L'ordre antérieur « deux rectangles progressifs » est précisé sans modification des seuils : ce sont les **coordonnées et la vélocité du vaisseau** qui déclenchent les gains de défilement, jamais la position du doigt. Lever le doigt maintient la propulsion/croisière ; si le vaisseau reste dans une bande extérieure le décor continue de défiler. Le retour en zone centrale (entre 1/3 et 2/3 de chaque axe) impose le zéro de défilement sans résidu même si croisière active. Demi-tour vers l'intérieur : ne pas entraîner la caméra dans le mauvais sens. Collision latérale en SOLO : conserver glissement sur axe libre sans traversée de rocher à haute vitesse. Préserver zoom carte ×3, taille sprite inchangée, tir/plasma/FX originaux, autres modes historiques, sauvegardes ; build APK DIAG puis test réel Samsung. Strictement `feature/solo-worlds-tutorials-v1`, pas main, ni Release, ni signature publique avant autorisation.
+
+
+## 2026-10-11 — SOLO-FX-MINING-001 (autorisation Fab « Ok, code »)
+- SOLO seul : après décharge cinétique, les astéroïdes ordinaires comme glacés émettent des poussières visibles via `Session::scatterMining`. Collection de particules plafonnée à 128 ; seuls les fragments glacés infligent GLACE. L'énergie n'est pas inventée.
+- FX originaux : `shield.png` pour le FLASH D'IMPACT visuel (pas un bouclier gameplay COOP), `pousc.png` pour la traînée selon vitesse réelle, `pousb.png` pour les débris.
+- Préservés : zones de caméra selon position/vitesse du vaisseau, croisière après finger-up, zoom terrain ×3, taille pilote fixe, tir/cone 360°, modes historiques et `src/main.cpp`.
+- Régressions poussière/plafond/collecte, release cône, flash ajoutées. CI Android APK/AAB et essai Samsung à confirmer.
+- À faire : raccordement réel COOP énergie/bouclier, tirs/missiles et minage continu, FX exhaustifs. Aucune fusion `main` ni Release sans Fab.

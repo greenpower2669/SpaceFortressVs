@@ -28,6 +28,8 @@ int main(){
     for(int i=0;i<10;++i)control.advance(.05f);
     assert(control.burstSeconds==0);
     assert(s.map.at(x,y-1)==Tile::Empty); // forward/up, canonical cone.
+    assert(s.dust.size()>=8); // normal rock now emits white particles.
+    for(const auto &p:s.dust)assert(!p.icy);
     assert(s.map.at(x,y+1)==Tile::Asteroid); // never harvest backwards.
     assert(!control.release(s)); // one release, one blast.
     s.map.tiles[size_t(y-1)*s.map.width+x]=Tile::Asteroid;
@@ -65,5 +67,14 @@ int main(){
     for(int n=0;n<41;++n)control.advance(.05f);
     assert(control.release(s));
     assert(s.map.at(rightX,y)==Tile::Empty);
+    s.map.tiles[size_t(y-1)*s.map.width+x]=Tile::IceAsteroid;
+    control.aimAt(s,s.pilot.x,s.pilot.y-15);
+    control.press();
+    for(int n=0;n<41;++n)control.advance(.05f);
+    assert(control.release(s));
+    assert(s.map.at(x,y-1)==Tile::Empty);
+    bool icyDust=false;
+    for(const auto &p:s.dust)icyDust=icyDust||p.icy;
+    assert(icyDust);
     sfBossDangerIndex=2;
 }

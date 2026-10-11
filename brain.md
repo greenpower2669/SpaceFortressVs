@@ -419,3 +419,11 @@
 - `src/solo_session.hpp` : correction SOLO des collisions à haute vitesse : sweep continu avec blocage par AXE maintenu sur le frame; vaisseau glisse le long des rochers au lieu d'annuler ses deux vitesses et ne saute plus par-delà une cellule roc.
 - `src/solo_prototype.cpp` : caméra déclenchée par vitesse/position du vaisseau après simulation, diagnostic HELD/CRUISE et camera pan XY dans heartbeat ; aucun changement au tir à 360°, au zoom ×3, au sprite du vaisseau ou aux modes historiques.
 - Tests : `tests/solo_viewport_regressions.cpp`, `tests/solo_cruise_gesture_regressions.cpp`, `tests/solo_ice_regressions.cpp`. L'APK DIAG Android doit passer CI et être vérifiée sur Samsung. Ne pas fusionner main ni publier Release sans feu vert explicite.
+
+
+## 2026-10-11 — SOLO-FX-MINING-001 (autorisation Fab « Ok, code »)
+- SOLO seul : après décharge cinétique, les astéroïdes ordinaires comme glacés émettent des poussières visibles via `Session::scatterMining`. Collection de particules plafonnée à 128 ; seuls les fragments glacés infligent GLACE. L'énergie n'est pas inventée.
+- FX originaux : `shield.png` pour le FLASH D'IMPACT visuel (pas un bouclier gameplay COOP), `pousc.png` pour la traînée selon vitesse réelle, `pousb.png` pour les débris.
+- Préservés : zones de caméra selon position/vitesse du vaisseau, croisière après finger-up, zoom terrain ×3, taille pilote fixe, tir/cone 360°, modes historiques et `src/main.cpp`.
+- Régressions poussière/plafond/collecte, release cône, flash ajoutées. CI Android APK/AAB et essai Samsung à confirmer.
+- À faire : raccordement réel COOP énergie/bouclier, tirs/missiles et minage continu, FX exhaustifs. Aucune fusion `main` ni Release sans Fab.

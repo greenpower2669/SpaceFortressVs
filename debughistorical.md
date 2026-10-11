@@ -330,3 +330,11 @@
 - Correction : supprimer dépendance des coordonnées du doigt dans `soloUpdateCamera`, et déterminer le gain X/Y avec vraie position normalisée de la forteresse + vélocité sortante. Seuil centre sans inertie résiduelle ; `fingerUp` laisse `cruiseSet` actif.
 - Autre cause : dans `Session::step`, la collision `Tile::Rock` annule les deux composantes de vitesse. Correction sweep indépendant X/Y, blocage d'un axe conservé sur tout le frame (un premier essai laissait traverser le roc après le substep bloqué ; régression ajoutée), dégâts et malus préservés.
 - Tests CI intermédiaires rouges identifiés puis corrigés AVANT livraison : anciens arguments fingerZone dans test de croisière + sortie de rock par sweep insuffisamment bloqué. Tests core et SDL2 au commit correctif `cd9a568a` constatés verts ; Android et Samsung à vérifier, pas de présomption de stabilité matérielle.
+
+
+## 2026-10-11 — SOLO-FX-MINING-001 (autorisation Fab « Ok, code »)
+- SOLO seul : après décharge cinétique, les astéroïdes ordinaires comme glacés émettent des poussières visibles via `Session::scatterMining`. Collection de particules plafonnée à 128 ; seuls les fragments glacés infligent GLACE. L'énergie n'est pas inventée.
+- FX originaux : `shield.png` pour le FLASH D'IMPACT visuel (pas un bouclier gameplay COOP), `pousc.png` pour la traînée selon vitesse réelle, `pousb.png` pour les débris.
+- Préservés : zones de caméra selon position/vitesse du vaisseau, croisière après finger-up, zoom terrain ×3, taille pilote fixe, tir/cone 360°, modes historiques et `src/main.cpp`.
+- Régressions poussière/plafond/collecte, release cône, flash ajoutées. CI Android APK/AAB et essai Samsung à confirmer.
+- À faire : raccordement réel COOP énergie/bouclier, tirs/missiles et minage continu, FX exhaustifs. Aucune fusion `main` ni Release sans Fab.

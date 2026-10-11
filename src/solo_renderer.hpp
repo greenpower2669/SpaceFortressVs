@@ -37,7 +37,7 @@ inline void fill(SDL_Renderer *r,SDL_Rect rect,SDL_Color c){
 struct SoloAssets {
     SDL_Texture *ship=nullptr,*enemy=nullptr,*rock=nullptr,*space=nullptr;
     SDL_Texture *projectile=nullptr,*energy=nullptr;
-    SDL_Texture *plasma=nullptr,*spark=nullptr,*explosion=nullptr;
+    SDL_Texture *plasma=nullptr,*spark=nullptr,*explosion=nullptr,*shield=nullptr;
     SDL_Renderer *renderer=nullptr;
     static SDL_Texture *load(SDL_Renderer *renderer,const char *file){
         // SDL_RWFromFile supports Android APK assets via SDL's asset manager.
@@ -58,12 +58,13 @@ struct SoloAssets {
         plasma=load(r,"energie.png");
         spark=load(r,"pousc.png");
         explosion=load(r,"explo.png");
+        shield=load(r,"shield.png");
         SDL_Log("SOLO original assets: ship=%d enemy=%d rock=%d space=%d",
                 ship!=nullptr,enemy!=nullptr,rock!=nullptr,space!=nullptr);
     }
     ~SoloAssets(){
         for(SDL_Texture *p:{ship,enemy,rock,space,projectile,energy,
-                            plasma,spark,explosion})
+                            plasma,spark,explosion,shield})
             if(p)SDL_DestroyTexture(p);
     }
     SoloAssets(const SoloAssets&)=delete;
@@ -75,6 +76,11 @@ inline void soloCopy(SDL_Renderer *r,SDL_Texture *texture,SDL_Rect destination,
     SDL_SetTextureColorMod(texture,tint.r,tint.g,tint.b);
     SDL_SetTextureAlphaMod(texture,tint.a);
     SDL_RenderCopyEx(r,texture,nullptr,&destination,angle,nullptr,SDL_FLIP_NONE);
+}
+// Original shield art is an impact FLASH, not a simulated COOP shield.
+inline Uint8 soloImpactFlashAlpha(const Session &s){
+    if(s.phase==Phase::Lost||s.phase==Phase::Won)return 0;
+    return Uint8(160.0f*std::clamp(s.collisionCooldown/.45f,0.0f,1.0f));
 }
 inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
                         SoloAssets *assets=nullptr){
@@ -211,6 +217,16 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
                      2*(radius+pulse+k*2),2*(radius+pulse+k*2)};
         SDL_RenderDrawRect(r,&glow);
     }
+    // Movement trail uses ship velocity, never camera-pan velocity.
+    const float speed=std::hypot(s.pilot.vx,s.pilot.vy);
+    if(assets&&assets->spark&&speed>.35f){
+        const float vx=s.pilot.vx/speed,vy=s.pilot.vy/speed;
+        const int tailX=shipX-int(vx*radius*1.2f);
+        const int tailY=shipY-int(vy*radius*1.2f);
+        const int size=std::max(5,radius*3/4);
+        soloCopy(r,assets->spark,{tailX-size/2,tailY-size/2,size,size},
+                 {109,218,255,210},s.seconds*110.0);
+    }
     if(assets&&assets->ship)soloCopy(r,assets->ship,
         {shipX-radius,shipY-radius,radius*2,radius*2});
     else{
@@ -218,6 +234,13 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
         SDL_RenderDrawLine(r,shipX,shipY-radius,shipX-radius,shipY+radius);
         SDL_RenderDrawLine(r,shipX-radius,shipY+radius,shipX+radius,shipY+radius);
         SDL_RenderDrawLine(r,shipX+radius,shipY+radius,shipX,shipY-radius);
+    }
+    const Uint8 impactAlpha=soloImpactFlashAlpha(s);
+    if(impactAlpha && assets&&assets->shield){
+        const int shell=radius*2;
+        soloCopy(r,assets->shield,
+                 {shipX-shell,shipY-shell,shell*2,shell*2},
+                 {170,225,255,impactAlpha});
     }
     if(s.slowActive()){
         SDL_SetRenderDrawColor(r,s.iceActive()?209:255,s.iceActive()?247:125,
