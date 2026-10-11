@@ -7,6 +7,8 @@
 #include "solo_combat.hpp"
 #include "solo_kinetic_control.hpp"
 #include "solo_bitmap_font.hpp"
+#include "solo_scenery.hpp"
+#include <array>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <algorithm>
@@ -38,7 +40,9 @@ struct SoloAssets {
     SDL_Texture *ship=nullptr,*enemy=nullptr,*rock=nullptr,*space=nullptr;
     SDL_Texture *projectile=nullptr,*missile=nullptr,*energy=nullptr;
     SDL_Texture *plasma=nullptr,*spark=nullptr,*explosion=nullptr,*shield=nullptr;
-    SDL_Texture *soloWalls=nullptr,*soloEnvironments=nullptr;
+    // Pre-sliced transparent sprites. Never draw a source atlas frame as a tile.
+    std::array<std::array<SDL_Texture*,8>,6> wallParts{};
+    std::array<std::array<SDL_Texture*,7>,5> environmentParts{};
     SDL_Renderer *renderer=nullptr;
     static SDL_Texture *load(SDL_Renderer *renderer,const char *file){
         // SDL_RWFromFile supports Android APK assets via SDL's asset manager.
@@ -48,34 +52,87 @@ struct SoloAssets {
         if(texture)SDL_SetTextureBlendMode(texture,SDL_BLENDMODE_BLEND);
         return texture;
     }
-    // Remove the navy atlas-card background and preserve bright painted
-    // rocks, crystals and lava. Alpha conversion is done ONCE on load.
-    static SDL_Texture *loadAtlas(SDL_Renderer *r,const char *filename,
-                                  bool navyBackground){
-        const std::string path=std::string("resources/assets/pict/solo/")+filename;
-        SDL_Surface *loaded=IMG_Load(path.c_str());
-        if(!loaded)return nullptr;
-        SDL_Surface *rgba=SDL_ConvertSurfaceFormat(loaded,SDL_PIXELFORMAT_RGBA32,0);
-        SDL_FreeSurface(loaded);
-        if(!rgba)return nullptr;
-        SDL_LockSurface(rgba);
-        for(int y=0;y<rgba->h;++y){
-            auto *row=reinterpret_cast<Uint32 *>(
-                static_cast<Uint8 *>(rgba->pixels)+y*rgba->pitch);
-            for(int x=0;x<rgba->w;++x){
+    // A concept sheet is not an atlas of ready-to-render 1x1 tiles.
+    // Pre-slice ONLY painted asset rectangles and key out the background
+    // ONCE, before SDL creates textures (no per-frame expensive processing).
+    static SDL_Texture *extractSprite(SDL_Renderer *r,SDL_Surface *sheet,
+                                      SDL_Rect source,bool wall){
+        if(!r||!sheet||source.x<0||source.y<0||
+           source.x+source.w>sheet->w||source.y+source.h>sheet->h)return nullptr;
+        const int width=128,height=wall?128:160;
+        SDL_Surface *cut=SDL_CreateRGBSurfaceWithFormat(
+            0,width,height,32,SDL_PIXELFORMAT_RGBA32);
+        if(!cut)return nullptr;
+        SDL_SetSurfaceBlendMode(sheet,SDL_BLENDMODE_NONE);
+        SDL_Rect target{0,0,width,height};
+        if(SDL_BlitScaled(sheet,&source,cut,&target)!=0){
+            SDL_FreeSurface(cut);return nullptr;
+        }
+        SDL_LockSurface(cut);
+        for(int y=0;y<height;++y){
+            auto *pixels=reinterpret_cast<Uint32*>(
+                static_cast<Uint8*>(cut->pixels)+y*cut->pitch);
+            for(int x=0;x<width;++x){
                 Uint8 red,green,blue,alpha;
-                SDL_GetRGBA(row[x],rgba->format,&red,&green,&blue,&alpha);
-                const bool background=navyBackground?
-                    (red<54&&green<67&&blue<100):
-                    (red<24&&green<24&&blue<27);
-                if(background)row[x]=SDL_MapRGBA(rgba->format,red,green,blue,0);
+                SDL_GetRGBA(pixels[x],cut->format,&red,&green,&blue,&alpha);
+                // Source panel navy/black is semitransparent. Preserve actual
+                // dark rock instead of using the old destructive RGB key.
+                if(wall){
+                    const float coverage=std::clamp((float(alpha)-164.0f)/75.0f,
+                                                     0.0f,1.0f);
+                    alpha=Uint8(alpha*coverage);
+                }
+                // Feather crop edges: energy clouds never have hard clipped
+                // square borders, even when adjacent atlas objects overlap.
+                const int edge=std::min({x,y,width-x-1,height-y-1});
+                const float fade=std::clamp(float(edge)/(wall?3.0f:11.0f),
+                                             0.0f,1.0f);
+                alpha=Uint8(alpha*fade);
+                pixels[x]=SDL_MapRGBA(cut->format,red,green,blue,alpha);
             }
         }
-        SDL_UnlockSurface(rgba);
-        SDL_Texture *texture=SDL_CreateTextureFromSurface(r,rgba);
-        SDL_FreeSurface(rgba);
-        if(texture)SDL_SetTextureBlendMode(texture,SDL_BLENDMODE_BLEND);
-        return texture;
+        SDL_UnlockSurface(cut);
+        SDL_Texture *result=SDL_CreateTextureFromSurface(r,cut);
+        SDL_FreeSurface(cut);
+        if(result)SDL_SetTextureBlendMode(result,SDL_BLENDMODE_BLEND);
+        return result;
+    }
+    void buildScenery(SDL_Renderer *r){
+        const std::string base="resources/assets/pict/solo/";
+        SDL_Surface *walls=IMG_Load((base+"ParoisModeSolo.png").c_str());
+        SDL_Surface *effects=IMG_Load((base+"EnvironnementsModeSolo.png").c_str());
+        if(walls){
+            SDL_Surface *rgba=SDL_ConvertSurfaceFormat(
+                walls,SDL_PIXELFORMAT_RGBA32,0);SDL_FreeSurface(walls);
+            if(rgba){
+                for(int theme=0;theme<6;++theme)
+                    for(int index=0;index<8;++index)
+                        wallParts[theme][index]=extractSprite(
+                            r,rgba,soloWallArtBox(theme,index),true);
+                SDL_FreeSurface(rgba);
+            }
+        }
+        if(effects){
+            SDL_Surface *rgba=SDL_ConvertSurfaceFormat(
+                effects,SDL_PIXELFORMAT_RGBA32,0);SDL_FreeSurface(effects);
+            if(rgba){
+                for(int theme=0;theme<5;++theme)
+                    for(int variant=0;variant<7;++variant)
+                        environmentParts[theme][variant]=extractSprite(
+                            r,rgba,soloEnvironmentArtBox(theme,variant),false);
+                SDL_FreeSurface(rgba);
+            }
+        }
+        SDL_Log("SOLO cut scenery: rock=%d lava=%d energy=%d ice=%d",
+           wallParts[0][0]!=nullptr,wallParts[1][0]!=nullptr,
+           environmentParts[0][0]!=nullptr,environmentParts[3][0]!=nullptr);
+    }
+    SDL_Texture *wall(int theme,int index) const {
+        return wallParts[std::clamp(theme,0,5)][std::clamp(index,0,7)];
+    }
+    SDL_Texture *deco(int atlasRow,int index) const {
+        return environmentParts[std::clamp(atlasRow,0,4)]
+                               [std::clamp(index,0,6)];
     }
     explicit SoloAssets(SDL_Renderer *r):renderer(r){
         if(!renderer)return;
@@ -90,15 +147,17 @@ struct SoloAssets {
         spark=load(r,"pousc.png");
         explosion=load(r,"explo.png");
         shield=load(r,"shield.png");
-        soloWalls=loadAtlas(r,"ParoisModeSolo.png",true);
-        soloEnvironments=loadAtlas(r,"EnvironnementsModeSolo.png",false);
+        buildScenery(r);
         SDL_Log("SOLO original assets: ship=%d enemy=%d rock=%d space=%d",
                 ship!=nullptr,enemy!=nullptr,rock!=nullptr,space!=nullptr);
     }
     ~SoloAssets(){
         for(SDL_Texture *p:{ship,enemy,rock,space,projectile,missile,energy,
-                            plasma,spark,explosion,shield,
-                            soloWalls,soloEnvironments})
+                            plasma,spark,explosion,shield})
+            if(p)SDL_DestroyTexture(p);
+        for(const auto &row:wallParts)for(SDL_Texture *p:row)
+            if(p)SDL_DestroyTexture(p);
+        for(const auto &row:environmentParts)for(SDL_Texture *p:row)
             if(p)SDL_DestroyTexture(p);
     }
     SoloAssets(const SoloAssets&)=delete;
@@ -122,26 +181,53 @@ inline int soloWallTheme(const Session &s,int x,int y){
     const unsigned variant=unsigned(x*92821u+y*68917u);
     return variant%19u==0u?3:(variant%31u==0u?5:0);
 }
-inline SDL_Rect soloWallAtlasSample(int theme,int x,int y){
-    // First display row of the 1536x1024 authoring atlas contains ONLY
-    // six actual wall strips at x=0..1535, y=70..211; avoid titles/labels.
-    theme=std::clamp(theme,0,5);
-    const unsigned index=unsigned(x*37u+y*11u)%3u;
-    return {theme*256+12+int(index)*73,72,73,135};
+// Paint real silhouette cut-outs, not a crop from the full presentation.
+inline void soloDrawCutSprite(SDL_Renderer *r,SDL_Texture *sprite,
+                              SDL_Rect dst,double rotation=0,Uint8 alpha=255,
+                              SDL_RendererFlip flip=SDL_FLIP_NONE){
+    if(!sprite)return;
+    SDL_SetTextureAlphaMod(sprite,alpha);
+    SDL_SetTextureColorMod(sprite,255,255,255);
+    SDL_RenderCopyEx(r,sprite,nullptr,&dst,rotation,nullptr,flip);
 }
-inline SDL_Rect soloEnvironmentAtlasSample(int theme,int x,int y){
-    // 1122x1402 original planche: rows are energy, lava, rock, ice, smoke.
-    constexpr int rowStart[5]={18,300,575,830,1110};
-    const int row=theme==1?1:theme==2?0:theme==4?3:theme==5?4:2;
-    return {int(unsigned(x*17u+y*43u)%7u)*155,rowStart[row]+26,135,169};
+inline int soloWallSpriteIndex(SoloWallPresentation presentation){
+    switch(presentation.shape){
+        case SoloWallShape::Horizontal:return int(presentation.variant); // 3 originals
+        case SoloWallShape::Vertical:return 3;  // real vertical sample
+        case SoloWallShape::Corner:return 4;    // real L corner
+        case SoloWallShape::Tee:return 6;       // rock junction
+        case SoloWallShape::Cross:return 6;
+        case SoloWallShape::End:return 7;
+        default:return 7;
+    }
 }
-inline void soloCopyAtlas(SDL_Renderer *r,SDL_Texture *texture,
-                          const SDL_Rect &source,const SDL_Rect &dest,
-                          Uint8 alpha=255){
-    if(!texture)return;
-    SDL_SetTextureAlphaMod(texture,alpha);
-    SDL_SetTextureColorMod(texture,255,255,255);
-    SDL_RenderCopy(r,texture,&source,&dest);
+inline void soloDrawAmbience(SDL_Renderer *r,const Session &s,
+                             const SoloViewport &camera,SoloAssets *assets,
+                             int x,int y,int theme,int cx,int cy,float cell,
+                             bool anchoredToWall){
+    if(!assets)return;
+    const unsigned h=soloWorldDecorHash(x,y,uint32_t(theme)+0xD336u);
+    const int atlasTheme=soloEnvironmentArtTheme(theme);
+    // A rock wall is NOT a screen for large floating thumbnails:
+    // decorate sparingly, except actually energetic/lava surfaces.
+    const bool active=theme==1||theme==2||theme==4||theme==5;
+    if(!active && (h%29u)!=0u)return;
+    if(active && (h%4u)>1u && anchoredToWall)return;
+    const int frame=int(h%7u); // stable *identity*, not an animation frame
+    SDL_Texture *sprite=assets->deco(atlasTheme,frame);
+    if(!sprite)return;
+    const float phase=soloDecoPhase(x,y,theme);
+    const float t=s.seconds;
+    // NO random frame changes: soft brightness/scale/float animation only.
+    const float pulse=std::sin(t*(theme==5?.93f:theme==1?1.26f:1.73f)+phase);
+    const float opacity=std::clamp((active?.33f:.17f)+pulse*.10f,.07f,.48f);
+    const float relativeSize=(anchoredToWall?.53f:.74f)*
+                              (1.0f+.035f*pulse);
+    const int width=std::max(8,int(cell*relativeSize*.82f));
+    const int height=std::max(8,int(cell*relativeSize));
+    const int floatY=theme==5?int(std::sin(t*.56f+phase)*cell*.055f):0;
+    soloDrawCutSprite(r,sprite,{cx-width/2,cy-height/2+floatY,width,height},
+                      0,Uint8(255*opacity));
 }
 // Original shield art is an impact FLASH, not a simulated COOP shield.
 inline Uint8 soloImpactFlashAlpha(const Session &s){
@@ -193,34 +279,35 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
         if(t==Tile::Rock || t==Tile::Lava || t==Tile::Beam){
             const int theme=t==Tile::Lava?1:t==Tile::Beam?2:
                                       soloWallTheme(s,x,y);
-            if(assets&&assets->soloWalls){
-                // Stable strips use neighboring world-tile coordinates; no
-                // camera-induced texture swimming or photo-block mosaic.
-                const SDL_Rect source=soloWallAtlasSample(theme,x,y);
-                const SDL_Rect dest{px-1,py-1,int(cell)+3,int(cell)+3};
-                soloCopyAtlas(r,assets->soloWalls,source,dest);
-                if(assets->soloEnvironments&&(t!=Tile::Rock||hash%11u==0u)){
-                    const SDL_Rect fx=soloEnvironmentAtlasSample(theme,x,y);
-                    const int side=std::max(14,int(cell*.86f));
-                    soloCopyAtlas(r,assets->soloEnvironments,fx,
-                                  {cx-side/2,cy-side/2,side,side},
-                                  t==Tile::Rock?95:175);
-                }
+            const auto selection=soloWallPresentation(s,x,y);
+            const int which=soloWallSpriteIndex(selection);
+            SDL_Texture *piece=assets?assets->wall(theme,which):nullptr;
+            if(piece){
+                // Exact stable orientation from wall adjacency N/E/S/W.
+                // VERTICAL strips and corner geometry are genuinely different
+                // images, not stretched horizontal source sheet rectangles.
+                const SDL_Rect dst{px-2,py-2,int(cell)+5,int(cell)+5};
+                const SDL_RendererFlip mirror=(selection.variant==2u)?
+                    SDL_FLIP_HORIZONTAL:SDL_FLIP_NONE;
+                soloDrawCutSprite(r,piece,dst,selection.rotation,255,mirror);
+                // Decorations have no collision and do not determine wall
+                // orientation, color, or stable body texture.
+                soloDrawAmbience(r,s,camera,assets,x,y,theme,cx,cy,cell,true);
             }else{
-                // Offline/old APK fallback; no asset-loading crash.
                 fill(r,square,tileColor(t));
-                if(assets&&assets->rock)
-                    soloCopy(r,assets->rock,square);
+                if(assets&&assets->rock)soloCopy(r,assets->rock,square);
             }
             continue;
         }
         if(t==Tile::Asteroid || t==Tile::IceAsteroid){
             // Actual rock sprite shrinks as the held cone melts its mass.
             const int reduced=std::max(2,int(radius*s.asteroidIntegrityAt(x,y)));
-            if(assets&&assets->soloEnvironments){
-                const int theme=t==Tile::IceAsteroid?4:0;
-                const SDL_Rect source=soloEnvironmentAtlasSample(theme,x,y);
-                soloCopyAtlas(r,assets->soloEnvironments,source,
+            // Distinct transparent asteroid/ice cut-out, never a vignette.
+            SDL_Texture *shape=assets?assets->deco(
+                t==Tile::IceAsteroid?3:2,
+                int(soloWorldDecorHash(x,y,0xA511u)%7u)):nullptr;
+            if(shape){
+                soloDrawCutSprite(r,shape,
                     {cx-reduced,cy-reduced,reduced*2,reduced*2});
             }else if(assets&&assets->rock){
                 const SDL_Color tint=t==Tile::IceAsteroid?
