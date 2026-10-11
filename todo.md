@@ -369,6 +369,6 @@
 - [x] Découpage en sprites transparents à chargement unique depuis les 2 atlas d'origine ; pas de labels, panneaux ni rectangles plaqués.
 - [x] Variantes de décor stables par coordonnées MONDE ; fumée/énergie/lave avec pulsations douces, aucun frame RNG à l'affichage ; collisions inchangées.
 - [x] Tests 16 masques/rotations/bornes/IDs stables compilés et passés sur GitHub SOLO/SDL2.
-- [ ] Android : attendre validation du workflow `38154338078` sur `7012a3b5`; récupérer APK diagnostic dès vert et tester Samsung sur couloirs H/V/L/T/croix.
+- [x] Android : workflow `38154338078` sur `7012a3b5` ENTIÈREMENT VERT (core, SDL2, Android), SHA256 APK `a3c20d17706082c78c983549fe290d85364cf86ace77b6aaa2dc749c82c709db`. APK DIAG 94 103 112 octets dans `temp/SpaceFortress-SOLO-PAROIS-AUTOTILES-7012a3b5-DIAG.apk` sur la branche via export vert `38154942723`. Test Samsung sur couloirs H/V/L/T/croix reste à faire.
 - [ ] Vérifier qualité des dégradés et jonctions sur téléphone; retoucher si restes de carrés ou découpes aberrantes.
 - [ ] Ne pas merger `main` ni créer Release sans validation Fab.
