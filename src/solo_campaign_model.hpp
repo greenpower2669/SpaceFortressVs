@@ -54,6 +54,28 @@ struct Physics {
     float thrust=5.0f*SOLO_REACTIVITY_MULTIPLIER;
     float damping=0.35f;
     float maxSpeed=7.0f*SOLO_REACTIVITY_MULTIPLIER;
+    // Arcade-style continuous travel, controlled by direction and throttle,
+    // NOT by chasing a finite finger destination. The last command remains
+    // active when the finger is lifted, until a new steering gesture.
+    void stepCruise(Pilot &p,float dirX,float dirY,float throttle,
+                    float visibleWorldColumns,float dt,
+                    float mobility=1.0f) const {
+        dt=std::clamp(dt,0.0f,.05f);
+        mobility=std::clamp(mobility,.25f,1.0f);
+        throttle=std::clamp(throttle,0.0f,1.0f);
+        const float magnitude=std::hypot(dirX,dirY);
+        const float targetSpeed=std::max(1.0f,visibleWorldColumns)*
+                                1.90f*mobility*throttle;
+        const float targetVX=magnitude>.0001f ?
+                            dirX/magnitude*targetSpeed:0.0f;
+        const float targetVY=magnitude>.0001f ?
+                            dirY/magnitude*targetSpeed:0.0f;
+        const float blend=1.0f-std::exp(-12.0f*dt);
+        p.vx+=(targetVX-p.vx)*blend;
+        p.vy+=(targetVY-p.vy)*blend;
+        p.x+=p.vx*dt;
+        p.y+=p.vy*dt;
+    }
     // Same target-vector and finite linear movement as CLASSIC human touch.
     // The common helper is called by tactical_runtime.hpp too. SOLO adds
     // collision sweeps and temporary environmental penalties outside it.
