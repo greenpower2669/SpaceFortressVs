@@ -35,6 +35,6 @@ Cette mise à jour rend le bouclier cinétique plus lisible et plus fragile lors
 
 **APPLICATION DIAGNOSTIC SEPAREE — installation cote a cote, sans desinstaller le SpaceFortress original. Les sauvegardes et donnees sont isolees.**
 
-Certificat APK : `947cdda5584c29471f2d1862a8cdf2ff29d5afccd8f08387ebf356acbfbf9397`.
+Certificat APK : `41a162938babe6ee9fde2a104a5cfbebe137d733c8ec425090b621448f1f77a2`.
 
-Commit : `1088c2657642b603fb85b5cba5e7e839152f9890`.
+Commit : `908749e7119a0bb536b336a64b324516a94ad7c4`.

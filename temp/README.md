@@ -1,10 +1,10 @@
 # SpaceFortress — SOLO sur le vrai moteur COOP
 
 Fichiers extraits (sans ZIP) depuis la CI VERTE :
-https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38174175100
+https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38178801383
 
 Branche : feature/solo-coop-core-v1
-Commit source testé : 1088c2657642b603fb85b5cba5e7e839152f9890
+Commit source testé : 908749e7119a0bb536b336a64b324516a94ad7c4
 
 - SpaceFortressVs-1.4.2.apk : APK diagnostic installable, identité
   Android indépendante : com.greenpower2669.spacefortressvs.diagnostic.
@@ -24,8 +24,12 @@ basée sur la vraie position, deuxième doigt = tir/cône 360.
 L'arène témoin BOSS TEST reste disponible pour comparaison.
 Correction retour Samsung : le vaisseau bleu historique est dessiné
 dans le viewport REEL de l'écran, et non dans une fenêtre GPU aussi
-grande que la carte. Le doigt doit être rattrapé AVANT que la caméra
-commence à prélever son déplacement ; murs et vitesse COOP inchangés.
+grande que la carte. Le doigt est d'abord rattrapé par la vraie
+physique COOP, puis le maintien du doigt en COURONNE EXTERIEURE
+continue à propulser le même pilote dans cette direction.
+La caméra défile avec le mouvement REEL (jamais artificiellement),
+et s'arrête sur ROCK ou quand le doigt est relevé.
+Les vitesses de chaque couronne restent calées sur le COOP physique.
 Test headless SDL2 vérifie les pixels du vaisseau et le viewport.
 Le parcours reste EXPERIMENTAL : pas encore de progression,
 boss final, collisions projectiles/parois, ni atlas définitifs.
