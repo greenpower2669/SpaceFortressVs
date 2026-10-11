@@ -2,10 +2,10 @@
 
 APK Android arm64 directe (pas un ZIP). C'est le build DIAG de
 la branche `feature/solo-worlds-tutorials-v1`, commit
-`993bbdd3cc047bfc2ccc6b283a3e2f4de018d683`.
+`47e92eac2ac026fc7194daa91283705e39f27c6c`.
 
-Fichier : `SpaceFortress-SOLO-DIAG-993bbdd3.apk`
-SHA-256 : `4c438f2642da1ae34c05a07cd08d90b6483b65e8df49b1e69883e4cad5a50cfe`
+Fichier : `SpaceFortress-SOLO-DOIGT-ZONES-DIAG-47e92eac.apk`
+SHA-256 : `d03ec935ecb28a2035e14c3ec460b8c612e8a47bebb82b2e4067ddbd34104274`
 
 Application de test séparée : `com.greenpower2669.spacefortressvs.diagnostic`.
 Ne pas désinstaller le SpaceFortress historique pour ce test.
