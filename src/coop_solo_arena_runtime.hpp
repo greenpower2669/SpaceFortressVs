@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <coop_solo_charge_audio.hpp>
 
 // Keep a build-time guarantee that Android's historical HOME/HELP overlay
 // cannot hijack the experimental window's final presentation. The macro is
@@ -70,7 +71,8 @@ extern "C" int runCoopSoloArena(){
             sfArenaW,sfArenaH,int(sfCoop.pilots.activeMask),sfCoop.bossPresent);
 
     bool audioInit=false,mixerOpen=false;
-    Mix_Chunk *shotCue=nullptr,*hitCue=nullptr,*chargeCue=nullptr,*releaseCue=nullptr;
+    Mix_Chunk *shotCue=nullptr,*hitCue=nullptr;
+    SfCoopSoloChargeCueGate chargeCueGate;
     if(SDL_InitSubSystem(SDL_INIT_AUDIO)==0){
         audioInit=true;Mix_Init(MIX_INIT_OGG);
         if(Mix_OpenAudio(44100,MIX_DEFAULT_FORMAT,2,2048)==0){
@@ -78,8 +80,10 @@ extern "C" int runCoopSoloArena(){
             Mix_AllocateChannels(12);
             shotCue=Mix_LoadWAV("resources/assets/sounds/laser2.ogg");
             hitCue=Mix_LoadWAV("resources/assets/sounds/explo1.ogg");
-            chargeCue=Mix_LoadWAV("resources/assets/sounds/kinetic_charge.wav");
-            releaseCue=Mix_LoadWAV("resources/assets/sounds/kinetic_release.wav");
+            // The SAME kinetic audio implementation as historical COOP:
+            // charge at .20 s, READY at 2 s, quiet hold, then release/cancel.
+            sfKineticAudioEnsure();
+            sfKineticAudioReset();
         }
     }
 
@@ -109,11 +113,12 @@ extern "C" int runCoopSoloArena(){
         const float held=sfKineticSurges[1].heldSeconds;
         const bool fire=sfKineticSurges[1].held&&held<.20f;
         const bool purge=sfKineticSurgeRelease(1);
-        if(fire)sfCoopFire(1);
+        chargeCueGate.reset();
         if(purge){
             sfKineticPurgeAsteroids(1); // real historical radial discharge
-            if(mixerOpen&&releaseCue)Mix_PlayChannel(-1,releaseCue,0);
-        }
+            if(mixerOpen)sfKineticAudioRelease(1);
+        }else if(mixerOpen)sfKineticAudioCancel(1);
+        if(fire)sfCoopFire(1);
     };
     // CI-only deterministic lifetime. No timer or in-game automation in user
     // builds unless a test runner explicitly sets this environment variable.
@@ -125,7 +130,8 @@ extern "C" int runCoopSoloArena(){
         while(SDL_PollEvent(&event)){
             if(event.type==SDL_QUIT){running=false;break;}
             if(event.type==SDL_APP_DIDENTERBACKGROUND){
-                sfCampaignSuspend();moveFinger=aimFinger=-1;mouseAimHeld=false;
+                sfCampaignSuspend();chargeCueGate.reset();
+                moveFinger=aimFinger=-1;mouseAimHeld=false;
                 continue;
             }
             if(event.type==SDL_APP_DIDENTERFOREGROUND){
@@ -139,7 +145,7 @@ extern "C" int runCoopSoloArena(){
                 if(event.key.keysym.sym==SDLK_b)beginBoss();
                 if(event.key.keysym.sym==SDLK_SPACE&&!mouseAimHeld){
                     mouseAimHeld=true;sfKineticSurgePress(1);
-                    if(mixerOpen&&chargeCue)Mix_PlayChannel(-1,chargeCue,0);
+                    chargeCueGate.reset(); // no sound during the first 0.20 s
                 }
             }
             if(event.type==SDL_KEYUP&&event.key.keysym.sym==SDLK_SPACE&&mouseAimHeld){
@@ -162,7 +168,7 @@ extern "C" int runCoopSoloArena(){
                         c.finger=id;c.down=true;c.target=tupl(tx,ty);
                     }else if(aimFinger<0&&id!=moveFinger){
                         aimFinger=id;aimAt(tx,ty);sfKineticSurgePress(1);
-                        if(mixerOpen&&chargeCue)Mix_PlayChannel(-1,chargeCue,0);
+                        chargeCueGate.reset(); // no sound during the first 0.20 s
                     }
                 }else if(event.type==SDL_FINGERMOTION){
                     if(id==moveFinger)sfCoop.controls[1].target=tupl(tx,ty);
@@ -187,7 +193,16 @@ extern "C" int runCoopSoloArena(){
         if(sfCoop.phase==SfCoopPhase::Combat){
             // EXACT historic split: ceil(dt*90), never advance in renderer.
             const int substeps=std::max(1,int(std::ceil(dt*90.0f)));
-            for(int i=0;i<substeps;++i)sfCoopTick(dt/substeps);
+            for(int i=0;i<substeps;++i){
+                sfCoopTick(dt/substeps);
+                // Start the true kinetic charge sound only when the actual
+                // COOP field becomes visible and vulnerable (0.20 s).
+                if(chargeCueGate.startWhenVisible(sfKineticSurges[1])){
+                    if(mixerOpen)sfKineticAudioStartCharge(1);
+                    SDL_Log("SOLO_COOP_CHARGE_SOUND_START held=%.3f",
+                        sfKineticSurges[1].heldSeconds);
+                }
+            }
         }
         SDL_SetRenderDrawColor(renderer,4,9,23,255);SDL_RenderClear(renderer);
         sfCoopDrawArena(renderer,width,height);
@@ -221,11 +236,19 @@ extern "C" int runCoopSoloArena(){
         SDL_Delay(1);
         if(smokeFrames>0&&--smokeFrames==0)running=false;
     }
-    sfCampaignSuspend();
+    sfCampaignSuspend();chargeCueGate.reset();
     sfFixResetAsteroidField();sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
     if(mixerOpen)Mix_HaltChannel(-1);
-    for(Mix_Chunk *p:{shotCue,hitCue,chargeCue,releaseCue})if(p)Mix_FreeChunk(p);
-    if(mixerOpen)Mix_CloseAudio();
+    for(Mix_Chunk *p:{shotCue,hitCue})if(p)Mix_FreeChunk(p);
+    if(mixerOpen){
+        // This Android :coopsolo process owns the historical kinetic chunks.
+        // Halt before free; no pointers survive its audio device.
+        sfKineticAudioReset();
+        for(Mix_Chunk *p:{sfKineticAudio.charge,sfKineticAudio.ready,
+                          sfKineticAudio.release})if(p)Mix_FreeChunk(p);
+        sfKineticAudio=SfKineticAudioState{};
+        Mix_CloseAudio();
+    }
     if(audioInit){Mix_Quit();SDL_QuitSubSystem(SDL_INIT_AUDIO);}
     sfCampaignForgetRenderer(renderer);
     SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);

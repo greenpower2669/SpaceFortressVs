@@ -31,6 +31,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: COOP active pilot masks (solo absent is NOT defeated)
         run: g++ -std=c++17 -O2 -Wall -Wextra tests/coop_pilot_roster_regressions.cpp -o /tmp/coop-pilot-roster && /tmp/coop-pilot-roster
+      - name: SOLO cone charge audio starts at 0.20 s, not on finger-down
+        run: g++ -std=c++17 -O2 -Wall -Wextra tests/coop_solo_charge_audio_regressions.cpp -o /tmp/coop-solo-audio && /tmp/coop-solo-audio
       - name: Historical 360-degree cone axis matches COOP vertical canon
         run: g++ -std=c++17 -O2 -Wall -Wextra tests/coop_solo_cone_axis_regressions.cpp -o /tmp/coop-solo-cone && /tmp/coop-solo-cone
       - name: Historical COOP projectile parity (deterministic reference)
