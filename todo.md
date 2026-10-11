@@ -372,3 +372,20 @@
 - [x] Android : workflow `38154338078` sur `7012a3b5` ENTIÈREMENT VERT (core, SDL2, Android), SHA256 APK `a3c20d17706082c78c983549fe290d85364cf86ace77b6aaa2dc749c82c709db`. APK DIAG 94 103 112 octets dans `temp/SpaceFortress-SOLO-PAROIS-AUTOTILES-7012a3b5-DIAG.apk` sur la branche via export vert `38154942723`. Test Samsung sur couloirs H/V/L/T/croix reste à faire.
 - [ ] Vérifier qualité des dégradés et jonctions sur téléphone; retoucher si restes de carrés ou découpes aberrantes.
 - [ ] Ne pas merger `main` ni créer Release sans validation Fab.
+
+
+## 2026-10-11 — ASTRA-COOP-SOLO-ARCH-001 — audit et migration proposée
+
+- [x] Lire les cinq mémoires et inspecter la branche de référence au SHA `1d8a48e2`, le graphe Android, les composants COOP/SOLO, FabLib, tests et PNG.
+- [x] Consulter la CI existante `38154338078` sur `7012a3b5` : core/SDL2/Android réussis. Aucun nouveau run lancé ; aucune validation Samsung déduite de ce résultat.
+- [x] Conserver [l'ordre intégral](docs/audits/2026-10-11-mission-astra-coop-solo.md), produire [l'audit A–G et ses preuves](docs/audits/2026-10-11-coop-solo-architecture.md), mettre à jour les cinq mémoires sans effacer l'historique.
+- [ ] **Fab : valider la fondation proposée** — extraction progressive du COOP, code commun, contextes isolés, parité en arène avant labyrinthe. Pas encore d'autorisation d'implémenter.
+- [ ] Après validation : détailler puis exécuter le premier lot ; témoin COOP reproductible (inputs, hasard, temps, traces et captures), extraction par sous-système avec façade historique.
+- [ ] Contextualiser états/joueurs/champ/boss/sons/charge ; masque des pilotes actifs ; aucune écriture de sauvegarde COOP depuis SOLO ; ressources liées au renderer et cycle Android explicite.
+- [ ] Premier SOLO canonique en arène : mêmes sprites/proportions, nrj, armes, guidage, cinétique/minage/poussières/sons/FX ; un pilote ; possibilité de simuler sans boss actif.
+- [ ] Monde et caméra : métrique de combat stable, projection seule, collisions de coque et tirs, cercle 0..6. Valider avec Fab l'unité des vitesses (4,32 actuel vs 3,10 COOP), sans ajustement arbitraire caché.
+- [ ] Rebrancher carte/générateur/relais/minimap/progression ; préserver SFSOLO1. Une reprise complète de partie est une éventuelle fonctionnalité distincte.
+- [ ] Régions de rencontres, profils historiques/miniboss et boss final éloigné ; Danger 1..9 ; mapping de profils explicite ; règles d'occlusion des ondes à arrêter avant ce lot.
+- [ ] Préparer atlas/manifeste et continuité remplissage/contours ; vérifier les assemblages des vraies images, puis sur Samsung.
+- [ ] Après autorisation : tests de parité, non-régression CLASSIQUE/COOP, cycle Android, CI du commit exact, APK diagnostic ARM64 correctement nommée ; essai Samsung avant retrait du vieux combat SOLO.
+- [ ] Aucun merge main, aucune modification de src/main.cpp ni Release sans autorisation correspondante. La liste ci-dessus est un plan proposé, pas un ensemble de fonctionnalités livrées.

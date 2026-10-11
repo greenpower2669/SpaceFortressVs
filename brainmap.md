@@ -379,3 +379,14 @@ CLASSIQUE DUEL local :
 ## SOLO — reprise rapide du lot 006, parois réellement orientées
 - Code : `src/solo_scenery.hpp` (autotiling 4 voisins, 16 masques, rotations et hash stables) et `src/solo_renderer.hpp` (découpe des vraies planches en textures individuelles transparentes, rendu par masque, animations discrètes sans oscillation de variante).
 - Tests : `tests/solo_atlas_regressions.cpp`. Sources originalement issues de `main`, à `assets/pict/solo/*.png` sur branche de travail. Ni physique, ni arme, ni camera circulaire modifiées par cette mission. CI Android run `38154338078` lancé sur `7012a3b5`; retester sur téléphone.
+
+
+## Reprise — ASTRA-COOP-SOLO-ARCH-001 (11 octobre 2026)
+
+- Lire d'abord [la mission Fab](docs/audits/2026-10-11-mission-astra-coop-solo.md), puis [l'audit et les lots proposés](docs/audits/2026-10-11-coop-solo-architecture.md). Branche documentaire `audit/coop-solo-foundation-20261011` ; référence applicative `1d8a48e2` / code 7012a3b5.
+- Entrée réelle : `sdl_entry.cpp` → SDL_main historique OU runSoloPrototype. CMake Android → prepare-legacy-source.cmake + patch-classic-danger.cmake → main_android_compat.cpp + solo_prototype.cpp liés dans libmain.so ; activité SOLO en processus :solo.
+- Socle historique : main.cpp → t.hpp/FabLib + th2.h → tactical_runtime / legacy_field_primitives / legacy_field_runtime / campaign_runtime. `sfTacticsBeginFrame` fournit les métriques ; `sfCoopTick` / `sfCoopProjectiles` simulent ; `sfCoopDrawArena` rend.
+- Monde existant : solo_map_generator + solo_campaign_model ; navigation : solo_viewport + solo_navigation ; progression : solo_campaign_controller + solo_progression + solo_campaign_persistence.
+- Parois : solo_scenery sélectionne/cadre ; solo_renderer extrait/redimensionne/mire ; tests/solo_atlas_regressions contrôle la géométrie attendue, pas les jonctions des PNG réels.
+- Cible proposée : un état physique commun, vue séparée, métrique de combat stable, régions de rencontres monde, contrôleurs SOLO/COOP distincts. Aucun de ces nouveaux modules n'est livré par l'audit.
+- Prochaine action : validation de la fondation par Fab, puis détail du premier lot de parité. Ne pas reprendre automatiquement les adaptations indépendantes de solo_combat.

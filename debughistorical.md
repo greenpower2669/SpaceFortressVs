@@ -376,3 +376,18 @@
 - Symptômes photo Fab : parois répétitives toujours horizontales, coins tournés à l'envers, collage de vignettes brunes et bleu-violet carrées et animation peu naturelle.
 - Cause prouvée : `soloWallAtlasSample(theme,x,y)` renvoyait chaque fois une bande horizontale de l'illustration, étirée au carré pour tous les murs, sans tenir compte des voisins; `soloEnvironmentAtlasSample` copiait des zones de présentation trop larges avec fond parasite. Le découpage alpha par seuil RGB supprimait même des zones sombres du rocher.
 - Remède : masque topology N/E/S/W dans `solo_scenery.hpp`; vraie image coin source est une forme «┐» (liaisons Ouest+Sud=masque12, angle0), rotations corrigées pour tous les coins; extrémités horizontales/verticales orientées séparément. Images découpées au chargement, seuil alpha et adoucissement des bords, décorations peu nombreuses et phase calculée depuis coordonnées fixes. Tests systématiques de tous les masques, de leurs rotations, des bornes/catégories du sprite.
+
+
+## 2026-10-11 — ASTRA-COOP-SOLO-ARCH-001 — constats d'audit, non corrigés
+
+Référence `1d8a48e2`. [Preuves, chemins et propositions](docs/audits/2026-10-11-coop-solo-architecture.md). Aucune nouvelle exécution Android ou reproduction Samsung.
+
+- **Parité incomplète :** solo_canonical_adapter est testé avec FakeShip mais non raccordé à la boucle COOP. Session/Combat/Renderer réimplémentent une partie du comportement. Les tests locaux de formules ne constituent pas une comparaison de simulations.
+- **Unités :** les tirs SOLO emploient map.width=54 comme référence, alors que la vue expose 6 colonnes. La largeur du monde influence alors le comportement apparent. Séparer référence de combat / monde / région de rencontre / viewport avant toute migration.
+- **Caméra :** le pan maximal 6×0,72 = 4,32 largeurs/s dépasse le plafond COOP 3,10 ; la navigation actuelle augmente son plafond avec le pan. La mémoire antérieure disant simplement « aligné 3,10 » ne décrit pas cette combinaison. Le fallback clavier utilise encore les rectangles.
+- **Contacts :** le sweep de Session vérifie le centre contre les cases rocheuses, pas le volume complet de la coque. Le repoussement historique par boss nécessite aussi une résolution contre parois ; le seul déplacement tactile ne suffit pas.
+- **Rendu :** textures et proportions du SOLO ne sont pas celles de sfCoopDrawArena. Boss en case et missiles visant un point fixe ne sont pas les systèmes historiques.
+- **Parois :** planche à colonnes inégales mais découpe theme×256 ; redimensionnement carré de formes allongées ; miroir après rotation des coins pouvant invalider leur masque ; alpha et chevauchement ne garantissent pas une continuité. Les correctifs précédents restent présents, mais leur efficacité visuelle complète n'est pas prouvée.
+- **Compilation/états :** FabLib définit variables et fonctions non inline dans un header non gardé. Ajouter son inclusion à plusieurs unités peut introduire des définitions multiples. Les globals inline de cinétique restent partagés dans un processus. Aucun nouvel échec de compilation n'est allégué : cette branche n'a pas été recompilée pour l'audit.
+- **Règles actuelles à préserver :** activation/vulnérabilité cinétique à 0,20 s, prêt à 2 s ; sfKineticSurgePower renvoie zéro pendant l'activité. Ne pas réintroduire l'ancien délai 0,30 s ni l'ancienne amplification de protection ×2 pendant la charge issus de mémoires plus anciennes.
+- Décision corrective proposée : extraction graduelle avec comparaison réelle au témoin COOP. **Attendre validation Fab avant code.**

@@ -466,3 +466,15 @@
 - Correctif dans `src/solo_scenery.hpp` : masque N/E/S/W (16 configurations), sélection des formes isolé/H/V/coin/T/croix/extrémité, rotation basée sur la direction physique de la planche, variantes déterministes hachées en coordonnées MONDE.
 - Correctif `src/solo_renderer.hpp` : extraction transparente UNE FOIS au chargement des vrais PNG `assets/pict/solo/ParoisModeSolo.png` et `EnvironnementsModeSolo.png`. Pas de découpe live d'un morceau entier de planche; fonds de carte supprimés par alpha, bordures adoucies, décorations indépendantes/non-collidables et animation alpha/taille/translation douce avec phase stable.
 - Les deux sources PNG restent inchangées et `main`/modes historiques restent intacts; tests 16 configurations et bornes images dans `tests/solo_atlas_regressions.cpp`. Validation visuelle sur Samsung nécessaire après CI Android.
+
+
+## 2026-10-11 — ASTRA-COOP-SOLO-ARCH-001 — résultat d'audit, fondation proposée
+
+- [Ordre Fab intégral](docs/audits/2026-10-11-mission-astra-coop-solo.md) et [audit A–G sourcé](docs/audits/2026-10-11-coop-solo-architecture.md), référence `1d8a48e2` sur `feature/solo-worlds-tutorials-v1`.
+- Constat : SOLO possède toujours Session/Combat/Renderer autonomes. Le partage de règles énergie/cinétique est réel ; l'adaptateur canonique n'est pas raccordé en production. Les libellés historiques « canonique » des lots 004–006 ne prouvent pas la parité du moteur complet.
+- Écarts concrets : assets COOP player_blue/orbebb contre SOLO sb/orbeb ; guidage prédictif du boss mobile contre point de visée ; boss local en case ; astéroïdes en grille contre objets dynamiques ; proportions et bases de vitesse différentes.
+- **Proposition à valider :** extraction progressive des corps de fonctions COOP vers un socle commun, façade compatible pour les appels historiques, contexte par session. Aucun deuxième moteur permanent, aucun remplacement général de FabLib, aucune conversion globale en ECS.
+- Conservables : générateur/carte, relais, exploration, contrôleur de progression, minimap et format SFSOLO1. Ce format sauvegarde les niveaux terminés, pas une partie entière en cours. Les mécaniques de combat SOLO provisoires sortiront de production seulement après preuve de parité.
+- Le COOP dépend de l'unité historique et du main Android généré ; ses headers ne sont pas autonomes. Les globaux de FabLib, joueurs, champs, cinétique et sons doivent être traités explicitement. Une variable inline n'est pas une variable par session.
+- Point à décider au lot navigation : pan maximal actuel = 4,32 largeurs visibles/s, plafond humain COOP = 3,10 largeurs d'arène/s. Conserver la courbe 0..6 exige de préciser son unité ou d'autoriser un plafond SOLO adapté ; aucun coefficient silencieux.
+- **Statut : audit documentaire uniquement.** Pas de code/asset modifié, pas de test/build/APK/Release lancé. La CI existante 38154338078 est verte sur 7012a3b5 ; elle ne valide pas la future architecture ni les captures Samsung.

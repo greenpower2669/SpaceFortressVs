@@ -518,3 +518,16 @@ L'ordre antérieur « deux rectangles progressifs » est précisé sans modifica
 
 ## 11 octobre 2026 — Ordre de mission SOLO-SCENERY-AUTOTILE-006
 Demande explicite « Ok code ça » de Fab après sa capture montrant mauvais sens des parois et sprites collés. Corriger uniquement le rendu du mode SOLO : voisinage 4 directions, orientation, vrais sprites isolés/alpha propre, décoration classée et animation stable. Moteur dans `src/solo_scenery.hpp`, rendu SDL2 dans `src/solo_renderer.hpp`, tests `tests/solo_atlas_regressions.cpp`. Intégration sur `feature/solo-worlds-tutorials-v1`; protections : garder la géométrie circulaire de caméra, les valeurs énergie, tirs, cône, bouclier, physique et les autres modes. Pas de merge/main ni Release. CI de vérification `38154338078` source `7012a3b5`, test réel Samsung encore à réaliser.
+
+
+## 2026-10-11 — ASTRA-COOP-SOLO-ARCH-001 — ordre Fab : audit avant implémentation
+
+- **Demandeur : Fab.** Branche de référence `feature/solo-worlds-tutorials-v1`, snapshot audité `1d8a48e245a8a019759c1a109a6e21d15e11b770`.
+- **Ordre intégral conservé séparément :** [mission reçue](docs/audits/2026-10-11-mission-astra-coop-solo.md). Ce texte fait référence pour les exigences ; le plan technique ne le remplace pas.
+- Renverser la fondation : partir du véritable COOP, avec ses vaisseaux, armes, nrj, bouclier, cône, minage, poussières, sons, FX et IA historiques. Évaluer copie isolée / extraction / autre architecture, sans entretenir deux moteurs indépendants.
+- Ajouter monde explorable, parois, rencontres progressives, miniboss et boss final éloigné ; conserver carte, relais, progression et sauvegardes SOLO. Conserver FabLib lorsque pertinente. Préserver les neuf difficultés historiques.
+- Caméra confirmée : cercles concentriques, vitesses 0 / 0,1→2 / 2,1→6 / 6 ; vaisseau sous le doigt, pan continu doigt immobile, collisions prioritaires. Visée du cône à 360° par second doigt. Simulation en coordonnées monde ; caméra = projection.
+- Contraintes : comportement public CLASSIQUE/COOP préservé, ni modification de main ni Release, compilation C++/Android et isolation des états ; aucune approximation des fonctions historiques. Tests/CI/APK diagnostic prévus **après autorisation**.
+- **Périmètre autorisé maintenant : audit A–G et maintien des cinq mémoires. Implémentation non autorisée à ce stade.** La demande actuelle remplace la poursuite automatique des greffes SOLO antérieures ; leur code demeure disponible.
+- [Audit et proposition](docs/audits/2026-10-11-coop-solo-architecture.md) : extraction progressive, façade historique et contexte par session ; premier jalon de parité en arène. **Proposition de l'agent, pas décision validée par Fab.**
+- Travail consigné sur `audit/coop-solo-foundation-20261011`, uniquement documentation ; aucun changement de source, asset, workflow ou build. Les défauts observés dans le code ne sont pas déclarés corrigés.
