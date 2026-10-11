@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Install SDL2 headers
-        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
       - name: Verify test hub does not replace release launcher
         run: python3 scripts/check-solo-launcher.py
       - name: Compile and test touchscreen selector
@@ -55,7 +55,7 @@ jobs:
       - name: Reproduce 8-second one-finger cruise, release and persistent camera
         run: g++ -std=c++17 -O1 -Wall -Wextra -I src tests/solo_cruise_gesture_regressions.cpp -o /tmp/solo-cruise-test $(sdl2-config --cflags --libs) && /tmp/solo-cruise-test
       - name: Build complete SOLO SDL2 prototype executable
-        run: g++ -std=c++17 -O1 -Wall -Wextra -DSF_SOLO_STANDALONE -I src src/solo_prototype.cpp -o /tmp/spacefortress-solo-prototype $(sdl2-config --cflags --libs) -lSDL2_image
+        run: g++ -std=c++17 -O1 -Wall -Wextra -DSF_SOLO_STANDALONE -I src src/solo_prototype.cpp -o /tmp/spacefortress-solo-prototype $(sdl2-config --cflags --libs) -lSDL2_image -lSDL2_mixer
       - name: Check SOLO executable linked to SDL2
         run: test -x /tmp/spacefortress-solo-prototype && ldd /tmp/spacefortress-solo-prototype | grep -q SDL2
       - name: Verify SOLO runner links without defining a second main
