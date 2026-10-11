@@ -9,6 +9,13 @@
 #include <cmath>
 #include <string>
 
+// Keep a build-time guarantee that Android's historical HOME/HELP overlay
+// cannot hijack the experimental window's final presentation. The macro is
+// intentionally restored in th2.h AFTER this header for historical modes.
+#ifdef SDL_RenderPresent
+#error "SOLO COOP diagnostic must use raw SDL_RenderPresent, not the classic UI router"
+#endif
+
 extern "C" int runCoopSoloArena(){
     SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS,"0");
     if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS)!=0){
@@ -199,6 +206,8 @@ extern "C" int runCoopSoloArena(){
                      sfCoop.bossPresent?"BOSS OFF":"BOSS TEST");
         if(sfCoop.phase==SfCoopPhase::Defeat)
             sfCoopCentered(renderer,width,int(height*.50f),"TEST TERMINE - RETOUR",3);
+        // Raw SDL call: show ONLY this arena's frame. The legacy macro would
+        // apply sfFixRequestedScreen=HOME and repaint the Classic mode selector.
         SDL_RenderPresent(renderer);
         if(mixerOpen){
             sfCoopPlaySounds(nullptr,shotCue,nullptr,hitCue,hitCue);

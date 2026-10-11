@@ -8,6 +8,11 @@
 #define main sfNativeSmokeLegacyMain
 #include "main_android_compat.cpp"
 #undef main
+// Verify the macro is back after the diagnostic definition: CLASSIC/COOP
+// continue using their exact historical presentation wrapper unchanged.
+#ifndef SDL_RenderPresent
+#error "Historical SDL presentation hook not restored after SOLO diagnostic"
+#endif
 
 int main(){
     SDL_setenv("SDL_VIDEODRIVER","dummy",1);

@@ -91,6 +91,22 @@ void th2()
 // bridge. It never adds network work to the renderer and leaves main.cpp intact.
 #include <hall_sync_ui_bridge.hpp>
 
-// Debug-only native COOP-powered SOLO arena. Compiles INSIDE the historical
-// translation unit, so FabLib globals are never defined a second time.
+// Diagnostic COOP/SOLO lives INSIDE the historical single translation unit
+// (FabLib globals stay unique), but must NOT inherit the historical UI's
+// SDL_RenderPresent macro. That wrapper calls sfFixApplyUiRequests(), whose
+// default requested screen is HOME, then paints the CLASSIC selection menu
+// OVER the already-running SOLO arena. This is the Samsung sound-but-menu bug.
+//
+// Scope the real SDL presentation API only to the diagnostic header. Restore
+// the macro immediately afterward: Classic/COOP/Help retain the *exact* same
+// present interception and navigation semantics.
+#ifdef SDL_RenderPresent
+#pragma push_macro("SDL_RenderPresent")
+#undef SDL_RenderPresent
+#define SF_COOP_SOLO_RESTORE_PRESENT_HOOK 1
+#endif
 #include <coop_solo_arena_runtime.hpp>
+#ifdef SF_COOP_SOLO_RESTORE_PRESENT_HOOK
+#pragma pop_macro("SDL_RenderPresent")
+#undef SF_COOP_SOLO_RESTORE_PRESENT_HOOK
+#endif
