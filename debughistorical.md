@@ -422,3 +422,9 @@ Référence `1d8a48e2`. [Preuves, chemins et propositions](docs/audits/2026-10-1
 - Fix `74206425` : enlever le son immédiat et les duplications de Mix_Chunk ; surveiller `sfKineticSurges[1].heldSeconds` après vraie simulation `sfCoopTick`, déclencher une seule fois `sfKineticAudioStartCharge` à 0.20s ; `sfKineticAudioUpdate` (appelé dans la boucle historique) gère READY/quiet hold à 2.00s ; relâchement total joue release + purge, annulation ferme canal. Pause efface état de son.
 - Test déterministe cas 0/.1/.199/.2/2s, double appui, annulation, relâchement. Restent : test audible Samsung, asset charge/ready/release présents dans paquet, aucune garantie sur perception sonore avant essai.
 - L'adaptateur technique phase 2 monde/camera/collision est seulement préparé, non branché : `coop_solo_world_bridge.hpp`. Pas d'écart caché de vitesse (4.32 versus 3.10 à arbitrer).
+
+
+## 11/10/2026 — Validation CI et remise APK SON-003 / WORLD-004
+- Build/test du code exact `9927f0148486eefb5f49a201b9fd0602151c1905` : GitHub Actions `38169721589` VERT, jobs `solo-core-regressions`, `solo-sdl2-ui`, `build-android` tous success ; `publish-release` skipped. 
+- Décompression validée `38170223921` VERTE : `temp/SpaceFortressVs-1.4.2.apk` dans `feature/solo-coop-core-v1`, 94 119 734 octets, SHA256 `47c575b49877dc1af8bceaa966b8201978612edd794a9b7e17fe987726bfd33c`, package Android diagnostic séparé. AAB non signé SHA256 `635fbc4dfac186a27f51155e34123e90218491af80efb0cf8ae02bdf74279f92`.
+- Le son de charge 0,20s / READY 2,0s est implémenté mais non encore écouté sur Samsung par Fab. Phase2 pont monde/collision/caméra testé isolément, PAS encore disponible dans l'arène interactive. Pas de merge `main`, aucun changement `src/main.cpp`, aucune Release.

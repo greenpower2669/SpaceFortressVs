@@ -418,3 +418,9 @@ CLASSIQUE DUEL local :
 - Branche : `feature/solo-coop-core-v1`. Fix diagnostic sonore `74206425` : déclenchement WAV charge au vrai seuil 0.20s, READY 2s par `sfKineticAudioUpdate`, fond discret post READY, stop/purge au lever et reset Android. Contrôle `coop_solo_charge_audio.hpp` et test correspondant.
 - Interface monde `coop_solo_world_bridge.hpp` : depuis vraie carte `solo_map_generator`, projection monde/écran, caméra concentrique réutilisée, contrôle collision/swept glissement coque et pan fondé sur delta autorisé du pilote. Tests `coop_solo_world_bridge_regressions.cpp`. Unités combat indépendantes de l'étendue carte.
 - **NE PAS annoncer phase2 jouable** ; bridge reste isolé du rendu/tick COOP de production. Ensuite choix d'intégration de la caméra et du rendu historique avec tests Android, sans deuxième moteur.
+
+
+## 11/10/2026 — Validation CI et remise APK SON-003 / WORLD-004
+- Build/test du code exact `9927f0148486eefb5f49a201b9fd0602151c1905` : GitHub Actions `38169721589` VERT, jobs `solo-core-regressions`, `solo-sdl2-ui`, `build-android` tous success ; `publish-release` skipped. 
+- Décompression validée `38170223921` VERTE : `temp/SpaceFortressVs-1.4.2.apk` dans `feature/solo-coop-core-v1`, 94 119 734 octets, SHA256 `47c575b49877dc1af8bceaa966b8201978612edd794a9b7e17fe987726bfd33c`, package Android diagnostic séparé. AAB non signé SHA256 `635fbc4dfac186a27f51155e34123e90218491af80efb0cf8ae02bdf74279f92`.
+- Le son de charge 0,20s / READY 2,0s est implémenté mais non encore écouté sur Samsung par Fab. Phase2 pont monde/collision/caméra testé isolément, PAS encore disponible dans l'arène interactive. Pas de merge `main`, aucun changement `src/main.cpp`, aucune Release.

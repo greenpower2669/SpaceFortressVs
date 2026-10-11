@@ -552,3 +552,9 @@ Fab confirme l'écran est le menu de sélection CLASSIQUE, tandis que les sons d
 
 ## 11/10/2026 — Ordre Fab : son de charge + lancement deuxième phase d'Astra
 Fab valide visuellement le nouveau SOLO/COOP après correction du menu ; signale que le son de charge du cône à 2 doigts ne démarre plus au bon seuil, le reste fonctionne. Demande de le corriger **avec** la deuxième phase architecturale. Seuils canon confirmés en code : activation 0.20s, READY 2.00s, fond discret puis déflagration sur purge. Code `74206425` isole le son local et réutilise vrai moteur sonore COOP ; tests audio ajoutés. Démarrage technique phase2 en `f5197d2b` puis `9927f014` : `coop_solo_world_bridge.hpp` reliant carte existante, projections, caméra et collisions swept, indépendamment de la largeur de combat. **Ne pas confondre tests bridge avec intégration monde visible/active**. Vérifier CI et APK Samsung, puis brancher au vrai COOP par lots sans duplication ni modification de `src/main.cpp`, merge main ou Release.
+
+
+## 11/10/2026 — Validation CI et remise APK SON-003 / WORLD-004
+- Build/test du code exact `9927f0148486eefb5f49a201b9fd0602151c1905` : GitHub Actions `38169721589` VERT, jobs `solo-core-regressions`, `solo-sdl2-ui`, `build-android` tous success ; `publish-release` skipped. 
+- Décompression validée `38170223921` VERTE : `temp/SpaceFortressVs-1.4.2.apk` dans `feature/solo-coop-core-v1`, 94 119 734 octets, SHA256 `47c575b49877dc1af8bceaa966b8201978612edd794a9b7e17fe987726bfd33c`, package Android diagnostic séparé. AAB non signé SHA256 `635fbc4dfac186a27f51155e34123e90218491af80efb0cf8ae02bdf74279f92`.
+- Le son de charge 0,20s / READY 2,0s est implémenté mais non encore écouté sur Samsung par Fab. Phase2 pont monde/collision/caméra testé isolément, PAS encore disponible dans l'arène interactive. Pas de merge `main`, aucun changement `src/main.cpp`, aucune Release.

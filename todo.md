@@ -432,3 +432,9 @@
 - [ ] Essai Samsung auditif : appui <.20s = tir sans son charge ; maintien .20–2.00s = charge ; 2.00s = READY et fond discret ; relâchement chargé = purge et son ; pause/reset annule.
 - [ ] **Phase 2 non achevée :** raccordement du bridge à un vrai pilote COOP en coordonnées monde et rendu caméra. Ne pas translater fictivement les acteurs pour simuler pan ; valider collision et choix unité de vitesse en préservant les fonctions classiques.
 - [ ] Contrôler que CLASSIQUE/COOP conservent son original et leurs états ; aucun merge main/Release.
+
+
+## 11/10/2026 — Validation CI et remise APK SON-003 / WORLD-004
+- Build/test du code exact `9927f0148486eefb5f49a201b9fd0602151c1905` : GitHub Actions `38169721589` VERT, jobs `solo-core-regressions`, `solo-sdl2-ui`, `build-android` tous success ; `publish-release` skipped. 
+- Décompression validée `38170223921` VERTE : `temp/SpaceFortressVs-1.4.2.apk` dans `feature/solo-coop-core-v1`, 94 119 734 octets, SHA256 `47c575b49877dc1af8bceaa966b8201978612edd794a9b7e17fe987726bfd33c`, package Android diagnostic séparé. AAB non signé SHA256 `635fbc4dfac186a27f51155e34123e90218491af80efb0cf8ae02bdf74279f92`.
+- Le son de charge 0,20s / READY 2,0s est implémenté mais non encore écouté sur Samsung par Fab. Phase2 pont monde/collision/caméra testé isolément, PAS encore disponible dans l'arène interactive. Pas de merge `main`, aucun changement `src/main.cpp`, aucune Release.
