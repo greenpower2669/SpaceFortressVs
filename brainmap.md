@@ -471,3 +471,7 @@ CLASSIQUE DUEL local :
 
 ## 12/10/2026 — SOLO WORLD CLEANUP-008
 - `src/campaign_runtime.hpp`: garde `soloWorldMode` sur routines tourelles/bonus et rendu; purge des états/projectiles hérités à l'entrée depuis `src/coop_solo_arena_runtime.hpp`. `tests/restoration_regressions.hpp::testSoloWorldExcludesTurretsAndBonuses` + appel depuis `tests/regressions.cpp`. Ne jamais toucher à la caméra validée ni aux combats historiques. CI à contrôler, APK du `temp/` antérieure inchangée tant que non verte.
+
+
+### SOLO CLEANUP-008 — résultat vérifié
+- CI complète verte #38182884348, extraction vérifiée #38182981381 ; source code 518f331, chemin nouveau `temp/solo-world-cleanup-008/` ; ancienne APK intacte. Après test Samsung: murs/projectiles, atlas roche, progression, boss, sauvegardes. Aucun merge/release.

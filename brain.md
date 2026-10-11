@@ -573,3 +573,7 @@
 ## 2026-10-12 — SOLO WORLD CLEANUP-008 (CI à vérifier)
 - Fab a confirmé sur Samsung le pilote bleu / caméra / cône 0,20 s et READY 2 s; préserver CAMERA-HOLD-007. Dans MONDE TEST uniquement, entrée de mode nettoie sfTurrets, durée de tourelles, bonus et projectiles de tourelles; `sfCoopDefences` et `sfCoopBonus` sont inactifs sous `soloWorldMode`, jamais uniquement masqués. Rendu tactique/bonus exclu en WORLD. COOP/CLASSIQUE/DUEL historiques non impactés; test C++ historique dédié.
 - `src/main.cpp` non modifié. CI Android/SDL2/régressions **en attente** pour cette modification, aucune nouvelle APK livrée avant vert. Toujours aucune fusion main/Release.
+
+
+### SOLO CLEANUP-008 — livraison technique CI verte
+- CI Android/SDL2/historique intégrale #38182884348 SUCCESS sur source 518f331 (publication publique SKIPPED); export vérifié #38182981381 SUCCESS, commit GitHub 5138f212. Nouvelle APK sous `temp/solo-world-cleanup-008/SpaceFortressVs-1.4.2.apk` (SHA256 e6ab53161be15f10c8675098d4b7f325b6c1b060edc1ecede7f27ee92ae6820a, 94136121 o). Ancienne APK conservée à la racine `temp/`. Test physique Samsung de cette version encore à effectuer; aucun merge/Release.

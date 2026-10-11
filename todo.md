@@ -506,3 +506,10 @@
 - [ ] Après CI verte, décompresser et vérifier la nouvelle APK, AAB et empreintes sous `temp/`, sans remplacer l'APK antérieure avant validation Samsung de Fab.
 - [ ] Phase 2 ultérieure: atlas de roches définitif, collisions tirs/astéroïdes/parois, chemins/relai, ennemis/boss, sauvegardes.
 - [ ] Aucun merge main ni Release publique; `src/main.cpp` intact.
+
+
+### SOLO CLEANUP-008 — suite après CI verte
+- [x] CI complète #38182884348 verte et publication publique SKIPPED.
+- [x] Export sans ZIP #38182981381 dans `temp/solo-world-cleanup-008/` avec manifeste, checksums, APK, AAB non signé, notes ; contrôle SHA256 OK ; préservation ancienne APK.
+- [ ] Installer et tester le nouvel APK sur Samsung ; confirmer disparition totale tourelles/bonus, mouvements caméra contre roche, charge 0,20s / READY 2s, tirs et poussière.
+- [ ] Poursuivre progressivement parois texturées, collisions projectiles et astéroïdes sur murs, relais, boss, reprises/sauvegardes. Aucune annonce de réalisation avant code/test.

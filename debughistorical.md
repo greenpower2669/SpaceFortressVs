@@ -476,3 +476,7 @@ Référence `1d8a48e2`. [Preuves, chemins et propositions](docs/audits/2026-10-1
 ## 12/10/2026 — SOLO WORLD CLEANUP-008 / prévention régression future
 - Audit: `sfCoopTick` sans boss ne lançait déjà pas les routines bonus/tourelles, mais un boss futur les aurait réactivées. Correction explicite sur le drapeau `soloWorldMode`: aucune mise à jour de l'IA tourelles ni minuteur/apparition/collision de bonus; purge d'entrée des projectiles kind=5 et de l'état tourelles/bonus. Rendues invisibles ET physiquement absentes. Le reste (astéroïdes, poussière, tirs, énergie, caméra) est conservé.
 - Vérification C++ ajoutée avec un boss fictivement présent et un retour à l'arène historique; CI nouvelle à vérifier. Test caméra hors borne corrigé précédemment et non neutralisé.
+
+
+### SOLO CLEANUP-008 — preuve d'intégration
+- CI #38182884348 SUCCESS (solo-core, SDL2, regressions historiques/Android, AAB); nouvelle régression de suppression tourelles/bonus incluse et verte. Export GitHub #38182981381 SUCCESS avec manifest source 518f331, APK SHA256 e6ab53161be15f10c8675098d4b7f325b6c1b060edc1ecede7f27ee92ae6820a. Le précédent test caméra hors bornes demeure strict et vert. Reste confirmation ergonomique Samsung.
