@@ -49,6 +49,9 @@ g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/hall_sync_regressions.cpp" 
 "$sf_test_dir/hall-sync"
 read -r -a sf_sdl_cflags <<< "$(pkg-config --cflags sdl2 SDL2_image SDL2_mixer)"
 read -r -a sf_sdl_libs <<< "$(pkg-config --libs sdl2 SDL2_image SDL2_mixer)"
+g++ -std=c++17 -O1 -Wall -Wextra -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \
+    "$sf_repo/tests/coop_solo_world_bridge_regressions.cpp" "${sf_sdl_libs[@]}" -o "$sf_test_dir/coop-solo-world-bridge"
+"$sf_test_dir/coop-solo-world-bridge"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \
     "$sf_repo/tests/solo_renderer_regressions.cpp" "${sf_sdl_libs[@]}" -o "$sf_test_dir/solo-renderer"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \

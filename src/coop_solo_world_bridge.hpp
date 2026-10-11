@@ -1,0 +1,114 @@
+#pragma once
+// SOLO-COOP-WORLD-002: one physical COOP ship will own the WORLD position.
+// This is a view/collision adapter, NOT another physics integrator or pilot.
+// Reference combat distance = historical arena width, NEVER maze width.
+#include "solo_map_generator.hpp"
+#include "solo_viewport.hpp"
+#include <algorithm>
+#include <cmath>
+#include <optional>
+
+namespace sfsolo {
+struct CoopWorldPoint { float x=0,y=0; };
+struct CoopSoloWorldBridge {
+    Map map;
+    SDL_Rect screen{};
+    float combatWidth=1.0f;
+    float pixelsPerCell=1.0f;
+    float cameraLeft=0,cameraTop=0;
+    bool ready=false;
+    bool create(MapOptions options,SDL_Rect output,float historicCombatWidth){
+        // Never change the original COOP arena, nrj/damage or projectile
+        // scales when the map becomes 54x160 or larger.
+        ready=false;
+        map=generate(options);
+        if(!map.valid()||output.w<=0||output.h<=0||
+           !std::isfinite(historicCombatWidth)||historicCombatWidth<=0)return false;
+        screen=output;
+        combatWidth=historicCombatWidth;
+        pixelsPerCell=historicCombatWidth/(SOLO_REFERENCE_COLUMNS/SOLO_MAP_ZOOM);
+        cameraLeft=cameraTop=0;
+        return ready=true;
+    }
+    float worldWidth() const {return map.width*pixelsPerCell;}
+    float worldHeight() const {return map.height*pixelsPerCell;}
+    float visibleWidth() const {return float(screen.w);}
+    float visibleHeight() const {return float(screen.h);}
+    CoopWorldPoint start() const {
+        for(int y=0;y<map.height;++y)for(int x=0;x<map.width;++x)
+            if(map.at(x,y)==Tile::Start)
+                return {(x+.5f)*pixelsPerCell,(y+.5f)*pixelsPerCell};
+        return {};
+    }
+    void centerOn(CoopWorldPoint ship){
+        cameraLeft=soloClampCamera(ship.x-visibleWidth()*.5f,worldWidth(),visibleWidth());
+        cameraTop=soloClampCamera(ship.y-visibleHeight()*.5f,worldHeight(),visibleHeight());
+    }
+    CoopWorldPoint toScreen(CoopWorldPoint world) const {
+        return {screen.x+world.x-cameraLeft,screen.y+world.y-cameraTop};
+    }
+    CoopWorldPoint toWorld(CoopWorldPoint pixel) const {
+        return {pixel.x-screen.x+cameraLeft,pixel.y-screen.y+cameraTop};
+    }
+    bool canOccupy(CoopWorldPoint world,float radius) const {
+        if(!ready || radius<0 || !std::isfinite(world.x)||!std::isfinite(world.y))return false;
+        // Circle-vs-tile AABB: the ship's HULL, not only its centre,
+        // decides whether a wall is passable. Rock is never passable.
+        const float left=(world.x-radius)/pixelsPerCell;
+        const float right=(world.x+radius)/pixelsPerCell;
+        const float top=(world.y-radius)/pixelsPerCell;
+        const float bottom=(world.y+radius)/pixelsPerCell;
+        for(int iy=int(std::floor(top));iy<=int(std::floor(bottom));++iy)
+            for(int ix=int(std::floor(left));ix<=int(std::floor(right));++ix){
+                if(map.at(ix,iy)!=Tile::Rock)continue;
+                const float minX=ix*pixelsPerCell,maxX=minX+pixelsPerCell;
+                const float minY=iy*pixelsPerCell,maxY=minY+pixelsPerCell;
+                const float nearestX=std::clamp(world.x,minX,maxX);
+                const float nearestY=std::clamp(world.y,minY,maxY);
+                const float dx=world.x-nearestX,dy=world.y-nearestY;
+                if(dx*dx+dy*dy<radius*radius)return false;
+            }
+        return true;
+    }
+    CoopWorldPoint moveWithoutTunnelling(CoopWorldPoint from,CoopWorldPoint to,
+                                         float hullRadius) const {
+        if(!canOccupy(from,hullRadius))return from;
+        const float distance=std::hypot(to.x-from.x,to.y-from.y);
+        const float step=std::max(.5f,pixelsPerCell*.20f);
+        const int count=std::clamp(int(std::ceil(distance/step)),1,200);
+        CoopWorldPoint cursor=from;
+        for(int i=1;i<=count;++i){
+            const float t=float(i)/count;
+            const CoopWorldPoint next{from.x+(to.x-from.x)*t,
+                                      from.y+(to.y-from.y)*t};
+            if(canOccupy(next,hullRadius)){cursor=next;continue;}
+            // Slide along either free axis, but NEVER tunnel through a rock.
+            const CoopWorldPoint slideX{next.x,cursor.y};
+            const CoopWorldPoint slideY{cursor.x,next.y};
+            if(canOccupy(slideX,hullRadius))cursor=slideX;
+            else if(canOccupy(slideY,hullRadius))cursor=slideY;
+            else break;
+        }
+        return cursor;
+    }
+    void panIfShipActuallyMoved(CoopWorldPoint ship,CoopWorldPoint displacement,float dt){
+        if(!ready||dt<=0||!std::isfinite(dt))return;
+        const auto onscreen=toScreen(ship);
+        // Exact existing SOLO concentric law: 0 / 0.1->2 / 2.1->6 / 6.
+        // User arbitration about 4.32 vs 3.10 visible widths/s is still
+        // pending; preserve the already agreed radial speed, do not retune it.
+        const auto pan=soloCirclePan(onscreen.x,onscreen.y,screen,
+                                     visibleWidth()/pixelsPerCell);
+        const float desiredX=pan.vx*pixelsPerCell*std::min(dt,.05f);
+        const float desiredY=pan.vy*pixelsPerCell*std::min(dt,.05f);
+        auto clampToMotion=[](float wanted,float moved){
+            return wanted>0?std::min(wanted,std::max(0.f,moved)):
+                   wanted<0?std::max(wanted,std::min(0.f,moved)):0.f;
+        };
+        cameraLeft=soloClampCamera(cameraLeft+clampToMotion(desiredX,displacement.x),
+                                   worldWidth(),visibleWidth());
+        cameraTop=soloClampCamera(cameraTop+clampToMotion(desiredY,displacement.y),
+                                  worldHeight(),visibleHeight());
+    }
+};
+} // namespace sfsolo
