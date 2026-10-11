@@ -148,18 +148,23 @@ struct Session {
         // and sweep each axis independently in <=.20 world-cell increments.
         // This prevents tunnelling but permits sliding ALONG rocky corridors.
         pilot.x=oldX;pilot.y=oldY;
+        // Once an axis touches rock, it remains blocked for THIS frame.
+        // Never leap beyond a thin wall on the next substep.
+        bool stoppedX=false,stoppedY=false;
         for(int i=1;i<=samples;++i){
             const float part=float(i)/float(samples);
             const float nextX=std::clamp(oldX+dx*part,shipRadius,
                                           float(map.width)-shipRadius);
             const float nextY=std::clamp(oldY+dy*part,shipRadius,
                                           float(map.height)-shipRadius);
-            bool blockedX=map.at(int(nextX),int(pilot.y))==Tile::Rock;
-            if(!blockedX)pilot.x=nextX;
-            else pilot.vx=0;
-            bool blockedY=map.at(int(pilot.x),int(nextY))==Tile::Rock;
-            if(!blockedY)pilot.y=nextY;
-            else pilot.vy=0;
+            const bool blockedX=!stoppedX &&
+                map.at(int(nextX),int(pilot.y))==Tile::Rock;
+            if(blockedX){stoppedX=true;pilot.vx=0;}
+            if(!stoppedX)pilot.x=nextX;
+            const bool blockedY=!stoppedY &&
+                map.at(int(pilot.x),int(nextY))==Tile::Rock;
+            if(blockedY){stoppedY=true;pilot.vy=0;}
+            if(!stoppedY)pilot.y=nextY;
             if((blockedX||blockedY) && collisionCooldown<=0){
                 damage(8);collisionCooldown=.45f;
             }

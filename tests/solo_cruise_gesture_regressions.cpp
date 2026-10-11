@@ -61,8 +61,7 @@ int main(){
         flight.stepCruise(finger.cruiseX,finger.cruiseY,
                           finger.cruiseThrottle,
                           soloViewport(flight,phone).visibleColumns(),dt);
-        soloUpdateCamera(flight,phone,dt,finger.cameraControlX,
-                                        finger.cameraControlY);
+        soloUpdateCamera(flight,phone,dt);
     }
     assert(afterHold-flight.pilot.y>20.0f);
     assert(topAfterHold-flight.viewTop>10.0f);
