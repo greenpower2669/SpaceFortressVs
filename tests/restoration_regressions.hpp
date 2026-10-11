@@ -294,14 +294,21 @@ static void testCoopHeldFingerContinuousWorldCruise()
         const auto p=w->moveWithoutTunnelling({from.x,from.y},{to.x,to.y},hull);
         return tupl(p.x,p.y);
     };
-    Spritej2->setxywh(start.x,start.y,81,81);
+    // Start tiles are at the far SOUTH edge of this generated map.
+    // A fingertip at y=160 needs room for a real camera offset: start.y-160
+    // exceeds soloClampCamera's max worldHeight-visibleHeight/2. Start 250
+    // pixels NORTH, still inside our deterministic open runway, instead of
+    // constructing a camera state that the actual game never allows.
+    Spritej2->setxywh(start.x,start.y-250.0f,81,81);
     Spritej2->sw=Spritej2->sh=81;
     Spritej2->pv=1000;Spritej2->nrj=0;
     sfCoop.controls[1].down=true;
     sfCoop.controls[1].velocity.set(0,0);
     const sfsolo::CoopWorldPoint finger{270,160}; // outer ring, below menu buttons, never moved
-    world.cameraLeft=start.x-finger.x;
-    world.cameraTop=start.y-finger.y;
+    world.cameraLeft=Spritej2->x-finger.x;
+    world.cameraTop=Spritej2->y-finger.y;
+    assert(world.cameraTop <= world.worldHeight()-world.visibleHeight()*.5f);
+    assert(world.cameraTop >= -world.visibleHeight()*.5f);
     const float initialCamera=world.cameraTop;
     const float initialShip=Spritej2->y;
     constexpr float dt=1.0f/60.0f;
