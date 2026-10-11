@@ -249,6 +249,10 @@ extern "C" int runCoopSoloArena(){
                     if(id==moveFinger){
                         moveFinger=-1;sfCoop.controls[1].down=false;
                         sfCoop.controls[1].finger=-1;
+                        // WORLD camera must stop when the steering fingertip
+                        // lifts. Prevent legacy touch inertia from pushing
+                        // the pilot beyond the now-frozen viewport.
+                        if(worldActive)sfCoop.controls[1].velocity.set(0,0);
                     }
                     if(id==aimFinger){
                         aimAt(tx,ty);aimFinger=-1;chargeRelease();
