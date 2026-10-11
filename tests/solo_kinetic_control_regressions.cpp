@@ -22,9 +22,10 @@ int main(){
     assert(control.burstSeconds>.4f);
     assert(control.burstOriginX==s.pilot.x &&
            control.burstOriginY==s.pilot.y);
-    control.advance(.20f);
+    control.advance(.05f);
     assert(control.burstSeconds>0);
-    control.advance(.30f);
+    // The game clamps frame dt to 50 ms; test a real 500 ms animation.
+    for(int i=0;i<10;++i)control.advance(.05f);
     assert(control.burstSeconds==0);
     assert(s.map.at(x,y-1)==Tile::Empty); // forward/up, canonical cone.
     assert(s.map.at(x,y+1)==Tile::Asteroid); // never harvest backwards.
