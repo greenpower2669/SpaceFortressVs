@@ -9,6 +9,7 @@
 #include <cmath>
 #include <string>
 #include <coop_solo_charge_audio.hpp>
+#include <coop_solo_world_bridge.hpp>
 
 // Keep a build-time guarantee that Android's historical HOME/HELP overlay
 // cannot hijack the experimental window's final presentation. The macro is
@@ -87,15 +88,73 @@ extern "C" int runCoopSoloArena(){
         }
     }
 
+    // WORLD TEST is opt-in. Existing canonical one-pilot arena remains the
+    // default, including BOSS TEST and the exact same audio/weapon loops.
+    sfsolo::CoopSoloWorldBridge world;
+    bool worldActive=false;
     SDL_FingerID moveFinger=-1,aimFinger=-1;
+    float moveScreenX=width*.5f,moveScreenY=height*.5f;
+    float aimScreenX=width*.5f,aimScreenY=height*.4f;
     bool mouseAimHeld=false,running=true;
     Uint64 previous=SDL_GetPerformanceCounter(),lastLog=SDL_GetTicks64();
     const double frequency=double(SDL_GetPerformanceFrequency());
+    auto fromFinger=[&](float tx,float ty)->tupl{
+        if(!worldActive)return tupl(tx,ty);
+        const auto point=world.toWorld({tx,ty});
+        return tupl(point.x,point.y);
+    };
     auto aimAt=[&](float tx,float ty){
-        sfCoop.soloAimTarget=tupl(tx,ty);
-        sfCoop.soloKineticAxes.aimAt(1,tx-Spritej2->x,ty-Spritej2->y);
+        aimScreenX=tx;aimScreenY=ty;
+        const auto point=fromFinger(tx,ty);
+        sfCoop.soloAimTarget=point;
+        sfCoop.soloKineticAxes.aimAt(1,point.x-Spritej2->x,point.y-Spritej2->y);
+    };
+    auto setWorldMode=[&](bool enabled){
+        if(enabled==worldActive)return;
+        if(enabled){
+            sfsolo::MapOptions options;
+            options.world=1;options.stage=1;options.difficulty=1;
+            options.width=54;options.height=160;
+            if(!world.create(options,{0,0,width,height},sfArenaW)){
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,"SOLO_COOP_WORLD_MAP_INIT_FAILED");
+                return;
+            }
+        }
+        sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
+        sfFixResetAsteroidField();sfFieldRemainder=0;
+        sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
+        sfCoop.controls[1].velocity.set(0,0);
+        sfKineticSurgeCancel(1);sfKineticAudioCancel(1);
+        chargeCueGate.reset();aimFinger=moveFinger=-1;mouseAimHeld=false;
+        sfCoop.phase=SfCoopPhase::Combat;
+        sfCoop.bossPresent=false;sfCoop.health=sfCoopProfile().health;
+        sfCoop.soloWorldMode=enabled;
+        sfCoop.soloWorldContext=enabled?&world:nullptr;
+        sfCoop.soloWorldWidth=enabled?world.worldWidth():0;
+        sfCoop.soloWorldHeight=enabled?world.worldHeight():0;
+        sfCoop.soloWorldResolve=enabled?
+            +[](void *context,tupl from,tupl desired,float radius)->tupl{
+                const auto *maze=static_cast<sfsolo::CoopSoloWorldBridge*>(context);
+                const auto actual=maze->moveWithoutTunnelling(
+                    {from.x,from.y},{desired.x,desired.y},radius);
+                return tupl(actual.x,actual.y);
+            }:nullptr;
+        worldActive=enabled;
+        const auto start=enabled?world.start():
+            sfsolo::CoopWorldPoint{sfArenaW*.5f,sfArenaH*.72f};
+        Spritej2->x=start.x;Spritej2->y=start.y;
+        sfFixResetSpriteHistory(Spritej2);Spritej2->startup();
+        sfObserved[1]={};
+        if(enabled)world.centerOn(start);
+        sfCoop.controls[1].target=tupl(start.x,start.y);
+        sfCoop.soloAimTarget=tupl(start.x,start.y-120.0f);
+        sfCoop.soloKineticAxes.aimAt(1,0,-1);
+        SDL_Log("SOLO_COOP_WORLD_MODE enabled=%d ship=(%.1f,%.1f) map=%dx%d combatWidth=%.1f",
+            int(enabled),start.x,start.y,enabled?world.map.width:0,
+            enabled?world.map.height:0,sfArenaW);
     };
     auto beginBoss=[&](){
+        if(worldActive)return; // Boss only when a real encounter is enabled.
         // Same boss profile/pattern, not a simplified tile enemy.
         if(sfCoop.bossPresent){
             sfCoop.bossPresent=false;
@@ -143,6 +202,7 @@ extern "C" int runCoopSoloArena(){
                 if(event.key.keysym.sym==SDLK_ESCAPE||event.key.keysym.sym==SDLK_AC_BACK)
                     running=false;
                 if(event.key.keysym.sym==SDLK_b)beginBoss();
+                if(event.key.keysym.sym==SDLK_m)setWorldMode(!worldActive);
                 if(event.key.keysym.sym==SDLK_SPACE&&!mouseAimHeld){
                     mouseAimHeld=true;sfKineticSurgePress(1);
                     chargeCueGate.reset(); // no sound during the first 0.20 s
@@ -158,20 +218,29 @@ extern "C" int runCoopSoloArena(){
                 const float ty=event.tfinger.y*sfArenaH;
                 const SDL_FingerID id=event.tfinger.fingerId;
                 if(event.type==SDL_FINGERDOWN){
-                    // Top-right, distinct from the movement zone: real boss demo.
-                    if(tx>sfArenaW*.68f&&ty<sfArenaH*.13f){
-                        beginBoss();continue;
+                    // These fixed HUD buttons are outside gameplay motion.
+                    if(ty<sfArenaH*.13f && tx>sfArenaW*.35f&&tx<sfArenaW*.65f){
+                        setWorldMode(!worldActive);continue;
+                    }
+                    if(ty<sfArenaH*.13f && tx>sfArenaW*.68f){
+                        if(worldActive)setWorldMode(false);
+                        else beginBoss();
+                        continue;
                     }
                     if(moveFinger<0){
                         moveFinger=id;
+                        moveScreenX=tx;moveScreenY=ty;
                         auto &c=sfCoop.controls[1];
-                        c.finger=id;c.down=true;c.target=tupl(tx,ty);
+                        c.finger=id;c.down=true;c.target=fromFinger(tx,ty);
                     }else if(aimFinger<0&&id!=moveFinger){
                         aimFinger=id;aimAt(tx,ty);sfKineticSurgePress(1);
                         chargeCueGate.reset(); // no sound during the first 0.20 s
                     }
                 }else if(event.type==SDL_FINGERMOTION){
-                    if(id==moveFinger)sfCoop.controls[1].target=tupl(tx,ty);
+                    if(id==moveFinger){
+                        moveScreenX=tx;moveScreenY=ty;
+                        sfCoop.controls[1].target=fromFinger(tx,ty);
+                    }
                     if(id==aimFinger)aimAt(tx,ty);
                 }else{
                     if(id==moveFinger){
@@ -194,7 +263,15 @@ extern "C" int runCoopSoloArena(){
             // EXACT historic split: ceil(dt*90), never advance in renderer.
             const int substeps=std::max(1,int(std::ceil(dt*90.0f)));
             for(int i=0;i<substeps;++i){
-                sfCoopTick(dt/substeps);
+                const float subDt=dt/substeps;
+                const float oldX=Spritej2->x,oldY=Spritej2->y;
+                if(worldActive&&moveFinger>=0)
+                    sfCoop.controls[1].target=fromFinger(moveScreenX,moveScreenY);
+                if(worldActive&&aimFinger>=0)aimAt(aimScreenX,aimScreenY);
+                sfCoopTick(subDt); // ORIGINAL physics in world coords, not a copy
+                if(worldActive&&moveFinger>=0)
+                    world.panIfShipActuallyMoved({Spritej2->x,Spritej2->y},
+                        {Spritej2->x-oldX,Spritej2->y-oldY},subDt);
                 // Start the true kinetic charge sound only when the actual
                 // COOP field becomes visible and vulnerable (0.20 s).
                 if(chargeCueGate.startWhenVisible(sfKineticSurges[1])){
@@ -205,7 +282,23 @@ extern "C" int runCoopSoloArena(){
             }
         }
         SDL_SetRenderDrawColor(renderer,4,9,23,255);SDL_RenderClear(renderer);
-        sfCoopDrawArena(renderer,width,height);
+        if(worldActive){
+            // Fixed sky and mapped corridors, then raw historical COOP actor
+            // drawing shifted by SDL's viewport transform. The simulation
+            // coordinates NEVER change for presentation or for camera pans.
+            sfDrawCampaignSpace(renderer,sfCoop.encounter,sfCoop.time,width,height);
+            world.draw(renderer);
+            SDL_Rect originalViewport{};
+            SDL_RenderGetViewport(renderer,&originalViewport);
+            SDL_Rect worldViewport{
+                -int(std::lround(world.cameraLeft)),
+                -int(std::lround(world.cameraTop)),
+                int(std::ceil(world.worldWidth())),
+                int(std::ceil(world.worldHeight()))};
+            SDL_RenderSetViewport(renderer,&worldViewport);
+            sfCoopDrawArena(renderer,width,height);
+            SDL_RenderSetViewport(renderer,&originalViewport);
+        }else sfCoopDrawArena(renderer,width,height);
         const float energy=sfKineticEnergyFraction(Spritej2->nrj);
         const int margin=std::max(8,width/30),barW=std::max(100,int(width*.43f));
         SDL_Rect lifeBg{margin,height-58,barW,12};
@@ -216,9 +309,13 @@ extern "C" int runCoopSoloArena(){
         SDL_SetRenderDrawColor(renderer,32,31,69,255);SDL_RenderFillRect(renderer,&energyBg);
         SDL_Rect energyBar{margin,height-40,int(barW*energy),10};
         SDL_SetRenderDrawColor(renderer,169,135,242,255);SDL_RenderFillRect(renderer,&energyBar);
-        sfCoopText(renderer,margin,height-85,"COOP CORE - UN PILOTE",width-2*margin,2);
-        sfCoopButton(renderer,{int(width*.67f),8,int(width*.30f),int(height*.08f)},
-                     sfCoop.bossPresent?"BOSS OFF":"BOSS TEST");
+        sfCoopText(renderer,margin,height-85,
+                   worldActive?"MONDE / LABYRINTHE (COOP)":"COOP CORE - UN PILOTE",
+                   width-2*margin,2);
+        sfCoopButton(renderer,{int(width*.355f),8,int(width*.29f),int(height*.08f)},
+                     worldActive?"MONDE ON":"MONDE TEST");
+        sfCoopButton(renderer,{int(width*.68f),8,int(width*.30f),int(height*.08f)},
+                     worldActive?"ARENE":sfCoop.bossPresent?"BOSS OFF":"BOSS TEST");
         if(sfCoop.phase==SfCoopPhase::Defeat)
             sfCoopCentered(renderer,width,int(height*.50f),"TEST TERMINE - RETOUR",3);
         // Raw SDL call: show ONLY this arena's frame. The legacy macro would
@@ -229,9 +326,10 @@ extern "C" int runCoopSoloArena(){
         }
         if(SDL_GetTicks64()-lastLog>3000){
             lastLog=SDL_GetTicks64();
-            SDL_Log("SOLO_COOP_NATIVE_HEARTBEAT ship=(%.1f,%.1f) pv=%.1f nrj=%.2f shots=%zu rocks=%zu boss=%d",
+            SDL_Log("SOLO_COOP_NATIVE_HEARTBEAT ship=(%.1f,%.1f) pv=%.1f nrj=%.2f shots=%zu rocks=%zu boss=%d world=%d camera=(%.1f,%.1f)",
                 Spritej2->x,Spritej2->y,Spritej2->pv,Spritej2->nrj,
-                sfCoop.shots.size(),sa1.size(),sfCoop.bossPresent);
+                sfCoop.shots.size(),sa1.size(),sfCoop.bossPresent,int(worldActive),
+                worldActive?world.cameraLeft:0,worldActive?world.cameraTop:0);
         }
         SDL_Delay(1);
         if(smokeFrames>0&&--smokeFrames==0)running=false;
