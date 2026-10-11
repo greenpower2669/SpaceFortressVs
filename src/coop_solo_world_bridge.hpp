@@ -138,7 +138,9 @@ struct CoopSoloWorldBridge {
             }
         }
     }
-    void panIfShipActuallyMoved(CoopWorldPoint ship,CoopWorldPoint displacement,float dt){
+    void panIfShipActuallyMoved(
+        CoopWorldPoint ship,CoopWorldPoint displacement,float dt,
+        std::optional<CoopWorldPoint> fingerScreen=std::nullopt){
         if(!ready||dt<=0||!std::isfinite(dt))return;
         const auto onscreen=toScreen(ship);
         // Exact existing SOLO concentric law: 0 / 0.1->2 / 2.1->6 / 6.
@@ -146,8 +148,25 @@ struct CoopSoloWorldBridge {
         // pending; preserve the already agreed radial speed, do not retune it.
         const auto pan=soloCirclePan(onscreen.x,onscreen.y,screen,
                                      visibleWidth()/pixelsPerCell);
-        const float desiredX=pan.vx*pixelsPerCell*std::min(dt,.05f);
-        const float desiredY=pan.vy*pixelsPerCell*std::min(dt,.05f);
+        float desiredX=pan.vx*pixelsPerCell*std::min(dt,.05f);
+        float desiredY=pan.vy*pixelsPerCell*std::min(dt,.05f);
+        if(fingerScreen){
+            // The CAMERA must never steal the ship's remaining movement
+            // BEFORE the ship has reached the held fingertip. Previously the
+            // maximum radial pan outran the original COOP 3.10*W/s pilot,
+            // and was clamped to its whole displacement; its screen position
+            // consequently froze BEFORE reaching the finger forever.
+            //
+            // Camera movement is limited to the *excess* of ship movement
+            // beyond the finger, per axis. Once caught up, the camera follows
+            // the ship without separating it from the same stationary touch.
+            const float excessX=onscreen.x-fingerScreen->x;
+            const float excessY=onscreen.y-fingerScreen->y;
+            if(desiredX>0)desiredX=std::min(desiredX,std::max(0.0f,excessX));
+            else if(desiredX<0)desiredX=std::max(desiredX,std::min(0.0f,excessX));
+            if(desiredY>0)desiredY=std::min(desiredY,std::max(0.0f,excessY));
+            else if(desiredY<0)desiredY=std::max(desiredY,std::min(0.0f,excessY));
+        }
         auto clampToMotion=[](float wanted,float moved){
             return wanted>0?std::min(wanted,std::max(0.f,moved)):
                    wanted<0?std::max(wanted,std::min(0.f,moved)):0.f;
