@@ -9,6 +9,7 @@
 #include "solo_touch_controls.hpp"
 #include "solo_prototype.hpp"
 #include "solo_android_diagnostics.hpp"
+#include "solo_audio.hpp"
 #include <SDL2/SDL.h>
 #include <algorithm>
 #include <cmath>
@@ -47,6 +48,9 @@ int runSoloPrototype(){
     sfDebugNativeLog("solo","SDL_RENDERER_OK");
     IMG_Init(IMG_INIT_PNG);
     auto artwork=std::make_unique<sfsolo::SoloAssets>(renderer);
+    auto audio=std::make_unique<sfsolo::SoloSounds>();
+    sfDebugNativeLog("solo",audio->opened?"AUDIO_MIXER_READY":
+                                      "AUDIO_FALLBACK_SILENT");
     sfDebugNativeLog("solo",artwork->ship?"ORIGINAL_SHIP_ASSET_OK":
                                              "SHIP_ASSET_FALLBACK");
     sfsolo::CampaignController campaign;
@@ -137,8 +141,10 @@ int runSoloPrototype(){
                 const auto aimRelease=[&](){
                     if(!campaign.active)return;
                     const bool charged=kinetic.release(*campaign.active);
-                    if(!charged)
-                        combat.fire(*campaign.active,kinetic.targetX,kinetic.targetY);
+                    if(charged)audio->play(sfsolo::SoundCue::Plasma);
+                    else if(combat.fire(*campaign.active,
+                                        kinetic.targetX,kinetic.targetY))
+                        audio->play(sfsolo::SoundCue::Shot);
                     sfDebugNativeLog("solo",charged?
                                     "AIM360_CONE_RELEASE":"AIM360_TAP_FIRE");
                 };
@@ -160,6 +166,7 @@ int runSoloPrototype(){
                     touchAimAt(touch.aimX,touch.aimY);
                     sfDebugNativeLog("solo","AIM360_PRESS");
                     kinetic.press();
+                    audio->play(sfsolo::SoundCue::Charge);
                 }
                 if(action==sfsolo::TouchAction::ChargeReleased){
                     touchAimAt(touch.aimX,touch.aimY);
@@ -172,6 +179,7 @@ int runSoloPrototype(){
                     if(campaign.active)kinetic.aimAt(*campaign.active,
                         campaign.active->pilot.x,campaign.active->pilot.y-7);
                     kinetic.press();
+                    audio->play(sfsolo::SoundCue::Charge);
                 }
                 if(e.type==SDL_KEYUP && e.key.keysym.sym==SDLK_SPACE)
                     aimRelease();
@@ -180,6 +188,7 @@ int runSoloPrototype(){
                     e.button.button==SDL_BUTTON_RIGHT)){
                     touchAimAt(float(e.button.x),float(e.button.y));
                     kinetic.press();
+                    audio->play(sfsolo::SoundCue::Charge);
                 }
                 if(e.type==SDL_MOUSEBUTTONUP &&
                    (e.button.button==SDL_BUTTON_LEFT||
@@ -234,11 +243,18 @@ int runSoloPrototype(){
                                      touch.aimX,touch.aimY,w,h,aimX,aimY);
                 kinetic.aimAt(*campaign.active,aimX,aimY);
             }
+            const bool wasCharged=sfKineticSurges[1].charged;
             kinetic.advance(dt);
+            if(!wasCharged && sfKineticSurges[1].charged)
+                audio->play(sfsolo::SoundCue::Ready);
             if(campaign.active->phase==sfsolo::Phase::Lost)kinetic.cancel();
             // Prototype projectiles remain temporary. Touch 1 steers only;
             // touch 2 / SPACE charges COOP's real kinetic state machine.
             combat.step(*campaign.active,dt);
+            if(combat.pendingImpacts){
+                audio->play(sfsolo::SoundCue::Impact);
+                combat.pendingImpacts=0;
+            }
             if(campaign.active->phase==sfsolo::Phase::Won){
                 // Completion is atomic: update SOLO progression only after a
                 // successful persistent save, then unlock the next stage.
@@ -280,7 +296,7 @@ int runSoloPrototype(){
                 sfsolo::drawCombat(renderer,*campaign.active,combat,{0,0,w,h},
                                    artwork.get());
                 sfsolo::drawKineticCharge(renderer,*campaign.active,
-                                          {0,0,w,h},kinetic);
+                                          {0,0,w,h},kinetic,artwork.get());
                 sfsolo::drawMissionOverlay(renderer,*campaign.active,{0,0,w,h});
             }else{
                 // A successful victory consumes the session; show the selector
@@ -314,6 +330,7 @@ int runSoloPrototype(){
     }
     sfDebugNativeLog("solo","SOLO_LOOP_EXIT");
     kinetic.cancel();sfBossDangerIndex=historicalDanger;
+    audio.reset();
     artwork.reset();
     IMG_Quit();
     SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);SDL_Quit();
