@@ -10,6 +10,7 @@
 #include <string>
 #include <coop_solo_charge_audio.hpp>
 #include <coop_solo_world_bridge.hpp>
+#include <coop_solo_world_draw.hpp>
 
 // Keep a build-time guarantee that Android's historical HOME/HELP overlay
 // cannot hijack the experimental window's final presentation. The macro is
@@ -290,21 +291,12 @@ extern "C" int runCoopSoloArena(){
         }
         SDL_SetRenderDrawColor(renderer,4,9,23,255);SDL_RenderClear(renderer);
         if(worldActive){
-            // Fixed sky and mapped corridors, then raw historical COOP actor
-            // drawing shifted by SDL's viewport transform. The simulation
-            // coordinates NEVER change for presentation or for camera pans.
+            // GPU-safe SCREEN projection, not a 54x160-cell viewport.
+            // Existing COOP simulation and historic actor assets are reused,
+            // no world position is ever overwritten just to draw an image.
             sfDrawCampaignSpace(renderer,sfCoop.encounter,sfCoop.time,width,height);
             world.draw(renderer);
-            SDL_Rect originalViewport{};
-            SDL_RenderGetViewport(renderer,&originalViewport);
-            SDL_Rect worldViewport{
-                -int(std::lround(world.cameraLeft)),
-                -int(std::lround(world.cameraTop)),
-                int(std::ceil(world.worldWidth())),
-                int(std::ceil(world.worldHeight()))};
-            SDL_RenderSetViewport(renderer,&worldViewport);
-            sfCoopDrawArena(renderer,width,height);
-            SDL_RenderSetViewport(renderer,&originalViewport);
+            sfCoopSoloWorldActors(renderer,world);
         }else sfCoopDrawArena(renderer,width,height);
         const float energy=sfKineticEnergyFraction(Spritej2->nrj);
         const int margin=std::max(8,width/30),barW=std::max(100,int(width*.43f));
@@ -333,8 +325,14 @@ extern "C" int runCoopSoloArena(){
         }
         if(SDL_GetTicks64()-lastLog>3000){
             lastLog=SDL_GetTicks64();
-            SDL_Log("SOLO_COOP_NATIVE_HEARTBEAT ship=(%.1f,%.1f) pv=%.1f nrj=%.2f shots=%zu rocks=%zu boss=%d world=%d camera=(%.1f,%.1f)",
-                Spritej2->x,Spritej2->y,Spritej2->pv,Spritej2->nrj,
+            const auto pilotScreen=worldActive?
+                world.toScreen({Spritej2->x,Spritej2->y}):
+                sfsolo::CoopWorldPoint{Spritej2->x,Spritej2->y};
+            const float touchLag=moveFinger>=0?
+                std::hypot(pilotScreen.x-moveScreenX,pilotScreen.y-moveScreenY):0.0f;
+            SDL_Log("SOLO_COOP_NATIVE_HEARTBEAT ship=(%.1f,%.1f) screen=(%.1f,%.1f) finger=(%.1f,%.1f) lag=%.1f pv=%.1f nrj=%.2f shots=%zu rocks=%zu boss=%d world=%d camera=(%.1f,%.1f)",
+                Spritej2->x,Spritej2->y,pilotScreen.x,pilotScreen.y,
+                moveScreenX,moveScreenY,touchLag,Spritej2->pv,Spritej2->nrj,
                 sfCoop.shots.size(),sa1.size(),sfCoop.bossPresent,int(worldActive),
                 worldActive?world.cameraLeft:0,worldActive?world.cameraTop:0);
         }
