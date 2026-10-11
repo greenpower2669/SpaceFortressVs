@@ -441,3 +441,9 @@ CLASSIQUE DUEL local :
 - Artefact définitif extrait dans `temp/` par workflow VERT `38172484944`. APK diagnostic `temp/SpaceFortressVs-1.4.2.apk` commit source `82825ed5e2889ac630fe2379183bc068f0105d01` SHA256 `635c936e0b4fc1335077c2da9d2f236b92e69d8446761703012aa4b65754d5d2` (94 136 117 octets), identité Android séparée ; AAB NON signé SHA256 `14c0df866eba3f704912b1241a2bbbb066311691e8a1d6ad13dca0b110b06c9c`.
 - Limites non résolues : absence de collisions projectiles/parois, boss déclenché par progression, relais et sauvegardes ; habillage parois diagnostique seulement. **Validation Samsung de la caméra, déplacements et sons est encore à effectuer**, CI verte ne la remplace pas.
 - Aucun merge `main`, Release ni modification `src/main.cpp`.
+
+
+## SOLO COOP — retour Samsung 11/10/2026 : ship missing/touch drift
+- PHOTO 23110.jpg : vrai monde labyrinthe/sky visible; anneau vert visible, pilote bleu indistinct/invisible, doigt décroché. Correction écran vs monde : `src/coop_solo_world_draw.hpp` projette vrais sprites de `sfCoop` sans viewport SDL géant; cargo/cône/anneau écran + piloter bleu réellement dessiné. `src/coop_solo_arena_runtime.hpp` appelle adapter plutôt que `sfCoopDrawArena` sous un viewport à coordonnées géantes.
+- Correction lock doigt : `src/coop_solo_world_bridge.hpp::panIfShipActuallyMoved(..., optional fingerScreen)` attend que la VRAIE position écran du vaisseau rattrape la position doigt avant de consommer son mouvement par pan. Aucun changement aux vitesses physiques 3.10*W/s ni aux collisions. `coop_solo_arena_runtime.hpp` transmet moveScreenX/Y, log lag.
+- Régressions `tests/coop_solo_world_bridge_regressions.cpp`, native smoke pixel réelle `SDL_RenderReadPixels`. CI `38174175100` en attente ; APK du dernier run VERT à exporter ensuite dans temp. Tester vrai vaisseau bleu et suivi du doigt sur Samsung avant d'annoncer validation.

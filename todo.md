@@ -458,3 +458,14 @@
 - Artefact définitif extrait dans `temp/` par workflow VERT `38172484944`. APK diagnostic `temp/SpaceFortressVs-1.4.2.apk` commit source `82825ed5e2889ac630fe2379183bc068f0105d01` SHA256 `635c936e0b4fc1335077c2da9d2f236b92e69d8446761703012aa4b65754d5d2` (94 136 117 octets), identité Android séparée ; AAB NON signé SHA256 `14c0df866eba3f704912b1241a2bbbb066311691e8a1d6ad13dca0b110b06c9c`.
 - Limites non résolues : absence de collisions projectiles/parois, boss déclenché par progression, relais et sauvegardes ; habillage parois diagnostique seulement. **Validation Samsung de la caméra, déplacements et sons est encore à effectuer**, CI verte ne la remplace pas.
 - Aucun merge `main`, Release ni modification `src/main.cpp`.
+
+
+## 11/10 — CORRECTION VISUELLE ET STABILITÉ TACTILE MONDE
+- [x] Retour Fab `23110.jpg` : caméra/décor oui, anneau vert mais vaisseau bleu pas identifiable, décroche du doigt.
+- [x] Supprimer viewport SDL de taille égale à toute la carte, rendu GPU écran aux coordonnées projetées `coop_solo_world_draw.hpp` avec vraies textures COOP et fallback de coque bleu.
+- [x] Corriger pan caméra qui suivait tous les pas du vaisseau même lorsqu'il se trouvait loin derrière le doigt ; attente rattrapage réel + clamp surplus après doigt, collisions/vel COOP non modifiées.
+- [x] Ajouter tests caméra « finger lock » et test réel par `SDL_RenderReadPixels` (présence sprite et viewport écran), log écart doigt/navire.
+- [ ] Confirmer CI `38174175100` 100 % VERTE ; corriger échecs potentiels du nouveau rendu, puis exporter APK/AAB/manifest/SHA actualisés dans `temp/`.
+- [ ] Tester sur Samsung : vaisseau bleu clairement visible DANS le cercle vert, vaisseau sous doigt après le temps physique de rattrapage, plus aucun décollement dû à la caméra, mouvement bord de mur bloqué physiquement, vue grand parcours.
+- [ ] Ensuite seulement améliorer artworks, occlusion collisions projectiles/murs, objectifs et boss, sauvegardes.
+- [ ] Aucun merge main/Release ni changement src/main.cpp.
