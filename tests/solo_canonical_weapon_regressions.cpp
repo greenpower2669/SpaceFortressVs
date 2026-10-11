@@ -11,7 +11,7 @@ int main(){
     assert(c.shots.size()==1&&c.shots[0].missile);
     assert(c.shots[0].damage==60&&std::abs(s.heatSpent-11)<.001f);
     assert(!c.fire(s,s.pilot.x,s.pilot.y-10));
-    c.step(s,.25f);
+    for(int n=0;n<5;++n)c.step(s,.05f); // real frame dt capped at 50 ms
     assert(c.fire(s,s.pilot.x,s.pilot.y-10));
     assert(!c.shots.back().missile&&c.shots.back().damage==12);
     assert(s.heatSpent==12);
