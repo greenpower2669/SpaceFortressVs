@@ -315,3 +315,11 @@
 - Diagnostic technique du pilotage : l'ancienne `pilotTarget()` reconvertissait la position du doigt en coordonnées mondiales à chaque image avec une caméra qui suivait le joueur ; boucle de retour susceptible de donner un effet de poursuite/instabilité. Nouveau pilotage ancré au premier contact : le déplacement du doigt donne un déplacement dans le monde indépendant des panoramiques.
 - Zoom cartographique et cinématique : le mouvement cible SOLO prend désormais la largeur de la zone de monde visible, gardant approximativement la même vitesse en pixels/s qu'avant zoom, sans accélération excessive. Les collisions restent inchangées en unités carte.
 - Validation CI + Android build en attente ; vérifier vraie expérience Samsung et export diagnostic si plantage.
+
+
+## 2026-10-11 — Caméra SOLO 2 rectangles progressifs, build vert
+- Ancienne règle caméra en `solo_viewport.hpp` : au seuil de 1/3, translation instantanée du décor rattachée au vaisseau ; sensation de vitesse insuffisante. Besoin Fab : **vitesse variable continue dans chaque bande**, accélération/décélération sans seuil brusque, croisière maximale près du bord.
+- Nouvelle fonction `soloRectangularCameraGain(normalizedPosition)` : deadzone 1/3 centrale ; zone1 1/3→1/6, douceur `smoothstep` 0→55 % ; zone2 1/6→6 %, douceur `smoothstep` 55→100 % ; dernier 6 % à 100 % pour préserver dimensions du sprite et visibilité.
+- `soloUpdateCamera` prend désormais `dt` réel depuis la boucle SDL. Vitesses caméra stockées par session et filtrées temporellement indépendamment X/Y; retour vers le centre et arrêt imposent une cible nulle, vitesse lissée jusqu'à zéro. Reset de l'inertie au changement écran/session; contrainte min/max monde, garde anti-clipping aux bords.
+- Pilotage en coordonnées mondiales toujours indépendant du défilement; mouvement réel de la caméra **uniquement après** step physique. Tests distincts 2D/diagonale, plateau pleine vitesse, freinage et bordure d'écran.
+- Action #38121160188 entièrement verte (core, SDL2, Android) pour SHA `cace6129`. APK directe `SpaceFortress-DIAG-Camera-2-Zones-Progressives.apk` créée localement, SHA256 `a9b040b9566ce17b576c18c28e7bf3f1c46e92d37a5c3987a93be6c267a7daa7` contrôlé. Épreuve réelle Samsung non effectuée par CI; conserver TXT de diagnostic.

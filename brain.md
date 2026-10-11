@@ -401,3 +401,12 @@
 - Le suivi du doigt est ancré au **déplacement tactile mesuré depuis le début du geste** avec position initiale du vaisseau dans le monde ; la caméra ne participe jamais au calcul de cette cible. Les visées/tirs/cone restent projetés dans la même caméra cohérente.
 - Visuel du vaisseau : `soloShipRadiusPixels` utilise toujours l'ancienne échelle écran largeur/18. Mouvement canonique du vaisseau en pixels/s : la largeur visible du monde est utilisée pour éviter que zoomer ×3 multiplie sa vélocité affichée par 3.
 - N'affecte que SOLO sur `feature/solo-worlds-tutorials-v1`, APK DIAG à installer côte à côte ; pas de merge main ni Release. Tests Android automatiques à vérifier, sensations Samsung à faire confirmer.
+
+
+## 2026-10-11 — SOLO : caméra à DEUX bandes rectangulaires progressives (validé)
+- Demande Fab : tester d'abord **deux zones rectangulaires chacune progressivement accélérante**, réserver les zones circulaires à une évolution éventuelle. Scroll continu à vitesse variable quand le pilote poursuit son mouvement près d'un bord, sans modifier sa maniabilité.
+- Zone centrale : vaisseau entre 1/3 et 2/3 de l'écran, caméra immobile. Bande 1 : entre 33,3 % et 16,7 % de chaque bord, gain de poursuite **0→55 %** via `smoothstep`. Bande 2 : entre 16,7 % et 6 % du bord, gain **55→100 %**, également courbé; dernière marge 6 % = vitesse max avec vaisseau encore visible. Progression indépendante en X/Y (diagonales).
+- `src/solo_viewport.hpp` : `soloRectangularCameraGain`, `soloUpdateCamera(s,viewport,dt)`. Caméra possède `viewVelocityX/Y` dans `src/solo_session.hpp`, interpole doucement vers vitesse souhaitée, freine lorsque le vaisseau revient vers le centre ou s'arrête; pas de scroll autonome infini ni dérive de la cible tactile.
+- `src/solo_prototype.cpp` : initialisation avant lecture des événements, un seul avancement temporel de la caméra après le mouvement du vaisseau, avec le vrai `dt`. Zoom carte ×3, vaisseau même taille, visée 360 conservés.
+- Régressions `tests/solo_viewport_regressions.cpp` (deux courbes continues, deux axes, 4 bords, freinage, vitesse apparente) et `tests/solo_touch_controls_regressions.cpp`. GitHub Actions Android #38121160188 entièrement vert, commit applicatif `cace6129`; APK DIAG extraite et SHA256 vérifié. Test perceptif Samsung à confirmer, rien sur main/Release.
+- AUTRE CHANTIER TOUJOURS OUVERT : audit et réintégration exhaustifs des véritables assets/FX du jeu historique (notamment cône plasma). Ne pas confondre avec la caméra livrée aujourd'hui.

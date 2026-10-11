@@ -319,3 +319,11 @@ CLASSIQUE DUEL local :
 - `src/solo_touch_controls.hpp` : pilotage en glisser ancré `shipWorldAtDown + (fingerNow-fingerDown)/cell` indépendant de défilement ; deuxième doigt de visée indépendant.
 - `src/solo_prototype.cpp` : mise à jour caméra avant événements et après simulation ; remise à zéro par session ; vector de tir 360 maintenu.
 - `tests/solo_viewport_regressions.cpp` / `tests/solo_touch_controls_regressions.cpp` : assertions zoom x3, vaisseau fixe, seuils X/Y, bordure monde, vitesse pixels/s et drag stable pendant pan.
+
+
+## 2026-10-11 — SOLO caméra rectangles, progression au sein de deux zones
+- Carte des périmètres : centre 1/3–2/3 fixe ; rectangle 1 bord 1/3→1/6, gain vitesse 0→0,55; rectangle 2 bord 1/6→6 %, gain 0,55→1; dernière marge 6 % à vitesse pleine pour préserver le sprite fixe. Future alternative circulaire seulement si explicitement validée.
+- `src/solo_viewport.hpp`: constantes `SOLO_DEADZONE_THIRD`, `SOLO_RECT_ZONE2_START`, `SOLO_RECT_MAX_SPEED_MARGIN`; calcul `soloRectangularCameraGain`, `soloSmoothstep`, `soloUpdateCamera` avec dt et amortissement.
+- `src/solo_session.hpp`: vitesses `viewVelocityX/viewVelocityY` présentation uniquement. `src/solo_prototype.cpp`: caméra initialisée sans dt puis évolue une fois par frame après physique.
+- `tests/solo_viewport_regressions.cpp`: continuité de la courbe aux deux frontières, croissance dans les deux zones, x/y indépendants, arrêt, retour, vitesse max sans masquer pilote, taille sprite inchangée, rétrocompatibilité zoom ×3.
+- GitHub Actions run #38121160188, commit `cace6129`, 3 jobs verts; APK DIAG uniquement. Pas de changement de vaisseau historique ni merge main.

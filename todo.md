@@ -288,3 +288,15 @@
 - [ ] CI GitHub Android debug verte du dernier commit puis APK DIAG **directe sans ZIP**.
 - [ ] Test Samsung : doigt stable, caméra tiers des bords, chemins larges, visée 360, pas de collisions incohérentes, mode historique préservé.
 - [ ] Ne pas fusionner `main`, ne pas publier Release sans validation explicite.
+
+
+## 2026-10-11 — SOLO caméra avec DEUX zones progressives (livré sur branche)
+- [x] Fab valide zones **rectangulaires** d'abord, les zones circulaires restent une idée future.
+- [x] Centre 1/3–2/3 : aucun défilement. Zone 1 : 0→55 % de la vitesse de mouvement réel, progression interne douce. Zone 2 : 55→100 %, progression interne douce. Vitesse max atteinte à 6 % des bords pour préserver la visibilité du vaisseau.
+- [x] Direction X/Y indépendantes (diagonales), accélération et freinage temporels via `viewVelocityX/Y`, défilement continu quand le pilote maintient sa direction, aucun effet direct sur le pilotage ni la visée.
+- [x] Retour vers le centre = décélération caméra ; arrêt du vaisseau = convergence vers zéro, pas de défilement infini. Pas de redéfinition de la carte, zoom décor ×3/vaisseau fixe conservés.
+- [x] Tests renforcés : continuité de vitesse aux deux frontières, croissance au sein de chaque zone, accélération dans 4 sens, arrêt, diagonales, resize, limite du monde, stabilisation tactile.
+- [x] CI GitHub Actions #38121160188 verte, SHA `cace6129` ; APK DIAG directe extraite et contrôlée SHA-256.
+- [ ] Fab : installer sur Samsung et valider sensations, rectifications éventuelles des plages 0–55–100 % ou des seuils.
+- [ ] **Chantier 1 toujours à faire** : réintégration exhaustive des assets/FX historiques du jeu (cône plasma, projectiles, impacts, explosions, poussières, animations, boucliers). Ne pas prétendre qu'ils sont déjà tous raccordés au SOLO.
+- [ ] Jamais de merge `main` ni publication Release sans autorisation explicite.
