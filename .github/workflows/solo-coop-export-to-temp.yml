@@ -1,6 +1,7 @@
 name: Unpack verified SOLO COOP artifact into temp
 
 # Requested by Fab: unpack original verified APK, unsigned AAB and metadata.
+# 2026-10-11 confirmed Android CI 38178801383 after real held-finger world scrolling test.
 # Never main or Releases, and no redundant Android rebuild.
 on:
   push:
