@@ -314,6 +314,16 @@ static void testCoopHeldFingerContinuousWorldCruise()
                                            Spritej2->y-priorY};
         world.panIfShipActuallyMoved({Spritej2->x,Spritej2->y},moved,dt,finger);
         const auto screen=world.toScreen({Spritej2->x,Spritej2->y});
+        if(std::abs(screen.x-finger.x)>=2 || std::abs(screen.y-finger.y)>=2){
+            std::fprintf(stderr,
+                "COOP_WORLD_FINGER_DRIFT frame=%d screen=(%.3f,%.3f) finger=(%.3f,%.3f) ship=(%.3f,%.3f) camera=(%.3f,%.3f) old=(%.3f,%.3f) target=(%.3f,%.3f) velocity=(%.3f,%.3f)\n",
+                frame,screen.x,screen.y,finger.x,finger.y,
+                Spritej2->x,Spritej2->y,world.cameraLeft,world.cameraTop,
+                priorX,priorY,sfCoop.controls[1].target.x,
+                sfCoop.controls[1].target.y,
+                sfCoop.controls[1].velocity.vx,
+                sfCoop.controls[1].velocity.vy);
+        }
         assert(std::abs(screen.x-finger.x)<2);
         assert(std::abs(screen.y-finger.y)<2);
         assert(world.canOccupy({Spritej2->x,Spritej2->y},40.5f));
