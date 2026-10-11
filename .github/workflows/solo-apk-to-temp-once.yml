@@ -1,7 +1,7 @@
 name: SOLO diagnostic APK to temp (one-time)
 
-# One-time handoff requested by Fab. Re-run manually only if the same
-# verified CI build needs to be exported again. NO main/release publishing.
+# One-time handoff requested by Fab. Used for a requested direct APK upload to the branch temp/ directory.
+# The APK is fetched from a previously SUCCESSFUL green Android run. NO main/release publishing.
 on:
   push:
     branches:
@@ -33,9 +33,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # CI 38136673247 is GREEN on source SHA 993bbdd3cc047bfc2ccc6b283a3e2f4de018d683.
+          # CI 38142855123 is GREEN on source SHA 47e92eac2ac026fc7194daa91283705e39f27c6c.
           mkdir -p "$RUNNER_TEMP/solo-ci-artifact" temp
-          gh run download 38136673247 \
+          gh run download 38142855123 \
             --repo "$GITHUB_REPOSITORY" \
             --name "SpaceFortressVs-1.4.2-release-files" \
             --dir "$RUNNER_TEMP/solo-ci-artifact"
@@ -46,22 +46,23 @@ jobs:
           import json
           with open("SpaceFortressVs-1.4.2-build.json", encoding="utf-8") as fp:
               manifest = json.load(fp)
-          assert manifest["commit"] == "993bbdd3cc047bfc2ccc6b283a3e2f4de018d683"
+          assert manifest["commit"] == "47e92eac2ac026fc7194daa91283705e39f27c6c"
           assert manifest["packageName"] == "com.greenpower2669.spacefortressvs.diagnostic"
           PY
           )
+          echo "d03ec935ecb28a2035e14c3ec460b8c612e8a47bebb82b2e4067ddbd34104274  $RUNNER_TEMP/solo-ci-artifact/SpaceFortressVs-1.4.2.apk" | sha256sum -c -
           cp "$RUNNER_TEMP/solo-ci-artifact/SpaceFortressVs-1.4.2.apk" \
-            "temp/SpaceFortress-SOLO-DIAG-993bbdd3.apk"
-          (cd temp && sha256sum SpaceFortress-SOLO-DIAG-993bbdd3.apk > SHA256SUMS)
+            "temp/SpaceFortress-SOLO-DOIGT-ZONES-DIAG-47e92eac.apk"
+          (cd temp && sha256sum SpaceFortress-SOLO-DOIGT-ZONES-DIAG-47e92eac.apk > SHA256SUMS)
           cat > temp/README.md <<'TXT'
           # SpaceFortress SOLO — diagnostic temporaire
 
           APK Android arm64 directe (pas un ZIP). C'est le build DIAG de
           la branche `feature/solo-worlds-tutorials-v1`, commit
-          `993bbdd3cc047bfc2ccc6b283a3e2f4de018d683`.
+          `47e92eac2ac026fc7194daa91283705e39f27c6c`.
 
-          Fichier : `SpaceFortress-SOLO-DIAG-993bbdd3.apk`
-          SHA-256 : `4c438f2642da1ae34c05a07cd08d90b6483b65e8df49b1e69883e4cad5a50cfe`
+          Fichier : `SpaceFortress-SOLO-DOIGT-ZONES-DIAG-47e92eac.apk`
+          SHA-256 : `d03ec935ecb28a2035e14c3ec460b8c612e8a47bebb82b2e4067ddbd34104274`
 
           Application de test séparée : `com.greenpower2669.spacefortressvs.diagnostic`.
           Ne pas désinstaller le SpaceFortress historique pour ce test.
@@ -77,7 +78,10 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add temp/SpaceFortress-SOLO-DIAG-993bbdd3.apk temp/SHA256SUMS temp/README.md
+          # Replace the outdated diagnostic in the temporary directory.
+          # Old binary history is retained automatically by Git.
+          git rm -f --ignore-unmatch temp/SpaceFortress-SOLO-DIAG-993bbdd3.apk
+          git add temp/SpaceFortress-SOLO-DOIGT-ZONES-DIAG-47e92eac.apk temp/SHA256SUMS temp/README.md
           if git diff --cached --quiet; then
             echo "APK was already exported unchanged."
             exit 0
