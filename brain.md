@@ -410,3 +410,12 @@
 - `src/solo_prototype.cpp` : initialisation avant lecture des événements, un seul avancement temporel de la caméra après le mouvement du vaisseau, avec le vrai `dt`. Zoom carte ×3, vaisseau même taille, visée 360 conservés.
 - Régressions `tests/solo_viewport_regressions.cpp` (deux courbes continues, deux axes, 4 bords, freinage, vitesse apparente) et `tests/solo_touch_controls_regressions.cpp`. GitHub Actions Android #38121160188 entièrement vert, commit applicatif `cace6129`; APK DIAG extraite et SHA256 vérifié. Test perceptif Samsung à confirmer, rien sur main/Release.
 - AUTRE CHANTIER TOUJOURS OUVERT : audit et réintégration exhaustifs des véritables assets/FX du jeu historique (notamment cône plasma). Ne pas confondre avec la caméra livrée aujourd'hui.
+
+
+## 2026-10-11 — MISSION CAMERA-SHIP-ZONE-001 : croisière + zones vaisseau
+- Correction post-essai Fab : la caméra des deux rectangles progressifs doit dépendre de la **position réelle du VAISSEAU dans l'écran**, jamais de la dernière position du doigt ; tant que le vaisseau est au centre (1/3..2/3), défilement NUL même si la croisière continue.
+- Doigt levé : le vecteur et le throttle de `TouchPilot` restent mémorisés et la propulsion continue. Lever le doigt ne doit JAMAIS arrêter le scroll d'un vaisseau encore dans les zones de bord ; inversement, centre doit l'arrêter immédiatement.
+- `src/solo_viewport.hpp` : `soloShipCameraTarget(normalizedShipPosition, shipVelocity)` filtre direction vers bord / gain progressif ; `soloUpdateCamera(s,screen,dt)` ne prend plus de coordonnées de doigt ; inertie annulée immédiatement si zone centrale ou retour vers centre, axes indépendants.
+- `src/solo_session.hpp` : correction SOLO des collisions à haute vitesse : sweep continu avec blocage par AXE maintenu sur le frame; vaisseau glisse le long des rochers au lieu d'annuler ses deux vitesses et ne saute plus par-delà une cellule roc.
+- `src/solo_prototype.cpp` : caméra déclenchée par vitesse/position du vaisseau après simulation, diagnostic HELD/CRUISE et camera pan XY dans heartbeat ; aucun changement au tir à 360°, au zoom ×3, au sprite du vaisseau ou aux modes historiques.
+- Tests : `tests/solo_viewport_regressions.cpp`, `tests/solo_cruise_gesture_regressions.cpp`, `tests/solo_ice_regressions.cpp`. L'APK DIAG Android doit passer CI et être vérifiée sur Samsung. Ne pas fusionner main ni publier Release sans feu vert explicite.

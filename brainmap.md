@@ -327,3 +327,10 @@ CLASSIQUE DUEL local :
 - `src/solo_session.hpp`: vitesses `viewVelocityX/viewVelocityY` présentation uniquement. `src/solo_prototype.cpp`: caméra initialisée sans dt puis évolue une fois par frame après physique.
 - `tests/solo_viewport_regressions.cpp`: continuité de la courbe aux deux frontières, croissance dans les deux zones, x/y indépendants, arrêt, retour, vitesse max sans masquer pilote, taille sprite inchangée, rétrocompatibilité zoom ×3.
 - GitHub Actions run #38121160188, commit `cace6129`, 3 jobs verts; APK DIAG uniquement. Pas de changement de vaisseau historique ni merge main.
+
+
+## 2026-10-11 — CAMERA-SHIP-ZONE-001 (source de vérité)
+- **Caméra** `src/solo_viewport.hpp` : `soloRectangularCameraGain` conserve deux bandes de progressivité autour du centre; `soloShipCameraTarget` utilise la POSITION ÉCRAN DU VAISSEAU et SA VITESSE SIGNÉE (sortie du centre). Aucun paramètre fingerZone ne peut influencer le scroll. Zéro instantané dans le rectangle central, y compris après relâchement du doigt.
+- **Croisière** `src/solo_touch_controls.hpp` : `cruiseX/Y`, `cruiseThrottle`, `cruiseSet` sont latched après finger-up ; la position du doigt est une donnée de pilotage, jamais un curseur de caméra.
+- **Moteur/collision** `src/solo_session.hpp` : sweep collision par axes indépendants, blocage de l'axe impacté jusqu'à fin de frame pour ne pas téléporter à travers roc; glissement possible sur axe libre. `src/solo_prototype.cpp` met à jour caméra après step de pilotage.
+- **Régressions** : `tests/solo_viewport_regressions.cpp` (centre stop immédiat vs zone active), `tests/solo_cruise_gesture_regressions.cpp` (toucher-glisser-relâcher, vitesse maintenue) et `tests/solo_ice_regressions.cpp` (rocher haute vélocité et wall sliding).

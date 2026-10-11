@@ -300,3 +300,15 @@
 - [ ] Fab : installer sur Samsung et valider sensations, rectifications éventuelles des plages 0–55–100 % ou des seuils.
 - [ ] **Chantier 1 toujours à faire** : réintégration exhaustive des assets/FX historiques du jeu (cône plasma, projectiles, impacts, explosions, poussières, animations, boucliers). Ne pas prétendre qu'ils sont déjà tous raccordés au SOLO.
 - [ ] Jamais de merge `main` ni publication Release sans autorisation explicite.
+
+
+## 2026-10-11 — CAMERA-SHIP-ZONE-001 — corrigé sur branche SOLO
+- [x] Utiliser zone écran du VAISSEAU (pas du doigt) comme source unique des deux accélérations rectangulaires de caméra.
+- [x] Centre 1/3..2/3 = pan immédiatement nul ; retour au centre = zéro strict, même si doigt levé et vitesse/croisière persistantes.
+- [x] Finger-up conserve `cruiseX/Y` et `cruiseThrottle` de `TouchPilot`; croisière continue en zone extérieure indépendamment du doigt.
+- [x] Axe X/Y indépendant, direction inward désactive le pan concerné ; zone 1 et zone 2 avec continuité `smoothstep`.
+- [x] Collision SOLO : conserver progression sur axe libre le long d'un rocher ; stopper axe impacté jusqu'à la fin du frame pour éviter traversée par substeps successifs.
+- [x] Vérifications automatisées core + UI SDL2 après correction régressions.
+- [ ] Vérifier CI Android complète du dernier commit + extraire APK DIAG directe hors ZIP.
+- [ ] Essai Samsung : centre fixe, zone 1/2 croissante, finger-up croisière, retour au centre, virages dans vrai labyrinthe, FX/SFX.
+- [ ] Aucun merge main ni Release sans autorisation Fab.
