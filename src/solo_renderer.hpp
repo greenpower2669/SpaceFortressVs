@@ -36,7 +36,7 @@ inline void fill(SDL_Renderer *r,SDL_Rect rect,SDL_Color c){
 }
 struct SoloAssets {
     SDL_Texture *ship=nullptr,*enemy=nullptr,*rock=nullptr,*space=nullptr;
-    SDL_Texture *projectile=nullptr,*energy=nullptr;
+    SDL_Texture *projectile=nullptr,*missile=nullptr,*energy=nullptr;
     SDL_Texture *plasma=nullptr,*spark=nullptr,*explosion=nullptr,*shield=nullptr;
     SDL_Texture *soloWalls=nullptr,*soloEnvironments=nullptr;
     SDL_Renderer *renderer=nullptr;
@@ -83,7 +83,8 @@ struct SoloAssets {
         enemy=load(r,"so.png");
         rock=load(r,"ro1.png");
         space=load(r,"fond4hlow.png");
-        projectile=load(r,"tirj1.png");
+        projectile=load(r,"orbeb.png");
+        missile=load(r,"missilebb.png");
         energy=load(r,"pousb.png");
         plasma=load(r,"energie.png");
         spark=load(r,"pousc.png");
@@ -95,7 +96,7 @@ struct SoloAssets {
                 ship!=nullptr,enemy!=nullptr,rock!=nullptr,space!=nullptr);
     }
     ~SoloAssets(){
-        for(SDL_Texture *p:{ship,enemy,rock,space,projectile,energy,
+        for(SDL_Texture *p:{ship,enemy,rock,space,projectile,missile,energy,
                             plasma,spark,explosion,shield,
                             soloWalls,soloEnvironments})
             if(p)SDL_DestroyTexture(p);
@@ -297,6 +298,11 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
         soloCopy(r,assets->spark,{tailX-size/2,tailY-size/2,size,size},
                  {109,218,255,210},s.seconds*110.0);
     }
+    if(s.canonicalShipActive&&assets&&assets->shield&&s.energyFraction()>.001f){
+        const int rr=std::max(radius+2,int(radius*1.7f));
+        soloCopy(r,assets->shield,{shipX-rr,shipY-rr,2*rr,2*rr},
+                 {134,209,255,Uint8(52+75*s.energyFraction())});
+    }
     if(assets&&assets->ship)soloCopy(r,assets->ship,
         {shipX-radius,shipY-radius,radius*2,radius*2});
     else{
@@ -304,6 +310,29 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
         SDL_RenderDrawLine(r,shipX,shipY-radius,shipX-radius,shipY+radius);
         SDL_RenderDrawLine(r,shipX-radius,shipY+radius,shipX+radius,shipY+radius);
         SDL_RenderDrawLine(r,shipX+radius,shipY+radius,shipX,shipY-radius);
+    }
+    if(s.canonicalShipActive){
+        // Shared kinetic wave timing and radius (not an arbitrary pulse).
+        SDL_BlendMode original;SDL_GetRenderDrawBlendMode(r,&original);
+        SDL_SetRenderDrawBlendMode(r,SDL_BLENDMODE_BLEND);
+        for(const auto &wave:sfKineticWaves){
+            if(wave.owner!=1||!sfKineticWaveAlive(wave))continue;
+            const float distance=sfKineticWaveRadiusAt(
+                wave,s.shipRadius*2.0f,wave.age)*camera.cell;
+            if(distance<1.0f)continue;
+            constexpr int edges=36;
+            const Uint8 alpha=Uint8(170.0f*std::max(0.0f,
+                1.0f-sfKineticWaveProgressAt(wave,wave.age)));
+            SDL_SetRenderDrawColor(r,94,204,255,alpha);
+            for(int i=0;i<edges;++i){
+                const float a=i*6.2831853f/edges,b=(i+1)*6.2831853f/edges;
+                SDL_RenderDrawLine(r,shipX+int(std::cos(a)*distance),
+                    shipY+int(std::sin(a)*distance),
+                    shipX+int(std::cos(b)*distance),
+                    shipY+int(std::sin(b)*distance));
+            }
+        }
+        SDL_SetRenderDrawBlendMode(r,original);
     }
     const Uint8 impactAlpha=soloImpactFlashAlpha(s);
     if(impactAlpha && assets&&assets->shield){
@@ -323,9 +352,16 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
     fill(r,{viewport.x+14,hudY,barW,13},{94,36,54,255});
     fill(r,{viewport.x+14,hudY,int(barW*std::clamp(s.pilot.health/100,0.0f,1.0f)),13},
          {90,231,147,255});
+    if(s.canonicalShipActive){
+        fill(r,{viewport.x+14,hudY+17,barW,10},{24,27,62,228});
+        fill(r,{viewport.x+14,hudY+17,
+                int(barW*std::clamp(s.energyFraction(),0.0f,1.0f)),10},
+             s.energyFraction()<.10f?SDL_Color{255,68,42,255}:
+             SDL_Color{165,128,255,255});
+    }
     const std::string goal="RELAIS "+std::to_string(s.relaysCollected)+"/"+
                             std::to_string(s.relaysNeeded);
-    soloLabel(r,goal,{viewport.x+12,hudY+18,barW+28,34},
+    soloLabel(r,goal,{viewport.x+12,hudY+30,barW+28,34},
               {255,229,129,255},std::max(2,viewport.w/175));
     if(s.slowActive()){
         const SDL_Rect tag{viewport.x+12,hudY+54,
@@ -458,11 +494,13 @@ inline void drawCombat(SDL_Renderer *r,const Session &s,const Combat &combat,
         const int px=camera.pixelX(shot.x),py=camera.pixelY(shot.y);
         if(px<viewport.x||px>=viewport.x+viewport.w||
            py<viewport.y||py>=viewport.y+viewport.h)continue;
-        const int d=std::max(7,int(camera.cell*.35f));
-        if(assets&&assets->projectile)
-            soloCopy(r,assets->projectile,{px-d/2,py-d/2,d,d},
-                     {235,247,255,255},
-                     std::atan2(shot.vy,shot.vx)*180.0/3.14159265+90.0);
+        const int d=std::max(7,int(camera.cell*(shot.missile?.57f:.35f)));
+        SDL_Texture *sprite=assets?
+            (shot.missile?assets->missile:assets->projectile):nullptr;
+        if(sprite)
+            soloCopy(r,sprite,{px-d/2,py-d/2,d,d},{255,255,255,255},
+                     shot.missile?
+                     std::atan2(shot.vy,shot.vx)*180.0/3.14159265+90.0:0.0);
         else fill(r,{px-d/2,py-d/2,d,d},{255,236,114,255});
     }
     for(const auto &hit:combat.impacts){

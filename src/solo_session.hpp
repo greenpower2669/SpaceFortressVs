@@ -152,6 +152,9 @@ struct Session {
             const float hull=sfShieldDamage(amount,before);
             heatSpent=sfShipHeat(before+sfShieldWear(amount,before));
             amount=hull*.10f; // 100 HP display corresponds to historical 1000 PV
+            if(amount>0&&sfKineticWaves.size()<24)
+                sfKineticTriggerWave(1,SF_KINETIC_INNER_MAX_RADIUS_SHIP_DIAMETERS,
+                                     .28f+.72f*energyFraction(),energyFraction());
         }
         pilot.damageTaken+=amount;
         pilot.health=std::max(0.0f,pilot.health-amount);
@@ -175,6 +178,7 @@ struct Session {
         dt=std::clamp(dt,0.0f,.05f);
         seconds+=dt;
         if(canonicalShipActive){
+            sfKineticAdvanceWaves(dt);
             heatSpent=sfCanonicalCoopPassiveRechargeHeat(heatSpent,dt,sfBossDangerIndex);
             if(pilot.health>0)
                 pilot.health=std::min(100.0f,pilot.health+
