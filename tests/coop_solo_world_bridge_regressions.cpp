@@ -47,5 +47,31 @@ int main(){
     assert(bridge.cameraLeft>oldX);  // actual radial pan followed live movement
     assert(bridge.cameraLeft<=oldX+20.001f);
     assert(same(bridge.combatWidth,540));
+    // Finger-locked panning: a ship that is still behind the held fingertip
+    // must not have all its progress consumed by the concentric camera.
+    bridge.cameraLeft=start.x-540*.75f;
+    bridge.cameraTop=start.y-960*.50f;
+    const float frozen=bridge.cameraLeft;
+    const CoopWorldPoint finger{540*.90f,960*.50f};
+    bridge.panIfShipActuallyMoved(start,{10,0},.05f,finger);
+    assert(same(bridge.cameraLeft,frozen));
+    // Once it reaches the finger, the camera must use only the excess
+    // movement: player stays under that SAME stationary fingertip.
+    const CoopWorldPoint caught{start.x+100,start.y};
+    bridge.panIfShipActuallyMoved(caught,{100,0},.05f,finger);
+    assert(same(bridge.toScreen(caught).x,finger.x));
+    const CoopWorldPoint next{caught.x+20,caught.y};
+    bridge.panIfShipActuallyMoved(next,{20,0},.05f,finger);
+    assert(same(bridge.toScreen(next).x,finger.x));
+    const float blocked=bridge.cameraLeft;
+    bridge.panIfShipActuallyMoved(next,{0,0},.05f,finger);
+    assert(same(bridge.cameraLeft,blocked)); // rock never drags camera
+    // World-to-screen projection must remain invertible even in the last
+    // region of the very long map, without a gigantic Android viewport.
+    bridge.cameraTop=bridge.worldHeight()-960;
+    const CoopWorldPoint far{start.x,bridge.worldHeight()-130};
+    const auto onScreen=bridge.toScreen(far);
+    const auto roundTrip=bridge.toWorld(onScreen);
+    assert(same(far.x,roundTrip.x)&&same(far.y,roundTrip.y));
     return 0;
 }
