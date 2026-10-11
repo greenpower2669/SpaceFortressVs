@@ -90,3 +90,7 @@ void th2()
 // Automatic Hall sync observes final input routing after the help/campaign
 // bridge. It never adds network work to the renderer and leaves main.cpp intact.
 #include <hall_sync_ui_bridge.hpp>
+
+// Debug-only native COOP-powered SOLO arena. Compiles INSIDE the historical
+// translation unit, so FabLib globals are never defined a second time.
+#include <coop_solo_arena_runtime.hpp>

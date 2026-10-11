@@ -19,6 +19,9 @@ struct SfCoopControl { SDL_FingerID finger=-1; tupl target; bool down=false; tup
 struct SfCoopState {
     SfCoopPilotRoster pilots{}; // two by default, never infer presence from PV
     bool bossPresent=true; // future SOLO exploration: no boss before encounter
+    bool soloDiagnostic=false; // suppress historical campaign save in test
+    bool soloFreeAim=false;    // one blue human uses 360-degree direct aim
+    tupl soloAimTarget;
     SfCoopPhase phase=SfCoopPhase::Intro;
     int boss=0,encounter=0,volley=0,revives=3,phaseNumber=0;
     float time=0,phaseTime=0,health=900,attack=1,warning=0,hit=0;
@@ -570,6 +573,12 @@ static bool sfCoopFire(int owner)
         const auto aim=sfBossGhost().intercept(tupl(ship->x,ship->y),speed,.9f);
         angle=std::atan2(aim.y-ship->y,aim.x-ship->x);
     }
+    if(sfCoop.soloFreeAim && owner==1){
+        const float dx=sfCoop.soloAimTarget.x-ship->x;
+        const float dy=sfCoop.soloAimTarget.y-ship->y;
+        // A zero-length touch preserves the canonical vertical fallback.
+        if(vlong(dx,dy)>.0001f)angle=std::atan2(dy,dx);
+    }
     const unsigned sequence=++sfCoop.shotSequence[owner];
     if (!missile) angle+=sfCoopShotSpread(heatBefore,sequence,owner);
     const float radius=sfCoopShipRadius();
@@ -1102,7 +1111,15 @@ static void sfCoopTick(float dt)
         ++sfCoop.volley;
     }
     sfCoopProjectiles(dt);sfCoopApplyMiningConeBossDamage(dt);sfCoopResources(dt);sfCoopBonus(dt);
-    if (sfCoop.health<=0 && sfCoopAnyAlive()) sfCoopWin();
+    if (sfCoop.health<=0 && sfCoopAnyAlive()) {
+        if(sfCoop.soloDiagnostic){
+            // Combat/graphics were the REAL COOP engine. A diagnostic SOLO
+            // victory only exits its encounter; it must not write COOP saves.
+            sfCoop.bossPresent=false;
+            sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
+            sfCoop.bossThreat={};sfCoop.warning=0;
+        }else sfCoopWin();
+    }
     else if (!sfCoopAnyAlive()) {
         sfCoop.phase=SfCoopPhase::Defeat;sfCoop.phaseTime=0;
         sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
@@ -1619,12 +1636,12 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
     }
     const float death=sfCoop.phase==SfCoopPhase::Dying ? std::clamp(sfCoop.phaseTime/1.6f,0.0f,1.0f) :
         (sfCoop.phase==SfCoopPhase::Name || sfCoop.phase==SfCoopPhase::Saved ? 1.0f : 0.0f);
-    if (sfCoop.warning>0 && death==0) {
+    if (sfCoop.bossPresent && sfCoop.warning>0 && death==0) {
         const int radius=int(sfCoopBossRadius()*(1.1f+.14f*sfCoop.warning));
         sfUiCircle(renderer,int(sfCoop.position.x),int(sfCoop.position.y),radius,255,120,90);
         sfUiCircle(renderer,int(sfCoop.position.x),int(sfCoop.position.y),radius+2,255,170,100);
     }
-    if(death==0) {
+    if(sfCoop.bossPresent && death==0) {
         const int fieldRadius=int(sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE);
         const Uint8 reserveAlpha=sfCoopBossKineticVisibilityAlpha(sfCoop.bossKineticReserve);
         sfCoopCircleAlpha(renderer,int(sfCoop.position.x),int(sfCoop.position.y),fieldRadius,

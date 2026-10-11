@@ -13,6 +13,7 @@ T = "{http://schemas.android.com/tools}"
 LEGACY = "com.greenpower2669.spacefortressvs.SpaceFortressActivity"
 SOLO = "com.greenpower2669.spacefortressvs.SpaceFortressSoloActivity"
 HUB = "com.greenpower2669.spacefortressvs.SpaceFortressHubActivity"
+COOP_SOLO = "com.greenpower2669.spacefortressvs.SpaceFortressCoopSoloActivity"
 
 def activities(path):
     document = ET.parse(path)
@@ -35,13 +36,16 @@ assert ET.parse(APP / "debug/AndroidManifest.xml").getroot().find(
     "debug application does not register crash journal")
 assert debug[SOLO].get(A+"process") == ":solo", (
     "SDL SOLO must launch in a separate native process")
-assert SOLO not in main and HUB not in main, "prototype leaked into release"
-assert set(debug) == {LEGACY, SOLO, HUB}, "unexpected debug activities"
+assert SOLO not in main and HUB not in main and COOP_SOLO not in main, (
+    "diagnostic activity leaked into release")
+assert debug[COOP_SOLO].get(A+"process")==":coopsolo"
+assert set(debug) == {LEGACY, SOLO, COOP_SOLO, HUB}, "unexpected debug activities"
 assert debug[LEGACY].get(T+"node") == "replace", "original launcher not replaced"
-assert not launcher(debug[LEGACY]) and not launcher(debug[SOLO])
+assert not launcher(debug[LEGACY]) and not launcher(debug[SOLO]) and not launcher(debug[COOP_SOLO])
 assert launcher(debug[HUB]), "single debug launcher missing"
 java = (APP / "debug/java/com/greenpower2669/spacefortressvs/SpaceFortressHubActivity.java").read_text()
 assert "SpaceFortressActivity.class" in java and "SpaceFortressSoloActivity.class" in java
+assert "SpaceFortressCoopSoloActivity.class" in java
 assert "EXPORTER JOURNAL DEBUG" in java and "ACTION_CREATE_DOCUMENT" in java
 assert (APP / "debug/java/com/greenpower2669/spacefortressvs/SpaceFortressDebugLog.java").is_file()
 assert (APP / "debug/java/com/greenpower2669/spacefortressvs/SpaceFortressDebugApplication.java").is_file()

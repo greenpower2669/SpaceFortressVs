@@ -168,6 +168,11 @@ public final class SpaceFortressHubActivity extends Activity {
                 Color.rgb(28, 143, 108), Color.rgb(14, 74, 87),
                 SpaceFortressSoloActivity.class);
 
+        action(body, "SOLO : VRAI MOTEUR COOP",
+                "Arène expérimentale, un pilote, boss activable, caméra fixe",
+                Color.rgb(109, 74, 156), Color.rgb(53, 49, 112),
+                SpaceFortressCoopSoloActivity.class);
+
         // Keep the diagnostics available even after a native crash exits SOLO.
         LinearLayout debugCard=new LinearLayout(this);
         debugCard.setOrientation(LinearLayout.VERTICAL);

@@ -6,10 +6,18 @@
 #include <string>
 
 extern int SDL_main();
+extern "C" int runCoopSoloArena();
 
 extern "C" int SpaceFortressMain(int argc, char **argv)
 {
     for (int i=0; argv && i<argc; ++i) {
+        if(argv[i] && std::strcmp(argv[i],"--spacefortress-coop-solo-arena")==0){
+            sfDebugNativeLog("coopsolo","SDL_ENTRY_REAL_COOP_ARENA");
+            const int result=runCoopSoloArena();
+            sfDebugNativeLog("coopsolo",
+                (std::string("SDL_COOP_ARENA_RETURN_")+std::to_string(result)).c_str());
+            return result;
+        }
         if (argv[i] && std::strcmp(argv[i], "--spacefortress-solo-prototype")==0) {
             sfDebugNativeLog("solo","SDL_ENTRY_DISPATCH_SOLO");
             const int result=runSoloPrototype();

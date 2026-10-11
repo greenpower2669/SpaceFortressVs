@@ -25,6 +25,17 @@
             android:label="SOLO prototype (test)"
             android:process=":solo" />
 
+        <!-- New opt-in experimental arena: true historical COOP execution. -->
+        <activity
+            android:name="com.greenpower2669.spacefortressvs.SpaceFortressCoopSoloActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|density"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"
+            android:label="SOLO avec moteur COOP (test)"
+            android:process=":coopsolo" />
+
         <activity
             android:name="com.greenpower2669.spacefortressvs.SpaceFortressHubActivity"
             android:exported="true"
