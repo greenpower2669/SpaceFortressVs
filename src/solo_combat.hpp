@@ -8,8 +8,11 @@
 
 namespace sfsolo {
 struct Shot {float x=0,y=0,vx=0,vy=0;float life=0;};
+struct ImpactFx {float x=0,y=0,life=.36f;bool frozen=false;};
 struct Combat {
     std::vector<Shot> shots;
+    std::vector<ImpactFx> impacts;
+    unsigned pendingImpacts=0;
     float fireCooldown=0;
     float bossHealth=100;
     float bossMaxHealth=100;
@@ -27,6 +30,9 @@ struct Combat {
         if(s.phase!=Phase::Flying && s.phase!=Phase::BossFight)return;
         dt=std::clamp(dt,0.0f,.05f);
         fireCooldown=std::max(0.0f,fireCooldown-dt);
+        for(auto &burst:impacts)burst.life-=dt;
+        impacts.erase(std::remove_if(impacts.begin(),impacts.end(),
+            [](const ImpactFx &fx){return fx.life<=0;}),impacts.end());
         for(auto &shot:shots){
             if(shot.life<=0)continue;
             const float distance=std::sqrt(shot.vx*shot.vx+shot.vy*shot.vy)*dt;
@@ -62,6 +68,12 @@ struct Combat {
                     shot.life=0;
                 }else if(tile==Tile::Rock||tile==Tile::Asteroid){
                     shot.life=0;
+                }
+                if(shot.life<=0 && tile!=Tile::Empty){
+                    ++pendingImpacts;
+                    if(impacts.size()<80)
+                        impacts.push_back({shot.x,shot.y,.36f,
+                                           tile==Tile::IceAsteroid});
                 }
             }
             shot.life-=dt;
