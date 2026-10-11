@@ -46,6 +46,9 @@ g++ -std=c++17 -O1 -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \
 g++ -std=c++17 -O1 -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \
     "$sf_repo/tests/solo_cruise_gesture_regressions.cpp" "${sf_sdl_libs[@]}" -o "$sf_test_dir/solo-cruise-gesture"
 "$sf_test_dir/solo-cruise-gesture"
+g++ -std=c++17 -O1 -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \
+    "$sf_repo/tests/solo_audio_fx_regressions.cpp" "${sf_sdl_libs[@]}" -o "$sf_test_dir/solo-audio-fx"
+(cd "$sf_test_dir" && ./solo-audio-fx)
 "$sf_test_dir/solo-renderer"
 g++ -std=c++17 -O1 -DSF_SOLO_STANDALONE -I "$sf_repo/src" "${sf_sdl_cflags[@]}" \
     "$sf_repo/src/solo_prototype.cpp" "${sf_sdl_libs[@]}" -o "$sf_test_dir/solo-playable"
