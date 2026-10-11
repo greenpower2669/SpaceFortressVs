@@ -53,6 +53,41 @@ inline float soloFingerZonePanSpeed(float normalized,float columns){
     if(normalized>1.0f-SOLO_DEADZONE_THIRD)return columns*1.90f*gain;
     return 0.0f;
 }
+// Circular SOLO camera profile, radius computed in SCREEN PIXELS.
+// Outer circle is inside the narrow side by an 8% margin. The other circles
+// have radii R/2 and 3R/4. After the outer circle speed stays at exactly 6.
+inline float soloCircleOuterRadius(SDL_Rect screen){
+    return std::max(0.0f,float(std::min(screen.w,screen.h))*.42f);
+}
+inline float soloCircleZoneSpeed(float shipScreenX,float shipScreenY,SDL_Rect screen){
+    const float outer=soloCircleOuterRadius(screen);
+    if(outer<=0||!std::isfinite(shipScreenX)||!std::isfinite(shipScreenY))return 0;
+    const float dx=shipScreenX-(screen.x+screen.w*.5f);
+    const float dy=shipScreenY-(screen.y+screen.h*.5f);
+    const float distance=std::hypot(dx,dy);
+    const float inner=outer*.5f,middle=outer*.75f;
+    if(distance<=inner)return 0.0f;
+    if(distance>=outer)return 6.0f;
+    if(distance<=middle){
+        const float t=soloSmoothstep((distance-inner)/(middle-inner));
+        return .1f+1.9f*t;
+    }
+    const float t=soloSmoothstep((distance-middle)/(outer-middle));
+    return 2.1f+3.9f*t;
+}
+// WORLD speed / s, radial vector from screen centre. No fictitious joystick
+// direction and no dependence on the pilot's instantaneous velocity.
+struct SoloCirclePan {float vx=0,vy=0,speed=0;};
+inline SoloCirclePan soloCirclePan(float screenShipX,float screenShipY,
+                                  SDL_Rect screen,float visibleWorldColumns){
+    const float speed=soloCircleZoneSpeed(screenShipX,screenShipY,screen);
+    const float dx=screenShipX-(screen.x+screen.w*.5f);
+    const float dy=screenShipY-(screen.y+screen.h*.5f);
+    const float r=std::hypot(dx,dy);
+    if(speed<=0||r<=.0001f||visibleWorldColumns<=0)return {};
+    const float unitsPerSecond=visibleWorldColumns*.72f*speed;
+    return {dx/r*unitsPerSecond,dy/r*unitsPerSecond,speed};
+}
 inline float soloMapCellPixels(SDL_Rect screen) {
     return screen.w>0?std::max(1.0f,float(screen.w)/
                   (SOLO_REFERENCE_COLUMNS/SOLO_MAP_ZOOM)):1.0f;

@@ -38,12 +38,42 @@ struct SoloAssets {
     SDL_Texture *ship=nullptr,*enemy=nullptr,*rock=nullptr,*space=nullptr;
     SDL_Texture *projectile=nullptr,*energy=nullptr;
     SDL_Texture *plasma=nullptr,*spark=nullptr,*explosion=nullptr,*shield=nullptr;
+    SDL_Texture *soloWalls=nullptr,*soloEnvironments=nullptr;
     SDL_Renderer *renderer=nullptr;
     static SDL_Texture *load(SDL_Renderer *renderer,const char *file){
         // SDL_RWFromFile supports Android APK assets via SDL's asset manager.
         // The asset pack is the same one packaged for the historical modes.
         const std::string path=std::string("resources/assets/pict/")+file;
         SDL_Texture *texture=IMG_LoadTexture(renderer,path.c_str());
+        if(texture)SDL_SetTextureBlendMode(texture,SDL_BLENDMODE_BLEND);
+        return texture;
+    }
+    // Remove the navy atlas-card background and preserve bright painted
+    // rocks, crystals and lava. Alpha conversion is done ONCE on load.
+    static SDL_Texture *loadAtlas(SDL_Renderer *r,const char *filename,
+                                  bool navyBackground){
+        const std::string path=std::string("resources/assets/pict/solo/")+filename;
+        SDL_Surface *loaded=IMG_Load(path.c_str());
+        if(!loaded)return nullptr;
+        SDL_Surface *rgba=SDL_ConvertSurfaceFormat(loaded,SDL_PIXELFORMAT_RGBA32,0);
+        SDL_FreeSurface(loaded);
+        if(!rgba)return nullptr;
+        SDL_LockSurface(rgba);
+        for(int y=0;y<rgba->h;++y){
+            auto *row=reinterpret_cast<Uint32 *>(
+                static_cast<Uint8 *>(rgba->pixels)+y*rgba->pitch);
+            for(int x=0;x<rgba->w;++x){
+                Uint8 red,green,blue,alpha;
+                SDL_GetRGBA(row[x],rgba->format,&red,&green,&blue,&alpha);
+                const bool background=navyBackground?
+                    (red<54&&green<67&&blue<100):
+                    (red<24&&green<24&&blue<27);
+                if(background)row[x]=SDL_MapRGBA(rgba->format,red,green,blue,0);
+            }
+        }
+        SDL_UnlockSurface(rgba);
+        SDL_Texture *texture=SDL_CreateTextureFromSurface(r,rgba);
+        SDL_FreeSurface(rgba);
         if(texture)SDL_SetTextureBlendMode(texture,SDL_BLENDMODE_BLEND);
         return texture;
     }
@@ -59,12 +89,15 @@ struct SoloAssets {
         spark=load(r,"pousc.png");
         explosion=load(r,"explo.png");
         shield=load(r,"shield.png");
+        soloWalls=loadAtlas(r,"ParoisModeSolo.png",true);
+        soloEnvironments=loadAtlas(r,"EnvironnementsModeSolo.png",false);
         SDL_Log("SOLO original assets: ship=%d enemy=%d rock=%d space=%d",
                 ship!=nullptr,enemy!=nullptr,rock!=nullptr,space!=nullptr);
     }
     ~SoloAssets(){
         for(SDL_Texture *p:{ship,enemy,rock,space,projectile,energy,
-                            plasma,spark,explosion,shield})
+                            plasma,spark,explosion,shield,
+                            soloWalls,soloEnvironments})
             if(p)SDL_DestroyTexture(p);
     }
     SoloAssets(const SoloAssets&)=delete;
@@ -76,6 +109,38 @@ inline void soloCopy(SDL_Renderer *r,SDL_Texture *texture,SDL_Rect destination,
     SDL_SetTextureColorMod(texture,tint.r,tint.g,tint.b);
     SDL_SetTextureAlphaMod(texture,tint.a);
     SDL_RenderCopyEx(r,texture,nullptr,&destination,angle,nullptr,SDL_FLIP_NONE);
+}
+// Tile signatures drive visual themes without modifying their physics.
+inline int soloWallTheme(const Session &s,int x,int y){
+    for(int dy=-2;dy<=2;++dy)for(int dx=-2;dx<=2;++dx){
+        const auto near=s.map.at(x+dx,y+dy);
+        if(near==Tile::Lava)return 1;
+        if(near==Tile::Beam)return 2;
+        if(near==Tile::IceAsteroid)return 4;
+    }
+    const unsigned variant=unsigned(x*92821u+y*68917u);
+    return variant%19u==0u?3:(variant%31u==0u?5:0);
+}
+inline SDL_Rect soloWallAtlasSample(int theme,int x,int y){
+    // First display row of the 1536x1024 authoring atlas contains ONLY
+    // six actual wall strips at x=0..1535, y=70..211; avoid titles/labels.
+    theme=std::clamp(theme,0,5);
+    const unsigned index=unsigned(x*37u+y*11u)%3u;
+    return {theme*256+12+int(index)*73,72,73,135};
+}
+inline SDL_Rect soloEnvironmentAtlasSample(int theme,int x,int y){
+    // 1122x1402 original planche: rows are energy, lava, rock, ice, smoke.
+    constexpr int rowStart[5]={18,300,575,830,1110};
+    const int row=theme==1?1:theme==2?0:theme==4?3:theme==5?4:2;
+    return {int(unsigned(x*17u+y*43u)%7u)*155,rowStart[row]+26,135,169};
+}
+inline void soloCopyAtlas(SDL_Renderer *r,SDL_Texture *texture,
+                          const SDL_Rect &source,const SDL_Rect &dest,
+                          Uint8 alpha=255){
+    if(!texture)return;
+    SDL_SetTextureAlphaMod(texture,alpha);
+    SDL_SetTextureColorMod(texture,255,255,255);
+    SDL_RenderCopy(r,texture,&source,&dest);
 }
 // Original shield art is an impact FLASH, not a simulated COOP shield.
 inline Uint8 soloImpactFlashAlpha(const Session &s){
@@ -125,35 +190,38 @@ inline void drawSession(SDL_Renderer *r,const Session &s,SDL_Rect viewport,
         const int radius=std::max(6,int(cell*.40f));
         const unsigned hash=unsigned(x*22343u+y*65519u);
         if(t==Tile::Rock || t==Tile::Lava || t==Tile::Beam){
-            SDL_Color base=t==Tile::Rock?SDL_Color{37,48,69,255}:
-                t==Tile::Lava?SDL_Color{111,31,20,255}:
-                              SDL_Color{37,25,82,255};
-            fill(r,square,base);
-            if(assets&&assets->rock){
-                const SDL_Color tint=t==Tile::Rock?
-                    SDL_Color{uint8_t(138+hash%50),uint8_t(145+hash%55),
-                              uint8_t(160+hash%60),255}:
-                    t==Tile::Lava?SDL_Color{255,113,58,255}:
-                                  SDL_Color{144,124,255,255};
-                soloCopy(r,assets->rock,
-                         {px-int(cell*.13f),py-int(cell*.13f),
-                          int(cell*1.26f),int(cell*1.26f)},
-                         tint,double(hash%8u)*45.0);
-            }
-            if(t==Tile::Lava||t==Tile::Beam){
-                SDL_SetRenderDrawColor(r,
-                    t==Tile::Lava?255:185,t==Tile::Lava?153:112,
-                    t==Tile::Lava?44:255,255);
-                const int offset=int(std::sin(now*3+x+y)*cell*.12f);
-                SDL_RenderDrawLine(r,px+radius/2,py+radius/2,
-                                   px+int(cell*.82f),py+int(cell*.63f)+offset);
+            const int theme=t==Tile::Lava?1:t==Tile::Beam?2:
+                                      soloWallTheme(s,x,y);
+            if(assets&&assets->soloWalls){
+                // Stable strips use neighboring world-tile coordinates; no
+                // camera-induced texture swimming or photo-block mosaic.
+                const SDL_Rect source=soloWallAtlasSample(theme,x,y);
+                const SDL_Rect dest{px-1,py-1,int(cell)+3,int(cell)+3};
+                soloCopyAtlas(r,assets->soloWalls,source,dest);
+                if(assets->soloEnvironments&&(t!=Tile::Rock||hash%11u==0u)){
+                    const SDL_Rect fx=soloEnvironmentAtlasSample(theme,x,y);
+                    const int side=std::max(14,int(cell*.86f));
+                    soloCopyAtlas(r,assets->soloEnvironments,fx,
+                                  {cx-side/2,cy-side/2,side,side},
+                                  t==Tile::Rock?95:175);
+                }
+            }else{
+                // Offline/old APK fallback; no asset-loading crash.
+                fill(r,square,tileColor(t));
+                if(assets&&assets->rock)
+                    soloCopy(r,assets->rock,square);
             }
             continue;
         }
         if(t==Tile::Asteroid || t==Tile::IceAsteroid){
             // Actual rock sprite shrinks as the held cone melts its mass.
             const int reduced=std::max(2,int(radius*s.asteroidIntegrityAt(x,y)));
-            if(assets&&assets->rock){
+            if(assets&&assets->soloEnvironments){
+                const int theme=t==Tile::IceAsteroid?4:0;
+                const SDL_Rect source=soloEnvironmentAtlasSample(theme,x,y);
+                soloCopyAtlas(r,assets->soloEnvironments,source,
+                    {cx-reduced,cy-reduced,reduced*2,reduced*2});
+            }else if(assets&&assets->rock){
                 const SDL_Color tint=t==Tile::IceAsteroid?
                     SDL_Color{158,233,255,255}:SDL_Color{215,218,229,255};
                 soloCopy(r,assets->rock,{cx-reduced,cy-reduced,reduced*2,reduced*2},

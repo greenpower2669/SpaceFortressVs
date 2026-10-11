@@ -24,8 +24,8 @@ struct Session {
     // SOLO camera hysteresis. Owned by the level, not recalculated from the
     // current finger target, so a camera pan cannot feed back into steering.
     float viewLeft=0,viewTop=0;
-    // Two progressive rectangular camera zones have independent X/Y inertia.
-    // Camera velocity is presentation-only; it never feeds ship physics.
+    // Screen-centred concentric zones for touch SOLO. Camera velocity is
+    // presentation-only and cannot override collision-safe ship movement.
     float viewVelocityX=0,viewVelocityY=0;
     bool viewReady=false;
     int viewWidth=0,viewHeight=0;

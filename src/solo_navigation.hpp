@@ -22,12 +22,13 @@ inline void soloNavigateFinger(Session &s,const TouchPilot &touch,
     const float fingerX=std::clamp(touch.targetX/float(screen.w),margin,1.0f-margin);
     const float fingerY=std::clamp(touch.targetY/float(screen.h),margin,1.0f-margin);
 
-    // Camera speed follows the ship's screen ZONE, NEVER ship velocity.
-    // This works with an immobile finger and after finger-up.
-    const float screenShipX=(s.pilot.x-camera.left)/cols;
-    const float screenShipY=(s.pilot.y-camera.top)/rows;
-    const float requestedX=soloFingerZonePanSpeed(screenShipX,cols)*dt;
-    const float requestedY=soloFingerZonePanSpeed(screenShipY,cols)*dt;
+    // Circle centred on the visible SCREEN, not a pair of rectangles.
+    // Radial speed stays constant at 6 outside the biggest circle.
+    const float screenShipX=camera.x(s.pilot.x);
+    const float screenShipY=camera.y(s.pilot.y);
+    const auto pan=soloCirclePan(screenShipX,screenShipY,screen,cols);
+    const float requestedX=pan.vx*dt;
+    const float requestedY=pan.vy*dt;
     const float nextLeft=soloClampCamera(camera.left+requestedX,float(s.map.width),cols);
     const float nextTop=soloClampCamera(camera.top+requestedY,float(s.map.height),rows);
     const float panX=nextLeft-camera.left,panY=nextTop-camera.top;
@@ -36,8 +37,12 @@ inline void soloNavigateFinger(Session &s,const TouchPilot &touch,
     // Physics uses shared bounded touch motion and existing swept collisions.
     const float oldX=s.pilot.x,oldY=s.pilot.y;
     const float goalX=nextLeft+fingerX*cols,goalY=nextTop+fingerY*rows;
+    // Extra WORLD speed compensates for camera pan only; the ship stays
+    // finger-locked at the same visual size. Canonical touch vector still
+    // bounds every frame and the collision sweep remains authoritative.
     constexpr float COOP_SPEED_FACTOR=3.10f/1.90f;
-    s.stepToward(goalX,goalY,dt,cols*COOP_SPEED_FACTOR);
+    const float panFactor=pan.speed*.72f/1.90f;
+    s.stepToward(goalX,goalY,dt,cols*(COOP_SPEED_FACTOR+panFactor));
 
     // Prevent "camera tunnelling": if rock blocks ship translation, an
     // autonomous pan cannot drag that ship through a world obstacle.
