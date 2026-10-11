@@ -66,9 +66,9 @@ inline float soloCircleZoneSpeed(float shipScreenX,float shipScreenY,SDL_Rect sc
     const float dy=shipScreenY-(screen.y+screen.h*.5f);
     const float distance=std::hypot(dx,dy);
     const float inner=outer*.5f,middle=outer*.75f;
-    if(distance<=inner)return 0.0f;
+    if(distance<=inner+.001f)return 0.0f;
     if(distance>=outer)return 6.0f;
-    if(distance<=middle){
+    if(distance<=middle+.001f){
         const float t=soloSmoothstep((distance-inner)/(middle-inner));
         return .1f+1.9f*t;
     }
