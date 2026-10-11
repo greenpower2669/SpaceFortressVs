@@ -450,3 +450,11 @@
 - [ ] Samsung contrôle visuel du viewport négatif/grande carte, pilotage doigt 1, caméra seuils concentriques, parois massives sans traversée, sons 0,20/2s, fond astral.
 - [ ] Intégrer vrai atlas/scenery sans cases carrées, occlusion collision tirs/missiles/astéroïdes avec murs, objectif/relais, régions miniboss/boss final, sauvegarde de progression `SFSOLO1`, sessions contextuelles multi-tenant. Ne pas réclamer que ces systèmes sont déjà livrés.
 - [ ] Pas de merge main, `src/main.cpp` protégé, pas de Release.
+
+
+## 2026-10-11 — WORLD TEST livraison Android vérifiée
+- Lancement `feature/solo-coop-core-v1` : monde opt-in « MONDE TEST » derrière entrée diagnostique « SOLO : VRAI MOTEUR COOP » ; rendu/collisions/inertie pilotés par le VRAI moteur COOP; arène BOSS TEST conservée. Correctifs `bee803ee`, `3b52fca7`, `d86c1bfe`, `235661b3` (SDL_unsetenv absent dans SDL2, correction test uniquement) et `82825ed5` (levée doigt = vitesse SOLO remise à zéro, caméra figée).
+- GitHub CI `38171993509` : TOUT VERT, tests isolated SOLO, SDL2, tests historiques de vrai COOP/collision paroi et smoke native 2 modes, compilation Android ; publish-release SKIPPED. Run précédent `38171610964` rouge UNIQUEMENT à cause du test `SDL_unsetenv`, corrigé. Ne pas effacer ses logs sans accord Fab.
+- Artefact définitif extrait dans `temp/` par workflow VERT `38172484944`. APK diagnostic `temp/SpaceFortressVs-1.4.2.apk` commit source `82825ed5e2889ac630fe2379183bc068f0105d01` SHA256 `635c936e0b4fc1335077c2da9d2f236b92e69d8446761703012aa4b65754d5d2` (94 136 117 octets), identité Android séparée ; AAB NON signé SHA256 `14c0df866eba3f704912b1241a2bbbb066311691e8a1d6ad13dca0b110b06c9c`.
+- Limites non résolues : absence de collisions projectiles/parois, boss déclenché par progression, relais et sauvegardes ; habillage parois diagnostique seulement. **Validation Samsung de la caméra, déplacements et sons est encore à effectuer**, CI verte ne la remplace pas.
+- Aucun merge `main`, Release ni modification `src/main.cpp`.
