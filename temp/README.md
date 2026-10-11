@@ -1,15 +1,21 @@
-# SpaceFortress SOLO — diagnostic temporaire
+# SpaceFortress — SOLO sur le vrai moteur COOP
 
-APK Android arm64 directe (pas un ZIP). C'est le build DIAG de
-la branche `feature/solo-worlds-tutorials-v1`, commit
-`7012a3b544e530fa0b87c2a9caa6a16f795ef1f8`.
+Fichiers extraits (sans ZIP) depuis la CI VERTE :
+https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38163967042
 
-Fichier : `SpaceFortress-SOLO-PAROIS-AUTOTILES-7012a3b5-DIAG.apk`
-SHA-256 : `a3c20d17706082c78c983549fe290d85364cf86ace77b6aaa2dc749c82c709db`
+Branche : feature/solo-coop-core-v1
+Commit source testé : ca0322e3188988e80d4e321f047e33fd2ba75f6e
 
-Application de test séparée : `com.greenpower2669.spacefortressvs.diagnostic`.
-Ne pas désinstaller le SpaceFortress historique pour ce test.
+- SpaceFortressVs-1.4.2.apk : APK diagnostic installable, identité
+  Android indépendante : com.greenpower2669.spacefortressvs.diagnostic.
+- SpaceFortressVs-1.4.2-unsigned.aab : bundle NON SIGNÉ, ne pas
+  tenter de l'installer comme une APK sur le téléphone.
+- SpaceFortressVs-1.4.2-build.json : manifeste avec empreintes.
+- SHA256SUMS : empreintes vérifiées via sha256sum -c.
+- release-notes.md : notes du build source.
 
-TEMP est un dépôt de passage demandé pour téléchargement direct.
-Ce fichier volumineux reste dans l'historique Git tant qu'il n'est
-pas purgé explicitement. Ne pas faire de merge vers main / Release.
+L'APK inclut le troisième bouton de diagnostic :
+SOLO : VRAI MOTEUR COOP. Encore une arène sans labyrinthe ni caméra.
+
+Ne pas fusionner temp/ dans main ni publier de Release. Ces binaires
+restent dans l'historique Git tant qu'ils ne sont pas purgés.
