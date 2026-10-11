@@ -390,3 +390,11 @@ CLASSIQUE DUEL local :
 - Parois : solo_scenery sélectionne/cadre ; solo_renderer extrait/redimensionne/mire ; tests/solo_atlas_regressions contrôle la géométrie attendue, pas les jonctions des PNG réels.
 - Cible proposée : un état physique commun, vue séparée, métrique de combat stable, régions de rencontres monde, contrôleurs SOLO/COOP distincts. Aucun de ces nouveaux modules n'est livré par l'audit.
 - Prochaine action : validation de la fondation par Fab, puis détail du premier lot de parité. Ne pas reprendre automatiquement les adaptations indépendantes de solo_combat.
+
+
+## SOLO-COOP-SOCLE-001 — nouvelle carte de reprise (11/10/26)
+- Reprise : branche `feature/solo-coop-core-v1`, départ audit documentaire `f4526cfa`. `src/main.cpp` protégé ; legacy FabLib dans `t.hpp` et une seule unité `th2.h`.
+- Socle déjà codé : `coop_shared_projectile.hpp` (vraie fonction missile utilisée dans COOP) ; `coop_pilot_roster.hpp` (participation), `SfCoopState::bossPresent` / `soloDiagnostic` ; `coop_solo_arena_runtime.hpp` (test COOP réel pilote unique, boss toggle, son/FX), `SfKineticAimAxes` et cône historique orientable.
+- Android DEBUG seul : `SpaceFortressCoopSoloActivity` en processus `:coopsolo`, troisième bouton du hub, argument `--spacefortress-coop-solo-arena`. Original SOLO et CLASSIC inchangés.
+- Témoin/source : `docs/audits/2026-10-11-coop-solo-architecture.md`; simulations physiques COOP via `sfCoopTick/sfCoopDrawArena`, collecte + minage `sfLegacyFieldFrame`; tests nouveaux `coop_shared_projectile_regressions.cpp`, `coop_pilot_roster_regressions.cpp`, `coop_solo_cone_axis_regressions.cpp`, `coop_solo_native_smoke.cpp`, `tests/restoration_regressions.hpp`.
+- Dernier code `172df0c0`, CI `38163698538` en attente de validation. Pas encore carte/caméra/mise en contexte de chaque entité. Pas de merge/main/release.

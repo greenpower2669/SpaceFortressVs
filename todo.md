@@ -389,3 +389,18 @@
 - [ ] Préparer atlas/manifeste et continuité remplissage/contours ; vérifier les assemblages des vraies images, puis sur Samsung.
 - [ ] Après autorisation : tests de parité, non-régression CLASSIQUE/COOP, cycle Android, CI du commit exact, APK diagnostic ARM64 correctement nommée ; essai Samsung avant retrait du vieux combat SOLO.
 - [ ] Aucun merge main, aucune modification de src/main.cpp ni Release sans autorisation correspondante. La liste ci-dessus est un plan proposé, pas un ensemble de fonctionnalités livrées.
+
+
+## 11/10/2026 — SOLO-COOP-SOCLE-001 (premier jalon COOP commun)
+- [x] Audit Astra et fondation approuvée Fab ; branche d'implémentation indépendante `feature/solo-coop-core-v1`.
+- [x] Extraction vraie interception + cinématique missile d'origine, branchée aux anciens appels COOP; test 1200 cas contre anciennes équations.
+- [x] Masque participants explicite, deux par défaut : contrôles COOP, cible/impacts, secours, collecte poussière et collisions astéroïdes, rendu HUD; pas de pilote absent compté comme mort.
+- [x] Vrai COOP `sfCoopTick` fonctionne sans boss, conserve sa physique, ses orbes, poussières et sprites d'origine. Boss réactivable, victoire diagnostic ne sauvegarde PAS la campagne.
+- [x] Ajout arène opt-in Android DBG à pilote unique utilisant `sfCoopTick` et `sfCoopDrawArena`, même TU FabLib, 3ème entrée du hub, caméra identité (prototype SOLO conservé).
+- [x] Cône historique 360 : même géométrie/puissance/vulnérabilité/charge, direction paramétrée pour minage, attraction blanche et représentation ; wrappers COOP historiques inchangés en valeur par défaut.
+- [x] Tests logiques, historiques avec vrai moteur et smoke SDL de l'arène inclus dans CI ; workflows autorisent nouvelle branche.
+- [ ] CI complète dernier code `172df0c0` / run `38163698538` : **en cours**, vérifier puis corriger si besoin.
+- [ ] Récupérer APK debug Android ARM64, valider signature SHA et fournir test Samsung. Ne PAS déclarer tests manuels faits.
+- [ ] Validation Samsung vrai vaisseau/FX/cône/dépenses/boss sur nouveau hub, corriger défauts éventuels.
+- [ ] Contexte de session explicite (sans globaux), ensuite conversion coordonnées monde et caméra circulaire ; ensuite labyrinthe/parois, progression/SFSOLO1. NE PAS FAIRE avant validation du jalon.
+- [ ] Aucun merge main, aucune Release, aucune modification src/main.cpp.
