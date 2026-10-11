@@ -93,7 +93,8 @@ int main(){
 
     // Cross the right third. World camera pans, but pilot target is fixed.
     motion.pilot.x+=3.0f;
-    soloUpdateCamera(motion,phone);
+    motion.pilot.vx=9.0f;
+    soloUpdateCamera(motion,phone,.05f);
     assert(soloViewport(motion,phone).left>initial.left);
     float afterPanX=0,afterPanY=0;
     pilotTarget(motion,touch,phone.w,phone.h,afterPanX,afterPanY);
