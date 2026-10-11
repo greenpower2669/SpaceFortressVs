@@ -404,3 +404,11 @@
 - [ ] Validation Samsung vrai vaisseau/FX/cône/dépenses/boss sur nouveau hub, corriger défauts éventuels.
 - [ ] Contexte de session explicite (sans globaux), ensuite conversion coordonnées monde et caméra circulaire ; ensuite labyrinthe/parois, progression/SFSOLO1. NE PAS FAIRE avant validation du jalon.
 - [ ] Aucun merge main, aucune Release, aucune modification src/main.cpp.
+
+
+## SOLO-COOP-PRESENT-002 — retour Samsung (11/10)
+- [x] Diagnostic de l'écran : audio fonctionnel et sélection CLASSIQUE cache l'arène ; native exit 0, pas de crash. Macro `SDL_RenderPresent` historique capture la présentation diagnostic et réaffiche HOME.
+- [x] Fix ciblé commit `b9072d24` : préserver l'ancienne macro, la désactiver seulement lors de l'include diagnostic, puis la restaurer ; protections compile.
+- [ ] CI verte du correctif `38167735625` et récupération artifact APK de ce commit, ne pas réutiliser l'APK `ca0322e` en temp.
+- [ ] Remplacer `temp/SpaceFortressVs-1.4.2.apk` (et AAB, manifest, SHA256SUMS) par les nouveaux binaires uniquement après CI verte, sans main/Release.
+- [ ] Samsung : vérifier que l'arène COOP vraie apparaît, le pilote est visible, le bouton BOSS TEST marche, sons et toucher persistent.

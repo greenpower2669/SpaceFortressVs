@@ -398,3 +398,8 @@ CLASSIQUE DUEL local :
 - Android DEBUG seul : `SpaceFortressCoopSoloActivity` en processus `:coopsolo`, troisième bouton du hub, argument `--spacefortress-coop-solo-arena`. Original SOLO et CLASSIC inchangés.
 - Témoin/source : `docs/audits/2026-10-11-coop-solo-architecture.md`; simulations physiques COOP via `sfCoopTick/sfCoopDrawArena`, collecte + minage `sfLegacyFieldFrame`; tests nouveaux `coop_shared_projectile_regressions.cpp`, `coop_pilot_roster_regressions.cpp`, `coop_solo_cone_axis_regressions.cpp`, `coop_solo_native_smoke.cpp`, `tests/restoration_regressions.hpp`.
 - Dernier code `172df0c0`, CI `38163698538` en attente de validation. Pas encore carte/caméra/mise en contexte de chaque entité. Pas de merge/main/release.
+
+
+## 11/10 — Panne écran CLASSIQUE au-dessus de l'arène SOLO/COOP
+- Le jeu tournait réellement avec son : le macro final `SDL_RenderPresent` du routeur d'accueil historique capturait le rendu du lanceur `:coopsolo`. Correction de portée minimale commit `b9072d24` : sauvegarder/définir/restaurer la macro dans `src/th2.h` pour exécuter un vrai `SDL_RenderPresent` exclusivement dans `coop_solo_arena_runtime.hpp`.
+- Tests de préprocesseur dans l'en-tête et `tests/coop_solo_native_smoke.cpp` ; CI `38167735625` en attente ; besoin d'une APK **nouvelle**, puis essai visuel Samsung. La version `temp/SpaceFortressVs-1.4.2.apk` est pour l'instant l'ancienne (`ca0322e`) et a le défaut.
