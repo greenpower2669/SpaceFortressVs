@@ -208,17 +208,26 @@ int runSoloPrototype(){
         if(selecting){
             sfsolo::drawSelector(renderer,{0,0,w,h},selector,campaign.progression);
         }else if(campaign.active){
-            // Canonical human ship movement by target vector: the player may
-            // go LEFT/RIGHT/BACKWARDS at any time, not just scroll upward.
+            // The old finger-target approach STOPPED after a short drag:
+            // one gesture produced one finite world-space destination.
+            // Now a steering drag stores direction and throttle, which remain
+            // active on finger release, so a single gesture crosses the map.
             const bool keyboard=std::abs(ax)>0||std::abs(ay)>0;
-            if(touch.down && !keyboard){
-                float tx=0,ty=0;
-                sfsolo::pilotTarget(*campaign.active,touch,w,h,tx,ty);
+            if(keyboard){
+                // Physical keys override the persistent touch cruise.
+                touch.cruiseSet=false;
+                campaign.active->step(ax,ay,dt);
+            }else if(touch.cruiseSet){
                 const auto cam=sfsolo::soloViewport(
                     *campaign.active,{0,0,w,h});
-                campaign.active->stepToward(tx,ty,dt,cam.visibleColumns());
-            }else campaign.active->step(ax,ay,dt);
-            sfsolo::soloUpdateCamera(*campaign.active,{0,0,w,h},dt);
+                campaign.active->stepCruise(touch.cruiseX,touch.cruiseY,
+                    touch.cruiseThrottle,cam.visibleColumns(),dt);
+            }else{
+                campaign.active->step(0,0,dt);
+            }
+            sfsolo::soloUpdateCamera(*campaign.active,{0,0,w,h},dt,
+                touch.cruiseSet?touch.cameraControlX:NAN,
+                touch.cruiseSet?touch.cameraControlY:NAN);
             if(touch.chargeDown){
                 float aimX=0,aimY=0;
                 sfsolo::aimWorldPoint(*campaign.active,
@@ -288,11 +297,12 @@ int runSoloPrototype(){
             if(campaign.active){
                 const auto &p=campaign.active->pilot;
                 std::snprintf(event,sizeof(event),
-                    "HEARTBEAT phase=%d x=%.2f y=%.2f vx=%.2f vy=%.2f hp=%.0f ice=%.2f relays=%u/%u",
+                    "HEARTBEAT phase=%d x=%.2f y=%.2f vx=%.2f vy=%.2f hp=%.0f ice=%.2f relays=%u/%u cruise=%d held=%d",
                     int(campaign.active->phase),p.x,p.y,p.vx,p.vy,
                     p.health,campaign.active->iceSeconds,
                     campaign.active->relaysCollected,
-                    campaign.active->relaysNeeded);
+                    campaign.active->relaysNeeded,
+                    touch.cruiseSet?1:0,touch.down?1:0);
             }else{
                 std::snprintf(event,sizeof(event),"HEARTBEAT selector=%d",
                               selecting?1:0);
