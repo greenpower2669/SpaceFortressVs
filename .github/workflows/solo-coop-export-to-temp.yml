@@ -36,10 +36,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          source_run=38193630900
-          source_sha=6540adece493acfe25dbf066310c1fd2480a7487
-          artifact_dir="$RUNNER_TEMP/coop-solo-stabilization-010"
-          destination="temp/solo-world-stabilization-010"
+          source_run=38209069899
+          source_sha=ad5cb08e945bf919e10abe77131a4c873ccadea6
+          artifact_dir="$RUNNER_TEMP/coop-solo-turrets-off-011"
+          destination="temp/solo-turrets-off-011"
           mkdir -p "$artifact_dir" "$destination"
 
           # IMPORTANT: this workflow starts independently of Android CI. Do
@@ -77,12 +77,12 @@ jobs:
           cp "$artifact_dir/release-notes.md" "$destination/"
           (cd "$destination" && sha256sum --check SHA256SUMS)
           cat > "$destination/README.md" <<'TXT'
-          # SpaceFortress — SOLO WORLD STABILISATION-010 (DIAGNOSTIC)
+          # SpaceFortress — SOLO TURRETS OFF-011 (DIAGNOSTIC)
           
           Nouveau build extrait UNIQUEMENT après CI complète verte :
-          https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38193630900
+          https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38209069899
           
-          Source compilée et testée : 6540adece493acfe25dbf066310c1fd2480a7487
+          Source compilée et testée : ad5cb08e945bf919e10abe77131a4c873ccadea6
           Branche : feature/solo-coop-core-v1
           APK Android diagnostic : SpaceFortressVs-1.4.2.apk
           AAB NON SIGNÉ : SpaceFortressVs-1.4.2-unsigned.aab
@@ -101,11 +101,20 @@ jobs:
           Des rochers historiques peuvent encore être affectés: investigation
           distincte encore ouverte, contrôle physique Samsung requis.
           BOSS TEST/OFF : mannequin immobile uniquement, PAS rencontre finale.
+          SOLO-011 : le diagnostic entier (ARENE et MONDE) n'active JAMAIS
+          le bonus ni les tourelles défensives. Correction du chemin ARENE
+          boss=ON : garde soloDiagnostic, purge des tirs tourelle kind=5,
+          inhibition du rendu tactique historique. L'activation du boss en
+          MONDE TEST ne doit pas réintroduire d'entités.
+          Vérifications automatiques avec/sans boss, nouveau démarrage,
+          CLASSIQUE/COOP conservés. Confirmation physique Samsung attendue.
+          Le HUD SOLO-011 identifie cette édition malgré version 1.4.2.
           
           Les anciens fichiers temp/SpaceFortressVs-1.4.2.apk et
           temp/SpaceFortressVs-1.4.2-unsigned.aab et
           temp/solo-world-cleanup-008/ et
-          temp/solo-world-meteor-009/ sont CONSERVÉS.
+          temp/solo-world-meteor-009/ et
+          temp/solo-world-stabilization-010/ sont CONSERVÉS.
           Aucune fusion main ni Release publique. Validation Samsung requise.
           TXT
 
@@ -115,10 +124,10 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- temp/solo-world-stabilization-010/
+          git add -- temp/solo-turrets-off-011/
           if git diff --cached --quiet; then
             echo "No new artifact content to publish."
             exit 0
           fi
-          git commit -m "chore(solo): unpack verified stabilization-010 APK, retain previous [skip ci]"
+          git commit -m "chore(solo): unpack verified turrets-off-011 diagnostic, retain previous [skip ci]"
           git push origin HEAD:refs/heads/feature/solo-coop-core-v1
