@@ -475,3 +475,9 @@ CLASSIQUE DUEL local :
 
 ### SOLO CLEANUP-008 — résultat vérifié
 - CI complète verte #38182884348, extraction vérifiée #38182981381 ; source code 518f331, chemin nouveau `temp/solo-world-cleanup-008/` ; ancienne APK intacte. Après test Samsung: murs/projectiles, atlas roche, progression, boss, sauvegardes. Aucun merge/release.
+
+
+## 12/10/2026 — SOLO METEOR-009 validé CI / APK diagnostic
+- Seul WORLD `soloWorldMode` : bonus collectible et tourelles toujours interdits ; minuteur bonus => météorites historiques (`sfCoopSoloMeteorites`, 4 tous les 18..32 s après 12 s initiales) accessibles au minage/recharge réelle ; météores dirigés vers boss test lorsque activé, dommages par son champ cinétique canonique.
+- Monde : `soloWorldCanOccupy` empêche les placements dans les parois ; bouton haut droit = BOSS TEST/OFF stationnaire (pas encore le boss final), atlas projeté écran. Autres modes CLASSIQUE/DUEL/COOP intacts ; ne pas toucher à la caméra/contrôle ni à main.cpp.
+- Code 2650237 (fix Android `sa1` liste), CI verte #38190640721, export verte #38190657369, `temp/solo-world-meteor-009/SpaceFortressVs-1.4.2.apk` SHA 07bebf33..., AAB NON signé ; ancien diagnostic cleanup-008 conservé. Ensuite essai physique Samsung et progression SOLO.

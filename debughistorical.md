@@ -480,3 +480,9 @@ Référence `1d8a48e2`. [Preuves, chemins et propositions](docs/audits/2026-10-1
 
 ### SOLO CLEANUP-008 — preuve d'intégration
 - CI #38182884348 SUCCESS (solo-core, SDL2, regressions historiques/Android, AAB); nouvelle régression de suppression tourelles/bonus incluse et verte. Export GitHub #38182981381 SUCCESS avec manifest source 518f331, APK SHA256 e6ab53161be15f10c8675098d4b7f325b6c1b060edc1ecede7f27ee92ae6820a. Le précédent test caméra hors bornes demeure strict et vert. Reste confirmation ergonomique Samsung.
+
+
+## 12/10/2026 — METEOR-009 : premier Android rouge résolu, tests intacts
+- Android run 38190409848 échouait uniquement sur `sa1.begin()+oldCount` dans `sfCoopSoloMeteorites` : `sa1` est `std::list<sprite*>` dans moteur natif et son itérateur n'accepte pas l'addition. Fix `auto it=sa1.begin();std::advance(it,oldCount)` commit 2650237, aucune assertion retirée.
+- Run final #38190640721 : **success** pour tests SOLOC++, SDL2 tactile, Android native/Java/Gradle/APK/AAB ; `publish-release` skipped. Extraction #38190657369 **success** avec vérification SHA ; APK 07bebf33edd1f366cd34fc965c7c5b2b75a6e9130cbfb0f33ef41c7f55dd7d6d. Pas de validation visuelle Samsung encore.
+- Vague météore basée sur `setasts(1)` exclusivement monde : bonus/tourelles toujours absents, le champ réel boss absorbe 55 % et réduit PV; pas de duplication recharge, vraie poussière/minage. Boss test du monde stationnaire seulement : AI, progression et murs/projectiles restent phase suivante. Classements et classiques préservés.

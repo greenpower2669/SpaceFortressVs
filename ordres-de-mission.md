@@ -600,3 +600,8 @@ Instruction Fab « Oui le vaisseau est là mais le déplacement camera à dispar
 
 ### Livraison sous contrôle Fab — SOLO CLEANUP-008
 - Source 518f331, CI historique + SDL2 + Android verte #38182884348, aucun merge/main ni Release; export #38182981381 vert dans `temp/solo-world-cleanup-008/` sans remplacer l'ancien APK. AAB reste non signé. Validation réelle Samsung toujours requise avant toute évolution de gameplay.
+
+
+## Exécution Fab — SOLO METEOR-009 / 12-10-2026
+Instruction : « Ne sort pas le bonus ni les tourelle. Le bonus envoi des météorite ... sur le boss affaible et possibilité de recharger », précisée « Le bonus mais envoi meteor à la place » puis GO : interprétation explicitée/validée dans la discussion = ni bonus collectible ni tourelles en MONDE TEST, météorites réelles **à la place** avec minage/recharge et dégâts cinétiques du boss ; conserver en CLASSIQUE/DUEL/COOP. Dans WORLD, boss uniquement diagnostic stationnaire avec atlas actuel et bouton BOSS TEST/OFF : ne pas annoncer IA ni rencontres finalisées.
+Code moteur `sfCoopSoloMeteorites`, mapping traversabilité `soloWorldCanOccupy`, boss test SDL2, test historique renforcé ; Android `sa1` liste (fix 2650237). CI complète 38190640721 verte et export exact 38190657369 verte dans `temp/solo-world-meteor-009/` ; ancienne APK conservée ; test Samsung restant. Aucun changement de main/src/main.cpp, merge ni release publique ; AAB non signé.

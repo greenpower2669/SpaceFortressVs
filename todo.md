@@ -513,3 +513,12 @@
 - [x] Export sans ZIP #38182981381 dans `temp/solo-world-cleanup-008/` avec manifeste, checksums, APK, AAB non signé, notes ; contrôle SHA256 OK ; préservation ancienne APK.
 - [ ] Installer et tester le nouvel APK sur Samsung ; confirmer disparition totale tourelles/bonus, mouvements caméra contre roche, charge 0,20s / READY 2s, tirs et poussière.
 - [ ] Poursuivre progressivement parois texturées, collisions projectiles et astéroïdes sur murs, relais, boss, reprises/sauvegardes. Aucune annonce de réalisation avant code/test.
+
+
+## SOLO WORLD METEOR-009 — 12/10/2026
+- [x] Appliquer nouvelle correction Fab : enlever bonus collectible + tourelles dans MONDE TEST, et transformer cadence bonus en vague de vrais météores minables, recharge grâce à la poussière historique, boss affaibli par impact cinétique réel.
+- [x] Tester génération de météores, intervalle sans inondation, boss impact PV, conservation bonus/tourelles hors MONDE TEST ; C++ et SDL2 verts.
+- [x] Corriger Android `sa1` std::list, sans supprimer tests ; CI #38190640721 entièrement verte, publication publique sautée.
+- [x] Exporter APK + AAB NON signé + SHA + manifest sous `temp/solo-world-meteor-009/`, CI #38190657369 verte ; conserver `temp/solo-world-cleanup-008/` et APK antérieures.
+- [ ] Sur Samsung, entrer MONDE TEST, vérifier météorites à exploiter et poussière/recharge, puis BOSS TEST haut droit : vagues infligent dégâts au boss. Vérifier caméra, cône à 0,20 s et READY 2 s, et aucun bonus/tourelles dans MONDE TEST. Ne pas confondre avec mode ARENE ou ancienne APK.
+- [ ] Suite SOLO après retour réel : équiper boss monde de vraie IA/progression/sauvegarde, gérer astéroïdes face aux parois, et enrichir décors. Ne pas merger main ni publier Release sans accord Fab.
