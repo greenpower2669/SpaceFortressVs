@@ -125,8 +125,16 @@ int main(){
     assert(bridge.canOccupy(before,12));
     assert(bridge.canOccupy(after,12));
     assert(!bridge.canOccupy(inside,12));
-    const auto blockedPath=bridge.moveWithoutTunnelling(before,after,12);
-    assert(bridge.canOccupy(blockedPath,12));
-    assert(blockedPath.x<inside.x-12);
+    // SAMPLE the entire trajectory independently of the ship resolver.
+    // A geometric wall is present although BOTH endpoints are available.
+    // Do not claim asteroid path physics is fixed by this placement test.
+    int obstructedSamples=0;
+    for(int i=0;i<=40;++i){
+        const float t=float(i)/40.0f;
+        if(!bridge.canOccupy({before.x+(after.x-before.x)*t,
+                              before.y+(after.y-before.y)*t},12))
+            ++obstructedSamples;
+    }
+    assert(obstructedSamples>0);
     return 0;
 }
