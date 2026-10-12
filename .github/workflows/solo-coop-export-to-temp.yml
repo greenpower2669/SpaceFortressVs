@@ -130,7 +130,7 @@ jobs:
             exit 0
           fi
           git commit -m "chore(solo): unpack verified turrets-off-011 diagnostic, retain previous [skip ci]"
-          # The five living memories can advance this branch while the green
+          # The five living memories (or independent documentation updates) may advance the branch while the green
           # build artifact is downloading. Rebase just this NEW temp commit;
           # never force-push, merge main or overwrite the previous APK.
           git fetch origin feature/solo-coop-core-v1
