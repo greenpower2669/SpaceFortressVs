@@ -36,8 +36,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          source_run=38190409848
-          source_sha=d016f6196481fe73bc6e4947aebfd30aeb052da4
+          source_run=38190640721
+          source_sha=2650237f5801f0fd992477070bc54f53f0225016
           artifact_dir="$RUNNER_TEMP/coop-solo-meteor-009"
           destination="temp/solo-world-meteor-009"
           mkdir -p "$artifact_dir" "$destination"
@@ -80,9 +80,9 @@ jobs:
           # SpaceFortress — SOLO WORLD METEOR-009 (DIAGNOSTIC)
           
           Nouveau build extrait UNIQUEMENT après CI complète verte :
-          https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38190409848
+          https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38190640721
           
-          Source compilée et testée : d016f6196481fe73bc6e4947aebfd30aeb052da4
+          Source compilée et testée : 2650237f5801f0fd992477070bc54f53f0225016
           Branche : feature/solo-coop-core-v1
           APK Android diagnostic : SpaceFortressVs-1.4.2.apk
           AAB NON SIGNÉ : SpaceFortressVs-1.4.2-unsigned.aab
