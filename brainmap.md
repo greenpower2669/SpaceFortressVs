@@ -491,3 +491,9 @@ CLASSIQUE DUEL local :
 
 ### 12/10/2026 — finalisation suspension météores
 - Commit de test ciblé `6540adece`, CI #38193630900 verte ; export #38193705276 vert dans `temp/solo-world-stabilization-010/`, APK SHA b0cc1fad1543e4a66729a014bd6cb30f2222b9de7a6aa43c98c02dc9f4e36e64. Anciennes APK intactes ; validation physique Samsung ouverte. Aucun nouveau gameplay, aucune réactivation météores avant analyse naissance ET trajet.
+
+
+## 12/10/2026 — SOLO-011 / protection tourelles diagnostic
+- Retour Samsung : boss + météorites OK selon Fab; boss trop sombre mais reporté; tourelles encore visibles. Version réellement installée non vérifiable à distance : manifeste dernier ZIP/APK STABILISATION-010 = source 6540adece, nouveau HUD `SOLO-011` pour discriminer les prochaines captures.
+- Audit causal source : ARENE diagnostic = `soloDiagnostic=true` ET `soloWorldMode=false`; avec boss, boucle COOP historique appelait sfCoopDefences/sfCoopBonus et dessinait sfDrawTacticalEffects. En MONDE, cette voie était déjà bloquée, donc objet vu dans MONDE à confirmer visuellement.
+- Correctif branche `feature/solo-coop-core-v1`, commit `ad5cb08e`: interdire bonus/tourelles sur TOUT `soloDiagnostic` ; purge réelle entrée/bascules/boss, projectile kind5 aussi avant collisions, exclusion dessin et HUD. Aucun changement COOP historique ni CLASSIQUE/DUEL. Test deux lancements, boss ON/OFF; ne pas élargir gameplay. Météorites additionnelles toujours suspendues; boss test fixe, non historique. CI 38209069899 et export séparé 011 à vérifier.

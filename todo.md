@@ -538,3 +538,13 @@
 - [x] Code `6540adece` testé CI #38193630900 : C++/SDL2/Android tous SUCCESS; export #38193705276 SUCCESS avec SHA vérifié dans `temp/solo-world-stabilization-010/`. APK SHA b0cc1fad1543e4a66729a014bd6cb30f2222b9de7a6aa43c98c02dc9f4e36e64, AAB non signé. Anciens diagnostics conservés.
 - [ ] Test réel Samsung APK stabilisation : aucune nouvelle vague METEOR-009, astéroïdes fond encore présents/minables, identifier s'ils se coincent dans ROCK. La sortie correcte de la vague N'IMPLIQUE PAS correction du trajet des rochers historiques.
 - [ ] Examiner séparément le résolveur `moveWithoutTunnelling` au vu d'un échec initial synthétique (cas deux points libres séparés par mur), **sans changer le pilotage existant dans cette mission**. Ne pas annoncer confirmé sur appareil.
+
+
+## SOLO TURRETS OFF-011 — correction ciblée (12/10/26)
+- [x] Inspecter le manifeste GitHub de l'APK stabilisation-010 : commit `6540adece493acfe25dbf066310c1fd2480a7487`; **installation Samsung exacte inconnue**. Mettre repère visible `SOLO-011` + log pour comparaison.
+- [x] Démontrer par source le chemin ARENE (non MONDE) `soloDiagnostic` sans garde `soloWorldMode` : bonus → temps des tourelles → déploiement/tirs kind5 → dessin tactique. Identifier un éventuel visuel WORLD distinct avec Fab, sans inventer de causalité.
+- [x] Garde global diagnostic SOLO, état/purge projectiles au démarrage et transitions boss, bonus/IA stoppés, rendu ARENE non-tourelles; préserver toutes ressources/armes/caméra/sons + CLASSIQUE/COOP.
+- [x] Tests moteur nouveau `testSoloDiagnosticTurretsRemainAbsent` avec deux lancements, boss off/on, non régression historique, vague météores ajoutée toujours suspendue.
+- [ ] Vérifier Android/SDL2/CI run 38209069899 puis extraction `temp/solo-turrets-off-011/` UNIQUEMENT après vert; contrôler manifeste SHA et taille. Ne pas annoncer prêt auparavant.
+- [ ] Vérification physique Samsung dans MONDE et ARENE, boss OFF/ON après relancement, HUD `SOLO-011`, vaisseau/mine/recharge/météorites historiques, aucun effet/tir/collision/dessin de tourelle. Identifier photo de tout objet douteux sans conclure trop vite.
+- [ ] Aucune modification main/src/main.cpp, aucun merge ni release, ne pas activer les vagues METEOR-009.
