@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <cmath>
 #include <optional>
+#include <queue>
+#include <limits>
 #include <SDL2/SDL.h>
 
 namespace sfsolo {
@@ -18,6 +20,7 @@ struct CoopSoloWorldBridge {
     float pixelsPerCell=1.0f;
     float cameraLeft=0,cameraTop=0;
     bool ready=false;
+    std::vector<CoopWorldPoint> pickupBatchCells; // rebuilt once per reward batch
     bool create(MapOptions options,SDL_Rect output,float historicCombatWidth){
         // Never change the original COOP arena, nrj/damage or projectile
         // scales when the map becomes 54x160 or larger.
@@ -77,6 +80,74 @@ struct CoopSoloWorldBridge {
         const float lead=desiredCameraPxPerSecond/30.0f;
         return {exact.x+zone.vx/vectorLength*lead,
                 exact.y+zone.vy/vectorLength*lead};
+    }
+    // Swept disc, conservatively expanded tile boxes at corners. Unlike a
+    // sampled endpoint this cannot tunnel through a wall on a long frame.
+    float firstWallImpact(CoopWorldPoint from,CoopWorldPoint to,float radius) const {
+        if(!ready || radius<=0 || !std::isfinite(radius) ||
+           !std::isfinite(from.x)||!std::isfinite(from.y)||
+           !std::isfinite(to.x)||!std::isfinite(to.y))return 0;
+        float first=1;
+        const float dx=to.x-from.x,dy=to.y-from.y;
+        const int left=std::max(-1,int(std::floor((std::min(from.x,to.x)-radius)/pixelsPerCell)));
+        const int right=std::min(map.width,int(std::floor((std::max(from.x,to.x)+radius)/pixelsPerCell)));
+        const int top=std::max(-1,int(std::floor((std::min(from.y,to.y)-radius)/pixelsPerCell)));
+        const int bottom=std::min(map.height,int(std::floor((std::max(from.y,to.y)+radius)/pixelsPerCell)));
+        if(from.x<radius || from.y<radius || from.x>worldWidth()-radius || from.y>worldHeight()-radius)return 0;
+        for(int y=top;y<=bottom;++y)for(int x=left;x<=right;++x){
+            if(map.at(x,y)!=Tile::Rock)continue;
+            float enter=0,leave=1;
+            const auto slab=[&](float p,float d,float low,float high){
+                if(std::abs(d)<1e-7f)return p>low && p<high;
+                float a=(low-p)/d,b=(high-p)/d;if(a>b)std::swap(a,b);
+                enter=std::max(enter,a);leave=std::min(leave,b);return enter<leave;
+            };
+            if(slab(from.x,dx,x*pixelsPerCell-radius,(x+1)*pixelsPerCell+radius) &&
+               slab(from.y,dy,y*pixelsPerCell-radius,(y+1)*pixelsPerCell+radius))first=std::min(first,enter);
+        }
+        return first;
+    }
+    // Loot must belong to the component the physical ship can reach. Nearest
+    // empty tile alone would deposit rewards across an impassable wall.
+    std::vector<CoopWorldPoint> reachablePickupCells(CoopWorldPoint ship,float clearance) const {
+        std::vector<CoopWorldPoint> cells;
+        if(!ready || clearance<=0 || !canOccupy(ship,clearance))return cells;
+        const int sx=int(ship.x/pixelsPerCell),sy=int(ship.y/pixelsPerCell);
+        if(sx<0||sy<0||sx>=map.width||sy>=map.height)return cells;
+        const auto centre=[&](int x,int y){return CoopWorldPoint{(x+.5f)*pixelsPerCell,(y+.5f)*pixelsPerCell};};
+        if(firstWallImpact(ship,centre(sx,sy),clearance)<1)return cells;
+        std::vector<unsigned char> seen(std::size_t(map.width)*map.height,0);
+        std::queue<int> pending;pending.push(sy*map.width+sx);seen[pending.front()]=1;
+        while(!pending.empty()){
+            const int i=pending.front();pending.pop();const int x=i%map.width,y=i/map.width;
+            const auto at=centre(x,y);const auto tile=map.at(x,y);
+            if(tile!=Tile::Lava && tile!=Tile::Beam)cells.push_back(at);
+            constexpr int ox[]={1,-1,0,0},oy[]={0,0,1,-1};
+            for(int n=0;n<4;++n){
+                const int nx=x+ox[n],ny=y+oy[n];
+                if(nx<0||ny<0||nx>=map.width||ny>=map.height)continue;
+                const int j=ny*map.width+nx;if(seen[j])continue;
+                const auto next=centre(nx,ny);
+                if(firstWallImpact(at,next,clearance)<1)continue;
+                seen[j]=1;pending.push(j);
+            }
+        }
+        return cells;
+    }
+    static bool selectPickup(const std::vector<CoopWorldPoint> &cells,CoopWorldPoint desired,
+                             const std::vector<CoopWorldPoint> &occupied,float separation,CoopWorldPoint &out){
+        float best=std::numeric_limits<float>::max();bool found=false;
+        for(const auto at:cells){
+            const float dx=at.x-desired.x,dy=at.y-desired.y,d=dx*dx+dy*dy;
+            if(d>=best)continue;
+            bool overlap=false;
+            for(const auto p:occupied)if(std::hypot(at.x-p.x,at.y-p.y)<separation){overlap=true;break;}
+            if(!overlap){best=d;out=at;found=true;}
+        }
+        return found;
+    }
+    bool reachablePickup(CoopWorldPoint ship,CoopWorldPoint desired,float clearance,CoopWorldPoint &out) const {
+        return selectPickup(reachablePickupCells(ship,clearance),desired,{},0,out);
     }
     bool canOccupy(CoopWorldPoint world,float radius) const {
         if(!ready || radius<0 || !std::isfinite(world.x)||!std::isfinite(world.y))return false;

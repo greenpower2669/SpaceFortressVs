@@ -33,6 +33,7 @@ enti *iago = new enti, *iago1 = new enti, *iacalc = new enti, *iatake = new enti
 #include "maintenance_regressions.hpp"
 #include "restoration_regressions.hpp"
 #include "difficulty_regressions.hpp"
+#include "solo_bonus_runtime_regressions.hpp"
 
 static SDL_Event finger(Uint32 type, SDL_FingerID id, float x, float y)
 {
@@ -299,6 +300,7 @@ int main(int argc,char **argv)
     testDuelStyleRoundTrip();testShipBreathing();testCoopHumanAim();testUnknownSaveWithBackup(campaignDirectory);
     testSaveRecoveryPreservation(campaignDirectory);
     testNoHumanAutofire();testPassiveCoopTurrets();testSharedLinearShieldModel();testKineticFieldAndHullRegen();testCollectedBonusAndShield();testRealCoopField();testCoopSoloFoundation();testActualCoopMovementInWorld();testCoopHeldFingerContinuousWorldCruise();testSoloWorldExcludesTurretsAndBonuses();testSoloDiagnosticTurretsRemainAbsent();
+    testSoloBonusRuntime012();testSoloBonusRendering012();
     testCoopDifficultyChain();testCoopIncomingDamageMultiplier();testCoopHudAndMissile();
     testDurableV1Migration(campaignDirectory);testDifficultySelection();testDifficultyGameplay();
     testDifficultyRendering(std::getenv("SPACEFORTRESS_DIFFICULTY_PREVIEW"));

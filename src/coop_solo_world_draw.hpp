@@ -67,6 +67,7 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
     }
     // Real SfCoopShot, laser/orb/missile sprites; no duplicate shot logic.
     for(const auto &shot:sfCoop.shots){
+        if(sfsolo::bonus::isOrb(shot.bonusKind))continue;
         const auto p=project(shot.position.x,shot.position.y);
         const float size=shot.kind==4?shot.radius*5.0f:shot.radius*2.0f;
         if(!visible(p.x,p.y,size))continue;
@@ -179,22 +180,22 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         if(textures.blue){
             SDL_SetTextureColorMod(textures.blue,255,255,255);
             SDL_SetTextureAlphaMod(textures.blue,
-                sfCoop.invulnerable[1]>0 && int(sfCoop.time*12)%2?140:255);
+                sfCoopSoloShipAlpha(1,sfCoop.invulnerable[1]>0 && int(sfCoop.time*12)%2?140:255));
             SDL_RenderCopyEx(renderer,textures.blue,nullptr,&hull,
                              -sfCoop.time*17,nullptr,SDL_FLIP_NONE);
             SDL_SetTextureAlphaMod(textures.blue,255);
         }else{
-            const SDL_Color blue{80,222,255,245};
+            const SDL_Color blue{80,222,255,sfCoopSoloShipAlpha(1,245)};
             const SDL_Vertex shipVertices[]={
                 {{p.x,p.y-ship->h*.42f},blue,{0,0}},
-                {{p.x-ship->w*.35f,p.y+ship->h*.28f},{25,110,245,240},{0,0}},
-                {{p.x+ship->w*.35f,p.y+ship->h*.28f},{25,110,245,240},{0,0}}};
+                {{p.x-ship->w*.35f,p.y+ship->h*.28f},{25,110,245,sfCoopSoloShipAlpha(1,240)},{0,0}},
+                {{p.x+ship->w*.35f,p.y+ship->h*.28f},{25,110,245,sfCoopSoloShipAlpha(1,240)},{0,0}}};
             const int tri[]={0,1,2};
             SDL_RenderGeometry(renderer,nullptr,shipVertices,3,tri,3);
         }
         // Always distinguish the ship's centre from its larger power ring.
         sfCoopDisc(renderer,p.x,p.y,std::max(2.0f,ship->w*.055f),
-                   {180,246,255,220});
+                   {180,246,255,sfCoopSoloShipAlpha(1,220)});
     }
     SDL_RenderSetViewport(renderer,&original);
 }

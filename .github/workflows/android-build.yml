@@ -37,6 +37,8 @@ jobs:
         run: g++ -std=c++17 -O2 -Wall -Wextra tests/coop_solo_cone_axis_regressions.cpp -o /tmp/coop-solo-cone && /tmp/coop-solo-cone
       - name: Historical COOP projectile parity (deterministic reference)
         run: g++ -std=c++17 -O2 -Wall -Wextra tests/coop_shared_projectile_regressions.cpp -o /tmp/coop-core-parity && /tmp/coop-core-parity
+      - name: SOLO BONUS CORE-012 eight powers, exact timers and bounded inventory
+        run: g++ -std=c++17 -O2 -Wall -Wextra tests/solo_bonus_core_regressions.cpp -o /tmp/solo-bonus-core && /tmp/solo-bonus-core
       - name: Compile and run isolated SOLO logic
         shell: bash
         run: |

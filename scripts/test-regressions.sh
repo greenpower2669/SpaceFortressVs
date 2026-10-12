@@ -12,6 +12,8 @@ g++ -std=c++17 -O2 -Wall -Wextra "$sf_repo/tests/coop_pilot_roster_regressions.c
 "$sf_test_dir/coop-pilots"
 g++ -std=c++17 -O2 -Wall -Wextra "$sf_repo/tests/coop_shared_projectile_regressions.cpp" -o "$sf_test_dir/coop-parity"
 "$sf_test_dir/coop-parity"
+g++ -std=c++17 -O2 -Wall -Wextra "$sf_repo/tests/solo_bonus_core_regressions.cpp" -o "$sf_test_dir/solo-bonus-core"
+"$sf_test_dir/solo-bonus-core"
 python3 "$sf_repo/scripts/prepare-assets.py" --output "$sf_test_dir/resources/assets"
 python3 "$sf_repo/tests/test_assets.py"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/solo_campaign_model_regressions.cpp" -o "$sf_test_dir/solo-model"

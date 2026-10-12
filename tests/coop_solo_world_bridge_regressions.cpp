@@ -4,7 +4,48 @@
 using namespace sfsolo;
 
 static bool same(float a,float b){return std::abs(a-b)<.002f;}
+static void testSweptWallsAndReachableRewards(){
+    CoopSoloWorldBridge world;
+    MapOptions options;options.width=54;options.height=160;
+    assert(world.create(options,{0,0,540,960},540));
+    std::fill(world.map.tiles.begin(),world.map.tiles.end(),Tile::Empty);
+    const float cell=world.pixelsPerCell;
+    for(int y=0;y<world.map.height;++y)world.map.tiles[std::size_t(y)*world.map.width+5]=Tile::Rock;
+    const CoopWorldPoint left{3.5f*cell,5.5f*cell},right{7.5f*cell,5.5f*cell};
+    const float impact=world.firstWallImpact(left,right,12);
+    assert(same(impact,(5*cell-12-left.x)/(right.x-left.x)));
+    assert(world.firstWallImpact(right,left,12)<1);
+    assert(world.firstWallImpact(left,{left.x,left.y+cell},12)==1);
+    assert(world.firstWallImpact({5.5f*cell,5.5f*cell},right,12)==0);
+    assert(world.firstWallImpact(left,{world.worldWidth()+1000,left.y},12)<impact);
+    // A parallel tangent does not get mistaken for an entry into the wall.
+    assert(world.firstWallImpact({5*cell-12,4*cell},{5*cell-12,8*cell},12)==1);
+    CoopWorldPoint reward;
+    assert(world.reachablePickup(left,right,20,reward));
+    assert(reward.x<5*cell && world.canOccupy(reward,20));
+    // Open a passage; now the actual ship can reach the desired component.
+    world.map.tiles[std::size_t(5)*world.map.width+5]=Tile::Empty;
+    assert(world.reachablePickup(left,right,20,reward));
+    assert(same(reward.x,right.x)&&same(reward.y,right.y));
+    // A gap one cell wide is too narrow for a hull whose diameter exceeds it.
+    assert(world.reachablePickup(left,right,cell*.51f,reward));
+    assert(reward.x<5*cell && world.canOccupy(reward,cell*.51f));
+    world.map.tiles[std::size_t(5)*world.map.width+7]=Tile::Lava;
+    assert(world.reachablePickup(left,right,20,reward));
+    assert(world.map.at(int(reward.x/cell),int(reward.y/cell))!=Tile::Lava);
+    assert(!world.reachablePickup({5.5f*cell,4.5f*cell},right,20,reward));
+    // One component traversal, then distinct placements even when the
+    // nearest reward slots are occupied. No repeated BFS or queue starvation.
+    const auto cells=world.reachablePickupCells(left,20);
+    std::vector<CoopWorldPoint> occupied;
+    for(int i=0;i<24;++i){
+        assert(world.selectPickup(cells,right,occupied,30,reward));
+        for(const auto p:occupied)assert(std::hypot(p.x-reward.x,p.y-reward.y)>=30);
+        occupied.push_back(reward);
+    }
+}
 int main(){
+    testSweptWallsAndReachableRewards();
     CoopSoloWorldBridge bridge;
     MapOptions opts;opts.width=54;opts.height=160;opts.difficulty=1;
     assert(bridge.create(opts,{0,0,540,960},540));

@@ -554,3 +554,21 @@
 - [x] CI C++/SDL2/Android `38209069899` **SUCCESS** source `ad5cb08e`, `publish-release` ignoré.
 - [x] Export GitHub `38209723734` **SUCCESS** après réconciliation de l'avancement concurrent des mémoires ; APK `temp/solo-turrets-off-011/SpaceFortressVs-1.4.2.apk` SHA256 `513693f6b2b7fd07b810562fe8fc0c73e336eb3c2ebab02db980fc20106f0e21` (94 136 124 octets), AAB non signé présent, anciens fichiers conservés.
 - [ ] Essai physique Samsung sur **édition HUD `SOLO-011`** : ARENE boss OFF/ON, MONDE boss OFF/ON, relance, aucune IA/tir/contact/affichage tourelle ; confirmer et fournir description/capture des éventuels objets ambigus. Ne pas prétendre boss historique achevé ni collision météores réparée.
+
+
+## SOLO BONUS CORE-012 — 12/10/2026
+- [x] Référence distante1c6c0b5, ordres/mémoires/sources et planches examinés ; travail isolé, modification PNG antérieure laissée intacte.
+- [ ] Cœur huit pouvoirs, collecte, cumul borné et tests purs.
+- [ ] Tir humain réel/salves, targeting furtif, statuts/dégâts boss, drops accessibles.
+- [ ] Rendu sprites/FX/HUD commun arène et labyrinthe, reset/relaunch.
+- [ ] Régressions réelles + SDL2/Android CI ; APK/AAB dans temp/solo-bonus-core-012/, SHA vérifié.
+- [ ] Retour Samsung : ergonomie/FPS, statuts boss monde ne prouvent pas mobilité.
+
+### CORE-012 — intégration et revue, 12/10/2026
+- Brique C++ pure + adaptateur du vrai SfCoopState + rendu commun arène/labyrinthe implémentés. Salves humaines x3, guidage historique, coût canonique une fois ; furtivité semi-transparente conserve collisions ; missiles3s sans coût ; statuts Prison2s/Glace4s/Lave4s et Météore ciblé. Ancien bonus/tourelles et vagues METEOR-009 toujours exclus du SOLO.
+- Revue indépendante : seuils enregistrés au moment du dégât avant soin poussière ; boss SOLO mort non ressuscité par poussières ; taille de coque identique au pilote monde ; BFS accessible calculé une fois par paquet, emplacements distincts. Coûts bornés et logs Android `SOLO_BONUS_012` moyenne/max temps simulation+rendu pour validation Samsung.
+- Précontrôles : core pur GREEN, source SDL compilée ; régressions complètes/visuel/Android encore en cours à cet instant. Tests ajoutés par Sol puis poursuivis par Astra après interruption de son exécution. Benchmark hôte seulement : 12 récompenses/carte54×160, 12 lots, moyenne2,270ms maximum6,612ms ; aucune promesse de FPS Samsung.
+- `src/main.cpp` inchangé. Pas de merge main/Release. Identifiant HUD SOLO-012 et carte accueil SOLO BONUS012. APK/AAB à livrer uniquement depuis CI verte exacte dans temp/solo-bonus-core-012/.
+
+### CORE-012 — contrôle local terminé, candidat CI
+`scripts/test-regressions.sh` termine code0 : historique C++/SDL2, assets, moteurs, 200 ouvertures/rendus COOP, champs et poussières cinétiques, source Android générée et smoke natif arène/monde. Nouveaux tests purecore, tirsréels/statuts/collisions/loot/isolation passent. Dernier ajustement HUD SOLO (plus de double HUD COOP, textes agrandis) recompilé et testé avec lecture pixels SDL ; capture inspectée. Contrôle pont monde réexécuté après ajout des24placementsdistincts ; protection launcher diagnostic OK. Le boss monde reste FIXE de test, Prison/Glace y montrent des statuts, mouvement seulement démontré sur boss mobile de l’arène. CI Android et export exact restent à constater ; APK non annoncée avant cela.
