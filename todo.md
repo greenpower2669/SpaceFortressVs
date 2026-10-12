@@ -548,3 +548,9 @@
 - [ ] Vérifier Android/SDL2/CI run 38209069899 puis extraction `temp/solo-turrets-off-011/` UNIQUEMENT après vert; contrôler manifeste SHA et taille. Ne pas annoncer prêt auparavant.
 - [ ] Vérification physique Samsung dans MONDE et ARENE, boss OFF/ON après relancement, HUD `SOLO-011`, vaisseau/mine/recharge/météorites historiques, aucun effet/tir/collision/dessin de tourelle. Identifier photo de tout objet douteux sans conclure trop vite.
 - [ ] Aucune modification main/src/main.cpp, aucun merge ni release, ne pas activer les vagues METEOR-009.
+
+
+### SOLO-011 — artefacts définitifs et tests restant sur téléphone
+- [x] CI C++/SDL2/Android `38209069899` **SUCCESS** source `ad5cb08e`, `publish-release` ignoré.
+- [x] Export GitHub `38209723734` **SUCCESS** après réconciliation de l'avancement concurrent des mémoires ; APK `temp/solo-turrets-off-011/SpaceFortressVs-1.4.2.apk` SHA256 `513693f6b2b7fd07b810562fe8fc0c73e336eb3c2ebab02db980fc20106f0e21` (94 136 124 octets), AAB non signé présent, anciens fichiers conservés.
+- [ ] Essai physique Samsung sur **édition HUD `SOLO-011`** : ARENE boss OFF/ON, MONDE boss OFF/ON, relance, aucune IA/tir/contact/affichage tourelle ; confirmer et fournir description/capture des éventuels objets ambigus. Ne pas prétendre boss historique achevé ni collision météores réparée.
