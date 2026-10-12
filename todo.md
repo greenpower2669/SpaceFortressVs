@@ -522,3 +522,13 @@
 - [x] Exporter APK + AAB NON signé + SHA + manifest sous `temp/solo-world-meteor-009/`, CI #38190657369 verte ; conserver `temp/solo-world-cleanup-008/` et APK antérieures.
 - [ ] Sur Samsung, entrer MONDE TEST, vérifier météorites à exploiter et poussière/recharge, puis BOSS TEST haut droit : vagues infligent dégâts au boss. Vérifier caméra, cône à 0,20 s et READY 2 s, et aucun bonus/tourelles dans MONDE TEST. Ne pas confondre avec mode ARENE ou ancienne APK.
 - [ ] Suite SOLO après retour réel : équiper boss monde de vraie IA/progression/sauvegarde, gérer astéroïdes face aux parois, et enrichir décors. Ne pas merger main ni publier Release sans accord Fab.
+
+
+## 12/10/2026 — SOLO-STABILISATION-010 / retour Samsung prioritaire
+- [x] Recevoir et documenter le constat réel : vagues de météorites du SOLO visibles coincées dans les murs ; statut METEOR-009 = NON VALIDÉ sur téléphone malgré CI antérieure verte.
+- [x] Suspendre par défaut toute nouvelle vague `sfCoopSoloMeteorites` (test explicite avec timer expiré et boss présent), sans interrompre les astéroïdes naturels/minage/recharge ni altérer modes historiques.
+- [x] Auditer séparément naissance (unique appel `canOccupy` en METEOR-009, spawner de fond différent) et trajectoire (pas de collision ROCK dans `rock->ast()` / `sfLegacyFieldStep`) ; ajouter témoin géométrique « deux points libres séparés par ROCK », sans affirmer le bug définitivement diagnostiqué.
+- [ ] Vérifier CI C++/SDL2/Android du commit de suspension et livrer APK diagnostique **uniquement** si toute la CI verte et vérification des fichiers/empreintes ; garder anciennes APK.
+- [ ] Relever si les astéroïdes historiques restants se coincent également ; collecter capture/log horodaté ; discriminer apparition, déplacement réel, projection/rendu, contact parois. Exiger tests trajectoires réels avant toute réactivation.
+- [ ] Boss du MONDE = mannequin fixe et commandes de test, pas boss de rencontre historique. Ne pas ajouter gameplay pendant stabilisation.
+- [ ] Aucun merge main/release publique, aucune modification `src/main.cpp`, préserver vaisseau, caméra, maniabilité, ressources, tirs et CLASSIQUE/COOP.
