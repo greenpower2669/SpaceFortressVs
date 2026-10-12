@@ -36,10 +36,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          source_run=38190640721
-          source_sha=2650237f5801f0fd992477070bc54f53f0225016
-          artifact_dir="$RUNNER_TEMP/coop-solo-meteor-009"
-          destination="temp/solo-world-meteor-009"
+          source_run=38193630900
+          source_sha=6540adece493acfe25dbf066310c1fd2480a7487
+          artifact_dir="$RUNNER_TEMP/coop-solo-stabilization-010"
+          destination="temp/solo-world-stabilization-010"
           mkdir -p "$artifact_dir" "$destination"
 
           # IMPORTANT: this workflow starts independently of Android CI. Do
@@ -77,31 +77,35 @@ jobs:
           cp "$artifact_dir/release-notes.md" "$destination/"
           (cd "$destination" && sha256sum --check SHA256SUMS)
           cat > "$destination/README.md" <<'TXT'
-          # SpaceFortress — SOLO WORLD METEOR-009 (DIAGNOSTIC)
+          # SpaceFortress — SOLO WORLD STABILISATION-010 (DIAGNOSTIC)
           
           Nouveau build extrait UNIQUEMENT après CI complète verte :
-          https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38190640721
+          https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38193630900
           
-          Source compilée et testée : 2650237f5801f0fd992477070bc54f53f0225016
+          Source compilée et testée : 6540adece493acfe25dbf066310c1fd2480a7487
           Branche : feature/solo-coop-core-v1
           APK Android diagnostic : SpaceFortressVs-1.4.2.apk
           AAB NON SIGNÉ : SpaceFortressVs-1.4.2-unsigned.aab
           Empreintes : SHA256SUMS (contrôlées après extraction)
           Identité Android : com.greenpower2669.spacefortressvs.diagnostic
           
-          MONDE TEST : ni bonus collectible ni tourelles. Toutes les 18..32 s,
-          une vague remplace le bonus avec de VRAIS astéroïdes minables.
-          La poussière historique permet la recharge; le boss TEST du monde
-          subit les chocs sur son champ cinétique réel (55% de dissipation).
-          Bouton supérieur droit : BOSS TEST/BOSS OFF dans MONDE TEST;
-          bouton central MONDE ON pour quitter le labyrinthe vers ARENE.
-          Vrai pilote bleu COOP, caméra, sons charge 0,20/2 secondes conservés.
-          Le CLASSIQUE, DUEL et COOP historique ne changent pas.
-          Boss WORLD fixe et expérimental : AI/rencontres à intégrer plus tard.
+          RETOUR SAMSUNG : les vagues de météorites ajoutées dans METEOR-009
+          restent coincées dans des parois. NE PAS déclarer le placement ou
+          leur trajectoire corrigés/validés sur téléphone.
+          STABILISATION : vagues supplémentaires entièrement SUSPENDUES.
+          Les astéroïdes historiques, le minage/dust/recharge, le vrai pilote,
+          caméra, arme, bouclier et sons charge 0,20 s / READY 2 s sont préservés.
+          Le CLASSIQUE et COOP historiques ne changent pas.
+          Audit: point libre à la naissance != trajet libéré; la physique
+          des rochers historiques n'applique pas les parois ROCK du labyrinthe.
+          Des rochers historiques peuvent encore être affectés: investigation
+          distincte encore ouverte, contrôle physique Samsung requis.
+          BOSS TEST/OFF : mannequin immobile uniquement, PAS rencontre finale.
           
           Les anciens fichiers temp/SpaceFortressVs-1.4.2.apk et
           temp/SpaceFortressVs-1.4.2-unsigned.aab et
-          temp/solo-world-cleanup-008/ sont CONSERVÉS.
+          temp/solo-world-cleanup-008/ et
+          temp/solo-world-meteor-009/ sont CONSERVÉS.
           Aucune fusion main ni Release publique. Validation Samsung requise.
           TXT
 
@@ -111,10 +115,10 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- temp/solo-world-meteor-009/
+          git add -- temp/solo-world-stabilization-010/
           if git diff --cached --quiet; then
             echo "No new artifact content to publish."
             exit 0
           fi
-          git commit -m "chore(solo): unpack verified meteor-009 APK alongside old diagnostics [skip ci]"
+          git commit -m "chore(solo): unpack verified stabilization-010 APK, retain previous [skip ci]"
           git push origin HEAD:refs/heads/feature/solo-coop-core-v1
