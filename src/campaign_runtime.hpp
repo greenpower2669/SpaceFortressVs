@@ -1036,7 +1036,8 @@ static void sfCoopSoloMeteorites(float dt)
     const auto *ship=sfCoopShip(1);
     const tupl origin=sfCoop.bossPresent?sfCoop.position:tupl(ship->x,ship->y);
     size_t emitted=0;
-    for(auto it=sa1.begin()+oldCount;it!=sa1.end();){
+    auto it=sa1.begin();std::advance(it,oldCount);
+    while(it!=sa1.end()){
         auto *rock=*it;
         const float radius=std::max(rock->w,rock->h)*.5f;
         bool placed=false;
