@@ -1,0 +1,27 @@
+{
+  "game": "SpaceFortressVs",
+  "version": "1.4.2",
+  "versionCode": 12,
+  "commit": "ad5cb08e945bf919e10abe77131a4c873ccadea6",
+  "apk": "ARM64, debug diagnostic, separate Android package",
+  "packageName": "com.greenpower2669.spacefortressvs.diagnostic",
+  "aab": "release bundle, unsigned",
+  "apkCertificateSha256": "74d73fc0198139496bd003fd42b0adbe444aa590aa8aa4cc62d01e800703f912",
+  "updateIdentity": {
+    "referenceVersion": "1.3.1",
+    "referenceCertificateSha256": "8abfc11c8bc4f9ac065eb5c086ad4e457290bcbbc1105017865368de7e565868",
+    "compatibleWithV131": false,
+    "sideBySideDiagnostic": true,
+    "message": "APPLICATION DIAGNOSTIC SEPAREE — installation cote a cote, sans desinstaller le SpaceFortress original. Les sauvegardes et donnees sont isolees."
+  },
+  "files": {
+    "SpaceFortressVs-1.4.2.apk": {
+      "sha256": "513693f6b2b7fd07b810562fe8fc0c73e336eb3c2ebab02db980fc20106f0e21",
+      "size": 94136124
+    },
+    "SpaceFortressVs-1.4.2-unsigned.aab": {
+      "sha256": "f88438e413cdd6fffab012ccb08213816b3f5e99205c2f007f317f27069e8146",
+      "size": 91488881
+    }
+  }
+}
