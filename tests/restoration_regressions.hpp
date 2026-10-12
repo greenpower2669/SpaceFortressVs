@@ -399,6 +399,40 @@ static void testSoloWorldExcludesTurretsAndBonuses()
     assert(sfCoop.turretTime==0 && sfCoop.bonusLife==0);
     assert(sfCoop.shots.size()==1);
     for(const auto &t:sfTurrets)assert(!t.alert && t.deploy==0);
+    // The SOLO bonus clock must create physical asteroid sprites instead of
+    // pickups or turret projectiles; the player can then mine their real dust.
+    sfCoop.bossPresent=false;
+    sfCoop.soloWorldWidth=sfCoop.soloWorldHeight=3200;
+    sfCoop.soloWorldContext=nullptr;sfCoop.soloWorldCanOccupy=nullptr;
+    sfFixResetAsteroidField();sfFieldRemainder=0;
+    Spritej2->setxywh(1500,1500,80,80);Spritej2->pv=1000;
+    sfCoop.bonusTimer=.01f;sfCoop.asteroidSpawnTimer=30;
+    sfCoopSoloMeteorites(.02f);
+    assert(sfCoop.bonusLife==0 && sfCoop.turretTime==0);
+    assert(!sa1.empty() && sa1.size()<=SF_COOP_ASTEROID_CAP);
+    for(const auto *rock:sa1)assert(rock->pv>0 &&
+        vlong(rock->x-Spritej2->x,rock->y-Spritej2->y)<sfArenaW);
+    const size_t meteorCount=sa1.size();
+    sfCoopSoloMeteorites(.02f);assert(sa1.size()==meteorCount); // no flood
+    // Boss meteorites are fired toward the genuine existing kinetic field.
+    sfFixResetAsteroidField();sfFieldRemainder=0;
+    sfCoop.bossPresent=true;sfCoop.health=sfCoopProfile().health;
+    sfCoop.position=tupl(1650,1450);sfCoop.bonusTimer=.01f;
+    sfCoopSoloMeteorites(.02f);
+    assert(!sa1.empty());
+    const auto *incoming=sa1.front();
+    const float directionX=sfCoop.position.x-incoming->x;
+    const float directionY=sfCoop.position.y-incoming->y;
+    assert(incoming->vx*directionX+incoming->vy*directionY>0);
+    // Existing boss kinetic field (55% attenuation) really consumes PV.
+    auto *impact=sa1.front();
+    const float distance=sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE+
+        std::max(impact->w,impact->h)*.5f-1.0f;
+    impact->x=sfCoop.position.x+distance;impact->y=sfCoop.position.y;
+    impact->vx=-sfArenaW*.85f/60.0f;impact->vy=0;impact->startup();
+    const float bossHp=sfCoop.health;
+    assert(sfCoopBossKineticAsteroidImpact(impact));
+    assert(sfCoop.health<bossHp && sfCoop.bossKineticReserve<1.0f);
     // The exact same historical functions stay enabled outside WORLD TEST.
     sfCoop.soloWorldMode=false;
     sfCoop.bonusTimer=-1;sfCoop.bonusLife=0;
@@ -408,7 +442,7 @@ static void testSoloWorldExcludesTurretsAndBonuses()
     sfCoopDefences(.1f);
     assert(sfCoop.turretTime<14);
     setupCampaign();
-    std::puts("PASS: SOLO world blocks real COOP turrets/bonus; historical COOP intact");
+    std::puts("PASS: SOLO meteor replacement mines real rocks, weakens boss; historical bonus/turrets intact");
 }
 
 static void testRealCoopField()

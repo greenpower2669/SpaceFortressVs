@@ -153,6 +153,21 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         sfTacticalRing(renderer,tupl(p.x,p.y),radius,{255,185,98,92});
     }
 
+    // The atlas boss and its kinetic shield are projected to the REAL
+    // viewport, never drawn at the original arena origin. This is a WORLD
+    // diagnostic encounter; the existing boss physics handles meteor hits.
+    if(sfCoop.bossPresent){
+        const auto boss=project(sfCoop.position.x,sfCoop.position.y);
+        const float radius=sfCoopBossRadius();
+        if(visible(boss.x,boss.y,radius*1.3f)){
+            sfCoopCircleAlpha(renderer,int(boss.x),int(boss.y),
+                int(radius*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE),
+                145,95,215,sfCoopBossKineticVisibilityAlpha(sfCoop.bossKineticReserve));
+            sfDrawEncounterBoss(renderer,textures.bosses,sfCoop.encounter,
+                tupl(boss.x,boss.y),radius,sfCoop.time,sfCoop.hit,0.0f);
+        }
+    }
+
     // Draw the REAL historic blue COOP ship LAST. Never conflate its green
     // kinetic READY circle with its physical hull. A small bright cyan
     // fallback retains an identifiable craft if the Android PNG is absent.

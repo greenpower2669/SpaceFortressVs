@@ -141,6 +141,11 @@ extern "C" int runCoopSoloArena(){
                     {from.x,from.y},{desired.x,desired.y},radius);
                 return tupl(actual.x,actual.y);
             }:nullptr;
+        sfCoop.soloWorldCanOccupy=enabled?
+            +[](void *context,tupl at,float radius)->bool{
+                return static_cast<sfsolo::CoopSoloWorldBridge*>(context)->
+                    canOccupy({at.x,at.y},radius);
+            }:nullptr;
         worldActive=enabled;
         const auto start=enabled?world.start():
             sfsolo::CoopWorldPoint{sfArenaW*.5f,sfArenaH*.72f};
@@ -156,15 +161,33 @@ extern "C" int runCoopSoloArena(){
             enabled?world.map.height:0,sfArenaW);
     };
     auto beginBoss=[&](){
-        if(worldActive)return; // Boss only when a real encounter is enabled.
-        // Same boss profile/pattern, not a simplified tile enemy.
+        // In WORLD this is an explicit, stationary boss TEST. Full maze boss
+        // navigation/AI is a later phase; historical arena boss stays exact.
         if(sfCoop.bossPresent){
             sfCoop.bossPresent=false;
             sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
         }else{
+            tupl position(sfArenaW*.5f,sfArenaH*.25f);
+            if(worldActive){
+                const auto *ship=Spritej2;
+                bool located=false;
+                for(int ring=0;ring<5 && !located;++ring){
+                    for(int direction=0;direction<16 && !located;++direction){
+                        const float angle=(direction/16.0f)*2.0f*float(PI);
+                        const float distance=sfArenaW*(.40f+.16f*ring);
+                        const tupl candidate(ship->x+std::cos(angle)*distance,
+                                             ship->y+std::sin(angle)*distance);
+                        if(world.canOccupy({candidate.x,candidate.y},sfCoopBossRadius())){
+                            position=candidate;located=true;
+                        }
+                    }
+                }
+                if(!located){SDL_Log("SOLO_WORLD_BOSS_NO_CLEAR_SPACE");return;}
+            }
             sfCoop.bossPresent=true;
             sfCoop.health=sfCoopProfile().health;
-            sfCoop.position=tupl(sfArenaW*.5f,sfArenaH*.25f);
+            sfCoop.position=position;
+            sfCoop.bonusTimer=worldActive?.01f:sfCoop.bonusTimer;
             sfCoop.attack=2;sfCoop.volley=0;sfCoop.phaseNumber=0;
             sfCoop.motion.valid=false;sfCoop.bossThreat={};
         }
@@ -228,8 +251,7 @@ extern "C" int runCoopSoloArena(){
                         setWorldMode(!worldActive);continue;
                     }
                     if(ty<sfArenaH*.13f && tx>sfArenaW*.68f){
-                        if(worldActive)setWorldMode(false);
-                        else beginBoss();
+                        beginBoss();
                         continue;
                     }
                     if(moveFinger<0){
@@ -350,7 +372,8 @@ extern "C" int runCoopSoloArena(){
         sfCoopButton(renderer,{int(width*.355f),8,int(width*.29f),int(height*.08f)},
                      worldActive?"MONDE ON":"MONDE TEST");
         sfCoopButton(renderer,{int(width*.68f),8,int(width*.30f),int(height*.08f)},
-                     worldActive?"ARENE":sfCoop.bossPresent?"BOSS OFF":"BOSS TEST");
+                     worldActive?(sfCoop.bossPresent?"BOSS OFF":"BOSS TEST"):
+                         sfCoop.bossPresent?"BOSS OFF":"BOSS TEST");
         if(sfCoop.phase==SfCoopPhase::Defeat)
             sfCoopCentered(renderer,width,int(height*.50f),"TEST TERMINE - RETOUR",3);
         // Raw SDL call: show ONLY this arena's frame. The legacy macro would
@@ -378,6 +401,7 @@ extern "C" int runCoopSoloArena(){
     sfCampaignSuspend();chargeCueGate.reset();
     sfCoop.soloWorldMode=false;sfCoop.soloWorldContext=nullptr;
     sfCoop.soloWorldResolve=nullptr;
+    sfCoop.soloWorldCanOccupy=nullptr;
     sfCoop.soloWorldWidth=sfCoop.soloWorldHeight=0;
     sfFixResetAsteroidField();sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
     if(mixerOpen)Mix_HaltChannel(-1);

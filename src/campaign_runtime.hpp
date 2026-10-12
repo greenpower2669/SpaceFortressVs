@@ -24,6 +24,7 @@ struct SfCoopState {
     bool soloWorldMode=false;  // opt-in, canonical COOP remains default
     void *soloWorldContext=nullptr;
     tupl (*soloWorldResolve)(void *,tupl,tupl,float)=nullptr;
+    bool (*soloWorldCanOccupy)(void *,tupl,float)=nullptr;
     float soloWorldWidth=0,soloWorldHeight=0;
     tupl soloAimTarget;
     SfKineticAimAxes soloKineticAxes{};
@@ -701,9 +702,9 @@ static void sfCoopMovePlayers(float dt)
     }
 }
 
-// SOLO / MONDE TEST explicitly owns neither historical defence turrets nor
-// their collectible power-up. Remove pre-existing entities on entry, not
-// merely their sprites: a turret projectile is kind 5 in the real COOP loop.
+// SOLO / MONDE TEST never activates historical defence turrets or their
+// collectible. Its replacement is a REAL asteroid wave, never a pickup.
+// Remove pre-existing entities on entry (turret projectile kind 5).
 // This helper is NEVER called by CLASSIC, DUEL or historical COOP.
 static void sfCoopDisableWorldTurretsAndBonuses()
 {
@@ -1013,6 +1014,65 @@ static void sfCoopAdvanceAsteroidSpawner(float dt)
     W=oldW;H=oldH;WIDTH=oldWidth;HEIGHT=oldHeight;k0=oldK;
 }
 
+// The SOLO alternative to the historical turret bonus: four genuine legacy
+// asteroids every 18..32 s (first wave after 12 s). They are mineable and
+// release the SAME recoverable dust. During a WORLD boss test, the meteors
+// travel into the existing 55%-dissipating kinetic boss field: the field,
+// NOT this function, computes real collision damage and the boss weakening.
+// Never run in CLASSIC, DUEL, or historical COOP.
+static void sfCoopSoloMeteorites(float dt)
+{
+    if(!sfCoop.soloWorldMode || dt<=0 || sfCoop.phase!=SfCoopPhase::Combat)return;
+    sfCoop.bonusTimer-=dt;
+    if(sfCoop.bonusTimer>0)return;
+    while(sfCoop.bonusTimer<=0)sfCoop.bonusTimer+=18+rand()%15;
+    // The normal background asteroid spawner remains intact. A full field
+    // never creates an extra unbounded wave or leaks a discarded sprite.
+    if(sa1.size()+4>SF_COOP_ASTEROID_CAP)return;
+    const size_t oldCount=sa1.size();
+    sfCoop.asteroidSpawnTimer=0;
+    sfCoopAdvanceAsteroidSpawner(.001f); // genuine setasts(1), size/mass/atlas
+    if(sa1.size()<=oldCount)return;
+    const auto *ship=sfCoopShip(1);
+    const tupl origin=sfCoop.bossPresent?sfCoop.position:tupl(ship->x,ship->y);
+    size_t emitted=0;
+    for(auto it=sa1.begin()+oldCount;it!=sa1.end();){
+        auto *rock=*it;
+        const float radius=std::max(rock->w,rock->h)*.5f;
+        bool placed=false;
+        // Rotate candidate approach directions and try several distances;
+        // reject map rock walls and positions outside the actual world.
+        for(int attempt=0;attempt<32 && !placed;++attempt){
+            const float angle=float((emitted*8+attempt)%32)*(2.0f*float(PI)/32.0f);
+            const float distance=sfCoop.bossPresent?
+                sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE+
+                    radius+sfArenaW*(.16f+.035f*(attempt/8)):
+                sfArenaW*(.24f+.045f*(attempt/8))+radius;
+            const tupl candidate(origin.x+std::cos(angle)*distance,
+                                 origin.y+std::sin(angle)*distance);
+            if(candidate.x<radius || candidate.y<radius ||
+               candidate.x>sfCoop.soloWorldWidth-radius ||
+               candidate.y>sfCoop.soloWorldHeight-radius)continue;
+            if(sfCoop.soloWorldCanOccupy &&
+               !sfCoop.soloWorldCanOccupy(sfCoop.soloWorldContext,candidate,radius))continue;
+            rock->x=candidate.x;rock->y=candidate.y;
+            if(sfCoop.bossPresent){
+                const float dx=origin.x-candidate.x,dy=origin.y-candidate.y;
+                const float speed=sfArenaW*.85f/60.0f; // legacy sprite velocity/frame
+                rock->vx=dx/distance*speed;rock->vy=dy/distance*speed;
+            }else{
+                // Slow nearby rocks: reachable by the authentic mining cone.
+                rock->vx*=.22f;rock->vy*=.22f;
+            }
+            rock->startup();placed=true;
+        }
+        if(placed){++emitted;++it;}
+        else {sfCoop.bossAsteroidCooldown.erase(rock);delete rock;it=sa1.erase(it);}
+    }
+    SDL_Log("SOLO_METEOR_WAVE rocks=%zu boss=%d collectible=0 turrets=0",
+            emitted,int(sfCoop.bossPresent));
+}
+
 static void sfCoopResources(float dt)
 {
     if(sfCoop.bossPresent){
@@ -1140,9 +1200,27 @@ static void sfCoopTick(float dt)
         sfCoopMovePlayers(dt);
         sfCoopProjectiles(dt);
         sfCoopResources(dt);
+        sfCoopSoloMeteorites(dt);
         if(!sfCoopAnyAlive()){
             sfCoop.phase=SfCoopPhase::Defeat;sfCoop.phaseTime=0;
             sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
+        }
+        return;
+    }
+    if(sfCoop.soloWorldMode){
+        // Explicit stationary WORLD boss diagnostic. Its location stays in
+        // maze coordinates instead of being reset to arena coordinates.
+        // Reuse genuine COOP projectiles, mining, asteroid field and damage;
+        // historical movement/attack patterns remain untouched outside WORLD.
+        sfCoopMovePlayers(dt);
+        sfCoopProjectiles(dt);sfCoopApplyMiningConeBossDamage(dt);
+        sfCoopResources(dt);sfCoopSoloMeteorites(dt);
+        if(sfCoop.health<=0 && sfCoopAnyAlive()){
+            sfCoop.bossPresent=false;sfCoop.shots.clear();
+            sfCoop.beams.clear();sfCoop.waves.clear();
+            sfCoop.bossThreat={};sfCoop.warning=0;
+        }else if(!sfCoopAnyAlive()){
+            sfCoop.phase=SfCoopPhase::Defeat;sfCoop.phaseTime=0;
         }
         return;
     }
