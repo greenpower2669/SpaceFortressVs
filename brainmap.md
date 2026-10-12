@@ -487,3 +487,7 @@ CLASSIQUE DUEL local :
 - Symptôme déclaré par Fab : nouvelles météorites du MONDE TEST coincées dans murs ; annule toute mention « placement validé sur téléphone ». Source : spawner expérimental valide SEULEMENT la position `canOccupy`; mouvement réel `rock->ast` n'applique pas collision ROCK, et spawn de fond translaté est non filtré. Aucune preuve encore du mécanisme exact observé.
 - Protection : `SF_COOP_SOLO_METEOR_WAVES_ENABLED=false`, fonction sans effet même pour BOSS TEST. Ressources/astéroïdes historiques, pilote, caméra, sons, bouclier, minage/armes et CLASSIQUE/COOP conservés. Test négatif vague + test séparation positions/trajectoire (pas une correction de trajectoire réelle).
 - Priorités exclusives : stabiliser, dissocier validité naissance et continuité trajet, repro Samsung et tests stricts avant activation. Boss WORLD fixe reste TEST, jamais « boss historique terminé ». Aucune progression/ennemi/relai supplémentaire sans nouvel ordre. Branche `feature/solo-coop-core-v1`, commit initial d01f4d6 ; CI/Android à vérifier.
+
+
+### 12/10/2026 — finalisation suspension météores
+- Commit de test ciblé `6540adece`, CI #38193630900 verte ; export #38193705276 vert dans `temp/solo-world-stabilization-010/`, APK SHA b0cc1fad1543e4a66729a014bd6cb30f2222b9de7a6aa43c98c02dc9f4e36e64. Anciennes APK intactes ; validation physique Samsung ouverte. Aucun nouveau gameplay, aucune réactivation météores avant analyse naissance ET trajet.

@@ -532,3 +532,9 @@
 - [ ] Relever si les astéroïdes historiques restants se coincent également ; collecter capture/log horodaté ; discriminer apparition, déplacement réel, projection/rendu, contact parois. Exiger tests trajectoires réels avant toute réactivation.
 - [ ] Boss du MONDE = mannequin fixe et commandes de test, pas boss de rencontre historique. Ne pas ajouter gameplay pendant stabilisation.
 - [ ] Aucun merge main/release publique, aucune modification `src/main.cpp`, préserver vaisseau, caméra, maniabilité, ressources, tirs et CLASSIQUE/COOP.
+
+
+### SOLO-STABILISATION-010 — livraison vérifiée
+- [x] Code `6540adece` testé CI #38193630900 : C++/SDL2/Android tous SUCCESS; export #38193705276 SUCCESS avec SHA vérifié dans `temp/solo-world-stabilization-010/`. APK SHA b0cc1fad1543e4a66729a014bd6cb30f2222b9de7a6aa43c98c02dc9f4e36e64, AAB non signé. Anciens diagnostics conservés.
+- [ ] Test réel Samsung APK stabilisation : aucune nouvelle vague METEOR-009, astéroïdes fond encore présents/minables, identifier s'ils se coincent dans ROCK. La sortie correcte de la vague N'IMPLIQUE PAS correction du trajet des rochers historiques.
+- [ ] Examiner séparément le résolveur `moveWithoutTunnelling` au vu d'un échec initial synthétique (cas deux points libres séparés par mur), **sans changer le pilotage existant dans cette mission**. Ne pas annoncer confirmé sur appareil.
