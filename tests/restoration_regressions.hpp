@@ -387,7 +387,7 @@ static void testSoloWorldExcludesTurretsAndBonuses()
     sfCoopEmit(tupl(120,120),0,100,1,12,0); // genuine pilot shot survives
     sfCoopEmit(tupl(130,130),0,100,1,2.5f,5); // turret shot must disappear
     assert(sfCoop.shots.size()==2);
-    sfCoopDisableWorldTurretsAndBonuses();
+    sfCoopDisableSoloTurretsAndBonuses();
     assert(sfCoop.turretTime==0 && sfCoop.bonusLife==0);
     assert(sfCoop.bonusTimer>0);
     assert(sfCoop.bonusVelocity.vx==0 && sfCoop.bonusVelocity.vy==0);
@@ -429,6 +429,56 @@ static void testSoloWorldExcludesTurretsAndBonuses()
     assert(sfCoop.turretTime<14);
     setupCampaign();
     std::puts("PASS: SOLO meteor waves SUSPENDED after Samsung report; historical bonus/turrets intact");
+}
+
+// Actual Samsung failure path: BOSS TEST in the one-pilot ARENA has
+// soloWorldMode=false. Prevent bonuses, simulated defences and rendered
+// turret shapes even after a fresh launch and an off/on boss cycle.
+static void testSoloDiagnosticTurretsRemainAbsent()
+{
+    for(int launch=0;launch<2;++launch){
+        setupCampaign(); // fresh process equivalent; historical state first
+        sfCoop.soloDiagnostic=true;
+        sfCoop.soloWorldMode=false; // the previously UNPROTECTED ARENA case
+        sfCoop.pilots=SfCoopPilotRoster::single(1);
+        sfCoop.phase=SfCoopPhase::Combat;
+        for(bool bossEnabled:{false,true,false,true}){
+            sfCoop.bossPresent=bossEnabled;
+            sfCoop.turretTime=14;
+            sfCoop.bonusLife=18;
+            sfCoop.bonusTimer=-1;
+            sfTurrets[0].deploy=1;sfTurrets[0].alert=true;
+            sfCoopEmit(tupl(10,10),0,100,1,2.5f,5);
+            sfCoopDisableSoloTurretsAndBonuses();
+            assert(sfCoopSoloExcludesTurrets());
+            assert(!sfCoopShouldDrawHistoricalTactics());
+            assert(sfCoop.turretTime==0 && sfCoop.bonusLife==0);
+            for(const auto &turret:sfTurrets)
+                assert(!turret.alert && turret.deploy==0 && turret.flash==0);
+            for(const auto &shot:sfCoop.shots) assert(shot.kind!=5);
+            // An unanticipated old shot cannot physically hit a pilot.
+            sfCoopEmit(tupl(10,10),0,100,1,2.5f,5);
+            sfCoopProjectiles(0);
+            for(const auto &shot:sfCoop.shots)assert(shot.kind!=5);
+            const float originalTimer=sfCoop.bonusTimer;
+            sfCoopDefences(18);sfCoopBonus(35);
+            assert(sfCoop.turretTime==0 && sfCoop.bonusLife==0);
+            assert(sfCoop.bonusTimer==originalTimer);
+            for(const auto &turret:sfTurrets)
+                assert(!turret.alert && turret.deploy==0);
+            assert(!SF_COOP_SOLO_METEOR_WAVES_ENABLED);
+        }
+    }
+    // Canonical COOP remains able to generate the floating bonus, deploy
+    // real defences and render the historical tactical turrets.
+    setupCampaign();sfCoop.soloDiagnostic=false;sfCoop.soloWorldMode=false;
+    assert(sfCoopShouldDrawHistoricalTactics());
+    sfCoop.bonusLife=0;sfCoop.bonusTimer=-1;
+    sfCoopBonus(.01f);assert(sfCoop.bonusLife>0);
+    sfCoop.turretTime=14;sfCoopDefences(.1f);
+    assert(sfCoop.turretTime<14);
+    setupCampaign();
+    std::puts("PASS: SOLO-011 test boss on/off and relaunch prevent real turret spawns, collisions and rendering; canonical COOP preserved");
 }
 
 static void testRealCoopField()

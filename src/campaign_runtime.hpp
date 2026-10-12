@@ -702,13 +702,22 @@ static void sfCoopMovePlayers(float dt)
     }
 }
 
-// SOLO / MONDE TEST never activates historical defence turrets or their
-// collectible. Its replacement is a REAL asteroid wave, never a pickup.
-// Remove pre-existing entities on entry (turret projectile kind 5).
-// This helper is NEVER called by CLASSIC, DUEL or historical COOP.
-static void sfCoopDisableWorldTurretsAndBonuses()
+// SOLO diagnostic includes the one-pilot ARENA and the WORLD/maze. Samsung
+// reported turrets near the test boss: arena used to run the historical
+// defence/bonus routines because soloWorldMode was false outside the maze.
+// Keep their real gameplay for canonical COOP, CLASSIC and DUEL ONLY.
+static bool sfCoopSoloExcludesTurrets()
 {
-    if(!sfCoop.soloWorldMode) return;
+    return sfCoop.soloDiagnostic || sfCoop.soloWorldMode;
+}
+static bool sfCoopShouldDrawHistoricalTactics()
+{
+    return !sfCoopSoloExcludesTurrets();
+}
+// Eliminate the entity state and shot kind 5, not just its visual depiction.
+static void sfCoopDisableSoloTurretsAndBonuses()
+{
+    if(!sfCoopSoloExcludesTurrets())return;
     sfCoop.turretTime=0;
     sfCoop.bonusTimer=12;
     sfCoop.bonusLife=0;
@@ -720,8 +729,8 @@ static void sfCoopDisableWorldTurretsAndBonuses()
 
 static void sfCoopDefences(float dt)
 {
-    // Not just hidden: no turret AI, energy, cooldown, targeting or shots.
-    if(sfCoop.soloWorldMode) return;
+    // All SOLO diagnostics are turret-free, with and without a test boss.
+    if(sfCoopSoloExcludesTurrets())return;
     sfCoop.turretTime=std::max(0.0f,sfCoop.turretTime-dt);
     for (int i=0;i<SF_TURRET_COUNT;++i) {
         auto &turret=sfTurrets[i];
@@ -745,6 +754,11 @@ static void sfCoopDefences(float dt)
 
 static void sfCoopProjectiles(float dt)
 {
+    // Defensive backstop: an inherited turret projectile cannot collide even
+    // if a SOLO diagnostic caller restores a stale projectile vector.
+    if(sfCoopSoloExcludesTurrets())
+        sfCoop.shots.erase(std::remove_if(sfCoop.shots.begin(),sfCoop.shots.end(),
+            [](const SfCoopShot &shot){return shot.kind==5;}),sfCoop.shots.end());
     std::vector<SfCoopShot> bursts;
     for (auto &shot : sfCoop.shots) {
         shot.previous=shot.position; shot.age+=dt; shot.life-=dt;
@@ -853,8 +867,8 @@ static void sfCoopProjectiles(float dt)
 
 static void sfCoopBonus(float dt)
 {
-    // No invisible collectible, spawn timer, movement or pickup effects.
-    if(sfCoop.soloWorldMode) return;
+    // No floating bonus/collection/turret trigger in either SOLO diagnostic.
+    if(sfCoopSoloExcludesTurrets())return;
     sfCoop.bonusTimer-=dt;
     if (sfCoop.bonusLife<=0 && sfCoop.bonusTimer<=0) {
         sfCoop.bonusTimer=18+rand()%15;sfCoop.bonusLife=18;
@@ -1830,18 +1844,20 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
             sfUiCircle(renderer,int(ship->x),int(ship->y),int(sfCoopShipRadius()*1.8f),230,100,100);
         }
     }
-    if(!sfCoop.soloWorldMode)sfDrawTacticalEffects(renderer);
+    // The historical tactical renderer contains actual turret geometry.
+    // WORLD already uses its own actor renderer; ARENA SOLO must also skip it.
+    if(sfCoopShouldDrawHistoricalTactics())sfDrawTacticalEffects(renderer);
     if(sfCoop.soloFreeAim)
         sfDrawKineticEffects(renderer,&sfCoop.soloKineticAxes);
     else
         sfDrawKineticEffects(renderer); // EXACT protected historical render call
-    if (!sfCoop.soloWorldMode && sfCoop.bonusLife>0 && textures.bonus) {
+    if (sfCoopShouldDrawHistoricalTactics() && sfCoop.bonusLife>0 && textures.bonus) {
         const int side=int(std::min(sfArenaW,sfArenaH)*.085f);
         SDL_Rect rect{int(sfCoop.bonusPosition.x-side*.5f),int(sfCoop.bonusPosition.y-side*.5f),side,side};
         SDL_RenderCopyEx(renderer,textures.bonus,nullptr,&rect,5*std::sin(sfCoop.time*2),nullptr,SDL_FLIP_NONE);
     }
     if(sfCoop.soloWorldMode)return; // native diagnostic draws a fixed SCREEN HUD
-    if (sfCoop.turretTime>0) sfCoopText(renderer,width/4,int(height*.875f),
+    if (sfCoopShouldDrawHistoricalTactics() && sfCoop.turretTime>0) sfCoopText(renderer,width/4,int(height*.875f),
         "TOURELLES : "+std::to_string(int(std::ceil(sfCoop.turretTime)))+" S",width/2,2,{120,255,150,255});
     const int margin=std::max(8,width/30);
     sfCoopText(renderer,margin,int(height*.025f),"COMBAT "+std::to_string(sfCoop.encounter+1)+" / 200 - "+sfDifficultyNames[sfDifficultyIndex(sfCoop.encounter)],int(width*.45f),std::max(2,width/220),{255,190,120,255});

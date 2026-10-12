@@ -54,6 +54,7 @@ extern "C" int runCoopSoloArena(){
     sfCoop.health=sfCoopProfile().health;
     sfCoop.position=tupl(sfArenaW*.5f,sfArenaH*.24f);
     sfCoop.asteroidSpawnTimer=.4f;
+    sfCoopDisableSoloTurretsAndBonuses(); // every new diagnostic process
     sfKineticResetSurges();sfFixResetAsteroidField();sfFieldRemainder=0;
     const float size=std::min(sfArenaW,sfArenaH)*.15f;
     for(int owner=0;owner<2;++owner){
@@ -69,7 +70,7 @@ extern "C" int runCoopSoloArena(){
     }
     sfObserved={};
     sfCoop.soloAimTarget=tupl(Spritej2->x,Spritej2->y-120);
-    SDL_Log("SOLO_COOP_REAL_ENGINE arena %.0fx%.0f activeMask=%d boss=%d",
+    SDL_Log("SOLO_011_TURRETS_OFF arena %.0fx%.0f activeMask=%d boss=%d",
             sfArenaW,sfArenaH,int(sfCoop.pilots.activeMask),sfCoop.bossPresent);
 
     bool audioInit=false,mixerOpen=false;
@@ -130,7 +131,7 @@ extern "C" int runCoopSoloArena(){
         sfCoop.phase=SfCoopPhase::Combat;
         sfCoop.bossPresent=false;sfCoop.health=sfCoopProfile().health;
         sfCoop.soloWorldMode=enabled;
-        if(enabled)sfCoopDisableWorldTurretsAndBonuses();
+        sfCoopDisableSoloTurretsAndBonuses(); // both WORLD and ARENA transitions
         sfCoop.soloWorldContext=enabled?&world:nullptr;
         sfCoop.soloWorldWidth=enabled?world.worldWidth():0;
         sfCoop.soloWorldHeight=enabled?world.worldHeight():0;
@@ -161,6 +162,7 @@ extern "C" int runCoopSoloArena(){
             enabled?world.map.height:0,sfArenaW);
     };
     auto beginBoss=[&](){
+        sfCoopDisableSoloTurretsAndBonuses(); // boss toggle cannot revive extras
         // In WORLD this is an explicit, stationary boss TEST. Full maze boss
         // navigation/AI is a later phase; historical arena boss stays exact.
         if(sfCoop.bossPresent){
@@ -191,7 +193,8 @@ extern "C" int runCoopSoloArena(){
             sfCoop.attack=2;sfCoop.volley=0;sfCoop.phaseNumber=0;
             sfCoop.motion.valid=false;sfCoop.bossThreat={};
         }
-        SDL_Log("SOLO_COOP_BOSS_TOGGLE on=%d",sfCoop.bossPresent);
+        sfCoopDisableSoloTurretsAndBonuses();
+        SDL_Log("SOLO_COOP_BOSS_TOGGLE on=%d soloTurrets=0 bonus=0",sfCoop.bossPresent);
     };
     auto chargeRelease=[&](){
         const float held=sfKineticSurges[1].heldSeconds;
@@ -367,7 +370,7 @@ extern "C" int runCoopSoloArena(){
         SDL_Rect energyBar{margin,height-40,int(barW*energy),10};
         SDL_SetRenderDrawColor(renderer,169,135,242,255);SDL_RenderFillRect(renderer,&energyBar);
         sfCoopText(renderer,margin,height-85,
-                   worldActive?"MONDE / LABYRINTHE (COOP)":"COOP CORE - UN PILOTE",
+                   worldActive?"MONDE / LABYRINTHE SOLO-011":"COOP CORE SOLO-011",
                    width-2*margin,2);
         sfCoopButton(renderer,{int(width*.355f),8,int(width*.29f),int(height*.08f)},
                      worldActive?"MONDE ON":"MONDE TEST");
