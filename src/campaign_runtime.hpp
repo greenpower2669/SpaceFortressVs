@@ -1014,14 +1014,16 @@ static void sfCoopAdvanceAsteroidSpawner(float dt)
     W=oldW;H=oldH;WIDTH=oldWidth;HEIGHT=oldHeight;k0=oldK;
 }
 
-// The SOLO alternative to the historical turret bonus: four genuine legacy
-// asteroids every 18..32 s (first wave after 12 s). They are mineable and
-// release the SAME recoverable dust. During a WORLD boss test, the meteors
-// travel into the existing 55%-dissipating kinetic boss field: the field,
-// NOT this function, computes real collision damage and the boss weakening.
-// Never run in CLASSIC, DUEL, or historical COOP.
+// STABILISATION-010 / Samsung: METEOR-009 waves are suspended until BOTH
+// initial placement AND continuous asteroid-vs-maze-wall trajectory have
+// separate verified solutions. canOccupy(spawn) only checks one position;
+// historical rock->ast() DOES NOT use the ship's maze collision resolver.
+// Keep the code for later audit, but NEVER spawn this new wave in phone builds.
+// Historical background asteroids, mining/dust and CLASSIC/COOP remain active.
+static constexpr bool SF_COOP_SOLO_METEOR_WAVES_ENABLED=false;
 static void sfCoopSoloMeteorites(float dt)
 {
+    if(!SF_COOP_SOLO_METEOR_WAVES_ENABLED)return;
     if(!sfCoop.soloWorldMode || dt<=0 || sfCoop.phase!=SfCoopPhase::Combat)return;
     sfCoop.bonusTimer-=dt;
     if(sfCoop.bonusTimer>0)return;

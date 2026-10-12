@@ -107,5 +107,26 @@ int main(){
     const auto onScreen=bridge.toScreen(far);
     const auto roundTrip=bridge.toWorld(onScreen);
     assert(same(far.x,roundTrip.x)&&same(far.y,roundTrip.y));
+    // Placement and trajectory are separate questions. Two free locations
+    // can have a solid rock wall BETWEEN them; a spawn-point check alone
+    // cannot authorize movement. This tests map geometry, NOT asteroid
+    // motion (the historical asteroid step currently ignores this resolver).
+    const int cellX=12,cellY=12;
+    auto setTile=[&](int x,int y,Tile tile){
+        bridge.map.tiles[size_t(y)*bridge.map.width+x]=tile;
+    };
+    setTile(cellX-1,cellY,Tile::Empty);
+    setTile(cellX,cellY,Tile::Rock);
+    setTile(cellX+1,cellY,Tile::Empty);
+    const float cell=bridge.pixelsPerCell;
+    const CoopWorldPoint before{(cellX-.5f)*cell,(cellY+.5f)*cell};
+    const CoopWorldPoint inside{(cellX+.5f)*cell,(cellY+.5f)*cell};
+    const CoopWorldPoint after{(cellX+1.5f)*cell,(cellY+.5f)*cell};
+    assert(bridge.canOccupy(before,12));
+    assert(bridge.canOccupy(after,12));
+    assert(!bridge.canOccupy(inside,12));
+    const auto blockedPath=bridge.moveWithoutTunnelling(before,after,12);
+    assert(bridge.canOccupy(blockedPath,12));
+    assert(blockedPath.x<inside.x-12);
     return 0;
 }
