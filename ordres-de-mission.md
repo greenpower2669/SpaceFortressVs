@@ -1,5 +1,14 @@
 # SpaceFortressVs 1.4.x — ordre de mission validé par Fab
 
+## IMMUTABLE / À PRÉSERVER
+
+- Identité release/store historique : `com.greenpower2669.spacefortressvs` ; ne pas renommer pour une mise à jour.
+- Diagnostic existant : suffixe `.diagnostic`, soit `com.greenpower2669.spacefortressvs.diagnostic`.
+- APK diagnostic debug ; AAB release livré NON SIGNÉ. Aucune nouvelle clé de signature créée pour ce lot ; ne jamais copier de clé privée dans le dépôt ou les logs.
+- `src/main.cpp` protégé. Aucun merge main ni Release sans validation explicite Fab.
+- Livrer APK identifiable sous temp avec source CI verte exacte et SHA256 ; préserver les diagnostics précédents.
+
+
 ## Références
 - Branche : `fix/gameplay-campaign-200`.
 - APK téléphone de départ : code `2ca6aa46e732e9d9e86e9889ad2d215117c1f16e`.
@@ -626,8 +635,8 @@ Audit : manifeste dernière APK GitHub STABILISATION-010 = source 6540adece, mai
 - Code source `ad5cb08e` testé CI `38209069899` verte ; export isolé `38209723734` vert dans `temp/solo-turrets-off-011/`, APK SHA `513693f6b2b7fd07b810562fe8fc0c73e336eb3c2ebab02db980fc20106f0e21`, AAB non signé. Workflow d'export corrigé pour rebase après changement des cinq mémoires, sans force-push. Aucun merge, aucune release, `src/main.cpp` inchangé. Confirmation visuelle/matérielle téléphone encore nécessaire ; la cause prouvée en ARENE ne prouve pas quel objet exact était vu dans MONDE.
 
 
-## 12/10/2026 — SOLO BONUS CORE-012 — autorisation Fab, en cours
-Fab demande explicitement « coder ça en plus et joindre les deux mondes », huit pouvoirs SOLO : PV, énergie, furtivité 5 s avec coque semi-transparente/collisions conservées, missiles gratuits 3 s au tir humain, orbes Prison/Glace/Lave/Météore en salves guidées multiples. Drops différents aux paliers PV et défaite des boss, collecte contact accessible, HUD/FX distincts, règles de cumul bornées. Boss monde demeure stationnaire de test ; ne pas annoncer une démonstration mobile. Ressources/sprites historiques à réutiliser ; pas de tourelles/ancien bonus ni vagues METEOR-009. Vaisseau/caméra/armes/cône/sons et CLASSIQUE/DUEL/COOP protégés ; src/main.cpp interdit, ni merge main ni Release. Tests huit effets, combinaison, boss OFF/ON, labyrinthe/relaunch, CI Android et APK identifiable dans nouveau temp. Astra intègre ; Sol vérifie. [Contrat technique et paramètres agent](docs/superpowers/specs/2026-10-12-solo-bonus-core-012.md), [plan](docs/superpowers/plans/2026-10-12-solo-bonus-core-012.md). La nouvelle autorisation lève le gel de fonctionnalités pour cette brique seulement ; protection météores et tourelles maintenue. Statut : implémentation en cours, aucune APK 012 encore livrée.
+## 12/10/2026 — SOLO BONUS CORE-012 — autorisation Fab, livré à valider
+Fab demande explicitement « coder ça en plus et joindre les deux mondes », huit pouvoirs SOLO : PV, énergie, furtivité 5 s avec coque semi-transparente/collisions conservées, missiles gratuits 3 s au tir humain, orbes Prison/Glace/Lave/Météore en salves guidées multiples. Drops différents aux paliers PV et défaite des boss, collecte contact accessible, HUD/FX distincts, règles de cumul bornées. Boss monde demeure stationnaire de test ; ne pas annoncer une démonstration mobile. Ressources/sprites historiques à réutiliser ; pas de tourelles/ancien bonus ni vagues METEOR-009. Vaisseau/caméra/armes/cône/sons et CLASSIQUE/DUEL/COOP protégés ; src/main.cpp interdit, ni merge main ni Release. Tests huit effets, combinaison, boss OFF/ON, labyrinthe/relaunch, CI Android et APK identifiable dans nouveau temp. Astra intègre ; Sol vérifie. [Contrat technique et paramètres agent](docs/superpowers/specs/2026-10-12-solo-bonus-core-012.md), [plan](docs/superpowers/plans/2026-10-12-solo-bonus-core-012.md). La nouvelle autorisation lève le gel de fonctionnalités pour cette brique seulement ; protection météores et tourelles maintenue. Statut : livré à valider sur Samsung ; preuves de livraison CORE-012 ci-dessous.
 
 ### CORE-012 — intégration et revue, 12/10/2026
 - Brique C++ pure + adaptateur du vrai SfCoopState + rendu commun arène/labyrinthe implémentés. Salves humaines x3, guidage historique, coût canonique une fois ; furtivité semi-transparente conserve collisions ; missiles3s sans coût ; statuts Prison2s/Glace4s/Lave4s et Météore ciblé. Ancien bonus/tourelles et vagues METEOR-009 toujours exclus du SOLO.
@@ -637,3 +646,11 @@ Fab demande explicitement « coder ça en plus et joindre les deux mondes », hu
 
 ### CORE-012 — contrôle local terminé, candidat CI
 `scripts/test-regressions.sh` termine code0 : historique C++/SDL2, assets, moteurs, 200 ouvertures/rendus COOP, champs et poussières cinétiques, source Android générée et smoke natif arène/monde. Nouveaux tests purecore, tirsréels/statuts/collisions/loot/isolation passent. Dernier ajustement HUD SOLO (plus de double HUD COOP, textes agrandis) recompilé et testé avec lecture pixels SDL ; capture inspectée. Contrôle pont monde réexécuté après ajout des24placementsdistincts ; protection launcher diagnostic OK. Le boss monde reste FIXE de test, Prison/Glace y montrent des statuts, mouvement seulement démontré sur boss mobile de l’arène. CI Android et export exact restent à constater ; APK non annoncée avant cela.
+
+
+## CORE-012 — livraison vérifiée 13/10/2026
+Statut CORE-012 : LIVRÉ, À VALIDER SUR SAMSUNG. Autorisation Fab exécutée pour cette brique, sans prétendre finir toute la migration SOLO. Boss monde reste de test ; pas de main/src/main.cpp, pas de merge main ni Release. Anciennes APK conservées.
+
+Source `95743f2386b220bb692112197c4ddee02d27ae2b` ; [CI Android/C++/SDL2 verte](https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38299079636), publication Release SKIPPED.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2.apk` : 94168883 octets, SHA256 `c61d7e39ecb075d69db863e7cc964021bb9c3ed31ccf0c0597b01b1ffaa09248`.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2-unsigned.aab` : 91525121 octets, SHA256 `a4433fc2f09cae480ab407f1997139821602caa71c0c0f8a61941baceeed6289`.

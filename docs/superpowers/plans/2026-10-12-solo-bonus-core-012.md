@@ -26,6 +26,6 @@ Pas de main/src/main.cpp, merge main ou Release. Météorites nouvelles METEOR-0
 - [x] 3. Ajouter géométrie de segment et placement connecté dans coop_solo_world_bridge.hpp, tests contact/large coque/cul-de-sac/world bounds ; brancher les callbacks dans coop_solo_arena_runtime.hpp.
 - [x] 4. Ajouter coop_solo_bonus_draw.hpp, réutiliser PNG inspectés et vraie animation du vaisseau ; brancher arène/monde, HUD, cleanup textures. Tests SDL et smoke réel.
 - [x] 5. Sol revoit les huit effets intégrés, exécute régressions complètes disponibles, vérifie source Android générée ; corriger causes sans affaiblir assertions.
-- [ ] 6. Actualiser mémoires, commit/push sous lease de branche, CI Android exacte ; exporter APK/AAB dans nouveau dossier après succès, vérifier hashes et source ; remettre liens et limites matérielles.
+- [x] 6. Actualiser mémoires, commit/push sous lease de branche, CI Android exacte ; exporter APK/AAB dans nouveau dossier après succès, vérifier hashes et source ; remettre liens et limites matérielles.
 
 Commandes de vérification : scripts/test-regressions.sh ; C++ pur nouveau test avec g++ -std=c++17 -Isrc ; workflow android-build.yml pour la branche puis solo-coop-export-to-temp.yml avec run+SHA exacts et nouveau dossier.

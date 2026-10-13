@@ -522,3 +522,11 @@ Base1c6c0b5 : deux parcours SOLO existent (arène/world) mais bonus à tourelles
 
 ### CORE-012 — contrôle local terminé, candidat CI
 `scripts/test-regressions.sh` termine code0 : historique C++/SDL2, assets, moteurs, 200 ouvertures/rendus COOP, champs et poussières cinétiques, source Android générée et smoke natif arène/monde. Nouveaux tests purecore, tirsréels/statuts/collisions/loot/isolation passent. Dernier ajustement HUD SOLO (plus de double HUD COOP, textes agrandis) recompilé et testé avec lecture pixels SDL ; capture inspectée. Contrôle pont monde réexécuté après ajout des24placementsdistincts ; protection launcher diagnostic OK. Le boss monde reste FIXE de test, Prison/Glace y montrent des statuts, mouvement seulement démontré sur boss mobile de l’arène. CI Android et export exact restent à constater ; APK non annoncée avant cela.
+
+
+## CORE-012 — livraison vérifiée 13/10/2026
+Régressions C++/SDL2/Android et huit pouvoirs vertes au SHA compilé. Seuils de drops capturés avant soins, aucune résurrection boss mort, rayon coque réel et BFS par paquet. Perf hôte seule mesurée ; FPS Samsung inconnu. Défaut des astéroïdes historiques contre murs NON corrigé, METEOR-009 toujours suspendu.
+
+Source `95743f2386b220bb692112197c4ddee02d27ae2b` ; [CI Android/C++/SDL2 verte](https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38299079636), publication Release SKIPPED.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2.apk` : 94168883 octets, SHA256 `c61d7e39ecb075d69db863e7cc964021bb9c3ed31ccf0c0597b01b1ffaa09248`.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2-unsigned.aab` : 91525121 octets, SHA256 `a4433fc2f09cae480ab407f1997139821602caa71c0c0f8a61941baceeed6289`.

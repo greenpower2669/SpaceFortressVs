@@ -558,10 +558,10 @@
 
 ## SOLO BONUS CORE-012 — 12/10/2026
 - [x] Référence distante1c6c0b5, ordres/mémoires/sources et planches examinés ; travail isolé, modification PNG antérieure laissée intacte.
-- [ ] Cœur huit pouvoirs, collecte, cumul borné et tests purs.
-- [ ] Tir humain réel/salves, targeting furtif, statuts/dégâts boss, drops accessibles.
-- [ ] Rendu sprites/FX/HUD commun arène et labyrinthe, reset/relaunch.
-- [ ] Régressions réelles + SDL2/Android CI ; APK/AAB dans temp/solo-bonus-core-012/, SHA vérifié.
+- [x] Cœur huit pouvoirs, collecte, cumul borné et tests purs.
+- [x] Tir humain réel/salves, targeting furtif, statuts/dégâts boss, drops accessibles.
+- [x] Rendu sprites/FX/HUD commun arène et labyrinthe, reset/relaunch.
+- [x] Régressions réelles + SDL2/Android CI ; APK/AAB dans temp/solo-bonus-core-012/, SHA vérifié.
 - [ ] Retour Samsung : ergonomie/FPS, statuts boss monde ne prouvent pas mobilité.
 
 ### CORE-012 — intégration et revue, 12/10/2026
@@ -572,3 +572,13 @@
 
 ### CORE-012 — contrôle local terminé, candidat CI
 `scripts/test-regressions.sh` termine code0 : historique C++/SDL2, assets, moteurs, 200 ouvertures/rendus COOP, champs et poussières cinétiques, source Android générée et smoke natif arène/monde. Nouveaux tests purecore, tirsréels/statuts/collisions/loot/isolation passent. Dernier ajustement HUD SOLO (plus de double HUD COOP, textes agrandis) recompilé et testé avec lecture pixels SDL ; capture inspectée. Contrôle pont monde réexécuté après ajout des24placementsdistincts ; protection launcher diagnostic OK. Le boss monde reste FIXE de test, Prison/Glace y montrent des statuts, mouvement seulement démontré sur boss mobile de l’arène. CI Android et export exact restent à constater ; APK non annoncée avant cela.
+
+
+## CORE-012 — livraison vérifiée 13/10/2026
+- [x] CORE-012 code, huit pouvoirs, tests, CI exacte et export APK/AAB avec empreintes.
+- [ ] Samsung : boss OFF/ON, arène/labyrinthe, relance, chaque pouvoir, contrôles et performances.
+- [ ] Futures missions : IA mobile du boss monde, raccord progression/sauvegardes, astéroïdes historiques face aux parois.
+
+Source `95743f2386b220bb692112197c4ddee02d27ae2b` ; [CI Android/C++/SDL2 verte](https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38299079636), publication Release SKIPPED.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2.apk` : 94168883 octets, SHA256 `c61d7e39ecb075d69db863e7cc964021bb9c3ed31ccf0c0597b01b1ffaa09248`.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2-unsigned.aab` : 91525121 octets, SHA256 `a4433fc2f09cae480ab407f1997139821602caa71c0c0f8a61941baceeed6289`.
