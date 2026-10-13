@@ -38,16 +38,50 @@ struct SfCoopSoloBonusRenderer {
         SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,c.a);
         SDL_RenderDrawLinesF(renderer,points,sides+1);
     }
+    static SDL_Rect animatedCrop(sfsolo::bonus::Kind k,int frame,bool impact=false){
+        using sfsolo::bonus::Kind;
+        frame=std::clamp(frame,0,7);
+        static const SDL_Rect rock[8]={
+            {13,590,182,247},{184,590,148,247},{334,603,147,230},{490,590,128,236},
+            {607,611,141,209},{740,608,133,235},{880,632,120,186},{1007,603,103,229}};
+        static const SDL_Rect ice[8]={
+            {12,857,150,247},{161,903,145,193},{299,919,148,176},{452,898,150,205},
+            {601,903,158,204},{762,887,102,215},{866,887,123,214},{989,887,123,214}};
+        static const SDL_Rect lava[8]={
+            {13,326,155,224},{175,340,145,220},{325,340,126,220},{454,340,159,216},
+            {611,340,126,221},{740,340,136,221},{873,312,128,242},{1006,340,107,219}};
+        static const SDL_Rect smoke[8]={
+            {21,1131,171,233},{178,1155,155,194},{336,1120,142,254},{446,1176,167,173},
+            {573,1208,201,156},{764,1144,203,221},{972,1121,136,263},{972,1121,136,263}};
+        if(k==Kind::Prison)return rock[frame];
+        if(k==Kind::Ice)return ice[frame];
+        if(k==Kind::Lava)return lava[frame];
+        if(k==Kind::Meteor)return impact?smoke[frame]:rock[(frame+2)&7];
+        return {};
+    }
+    void animatedSprite(sfsolo::bonus::Kind k,int frame,float x,float y,float side,
+                        float rotation=0,Uint8 alpha=255,bool impact=false){
+        if(!atlas)return;
+        const SDL_Rect source=animatedCrop(k,frame,impact);
+        if(source.w<=0||source.h<=0)return;
+        const float scale=side/std::max(1,std::max(source.w,source.h));
+        SDL_FRect rect{x-source.w*scale*.5f,y-source.h*scale*.5f,
+                       source.w*scale,source.h*scale};
+        SDL_SetTextureAlphaMod(atlas,alpha);
+        SDL_RenderCopyExF(renderer,atlas,&source,&rect,rotation,nullptr,SDL_FLIP_NONE);
+        SDL_SetTextureAlphaMod(atlas,255);
+    }
     void icon(sfsolo::bonus::Kind k,float x,float y,float side,float rotation=0,Uint8 alpha=255){
         SDL_Texture *texture=nullptr;SDL_Rect source{};bool crop=false;
         const auto n=unsigned(k);
         if(n<icons.size())texture=icons[n];
         else if(sfsolo::bonus::isOrb(k)){
+            // Representative collectible frame; combat uses the full animated
+            // sequence below instead of rotating one static crop.
             texture=atlas;crop=true;
-            // Hand inspected, non-grid atlas. Crops isolate each motif.
-            constexpr SDL_Rect crops[]={{172,66,125,232},{294,906,149,198},
-                                        {453,347,167,214},{13,589,183,251}};
-            source=crops[n-unsigned(sfsolo::bonus::Kind::Prison)];
+            source=animatedCrop(k,k==sfsolo::bonus::Kind::Prison?1:
+                                  k==sfsolo::bonus::Kind::Ice?5:
+                                  k==sfsolo::bonus::Kind::Lava?3:2,false);
         }
         if(!texture){sfCoopDisc(renderer,x,y,side*.35f,color(k,alpha));return;}
         int w=source.w,h=source.h;
@@ -104,30 +138,44 @@ struct SfCoopSoloBonusRenderer {
         }
         for(const auto &shot:sfCoop.shots)if(isOrb(shot.bonusKind)){
             const auto p=project(shot.position.x,shot.position.y);
-            if(!visible(p,shot.radius*5))continue;
+            if(!visible(p,shot.radius*6))continue;
             const float speed=std::max(1.0f,std::hypot(shot.velocity.vx,shot.velocity.vy));
             for(int i=1;i<=3;++i){
                 const float trail=shot.radius*i*1.6f;
                 ring(p.x-shot.velocity.vx/speed*trail,p.y-shot.velocity.vy/speed*trail,
                      shot.radius*(1-.18f*i),color(shot.bonusKind,Uint8(150-i*35)),0,8);
             }
-            icon(shot.bonusKind,p.x,p.y,shot.radius*3.4f,shot.age*120);
-            ring(p.x,p.y,shot.radius*1.5f,color(shot.bonusKind,160),shot.age,12);
+            const int frame=int(std::floor(shot.age*14.0f))&7;
+            if(shot.bonusKind==Kind::Meteor){
+                const float tail=shot.radius*2.3f;
+                animatedSprite(Kind::Lava,frame,
+                    p.x-shot.velocity.vx/speed*tail,p.y-shot.velocity.vy/speed*tail,
+                    shot.radius*4.0f,shot.age*180,145,false);
+                animatedSprite(Kind::Meteor,frame,p.x,p.y,shot.radius*4.8f,shot.age*150,255,false);
+            }else{
+                animatedSprite(shot.bonusKind,frame,p.x,p.y,shot.radius*4.4f,shot.age*150,245,false);
+            }
+            ring(p.x,p.y,shot.radius*1.5f,color(shot.bonusKind,150),shot.age,12);
         }
         for(const auto &fx:sfCoop.soloBonusImpacts){
             const auto p=project(fx.position.x,fx.position.y);
             const float life=float(std::clamp((fx.until-s.time)/.5,0.0,1.0));
-            const float r=sfArenaW*.07f*(1-life+.2f);
-            if(!visible(p,r))continue;
-            ring(p.x,p.y,r,color(fx.kind,Uint8(220*life)),0,24);
-            if(fx.kind==Kind::Meteor || fx.kind==Kind::Lava){
-                auto *explosion=sfCoopTextures(renderer).explosion;
-                if(explosion){
-                    SDL_FRect rect{p.x-r,p.y-r,r*2,r*2};
-                    SDL_SetTextureAlphaMod(explosion,Uint8(210*life));
-                    SDL_RenderCopyF(renderer,explosion,nullptr,&rect);SDL_SetTextureAlphaMod(explosion,255);
+            const float progress=1.0f-life;
+            const float r=sfArenaW*.07f*(progress+.2f);
+            if(!visible(p,r*2))continue;
+            if(isOrb(fx.kind)){
+                const int frame=std::clamp(int(progress*8.0f),0,7);
+                const float side=std::max(sfArenaW*.095f,sfCoopBossRadius()*2.15f);
+                animatedSprite(fx.kind,frame,p.x,p.y,side,progress*55,Uint8(235*life+20),true);
+                if(fx.kind==Kind::Meteor || fx.kind==Kind::Lava){
+                    auto *explosion=sfCoopTextures(renderer).explosion;
+                    if(explosion){
+                        SDL_FRect rect{p.x-r,p.y-r,r*2,r*2};
+                        SDL_SetTextureAlphaMod(explosion,Uint8(170*life));
+                        SDL_RenderCopyF(renderer,explosion,nullptr,&rect);SDL_SetTextureAlphaMod(explosion,255);
+                    }
                 }
-            }
+            }else ring(p.x,p.y,r,color(fx.kind,Uint8(220*life)),0,24);
         }
         if(s.stealth() && Spritej2->pv>0){
             const auto p=project(Spritej2->x,Spritej2->y);
@@ -135,9 +183,25 @@ struct SfCoopSoloBonusRenderer {
         }
         if(sfCoop.bossPresent){
             const auto p=project(sfCoop.position.x,sfCoop.position.y);
-            for(Kind k:{Kind::Prison,Kind::Ice,Kind::Lava})if(s.remaining(k)>0 && visible(p,sfCoopBossRadius()*1.8f))
-                ring(p.x,p.y,sfCoopBossRadius()*(k==Kind::Prison?1.1f:k==Kind::Ice?1.25f:1.4f),
-                     color(k,190),float(s.time)*(k==Kind::Prison?0:.4f),k==Kind::Prison?6:24);
+            const float bossR=sfCoopBossRadius();
+            if(s.remaining(Kind::Prison)>0 && visible(p,bossR*2.2f)){
+                // Eight distinct rock fragments form a visible physical cage,
+                // rather than the old abstract hexagon.
+                for(int i=0;i<8;++i){
+                    const float angle=float(i)*float(PI)*.25f;
+                    const float radius=bossR*1.02f;
+                    animatedSprite(Kind::Prison,i,p.x+std::cos(angle)*radius,p.y+std::sin(angle)*radius,
+                                   bossR*.82f,angle*180/float(PI),225,false);
+                }
+            }
+            if(s.remaining(Kind::Ice)>0 && visible(p,bossR*2.0f)){
+                const int frame=5+(int(s.time*5)&1);
+                animatedSprite(Kind::Ice,frame,p.x,p.y,bossR*2.55f,float(s.time)*8,175,true);
+            }
+            if(s.remaining(Kind::Lava)>0 && visible(p,bossR*2.0f)){
+                const int frame=3+(int(s.time*10)%5);
+                animatedSprite(Kind::Lava,frame,p.x,p.y,bossR*2.7f,float(s.time)*18,165,true);
+            }
         }
         // Fixed screen HUD; timers never inherit the camera transform.
         const int hudScale=std::clamp(width/220,2,5);
