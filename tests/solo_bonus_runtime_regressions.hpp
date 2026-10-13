@@ -184,8 +184,10 @@ static void testSoloBonusWorldPlacementAndWallImpact(){
         assert(world.canOccupy({p.x,p.y},sfCoopShipRadius()));
     }
     sfCoopSoloBonusCollectAndDrop();assert(sfCoop.soloBonus.pickups.size()==3);
-    const auto first=sfCoop.soloBonus.pickups.front();
-    Spritej2->x=first.x;Spritej2->y=first.y;Spritej2->pv=100;
+    const auto healthPickup=std::find_if(sfCoop.soloBonus.pickups.begin(),sfCoop.soloBonus.pickups.end(),
+        [](const auto &p){return p.kind==Kind::Health;});
+    assert(healthPickup!=sfCoop.soloBonus.pickups.end());
+    Spritej2->x=healthPickup->x;Spritej2->y=healthPickup->y;Spritej2->pv=100;
     sfCoopSoloBonusCollectAndDrop();assert(Spritej2->pv==100); // still flying
     sfCoopSoloBonusTick(.7f);assert(sfCoop.soloBonusEjections.empty());
     sfCoopSoloBonusCollectAndDrop();assert(Spritej2->pv==450);
