@@ -1,4 +1,4 @@
-name: Export verified SOLO BONUS-013 to temp
+name: Export verified SOLO BONUS-014 to temp
 
 on:
   push:
@@ -26,28 +26,27 @@ jobs:
           ref: feature/solo-coop-core-v1
           persist-credentials: true
 
-      - name: Require exact GREEN BONUS-013 CI and unpack
+      - name: Require exact GREEN BONUS-014 CI and unpack
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          source_run=38361581767
-          source_sha=488de2195e2aa2a1e40f2eec96abaeba19863fad
-          short_sha=488de21
-          source_dir="$RUNNER_TEMP/solo-bonus-013"
+          source_run=38420099395
+          source_sha=f9323f3cd239e9027d964e38db369a9217ef02cb
+          short_sha=f9323f3
+          source_dir="$RUNNER_TEMP/solo-bonus-014"
           mkdir -p "$source_dir"
 
           gh run watch "$source_run" --repo "$GITHUB_REPOSITORY" --exit-status
           conclusion="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json conclusion --jq '.conclusion')"
           actual_sha="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json headSha --jq '.headSha')"
           [[ "$conclusion" == success && "$actual_sha" == "$source_sha" ]] || {
-            echo "::error::BONUS-013 source CI is not the required GREEN commit"
+            echo "::error::BONUS-014 source CI is not the required GREEN commit"
             exit 1
           }
 
-          gh run download "$source_run" --repo "$GITHUB_REPOSITORY" \
-            --name SpaceFortressVs-1.4.2-release-files --dir "$source_dir"
+          gh run download "$source_run" --repo "$GITHUB_REPOSITORY"             --name SpaceFortressVs-1.4.2-release-files --dir "$source_dir"
           (cd "$source_dir" && sha256sum --check SHA256SUMS)
 
           python3 - "$source_dir" "$source_sha" "$short_sha" "$source_run" <<'PY'
@@ -58,9 +57,9 @@ jobs:
           source_sha = sys.argv[2]
           short_sha = sys.argv[3]
           source_run = int(sys.argv[4])
-          destination = Path("temp/solo-bonus-013")
+          destination = Path("temp/solo-bonus-014")
           destination.mkdir(parents=True, exist_ok=True)
-          prefix = f"SpaceFortressVs-1.4.2-SOLO-BONUS-013-{short_sha}"
+          prefix = f"SpaceFortressVs-1.4.2-SOLO-BONUS-014-{short_sha}"
 
           source_manifest = json.loads((source / "SpaceFortressVs-1.4.2-build.json").read_text())
           assert source_manifest["commit"] == source_sha
@@ -87,12 +86,22 @@ jobs:
                   shutil.copy2(original, target)
               delivered[target_name] = {"sha256": sha, "size": target.stat().st_size}
 
+          atlas = Path("assets/pict/solo/SoloBonusAnimations.png")
+          assert atlas.is_file()
+          atlas_sha = digest(atlas)
+          assert atlas_sha == "1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001"
+
           manifest = {
-              "mission": "SOLO BONUS-013",
+              "mission": "SOLO BONUS-014",
               "branch": "feature/solo-coop-core-v1",
               "commit": source_sha,
               "sourceRun": source_run,
               "packageName": source_manifest["packageName"],
+              "animationAtlas": {
+                  "path": str(atlas),
+                  "layout": "4x8 frames, 192x192",
+                  "sha256": atlas_sha,
+              },
               "files": delivered,
               "aabNote": "NON SIGNE; diagnostic phone is the APK debug; no public Release.",
           }
@@ -104,43 +113,57 @@ jobs:
 
           evidence_lines = [
               f"Source `{source_sha}`; CI Android/C++/SDL2 `{source_run}` SUCCESS; publish-release SKIPPED.",
+              f"- Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `{atlas_sha}`.",
               *[f"- `{name}`: {meta['size']} octets, SHA256 `{meta['sha256']}`." for name, meta in delivered.items()],
           ]
           evidence = "\n".join(evidence_lines)
 
-          readme = f"""# SpaceFortress — SOLO BONUS-013 (DIAGNOSTIC)
+          readme = f"""# SpaceFortress — SOLO BONUS-014 (DIAGNOSTIC)
 
           Branche : `feature/solo-coop-core-v1`. Aucun merge main ni Release publique.
 
           {evidence}
 
-          ## À vérifier sur Samsung
-          - `TEST BONUS OFF` masque les neuf commandes et ne pause/reset rien.
-          - `TEST BONUS ON` affiche PV, ENERGIE, FURTIF, MISSILES, PRISON, GLACE, LAVE, METEORE et TOUS X8.
-          - Chaque commande exige BOSS TEST et éjecte visuellement le bonus depuis le boss avant qu'il devienne collectable.
-          - En WORLD, l'atterrissage est accessible et le trajet boss→pickup est filtré contre ROCK.
-          - Les jauges PV/ENERGIE du joueur restent au-dessus de la navigation Android; HUD boss inchangé.
-          - Les explosions d'astéroïdes alternent légèrement entre deux prises historiques avec faible variation de volume; autres FX inchangés.
+          ## Correctifs inclus
+
+          - Animation de production `SoloBonusAnimations.png` : 4 lignes x 8 frames.
+            PRISON = cage rocheuse; GLACE = cristallisation; LAVE = magma; METEORE = roche + fumée.
+          - Les projectiles utilisent uniquement les frames d'approche; les frames de fermeture/impact
+            sont réservées au contact avec le boss afin d'éviter un effet final avant l'impact.
+          - Prison/Glace/Lave restent visuellement autour du boss pendant leur statut actif.
+          - Explosions d'astéroïdes : quatre variantes bornées, dont rééchantillonnage à 0,97x et 1,03x
+            (tonalité + tempo ensemble) et faible variation de volume, exclusivement sur le canal astéroïde.
+          - HUD SOLO : les barres PV/ENERGIE propres au diagnostic utilisent maintenant le safe-bottom inset;
+            HUD boss inchangé.
+          - `TEST BONUS OFF` cache les boutons sans pause/reset.
+          - `TEST BONUS ON` affiche PV, ENERGIE, FURTIF, MISSILES, PRISON, GLACE, LAVE, METEORE + TOUS X8.
+          - `TOUS X8` est atomique : les huit bonus sont placés dans un même lot ou aucun n'est validé
+            jusqu'à ce qu'une configuration accessible soit disponible.
+          - Les bonus sont toujours éjectés depuis le boss; WORLD conserve la protection contre les murs.
           - Tourelles SOLO interdites; METEOR-009 reste désactivé.
+
+          ## À vérifier physiquement sur Samsung
+
+          1. Les deux jauges joueur sont entièrement au-dessus de la navigation Android.
+          2. TEST BONUS peut être ouvert/fermé sans interrompre le pilotage.
+          3. Chaque pouvoir offensif arrive avec son animation et l'effet final apparaît seulement au boss.
+          4. PRISON forme visuellement une cage rocheuse autour du boss pendant l'immobilisation.
+          5. TOUS X8 éjecte visuellement les huit bonus ensemble.
+          6. Plusieurs explosions d'astéroïdes restent naturelles tout en étant moins répétitives.
           """
           (destination / "README.md").write_text("\n".join(line.lstrip() for line in readme.splitlines()) + "\n")
 
-          marker = "## BONUS-013 — livraison vérifiée 13/10/2026"
+          marker = "## BONUS-014 — livraison vérifiée 13/10/2026"
           additions = {
-              "brain.md": "BONUS-013 compilé et packagé depuis le HEAD exact. TEST BONUS, éjection boss, safe-area joueur Samsung et variation audio astéroïdes sont inclus; validation physique Samsung reste nécessaire.",
-              "brainmap.md": "Livraison diagnostic: `temp/solo-bonus-013/`. Source et CI exactes ci-dessous; aucun merge main ni Release.",
-              "debughistorical.md": "Les deux RED intermédiaires provenaient de tests trop stricts (premier pickup supposé PV; hash audio ne couvrant pas les deux variantes sur 32 séquences), corrigés sans modifier le contrat gameplay. La CI finale exacte est verte.",
-              "todo.md": "- [x] CI finale BONUS-013 exacte, APK/AAB et SHA256 vérifiés/exportés.\n- [ ] Samsung: confirmer panneau OFF/ON, huit bonus + TOUS X8, éjection depuis boss, HUD au-dessus navigation et variété FX.",
-              "ordres-de-mission.md": "Statut technique BONUS-013: livré en diagnostic à tester sur Samsung. `src/main.cpp` protégé; METEOR-009/tourelles SOLO restent OFF; aucun merge main ni Release.",
+              "brain.md": "SOLO-014 corrige les lacunes restantes de BONUS-013 : véritable atlas animé 4x8 pour Prison/Glace/Lave/Météore, frames d'impact réservées au contact boss, cage/gel/lave visibles pendant le statut, vrai rééchantillonnage astéroïde ±3 % (pitch+tempo), HUD diagnostic Samsung relevé au bon endroit et TOUS X8 atomique. Validation physique Samsung reste requise.",
+              "brainmap.md": "SOLO BONUS-014 : rendu offensif = `assets/pict/solo/SoloBonusAnimations.png` (4 lignes x 8 frames). Audio astéroïdes = banque 4 variantes bornées incluant 0,97x/1,03x. HUD diagnostic = `sfSoloDiagnosticHudY()`. TEST BONUS = 8 boutons + lot atomique TOUS X8. Livraison : `temp/solo-bonus-014/`.",
+              "debughistorical.md": "Audit BONUS-013 avait montré quatre écarts réels : ancienne planche statique/crops, HUD SOLO redessiné à height-58/height-40 après le HUD commun, audio sans vrai changement de vitesse, et TOUS X8 non garanti atomique. BONUS-014 les corrige. L'atlas de production est généré de façon déterministe depuis les motifs SOLO, validé 1536x768 et utilisé par le renderer; le projectile ne joue que les frames 0..3, l'impact et le statut boss les frames de fermeture 4..7/5..7. Audio: resampling linéaire 0,97x/1,03x en AUDIO_S16SYS, canal 8 isolé. CI exacte finale verte.",
+              "todo.md": "- [x] BONUS-014 : atlas animé production 4x8 intégré et validé.\n- [x] BONUS-014 : Prison/Glace/Lave/Météore animés en vol, impact et statut boss.\n- [x] BONUS-014 : HUD SOLO Samsung utilise le safe-bottom inset, HUD boss inchangé.\n- [x] BONUS-014 : pitch+tempo astéroïdes réellement bornés à ±3 %, volume légèrement varié.\n- [x] BONUS-014 : TEST BONUS + TOUS X8 atomique et fermeture sans interruption.\n- [x] BONUS-014 : CI Android/C++/SDL2 exacte verte et APK/AAB exportés.\n- [ ] Validation physique Samsung : jauges, animations quatre pouvoirs, TOUS X8, naturel des FX audio.\n- [ ] Aucun merge main / Release avant validation Fab.",
+              "ordres-de-mission.md": "Ordre Fab exécuté pour SOLO BONUS-014 : corriger l'ensemble des écarts audités sans modifier `src/main.cpp`, sans merge main ni Release. Atlas animé dérivé des sprites validés, effets offensifs réellement animés jusqu'au boss, HUD Samsung corrigé dans le rendu SOLO lui-même, explosions astéroïdes avec vraie variation de vitesse/hauteur, TEST BONUS complet et TOUS X8 atomique. Statut : livré techniquement, à valider sur Samsung.",
           }
           for filename, note in additions.items():
               p = Path(filename)
               text = p.read_text()
-              if filename == "todo.md":
-                  text = text.replace(
-                      "- [ ] Confirmer le workflow Android du HEAD final BONUS-013 et relever run/artifact/SHA avant APK téléphone.",
-                      "- [x] Confirmer le workflow Android du HEAD final BONUS-013 et relever run/artifact/SHA avant APK téléphone."
-                  )
               if marker not in text:
                   text = text.rstrip() + "\n\n" + marker + "\n" + note + "\n\n" + evidence + "\n"
               p.write_text(text)
@@ -148,20 +171,20 @@ jobs:
           print(evidence)
           PY
 
-          (cd temp/solo-bonus-013 && sha256sum --check SHA256SUMS)
+          (cd temp/solo-bonus-014 && sha256sum --check SHA256SUMS)
 
-      - name: Commit BONUS-013 diagnostic and living memories
+      - name: Commit BONUS-014 diagnostic and living memories
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- temp/solo-bonus-013/ brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md
+          git add -- temp/solo-bonus-014/ brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md
           if git diff --cached --quiet; then
-            echo "BONUS-013 diagnostic already exported."
+            echo "BONUS-014 diagnostic already exported."
             exit 0
           fi
-          git commit -m "chore(solo): deliver verified BONUS-013 APK and AAB [skip ci]"
+          git commit -m "chore(solo): deliver verified BONUS-014 APK and AAB [skip ci]"
           git fetch origin feature/solo-coop-core-v1
           git rebase origin/feature/solo-coop-core-v1
           git push origin HEAD:refs/heads/feature/solo-coop-core-v1
