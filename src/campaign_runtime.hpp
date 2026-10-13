@@ -1394,7 +1394,8 @@ static SfAsteroidExplosionFxVariant sfAsteroidExplosionFxVariant(unsigned sequen
     const std::uint32_t x=sequence*1664525u+1013904223u;
     return {int((x>>29)&1u),MIX_MAX_VOLUME-int((x>>8)%11u)};
 }
-static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,Mix_Chunk *hit,Mix_Chunk *collision)
+static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,Mix_Chunk *hit,
+                             Mix_Chunk *collision,Mix_Chunk *asteroidAlt=nullptr)
 {
     static Uint64 last=0;static unsigned asteroidFxSequence=0;
     const Uint64 now=SDL_GetTicks64();
@@ -1409,7 +1410,8 @@ static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,M
     if (sfCoop.soundHit && hit) Mix_PlayChannel(7,hit,0);
     if (sfFieldMiningSound) {
         const auto variant=sfAsteroidExplosionFxVariant(++asteroidFxSequence);
-        Mix_Chunk *sample=(variant.sample && boss) ? boss : hit;
+        Mix_Chunk *alternate=asteroidAlt?asteroidAlt:boss;
+        Mix_Chunk *sample=(variant.sample && alternate) ? alternate : hit;
         if(sample){
             // Channel 8 is reserved here for asteroid destruction so its
             // slight level change never leaks into shots, boss or mining FX.
