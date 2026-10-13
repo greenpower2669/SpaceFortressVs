@@ -5,10 +5,11 @@
 
 struct SfCoopSoloBonusRenderer {
     SDL_Renderer *renderer;
-    SDL_Texture *atlas=nullptr;
+    SDL_Texture *atlas=nullptr,*animationAtlas=nullptr;
     std::array<SDL_Texture*,4> icons{};
     explicit SfCoopSoloBonusRenderer(SDL_Renderer *r):renderer(r){
         atlas=IMG_LoadTexture(r,"resources/assets/pict/solo/EnvironnementsModeSolo.png");
+        animationAtlas=IMG_LoadTexture(r,"resources/assets/pict/solo/SoloBonusAnimations.png");
         const char *paths[]={"remaster/heart_blue.png","remaster/energy_ice.png",
                              "remaster/shield_blue.png","missilebb.png"};
         for(unsigned i=0;i<icons.size();++i)
@@ -18,6 +19,7 @@ struct SfCoopSoloBonusRenderer {
     SfCoopSoloBonusRenderer &operator=(const SfCoopSoloBonusRenderer &)=delete;
     void release(){
         if(atlas)SDL_DestroyTexture(atlas);atlas=nullptr;
+        if(animationAtlas)SDL_DestroyTexture(animationAtlas);animationAtlas=nullptr;
         for(auto &t:icons){if(t)SDL_DestroyTexture(t);t=nullptr;}
     }
     ~SfCoopSoloBonusRenderer(){release();}
@@ -59,8 +61,31 @@ struct SfCoopSoloBonusRenderer {
         if(k==Kind::Meteor)return impact?smoke[frame]:rock[(frame+2)&7];
         return {};
     }
+    static int productionAnimationRow(sfsolo::bonus::Kind k){
+        using sfsolo::bonus::Kind;
+        switch(k){
+        case Kind::Prison:return 0;case Kind::Ice:return 1;
+        case Kind::Lava:return 2;case Kind::Meteor:return 3;
+        default:return -1;
+        }
+    }
+    static SDL_Rect productionAnimationCrop(sfsolo::bonus::Kind k,int frame){
+        const int row=productionAnimationRow(k);
+        if(row<0)return {};
+        frame=std::clamp(frame,0,7);
+        return {frame*192,row*192,192,192};
+    }
     void animatedSprite(sfsolo::bonus::Kind k,int frame,float x,float y,float side,
                         float rotation=0,Uint8 alpha=255,bool impact=false){
+        if(animationAtlas && productionAnimationRow(k)>=0){
+            const SDL_Rect source=productionAnimationCrop(k,frame);
+            SDL_FRect rect{x-side*.5f,y-side*.5f,side,side};
+            SDL_SetTextureAlphaMod(animationAtlas,alpha);
+            SDL_RenderCopyExF(renderer,animationAtlas,&source,&rect,rotation,nullptr,SDL_FLIP_NONE);
+            SDL_SetTextureAlphaMod(animationAtlas,255);
+            return;
+        }
+        // Safety fallback for old packages: keep the authored source motifs.
         if(!atlas)return;
         const SDL_Rect source=animatedCrop(k,frame,impact);
         if(source.w<=0||source.h<=0)return;
@@ -76,12 +101,17 @@ struct SfCoopSoloBonusRenderer {
         const auto n=unsigned(k);
         if(n<icons.size())texture=icons[n];
         else if(sfsolo::bonus::isOrb(k)){
-            // Representative collectible frame; combat uses the full animated
-            // sequence below instead of rotating one static crop.
-            texture=atlas;crop=true;
-            source=animatedCrop(k,k==sfsolo::bonus::Kind::Prison?1:
-                                  k==sfsolo::bonus::Kind::Ice?5:
-                                  k==sfsolo::bonus::Kind::Lava?3:2,false);
+            // Collectibles use one clear representative cell; combat plays all
+            // eight production frames.
+            crop=true;
+            const int representative=k==sfsolo::bonus::Kind::Prison?6:
+                                     k==sfsolo::bonus::Kind::Ice?6:
+                                     k==sfsolo::bonus::Kind::Lava?5:2;
+            if(animationAtlas){
+                texture=animationAtlas;source=productionAnimationCrop(k,representative);
+            }else{
+                texture=atlas;source=animatedCrop(k,representative,false);
+            }
         }
         if(!texture){sfCoopDisc(renderer,x,y,side*.35f,color(k,alpha));return;}
         int w=source.w,h=source.h;
@@ -167,14 +197,8 @@ struct SfCoopSoloBonusRenderer {
                 const int frame=std::clamp(int(progress*8.0f),0,7);
                 const float side=std::max(sfArenaW*.095f,sfCoopBossRadius()*2.15f);
                 animatedSprite(fx.kind,frame,p.x,p.y,side,progress*55,Uint8(235*life+20),true);
-                if(fx.kind==Kind::Meteor || fx.kind==Kind::Lava){
-                    auto *explosion=sfCoopTextures(renderer).explosion;
-                    if(explosion){
-                        SDL_FRect rect{p.x-r,p.y-r,r*2,r*2};
-                        SDL_SetTextureAlphaMod(explosion,Uint8(170*life));
-                        SDL_RenderCopyF(renderer,explosion,nullptr,&rect);SDL_SetTextureAlphaMod(explosion,255);
-                    }
-                }
+                // The production atlas already contains the authored lava/smoke
+                // impact. Do not cover it with the old generic explosion sprite.
             }else ring(p.x,p.y,r,color(fx.kind,Uint8(220*life)),0,24);
         }
         if(s.stealth() && Spritej2->pv>0){
@@ -184,23 +208,15 @@ struct SfCoopSoloBonusRenderer {
         if(sfCoop.bossPresent){
             const auto p=project(sfCoop.position.x,sfCoop.position.y);
             const float bossR=sfCoopBossRadius();
-            if(s.remaining(Kind::Prison)>0 && visible(p,bossR*2.2f)){
-                // Eight distinct rock fragments form a visible physical cage,
-                // rather than the old abstract hexagon.
-                for(int i=0;i<8;++i){
-                    const float angle=float(i)*float(PI)*.25f;
-                    const float radius=bossR*1.02f;
-                    animatedSprite(Kind::Prison,i,p.x+std::cos(angle)*radius,p.y+std::sin(angle)*radius,
-                                   bossR*.82f,angle*180/float(PI),225,false);
-                }
-            }
-            if(s.remaining(Kind::Ice)>0 && visible(p,bossR*2.0f)){
-                const int frame=5+(int(s.time*5)&1);
-                animatedSprite(Kind::Ice,frame,p.x,p.y,bossR*2.55f,float(s.time)*8,175,true);
-            }
-            if(s.remaining(Kind::Lava)>0 && visible(p,bossR*2.0f)){
-                const int frame=3+(int(s.time*10)%5);
-                animatedSprite(Kind::Lava,frame,p.x,p.y,bossR*2.7f,float(s.time)*18,165,true);
+            for(Kind k:{Kind::Prison,Kind::Ice,Kind::Lava})if(s.remaining(k)>0 && visible(p,bossR*2.3f)){
+                // Hold the closing production frames around the actual boss:
+                // rock cage, crystal lock or lava envelope.
+                const int frame=5+(int(s.time*4.0+unsigned(k))%3);
+                const float side=bossR*(k==Kind::Prison?3.55f:k==Kind::Ice?3.35f:3.15f);
+                animatedSprite(k,frame,p.x,p.y,side,float(s.time)*(k==Kind::Prison?2.0f:8.0f),
+                               k==Kind::Prison?235:215,true);
+                ring(p.x,p.y,bossR*(k==Kind::Prison?1.08f:k==Kind::Ice?1.18f:1.30f),
+                     color(k,105),float(s.time)*.20f,k==Kind::Prison?8:24);
             }
         }
         // Fixed screen HUD; timers never inherit the camera transform.
