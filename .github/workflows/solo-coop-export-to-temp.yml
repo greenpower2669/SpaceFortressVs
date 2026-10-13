@@ -1,6 +1,5 @@
-name: Unpack verified SOLO COOP artifact into temp
+name: Export verified SOLO BONUS-013 to temp
 
-# Export only the exact GREEN source; retain all earlier diagnostics.
 on:
   push:
     branches: [feature/solo-coop-core-v1]
@@ -21,179 +20,148 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - name: Checkout only the SOLO branch
+      - name: Checkout SOLO branch
         uses: actions/checkout@v4
         with:
           ref: feature/solo-coop-core-v1
           persist-credentials: true
 
-      - name: Require GREEN tests and export exact BONUS-012 diagnostic
+      - name: Require exact GREEN BONUS-013 CI and unpack
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          source_run=38299079636
-          source_sha=95743f2386b220bb692112197c4ddee02d27ae2b
-          artifact_dir="$RUNNER_TEMP/coop-solo-bonus-core-012"
-          mkdir -p "$artifact_dir"
+          source_run=38361581767
+          source_sha=488de2195e2aa2a1e40f2eec96abaeba19863fad
+          short_sha=488de21
+          source_dir="$RUNNER_TEMP/solo-bonus-013"
+          mkdir -p "$source_dir"
+
           gh run watch "$source_run" --repo "$GITHUB_REPOSITORY" --exit-status
-          actual_conclusion="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json conclusion --jq '.conclusion')"
+          conclusion="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json conclusion --jq '.conclusion')"
           actual_sha="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json headSha --jq '.headSha')"
-          [[ "$actual_conclusion" == success && "$actual_sha" == "$source_sha" ]] || {
-            echo "::error::Source CI is not green at required commit"
+          [[ "$conclusion" == success && "$actual_sha" == "$source_sha" ]] || {
+            echo "::error::BONUS-013 source CI is not the required GREEN commit"
             exit 1
           }
-          gh run download "$source_run" --repo "$GITHUB_REPOSITORY" \
-            --name SpaceFortressVs-1.4.2-release-files --dir "$artifact_dir"
-          (cd "$artifact_dir" && sha256sum --check SHA256SUMS)
-          python3 - "$artifact_dir" "$source_sha" "$source_run" <<'PY'
-          import hashlib
-          import json
-          from pathlib import Path
-          import shutil
-          import sys
 
-          source, expected, run = Path(sys.argv[1]), sys.argv[2], int(sys.argv[3])
-          manifest = json.loads((source / 'SpaceFortressVs-1.4.2-build.json').read_text())
-          assert manifest['commit'] == expected
-          assert manifest['packageName'] == 'com.greenpower2669.spacefortressvs.diagnostic'
-          destination = Path('temp/solo-bonus-core-012')
+          gh run download "$source_run" --repo "$GITHUB_REPOSITORY" \
+            --name SpaceFortressVs-1.4.2-release-files --dir "$source_dir"
+          (cd "$source_dir" && sha256sum --check SHA256SUMS)
+
+          python3 - "$source_dir" "$source_sha" "$short_sha" "$source_run" <<'PY'
+          import hashlib, json, shutil, sys
+          from pathlib import Path
+
+          source = Path(sys.argv[1])
+          source_sha = sys.argv[2]
+          short_sha = sys.argv[3]
+          source_run = int(sys.argv[4])
+          destination = Path("temp/solo-bonus-013")
           destination.mkdir(parents=True, exist_ok=True)
-          prefix = 'SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2'
+          prefix = f"SpaceFortressVs-1.4.2-SOLO-BONUS-013-{short_sha}"
+
+          source_manifest = json.loads((source / "SpaceFortressVs-1.4.2-build.json").read_text())
+          assert source_manifest["commit"] == source_sha
+          assert source_manifest["packageName"] == "com.greenpower2669.spacefortressvs.diagnostic"
+
           def digest(path):
-              with path.open('rb') as stream:
-                  return hashlib.file_digest(stream, 'sha256').hexdigest()
-          files = {}
-          for suffix in ('.apk', '-unsigned.aab'):
-              original = source / ('SpaceFortressVs-1.4.2' + suffix)
-              assert original.is_file() and 0 < original.stat().st_size < 100_000_000
+              with path.open("rb") as stream:
+                  return hashlib.file_digest(stream, "sha256").hexdigest()
+
+          delivered = {}
+          pairs = [
+              ("SpaceFortressVs-1.4.2.apk", prefix + ".apk"),
+              ("SpaceFortressVs-1.4.2-unsigned.aab", prefix + "-unsigned.aab"),
+          ]
+          for original_name, target_name in pairs:
+              original = source / original_name
+              assert original.is_file() and original.stat().st_size > 0
               sha = digest(original)
-              assert sha == manifest['files'][original.name]['sha256']
-              target = destination / (prefix + suffix)
+              assert sha == source_manifest["files"][original_name]["sha256"]
+              target = destination / target_name
               if target.exists():
-                  assert digest(target) == sha, 'Refuse to replace another diagnostic'
+                  assert digest(target) == sha, "Refuse to replace a different diagnostic"
               else:
                   shutil.copy2(original, target)
-              files[target.name] = {'sha256': sha, 'size': target.stat().st_size}
-          manifest['sourceArtifactFiles'] = manifest['files']
-          manifest['files'] = files
-          manifest['mission'] = 'SOLO BONUS CORE-012'
-          manifest['sourceRun'] = run
-          manifest['aabNote'] = 'NON SIGNE, launcher release historique; SOLO diagnostic accessible dans APK debug.'
-          manifest_path = destination / (prefix + '-build.json')
-          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
-          checksums = [f"{meta['sha256']}  {name}" for name, meta in files.items()]
-          checksums.append(f'{digest(manifest_path)}  {manifest_path.name}')
-          (destination / 'SHA256SUMS').write_text('\n'.join(checksums) + '\n')
-          ci = f'https://github.com/greenpower2669/SpaceFortressVs/actions/runs/{run}'
-          evidence = f'Source `{expected}` ; [CI Android/C++/SDL2 verte]({ci}), publication Release SKIPPED.\n'
-          evidence += '\n'.join(f"- `{name}` : {meta['size']} octets, SHA256 `{meta['sha256']}`." for name, meta in files.items())
-          readme = f'''# SpaceFortress — SOLO BONUS CORE-012 (DIAGNOSTIC)
+              delivered[target_name] = {"sha256": sha, "size": target.stat().st_size}
 
-          Branche : feature/solo-coop-core-v1. Aucun merge main ni Release publique.
+          manifest = {
+              "mission": "SOLO BONUS-013",
+              "branch": "feature/solo-coop-core-v1",
+              "commit": source_sha,
+              "sourceRun": source_run,
+              "packageName": source_manifest["packageName"],
+              "files": delivered,
+              "aabNote": "NON SIGNE; diagnostic phone is the APK debug; no public Release.",
+          }
+          manifest_path = destination / (prefix + "-build.json")
+          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+          sums = [f"{meta['sha256']}  {name}" for name, meta in delivered.items()]
+          sums.append(f"{digest(manifest_path)}  {manifest_path.name}")
+          (destination / "SHA256SUMS").write_text("\n".join(sums) + "\n")
+
+          evidence_lines = [
+              f"Source `{source_sha}`; CI Android/C++/SDL2 `{source_run}` SUCCESS; publish-release SKIPPED.",
+              *[f"- `{name}`: {meta['size']} octets, SHA256 `{meta['sha256']}`." for name, meta in delivered.items()],
+          ]
+          evidence = "\n".join(evidence_lines)
+
+          readme = f"""# SpaceFortress — SOLO BONUS-013 (DIAGNOSTIC)
+
+          Branche : `feature/solo-coop-core-v1`. Aucun merge main ni Release publique.
+
           {evidence}
 
-          APK : `{prefix}.apk`, identité `com.greenpower2669.spacefortressvs.diagnostic`.
-          AAB : `{prefix}-unsigned.aab`, NON SIGNÉ ; launcher release historique.
-          Le menu SOLO de test est celui de l'APK diagnostic, pas celui de l'AAB release.
-          Empreintes après extraction : SHA256SUMS ; manifeste joint avec commit et CI source.
-          Tous les diagnostics précédents sont conservés.
+          ## À vérifier sur Samsung
+          - `TEST BONUS OFF` masque les neuf commandes et ne pause/reset rien.
+          - `TEST BONUS ON` affiche PV, ENERGIE, FURTIF, MISSILES, PRISON, GLACE, LAVE, METEORE et TOUS X8.
+          - Chaque commande exige BOSS TEST et éjecte visuellement le bonus depuis le boss avant qu'il devienne collectable.
+          - En WORLD, l'atterrissage est accessible et le trajet boss→pickup est filtré contre ROCK.
+          - Les jauges PV/ENERGIE du joueur restent au-dessus de la navigation Android; HUD boss inchangé.
+          - Les explosions d'astéroïdes alternent légèrement entre deux prises historiques avec faible variation de volume; autres FX inchangés.
+          - Tourelles SOLO interdites; METEOR-009 reste désactivé.
+          """
+          (destination / "README.md").write_text("\n".join(line.lstrip() for line in readme.splitlines()) + "\n")
 
-          ## Essai Samsung
-
-          Ouvrir **SOLO BONUS 012 : MOTEUR COOP**, puis **MONDE TEST** pour le labyrinthe.
-          **BOSS TEST/OFF** commande le boss ; le boss du MONDE reste stationnaire de test.
-          Le même système de bonus fonctionne dans l'arène et dans le labyrinthe.
-          Les récompenses tombent à 75/50/25 % PV et après défaite ; collecte par contact.
-          Les salves restent commandées par le joueur, sans tir automatique.
-
-          - PV : +350, plafond 1000, aucune résurrection.
-          - Énergie : chaleur nrj -25, bornée à 0..50 (0 = pleine réserve).
-          - Furtivité : 5 s, coque semi-transparente et acquisition dirigée suspendue ; collisions physiques conservées.
-          - Missiles : 3 s sans coût énergétique, cadence et commande humaines historiques.
-          - Prison : impact 12 et statut immobilisation 2 s.
-          - Glace : impact 12 et statut vitesse x0,4 pendant 4 s.
-          - Lave : impact 12 puis 24 dégâts/s pendant 4 s, sans cumul du débit.
-          - Météore : attaque ciblée, impact 120 et effets propres ; aucune vague automatique METEOR-009.
-
-          Reprise d'un pouvoir temporisé : durée réinitialisée, jamais additionnée.
-          Même type d'orbes : +3 salves, maximum 6 ; nouveau type : remplace par 3 salves.
-          Chaque salve contient 3 projectiles guidés et paie une seule dépense historique.
-          Missiles gratuits prioritaires sans consommer l'inventaire d'orbes.
-          Boss OFF : tirs ordinaires possibles, charges d'orbes conservées.
-          Pause : durées gelées. Changement arène/monde et relancement : bonus remis à zéro.
-          Collectibles : durée 45 s, maximum 24 simultanés, positions accessibles à la coque.
-
-          ## Limites vérifiées et travail restant
-
-          Tests purs, moteur réel, collisions/collecte, rendu SDL2 et compilation Android verts.
-          Prison/Glace modifient le mouvement du boss d'arène dans les tests automatisés.
-          Aucun ralentissement mobile n'est démontré sur le boss stationnaire du labyrinthe.
-          FPS/ergonomie réels Samsung encore à contrôler ; logs SOLO_BONUS_012 moyenne/max disponibles.
-          Astéroïdes historiques, minage/recharge conservés ; leur défaut face aux parois reste ouvert.
-          Nouvelles vagues METEOR-009 suspendues. Aucune tourelle ni ancien bonus à tourelles en SOLO.
-          src/main.cpp inchangé ; modes historiques protégés par gardes SOLO et régressions.
-          Carte/progression/sauvegardes antérieures conservées ; raccord complet à la future campagne encore distinct.
-          '''
-          # Strip YAML/Python indentation while retaining ordinary Markdown paragraphs.
-          (destination / 'README.md').write_text('\n'.join(line.lstrip() for line in readme.splitlines()) + '\n')
-          marker = '## CORE-012 — livraison vérifiée 13/10/2026'
-          notes = {
-              'brain.md': 'Brique huit bonus livrée sur le vrai moteur COOP commun arène/labyrinthe. Commande humaine, coûts historiques, durées exactes et cumul borné. Boss monde stationnaire de test ; validation Samsung et intégration future progression/IA restent ouvertes.',
-              'brainmap.md': 'src/solo_bonus_core.hpp = état pur ; coop_solo_bonus_runtime.hpp = moteur historique ; coop_solo_bonus_draw.hpp = sprites/FX/HUD commun ; coop_solo_world_bridge.hpp = trajectoires/collecte et placement accessible. Livraison : temp/solo-bonus-core-012/.',
-              'debughistorical.md': 'Régressions C++/SDL2/Android et huit pouvoirs vertes au SHA compilé. Seuils de drops capturés avant soins, aucune résurrection boss mort, rayon coque réel et BFS par paquet. Perf hôte seule mesurée ; FPS Samsung inconnu. Défaut des astéroïdes historiques contre murs NON corrigé, METEOR-009 toujours suspendu.',
-              'todo.md': '- [x] CORE-012 code, huit pouvoirs, tests, CI exacte et export APK/AAB avec empreintes.\n- [ ] Samsung : boss OFF/ON, arène/labyrinthe, relance, chaque pouvoir, contrôles et performances.\n- [ ] Futures missions : IA mobile du boss monde, raccord progression/sauvegardes, astéroïdes historiques face aux parois.',
-              'ordres-de-mission.md': 'Statut CORE-012 : LIVRÉ, À VALIDER SUR SAMSUNG. Autorisation Fab exécutée pour cette brique, sans prétendre finir toute la migration SOLO. Boss monde reste de test ; pas de main/src/main.cpp, pas de merge main ni Release. Anciennes APK conservées.',
+          marker = "## BONUS-013 — livraison vérifiée 13/10/2026"
+          additions = {
+              "brain.md": "BONUS-013 compilé et packagé depuis le HEAD exact. TEST BONUS, éjection boss, safe-area joueur Samsung et variation audio astéroïdes sont inclus; validation physique Samsung reste nécessaire.",
+              "brainmap.md": "Livraison diagnostic: `temp/solo-bonus-013/`. Source et CI exactes ci-dessous; aucun merge main ni Release.",
+              "debughistorical.md": "Les deux RED intermédiaires provenaient de tests trop stricts (premier pickup supposé PV; hash audio ne couvrant pas les deux variantes sur 32 séquences), corrigés sans modifier le contrat gameplay. La CI finale exacte est verte.",
+              "todo.md": "- [x] CI finale BONUS-013 exacte, APK/AAB et SHA256 vérifiés/exportés.\n- [ ] Samsung: confirmer panneau OFF/ON, huit bonus + TOUS X8, éjection depuis boss, HUD au-dessus navigation et variété FX.",
+              "ordres-de-mission.md": "Statut technique BONUS-013: livré en diagnostic à tester sur Samsung. `src/main.cpp` protégé; METEOR-009/tourelles SOLO restent OFF; aucun merge main ni Release.",
           }
-          for filename, note in notes.items():
-              path = Path(filename)
-              contents = path.read_text()
-              if marker not in contents:
-                  if filename == 'todo.md':
-                      start = contents.index('## SOLO BONUS CORE-012 — 12/10/2026')
-                      end = contents.index('\n### ', start)
-                      section = contents[start:end]
-                      for title in ('Cœur huit pouvoirs', 'Tir humain réel/salves', 'Rendu sprites/FX/HUD', 'Régressions réelles + SDL2/Android CI'):
-                          section = section.replace('- [ ] ' + title, '- [x] ' + title)
-                      contents = contents[:start] + section + contents[end:]
-                  if filename == 'ordres-de-mission.md':
-                      contents = contents.replace('SOLO BONUS CORE-012 — autorisation Fab, en cours', 'SOLO BONUS CORE-012 — autorisation Fab, livré à valider')
-                      contents = contents.replace('Statut : implémentation en cours, aucune APK 012 encore livrée.', 'Statut : livré à valider sur Samsung ; preuves de livraison CORE-012 ci-dessous.')
-                      if '## IMMUTABLE / À PRÉSERVER' not in contents:
-                          immutable = '''## IMMUTABLE / À PRÉSERVER
+          for filename, note in additions.items():
+              p = Path(filename)
+              text = p.read_text()
+              if filename == "todo.md":
+                  text = text.replace(
+                      "- [ ] Confirmer le workflow Android du HEAD final BONUS-013 et relever run/artifact/SHA avant APK téléphone.",
+                      "- [x] Confirmer le workflow Android du HEAD final BONUS-013 et relever run/artifact/SHA avant APK téléphone."
+                  )
+              if marker not in text:
+                  text = text.rstrip() + "\n\n" + marker + "\n" + note + "\n\n" + evidence + "\n"
+              p.write_text(text)
 
-          - Identité release/store historique : `com.greenpower2669.spacefortressvs` ; ne pas renommer pour une mise à jour.
-          - Diagnostic existant : suffixe `.diagnostic`, soit `com.greenpower2669.spacefortressvs.diagnostic`.
-          - APK diagnostic debug ; AAB release livré NON SIGNÉ. Configuration de signature inchangée ; aucune clé d’upload ajoutée au dépôt. Ne jamais copier de clé privée dans le dépôt ou les logs.
-          - `src/main.cpp` protégé. Aucun merge main ni Release sans validation explicite Fab.
-          - Livrer APK identifiable sous temp avec source CI verte exacte et SHA256 ; préserver les diagnostics précédents.
-
-          '''
-                          immutable = '\n'.join(line.lstrip() for line in immutable.splitlines())
-                          title, rest = contents.split('\n', 1)
-                          contents = title + '\n\n' + immutable + '\n' + rest
-                  contents += '\n\n' + marker + '\n' + note + '\n\n' + evidence + '\n'
-                  path.write_text(contents)
-          plan = Path('docs/superpowers/plans/2026-10-12-solo-bonus-core-012.md')
-          plan.write_text(plan.read_text().replace('- [ ] 6. Actualiser mémoires', '- [x] 6. Actualiser mémoires'))
           print(evidence)
           PY
-          (cd temp/solo-bonus-core-012 && sha256sum --check SHA256SUMS)
 
-      - name: Commit diagnostic and five living memories without replacing previous APK
+          (cd temp/solo-bonus-013 && sha256sum --check SHA256SUMS)
+
+      - name: Commit BONUS-013 diagnostic and living memories
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- temp/solo-bonus-core-012/ brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md \
-            docs/superpowers/plans/2026-10-12-solo-bonus-core-012.md
+          git add -- temp/solo-bonus-013/ brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md
           if git diff --cached --quiet; then
-            echo "No new artifact content to publish."
+            echo "BONUS-013 diagnostic already exported."
             exit 0
           fi
-          git commit -m "chore(solo): deliver verified BONUS-012 APK and AAB with five living memories [skip ci]"
+          git commit -m "chore(solo): deliver verified BONUS-013 APK and AAB [skip ci]"
           git fetch origin feature/solo-coop-core-v1
           git rebase origin/feature/solo-coop-core-v1
           git push origin HEAD:refs/heads/feature/solo-coop-core-v1
