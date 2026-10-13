@@ -312,7 +312,16 @@ static void testSoloBonusRendering012(){
     SDL_Renderer *renderer=SDL_CreateSoftwareRenderer(surface);assert(renderer);
     {
         SfCoopSoloBonusRenderer drawing(renderer);assert(drawing.atlas);
+        assert(drawing.animationAtlas);
         for(auto *texture:drawing.icons)assert(texture);
+        for(unsigned row=0;row<4;++row){
+            const auto kind=Kind(unsigned(Kind::Prison)+row);
+            assert(SfCoopSoloBonusRenderer::productionAnimationRow(kind)==int(row));
+            for(int frame=0;frame<8;++frame){
+                const auto crop=SfCoopSoloBonusRenderer::productionAnimationCrop(kind,frame);
+                assert(crop.x==frame*192 && crop.y==int(row)*192 && crop.w==192 && crop.h==192);
+            }
+        }
         for(unsigned i=0;i<8;++i)
             assert(sfCoop.soloBonus.addPickup(Kind(i),100+(i%4)*190,350+(i/4)*220,24));
         sfCoop.soloBonus.grant(Kind::Stealth,Spritej2->pv,Spritej2->nrj);
@@ -335,5 +344,5 @@ static void testSoloBonusRendering012(){
     }
     sfCampaignForgetRenderer(renderer);SDL_DestroyRenderer(renderer);SDL_FreeSurface(surface);
     setupCampaign();
-    std::puts("PASS: eight SOLO bonus sprites, existing atlas, timers and stealth rendered by real SDL2");
+    std::puts("PASS: eight SOLO bonus sprites plus 4x8 production animation atlas rendered by real SDL2");
 }
