@@ -99,7 +99,7 @@ extern "C" int runCoopSoloArena(){
     SDL_FingerID moveFinger=-1,aimFinger=-1;
     float moveScreenX=width*.5f,moveScreenY=height*.5f;
     float aimScreenX=width*.5f,aimScreenY=height*.4f;
-    bool mouseAimHeld=false,running=true,smokeVisible=true;
+    bool mouseAimHeld=false,running=true,smokeVisible=true,bonusTestOpen=false;
     Uint64 previous=SDL_GetPerformanceCounter(),lastLog=SDL_GetTicks64();
     const double frequency=double(SDL_GetPerformanceFrequency());
     double bonusFrameTotalMs=0,bonusFrameMaxMs=0;unsigned bonusFrameCount=0;
@@ -135,6 +135,7 @@ extern "C" int runCoopSoloArena(){
         sfCoop.bossPresent=false;sfCoop.health=sfCoopProfile().health;
         sfCoop.soloWorldMode=enabled;
         sfCoop.soloBonus.reset();sfCoop.soloBonusPending.clear();sfCoop.soloBonusImpacts.clear();
+        sfCoop.soloBonusEjections.clear();
         sfCoop.soloLootRetry=sfCoop.soloCollectUntil=0;
         sfCoopDisableSoloTurretsAndBonuses(); // both WORLD and ARENA transitions
         sfCoop.soloWorldContext=enabled?&world:nullptr;
@@ -163,13 +164,18 @@ extern "C" int runCoopSoloArena(){
                 maze->pickupBatchCells=maze->reachablePickupCells({ship.x,ship.y},clearance);
             }:nullptr;
         sfCoop.soloWorldPlacePickup=enabled?
-            +[](void *context,tupl,tupl desired,float,tupl &result)->bool{
+            +[](void *context,tupl,tupl desired,float clearance,tupl &result)->bool{
                 const auto *maze=static_cast<sfsolo::CoopSoloWorldBridge*>(context);
-                std::vector<sfsolo::CoopWorldPoint> occupied;
+                std::vector<sfsolo::CoopWorldPoint> occupied,eligible;
                 float maxRadius=std::max(10.0f,sfArenaW*.023f);
                 for(const auto &p:sfCoop.soloBonus.pickups){occupied.push_back({p.x,p.y});maxRadius=std::max(maxRadius,p.radius);}
+                // Landing cells must be reachable by the pilot AND visible from
+                // the boss so the BONUS-013 ejection never cuts through ROCK.
+                const sfsolo::CoopWorldPoint boss{sfCoop.position.x,sfCoop.position.y};
+                for(const auto &cell:maze->pickupBatchCells)
+                    if(maze->firstWallImpact(boss,cell,clearance)>=.999f)eligible.push_back(cell);
                 sfsolo::CoopWorldPoint at;
-                const bool found=maze->selectPickup(maze->pickupBatchCells,{desired.x,desired.y},occupied,maxRadius*2+3,at);
+                const bool found=maze->selectPickup(eligible,{desired.x,desired.y},occupied,maxRadius*2+3,at);
                 if(found)result=tupl(at.x,at.y);
                 return found;
             }:nullptr;
@@ -194,6 +200,7 @@ extern "C" int runCoopSoloArena(){
         if(sfCoop.bossPresent){
             sfCoop.bossPresent=false;sfCoop.soloBonus.clearBoss();
             sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
+            sfCoop.soloBonusPending.clear();sfCoop.soloBonusEjections.clear();
         }else{
             tupl position(sfArenaW*.5f,sfArenaH*.25f);
             if(worldActive){
@@ -233,6 +240,20 @@ extern "C" int runCoopSoloArena(){
             if(mixerOpen)sfKineticAudioRelease(1);
         }else if(mixerOpen)sfKineticAudioCancel(1);
         if(fire)sfCoopFire(1);
+    };
+    auto bonusTestButtonRect=[&](int index)->SDL_Rect{
+        const int col=index%3,row=index/3;
+        const int gap=std::max(4,int(width*.008f));
+        const int w=(width-gap*4)/3;
+        const int h=std::max(36,int(height*.055f));
+        return {gap+col*(w+gap),int(height*.105f)+row*(h+gap),w,h};
+    };
+    auto triggerBonusTest=[&](int index){
+        if(!sfCoop.bossPresent || sfCoop.health<=0){
+            SDL_Log("SOLO_BONUS_013 TEST_BONUS ignored: BOSS TEST required");return;
+        }
+        if(index>=0 && index<8)sfCoopSoloBonusQueueTest(sfsolo::bonus::Kind(index));
+        else if(index==8)sfCoopSoloBonusQueueAllTests();
     };
     // CI-only real-world smoke: opt-in ONLY when the test runner requests it.
     // The ordinary phone launch ALWAYS opens in the previously validated arena.
@@ -276,7 +297,20 @@ extern "C" int runCoopSoloArena(){
                 const float ty=event.tfinger.y*sfArenaH;
                 const SDL_FingerID id=event.tfinger.fingerId;
                 if(event.type==SDL_FINGERDOWN){
-                    // These fixed HUD buttons are outside gameplay motion.
+                    // Fixed diagnostic clickboxes never pause or reset gameplay.
+                    if(ty<sfArenaH*.13f && tx<sfArenaW*.33f){
+                        bonusTestOpen=!bonusTestOpen;continue;
+                    }
+                    if(bonusTestOpen){
+                        bool handled=false;
+                        for(int test=0;test<9;++test){
+                            const auto rect=bonusTestButtonRect(test);
+                            if(tx>=rect.x&&tx<rect.x+rect.w&&ty>=rect.y&&ty<rect.y+rect.h){
+                                triggerBonusTest(test);handled=true;break;
+                            }
+                        }
+                        if(handled)continue;
+                    }
                     if(ty<sfArenaH*.13f && tx>sfArenaW*.35f&&tx<sfArenaW*.65f){
                         setWorldMode(!worldActive);continue;
                     }
@@ -400,11 +434,20 @@ extern "C" int runCoopSoloArena(){
         sfCoopText(renderer,margin,height-85,
                    worldActive?"MONDE / LABYRINTHE SOLO-012":"COOP CORE SOLO-012",
                    width-2*margin,2);
+        sfCoopButton(renderer,{int(width*.02f),8,int(width*.30f),int(height*.08f)},
+                     bonusTestOpen?"TEST BONUS ON":"TEST BONUS");
         sfCoopButton(renderer,{int(width*.355f),8,int(width*.29f),int(height*.08f)},
                      worldActive?"MONDE ON":"MONDE TEST");
         sfCoopButton(renderer,{int(width*.68f),8,int(width*.30f),int(height*.08f)},
                      worldActive?(sfCoop.bossPresent?"BOSS OFF":"BOSS TEST"):
                          sfCoop.bossPresent?"BOSS OFF":"BOSS TEST");
+        if(bonusTestOpen){
+            using sfsolo::bonus::Kind;
+            const char *labels[]={"PV","ENERGIE","FURTIF","MISSILES","PRISON","GLACE","LAVE","METEORE","TOUS X8"};
+            for(int test=0;test<9;++test)sfCoopButton(renderer,bonusTestButtonRect(test),labels[test]);
+            if(!sfCoop.bossPresent)
+                sfCoopCentered(renderer,width,int(height*.305f),"BOSS TEST REQUIS",2,{255,180,120,235});
+        }
         if(sfCoop.phase==SfCoopPhase::Defeat)
             sfCoopCentered(renderer,width,int(height*.50f),"TEST TERMINE - RETOUR",3);
         // Raw SDL call: show ONLY this arena's frame. The legacy macro would
