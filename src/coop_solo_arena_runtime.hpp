@@ -436,7 +436,7 @@ extern "C" int runCoopSoloArena(){
                    worldActive?"MONDE / LABYRINTHE SOLO-012":"COOP CORE SOLO-012",
                    width-2*margin,2);
         sfCoopButton(renderer,{int(width*.02f),8,int(width*.30f),int(height*.08f)},
-                     bonusTestOpen?"TEST BONUS ON":"TEST BONUS");
+                     bonusTestOpen?"TEST BONUS ON":"TEST BONUS OFF");
         sfCoopButton(renderer,{int(width*.355f),8,int(width*.29f),int(height*.08f)},
                      worldActive?"MONDE ON":"MONDE TEST");
         sfCoopButton(renderer,{int(width*.68f),8,int(width*.30f),int(height*.08f)},
