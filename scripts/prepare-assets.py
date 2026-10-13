@@ -137,7 +137,7 @@ def assemble(source, output):
     # Fail the Android build if either atlas is missing or corrupt.
     for name in ('ParoisModeSolo.png', 'EnvironnementsModeSolo.png', 'SoloBonusAnimations.png'):
         validate_png((output / 'pict/solo' / name).read_bytes(), name)
-    animation = ImageHeader = output / 'pict/solo' / 'SoloBonusAnimations.png'
+    animation = output / 'pict/solo' / 'SoloBonusAnimations.png'
     # Production animation atlas contract is 4 rows x 8 columns of 192 px.
     data=animation.read_bytes()
     width,height=struct.unpack_from('>II',data,16)
