@@ -247,7 +247,7 @@ extern "C" int runCoopSoloArena(){
         const int gap=std::max(4,int(width*.008f));
         const int w=(width-gap*4)/3;
         const int h=std::max(36,int(height*.055f));
-        return {gap+col*(w+gap),int(height*.105f)+row*(h+gap),w,h};
+        return {gap+col*(w+gap),int(height*.145f)+row*(h+gap),w,h};
     };
     auto triggerBonusTest=[&](int index){
         if(!sfCoop.bossPresent || sfCoop.health<=0){
@@ -447,7 +447,7 @@ extern "C" int runCoopSoloArena(){
             const char *labels[]={"PV","ENERGIE","FURTIF","MISSILES","PRISON","GLACE","LAVE","METEORE","TOUS X8"};
             for(int test=0;test<9;++test)sfCoopButton(renderer,bonusTestButtonRect(test),labels[test]);
             if(!sfCoop.bossPresent)
-                sfCoopCentered(renderer,width,int(height*.305f),"BOSS TEST REQUIS",2,{255,180,120,235});
+                sfCoopCentered(renderer,width,int(height*.335f),"BOSS TEST REQUIS",2,{255,180,120,235});
         }
         if(sfCoop.phase==SfCoopPhase::Defeat)
             sfCoopCentered(renderer,width,int(height*.50f),"TEST TERMINE - RETOUR",3);
