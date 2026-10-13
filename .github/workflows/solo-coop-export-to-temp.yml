@@ -165,7 +165,7 @@ jobs:
 
           - Identité release/store historique : `com.greenpower2669.spacefortressvs` ; ne pas renommer pour une mise à jour.
           - Diagnostic existant : suffixe `.diagnostic`, soit `com.greenpower2669.spacefortressvs.diagnostic`.
-          - APK diagnostic debug ; AAB release livré NON SIGNÉ. Aucune nouvelle clé de signature créée pour ce lot ; ne jamais copier de clé privée dans le dépôt ou les logs.
+          - APK diagnostic debug ; AAB release livré NON SIGNÉ. Configuration de signature inchangée ; aucune clé d’upload ajoutée au dépôt. Ne jamais copier de clé privée dans le dépôt ou les logs.
           - `src/main.cpp` protégé. Aucun merge main ni Release sans validation explicite Fab.
           - Livrer APK identifiable sous temp avec source CI verte exacte et SHA256 ; préserver les diagnostics précédents.
 
