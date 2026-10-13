@@ -72,11 +72,11 @@ extern "C" int runCoopSoloArena(){
     }
     sfObserved={};
     sfCoop.soloAimTarget=tupl(Spritej2->x,Spritej2->y-120);
-    SDL_Log("SOLO_012_BONUS_CORE arena %.0fx%.0f activeMask=%d boss=%d",
+    SDL_Log("SOLO_013_BONUS_EJECTION arena %.0fx%.0f activeMask=%d boss=%d",
             sfArenaW,sfArenaH,int(sfCoop.pilots.activeMask),sfCoop.bossPresent);
 
     bool audioInit=false,mixerOpen=false;
-    Mix_Chunk *shotCue=nullptr,*hitCue=nullptr;
+    Mix_Chunk *shotCue=nullptr,*hitCue=nullptr,*altExplosionCue=nullptr;
     SfCoopSoloChargeCueGate chargeCueGate;
     if(SDL_InitSubSystem(SDL_INIT_AUDIO)==0){
         audioInit=true;Mix_Init(MIX_INIT_OGG);
@@ -85,6 +85,7 @@ extern "C" int runCoopSoloArena(){
             Mix_AllocateChannels(12);
             shotCue=Mix_LoadWAV("resources/assets/sounds/laser2.ogg");
             hitCue=Mix_LoadWAV("resources/assets/sounds/explo1.ogg");
+            altExplosionCue=Mix_LoadWAV("resources/assets/sounds/explo2.ogg");
             // The SAME kinetic audio implementation as historical COOP:
             // charge at .20 s, READY at 2 s, quiet hold, then release/cancel.
             sfKineticAudioEnsure();
@@ -454,7 +455,7 @@ extern "C" int runCoopSoloArena(){
         // apply sfFixRequestedScreen=HOME and repaint the Classic mode selector.
         SDL_RenderPresent(renderer);
         if(mixerOpen){
-            sfCoopPlaySounds(nullptr,shotCue,nullptr,hitCue,hitCue);
+            sfCoopPlaySounds(nullptr,shotCue,altExplosionCue,hitCue,hitCue);
         }
         const double frameWorkMs=(SDL_GetPerformanceCounter()-counter)*1000.0/frequency;
         bonusFrameTotalMs+=frameWorkMs;bonusFrameMaxMs=std::max(bonusFrameMaxMs,frameWorkMs);++bonusFrameCount;
@@ -485,10 +486,11 @@ extern "C" int runCoopSoloArena(){
     sfCoop.soloWorldCanOccupy=nullptr;
     sfCoop.soloWorldFirstImpact=nullptr;sfCoop.soloWorldPlacePickup=nullptr;sfCoop.soloWorldPreparePickups=nullptr;
     sfCoop.soloBonus.reset();sfCoop.soloBonusPending.clear();sfCoop.soloBonusImpacts.clear();
+    sfCoop.soloBonusEjections.clear();
     sfCoop.soloWorldWidth=sfCoop.soloWorldHeight=0;
     sfFixResetAsteroidField();sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
     if(mixerOpen)Mix_HaltChannel(-1);
-    for(Mix_Chunk *p:{shotCue,hitCue})if(p)Mix_FreeChunk(p);
+    for(Mix_Chunk *p:{shotCue,hitCue,altExplosionCue})if(p)Mix_FreeChunk(p);
     if(mixerOpen){
         // This Android :coopsolo process owns the historical kinetic chunks.
         // Halt before free; no pointers survive its audio device.
