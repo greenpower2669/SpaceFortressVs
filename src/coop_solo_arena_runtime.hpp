@@ -455,7 +455,7 @@ extern "C" int runCoopSoloArena(){
         // apply sfFixRequestedScreen=HOME and repaint the Classic mode selector.
         SDL_RenderPresent(renderer);
         if(mixerOpen){
-            sfCoopPlaySounds(nullptr,shotCue,altExplosionCue,hitCue,hitCue);
+            sfCoopPlaySounds(nullptr,shotCue,nullptr,hitCue,hitCue,altExplosionCue);
         }
         const double frameWorkMs=(SDL_GetPerformanceCounter()-counter)*1000.0/frequency;
         bonusFrameTotalMs+=frameWorkMs;bonusFrameMaxMs=std::max(bonusFrameMaxMs,frameWorkMs);++bonusFrameCount;
