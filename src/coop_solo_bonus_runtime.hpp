@@ -46,6 +46,7 @@ static bool sfCoopSoloBonusQueueTest(sfsolo::bonus::Kind kind){
 static unsigned sfCoopSoloBonusQueueAllTests(){
     unsigned queued=0;
     for(unsigned i=0;i<8;++i)queued+=sfCoopSoloBonusQueueTest(sfsolo::bonus::Kind(i))?1u:0u;
+    sfCoop.soloBonusTestBurst=queued; // keep these eight in one visual launch batch
     return queued;
 }
 static void sfCoopSoloBonusTick(float dt){
@@ -137,7 +138,9 @@ static void sfCoopSoloBonusCollectAndDrop(){
                 at.y=std::clamp(at.y,sfArenaH*.12f,sfArenaH*.84f);
             }
             bool overlaps=false;
-            for(const auto &p:s.pickups)if(std::hypot(at.x-p.x,at.y-p.y)<radius+p.radius+3){overlaps=true;break;}
+            const float burstFactor=sfCoop.soloBonusTestBurst?0.58f:1.0f;
+            for(const auto &p:s.pickups)
+                if(std::hypot(at.x-p.x,at.y-p.y)<(radius+p.radius+3)*burstFactor){overlaps=true;break;}
             if(overlaps)continue;
             const auto kind=sfCoop.soloBonusPending.front();
             const std::uint32_t pickupId=s.nextId;
@@ -147,9 +150,16 @@ static void sfCoopSoloBonusCollectAndDrop(){
                 if(sfCoop.soloBonusEjections.size()>=48)sfCoop.soloBonusEjections.erase(sfCoop.soloBonusEjections.begin());
                 sfCoop.soloBonusEjections.push_back(
                     {kind,sfCoop.position,at,s.time,s.time+flight,pickupId});
+                if(sfCoop.soloBonusTestBurst) --sfCoop.soloBonusTestBurst;
             }
         }
-        if(!placed)break; // retry after collection, never place inside a wall
+        if(!placed){
+            // A diagnostic X8 batch must not silently degrade into eight
+            // half-second launches. If the maze has no safe room, keep the
+            // batch pending and retry together once space becomes available.
+            if(sfCoop.soloBonusTestBurst)sfCoop.soloLootRetry=s.time+.08;
+            break;
+        }
         sfCoop.soloBonusPending.erase(sfCoop.soloBonusPending.begin());
     }
 }
