@@ -550,3 +550,11 @@ Les deux RED intermédiaires provenaient de tests trop stricts (premier pickup s
 Source `488de2195e2aa2a1e40f2eec96abaeba19863fad`; CI Android/C++/SDL2 `38361581767` SUCCESS; publish-release SKIPPED.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21.apk`: 94185274 octets, SHA256 `4a3511c380d04b21b46593806e01d991e9320c44691c529c6022e60aa4d1a18b`.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21-unsigned.aab`: 91532662 octets, SHA256 `3fb742b7b3964620b5f0b8eb76dae0d0fc2b18f2c2e245d87809b08468a68d3a`.
+
+## BONUS-014 — livraison vérifiée 13/10/2026
+Audit BONUS-013 avait montré quatre écarts réels : ancienne planche statique/crops, HUD SOLO redessiné à height-58/height-40 après le HUD commun, audio sans vrai changement de vitesse, et TOUS X8 non garanti atomique. BONUS-014 les corrige. L'atlas de production est généré de façon déterministe depuis les motifs SOLO, validé 1536x768 et utilisé par le renderer; le projectile ne joue que les frames 0..3, l'impact et le statut boss les frames de fermeture 4..7/5..7. Audio: resampling linéaire 0,97x/1,03x en AUDIO_S16SYS, canal 8 isolé. CI exacte finale verte.
+
+Source `f9323f3cd239e9027d964e38db369a9217ef02cb`; CI Android/C++/SDL2 `38420099395` SUCCESS; publish-release SKIPPED.
+- Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-014-f9323f3.apk`: 94989574 octets, SHA256 `0dfe83dbb1f2716e33442a2d2933356b1a6582180a85a9c2fed5a77b1ebe59ff`.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-014-f9323f3-unsigned.aab`: 92342299 octets, SHA256 `564b0c9427bd776ed93bcb32d3012d86d232f3354ffded5d85b020cfd7424965`.
