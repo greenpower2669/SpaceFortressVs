@@ -124,11 +124,10 @@ static void sfCoopSoloBonusCollectAndDrop(){
     if(sfCoop.soloWorldMode && sfCoop.soloWorldPreparePickups &&
        !sfCoop.soloBonusPending.empty() && s.pickups.size()<maxPickups)
         sfCoop.soloWorldPreparePickups(sfCoop.soloWorldContext,tupl(ship->x,ship->y),std::max(radius,sfCoopSoloPickupHull()));
-    while(!sfCoop.soloBonusPending.empty() && s.pickups.size()<maxPickups){
-        bool placed=false;
-        for(int attempt=0;attempt<16 && !placed;++attempt){
-            const float angle=float(s.nextId)*2.399963f+attempt*.65f;
-            const float distance=sfCoopBossRadius()+radius*2+attempt*radius;
+    const auto placeKind=[&](Kind kind,float separationFactor)->bool{
+        for(int attempt=0;attempt<48;++attempt){
+            const float angle=float(s.nextId)*2.399963f+attempt*.41f;
+            const float distance=sfCoopBossRadius()+radius*2+attempt*radius*.45f;
             tupl at(sfCoop.position.x+std::cos(angle)*distance,sfCoop.position.y+std::sin(angle)*distance);
             if(sfCoop.soloWorldMode){
                 if(!sfCoop.soloWorldPlacePickup || !sfCoop.soloWorldPlacePickup(sfCoop.soloWorldContext,
@@ -138,28 +137,40 @@ static void sfCoopSoloBonusCollectAndDrop(){
                 at.y=std::clamp(at.y,sfArenaH*.12f,sfArenaH*.84f);
             }
             bool overlaps=false;
-            const float burstFactor=sfCoop.soloBonusTestBurst?0.58f:1.0f;
             for(const auto &p:s.pickups)
-                if(std::hypot(at.x-p.x,at.y-p.y)<(radius+p.radius+3)*burstFactor){overlaps=true;break;}
-            if(overlaps)continue;
-            const auto kind=sfCoop.soloBonusPending.front();
+                if(std::hypot(at.x-p.x,at.y-p.y)<(radius+p.radius+3)*separationFactor){overlaps=true;break;}
+            if(overlaps || sfCoop.soloBonusEjections.size()>=48)continue;
             const std::uint32_t pickupId=s.nextId;
-            placed=s.addPickup(kind,at.x,at.y,radius);
-            if(placed){
-                const double flight=.42+.035*double(pickupId%4);
-                if(sfCoop.soloBonusEjections.size()>=48)sfCoop.soloBonusEjections.erase(sfCoop.soloBonusEjections.begin());
-                sfCoop.soloBonusEjections.push_back(
-                    {kind,sfCoop.position,at,s.time,s.time+flight,pickupId});
-                if(sfCoop.soloBonusTestBurst) --sfCoop.soloBonusTestBurst;
-            }
+            if(!s.addPickup(kind,at.x,at.y,radius))continue;
+            const double flight=.42+.035*double(pickupId%4);
+            sfCoop.soloBonusEjections.push_back({kind,sfCoop.position,at,s.time,s.time+flight,pickupId});
+            return true;
         }
-        if(!placed){
-            // A diagnostic X8 batch must not silently degrade into eight
-            // half-second launches. If the maze has no safe room, keep the
-            // batch pending and retry together once space becomes available.
-            if(sfCoop.soloBonusTestBurst)sfCoop.soloLootRetry=s.time+.08;
-            break;
+        return false;
+    };
+    if(sfCoop.soloBonusTestBurst){
+        const unsigned count=sfCoop.soloBonusTestBurst;
+        if(count>sfCoop.soloBonusPending.size() || s.pickups.size()+count>maxPickups){
+            sfCoop.soloLootRetry=s.time+.08;return;
         }
+        const auto pickupStart=s.pickups.size(),ejectionStart=sfCoop.soloBonusEjections.size();
+        const auto nextIdStart=s.nextId;
+        bool all=true;
+        for(unsigned i=0;i<count;++i)
+            if(!placeKind(sfCoop.soloBonusPending[i],.58f)){all=false;break;}
+        if(!all){
+            s.pickups.resize(pickupStart);
+            sfCoop.soloBonusEjections.resize(ejectionStart);
+            s.nextId=nextIdStart;
+            sfCoop.soloLootRetry=s.time+.08;
+            return;
+        }
+        sfCoop.soloBonusPending.erase(sfCoop.soloBonusPending.begin(),
+                                      sfCoop.soloBonusPending.begin()+count);
+        sfCoop.soloBonusTestBurst=0;
+    }
+    while(!sfCoop.soloBonusPending.empty() && s.pickups.size()<maxPickups){
+        if(!placeKind(sfCoop.soloBonusPending.front(),1.0f))break;
         sfCoop.soloBonusPending.erase(sfCoop.soloBonusPending.begin());
     }
 }
