@@ -30,9 +30,13 @@ static void sfBonusTestWorld(sfsolo::CoopSoloWorldBridge &world){
         return static_cast<sfsolo::CoopSoloWorldBridge*>(c)->firstWallImpact({from.x,from.y},{to.x,to.y},radius);
     };
     sfCoop.soloWorldPlacePickup=+[](void *c,tupl ship,tupl desired,float radius,tupl &out){
+        const auto *maze=static_cast<sfsolo::CoopSoloWorldBridge*>(c);
+        auto cells=maze->reachablePickupCells({ship.x,ship.y},radius);
+        std::vector<sfsolo::CoopWorldPoint> eligible;
+        const sfsolo::CoopWorldPoint boss{sfCoop.position.x,sfCoop.position.y};
+        for(const auto &cell:cells)if(maze->firstWallImpact(boss,cell,radius)>=.999f)eligible.push_back(cell);
         sfsolo::CoopWorldPoint p;
-        const bool found=static_cast<sfsolo::CoopSoloWorldBridge*>(c)->reachablePickup(
-            {ship.x,ship.y},{desired.x,desired.y},radius,p);
+        const bool found=maze->selectPickup(eligible,{desired.x,desired.y},{},radius*2+3,p);
         if(found)out=tupl(p.x,p.y);return found;
     };
 }
@@ -159,20 +163,34 @@ static void testSoloBonusWorldPlacementAndWallImpact(){
     using namespace sfsolo::bonus;
     sfBonusTestSetup();sfsolo::CoopSoloWorldBridge world;sfBonusTestWorld(world);
     const float cell=world.pixelsPerCell;
-    // A full-height partition isolates the boss, while the pilot's component
-    // still has ample safe room for reward drops.
+    // A nearby wall exists, but boss and pilot share the same reachable side:
+    // every reward must be both pilot-accessible and direct-line ejectable.
     for(int y=0;y<world.map.height;++y)world.map.tiles[std::size_t(y)*world.map.width+5]=sfsolo::Tile::Rock;
     Spritej2->x=cell*3.5f;Spritej2->y=cell*5.5f;
-    sfCoop.position=tupl(cell*7.5f,cell*5.5f);
+    sfCoop.position=tupl(cell*4.1f,cell*5.5f);
     sfCoop.health=sfCoopProfile().health*.75f;
     sfCoopSoloBonusCollectAndDrop();
     assert(sfCoop.soloBonus.pickups.size()==3);
+    assert(sfCoop.soloBonusEjections.size()==3);
+    for(const auto &e:sfCoop.soloBonusEjections){
+        assert(std::abs(e.origin.x-sfCoop.position.x)<.001f);
+        assert(std::abs(e.origin.y-sfCoop.position.y)<.001f);
+        assert(world.firstWallImpact({e.origin.x,e.origin.y},{e.target.x,e.target.y},
+                                     sfCoopSoloPickupHull())>=.999f);
+        assert(sfCoopSoloBonusPickupInFlight(e.pickupId));
+    }
     for(const auto &p:sfCoop.soloBonus.pickups){
         assert(p.x<cell*5);
         assert(world.canOccupy({p.x,p.y},sfCoopShipRadius()));
     }
     sfCoopSoloBonusCollectAndDrop();assert(sfCoop.soloBonus.pickups.size()==3);
+    const auto first=sfCoop.soloBonus.pickups.front();
+    Spritej2->x=first.x;Spritej2->y=first.y;Spritej2->pv=100;
+    sfCoopSoloBonusCollectAndDrop();assert(Spritej2->pv==100); // still flying
+    sfCoopSoloBonusTick(.7f);assert(sfCoop.soloBonusEjections.empty());
+    sfCoopSoloBonusCollectAndDrop();assert(Spritej2->pv==450);
     // Targeted Meteor cannot hit a boss on the other side of a wall.
+    sfCoop.position=tupl(cell*7.5f,cell*5.5f);
     sfCoop.soloBonus.grant(Kind::Meteor,Spritej2->pv,Spritej2->nrj);
     const float hp=sfCoop.health;assert(sfCoopFire(1));
     sfCoopProjectiles(1);
@@ -182,10 +200,6 @@ static void testSoloBonusWorldPlacementAndWallImpact(){
     sfCoop.soloBonus.charges=0;sfCoop.cooldown[1]=0;Spritej2->nrj=25;
     sfCoop.soloAimTarget=sfCoop.position;assert(sfCoopFire(1));
     sfCoopProjectiles(1);assert(sfCoop.shots.empty() && sfCoop.health==hp);
-    // Collecting a drop applies the effect to the actual historical ship.
-    auto pickup=sfCoop.soloBonus.pickups.front();
-    Spritej2->x=pickup.x;Spritej2->y=pickup.y;Spritej2->pv=100;
-    sfCoopSoloBonusCollectAndDrop();assert(Spritej2->pv==450);
     // Death drops are distributed before the diagnostic boss is deactivated.
     sfCoop.health=0;sfCoopSoloBonusCollectAndDrop();
     assert(sfCoop.soloBonus.dropped==15);
@@ -194,6 +208,26 @@ static void testSoloBonusWorldPlacementAndWallImpact(){
     sfCoopSoloBonusCollectAndDrop();
     assert(sfCoop.soloBonus.pickups.size()+sfCoop.soloBonusPending.size()==total);
     setupCampaign(); // clear stack-owned world callback before destruction
+}
+
+static void testSoloBonusDiagnosticQueueAndEjection(){
+    using namespace sfsolo::bonus;
+    sfBonusTestSetup();
+    assert(sfCoopSoloBonusQueueTest(Kind::Health));
+    assert(sfCoopSoloBonusQueueAllTests()==8);
+    assert(sfCoop.soloBonusPending.size()==9);
+    sfCoopSoloBonusCollectAndDrop();
+    assert(sfCoop.soloBonus.pickups.size()==9);
+    assert(sfCoop.soloBonusEjections.size()==9);
+    for(const auto &e:sfCoop.soloBonusEjections){
+        assert(std::abs(e.origin.x-sfCoop.position.x)<.001f);
+        assert(std::abs(e.origin.y-sfCoop.position.y)<.001f);
+        assert(sfCoopSoloBonusPickupInFlight(e.pickupId));
+    }
+    sfCoopSoloBonusTick(.8f);assert(sfCoop.soloBonusEjections.empty());
+    sfCoop.bossPresent=false;
+    assert(!sfCoopSoloBonusQueueTest(Kind::Energy));
+    assert(sfCoopSoloBonusQueueAllTests()==0);
 }
 
 static void testSoloBonusIsolationAndReset(){
@@ -258,6 +292,7 @@ static void testSoloBonusRuntime012(){
     testSoloBonusWorldPlacementAndWallImpact();
     testSoloBonusDamageBeforeHealingAndDeath();
     testSoloBonusActualMovingBoss();
+    testSoloBonusDiagnosticQueueAndEjection();
     testSoloBonusIsolationAndReset();
     std::puts("PASS: SOLO BONUS CORE-012 real COOP firing, homing, statuses, contacts, walls, loot and historical isolation");
 }
