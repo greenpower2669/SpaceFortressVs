@@ -20,6 +20,12 @@ struct SfCoopBeam { tupl origin; float angle=0,age=0,warning=.9f; };
 struct SfCoopWave { tupl origin; float age=0,radius=0; };
 struct SfCoopControl { SDL_FingerID finger=-1; tupl target; bool down=false; tuplv velocity; };
 struct SfSoloBonusImpact {tupl position;sfsolo::bonus::Kind kind;double until;};
+struct SfSoloBonusEjection {
+    sfsolo::bonus::Kind kind=sfsolo::bonus::Kind::None;
+    tupl origin,target;
+    double started=0,until=0;
+    std::uint32_t pickupId=0;
+};
 struct SfCoopState {
     SfCoopPilotRoster pilots{}; // two by default, never infer presence from PV
     bool bossPresent=true; // future SOLO exploration: no boss before encounter
@@ -38,6 +44,7 @@ struct SfCoopState {
     sfsolo::bonus::State soloBonus;
     std::vector<sfsolo::bonus::Kind> soloBonusPending;
     std::vector<SfSoloBonusImpact> soloBonusImpacts;
+    std::vector<SfSoloBonusEjection> soloBonusEjections;
     float soloBossClock=0,soloBossStep=0;
     double soloLootRetry=0,soloCollectUntil=0;
     sfsolo::bonus::Kind soloLastCollected=sfsolo::bonus::Kind::None;
@@ -1379,16 +1386,35 @@ static void sfCampaignRestoreDuelShips()
     }
     sfDuelShipStylesSaved=false;
 }
+struct SfAsteroidExplosionFxVariant {int sample=0,volume=MIX_MAX_VOLUME;};
+static SfAsteroidExplosionFxVariant sfAsteroidExplosionFxVariant(unsigned sequence)
+{
+    // Tiny deterministic pseudo-random spread: two historical explosion takes
+    // provide the tonal/envelope variation; volume moves only within ~8%.
+    const std::uint32_t x=sequence*1664525u+1013904223u;
+    return {int((x>>29)&1u),MIX_MAX_VOLUME-int((x>>8)%11u)};
+}
 static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,Mix_Chunk *hit,Mix_Chunk *collision)
 {
-    static Uint64 last=0;const Uint64 now=SDL_GetTicks64();
+    static Uint64 last=0;static unsigned asteroidFxSequence=0;
+    const Uint64 now=SDL_GetTicks64();
     if (now-last<120) return;last=now;
     for (int owner=0;owner<2;++owner) if (sfCoop.soundShot[owner]) {
         Mix_Chunk *sound=owner==0 ? orange : blue;
         if (sound) Mix_PlayChannel(4+owner,sound,0);sfCoop.soundShot[owner]=false;
     }
     if (sfCoop.soundBoss && boss) Mix_PlayChannel(6,boss,0);
-    if ((sfCoop.soundHit || sfFieldMiningSound) && hit) Mix_PlayChannel(7,hit,0);
+    // Pilot/boss impacts keep their exact historical sound. Only asteroid
+    // mining/destruction receives a small randomised take/volume variation.
+    if (sfCoop.soundHit && hit) Mix_PlayChannel(7,hit,0);
+    if (sfFieldMiningSound) {
+        const auto variant=sfAsteroidExplosionFxVariant(++asteroidFxSequence);
+        Mix_Chunk *sample=(variant.sample && boss) ? boss : hit;
+        if(sample){
+            const int channel=Mix_PlayChannel(-1,sample,0);
+            if(channel>=0)Mix_Volume(channel,variant.volume);
+        }
+    }
     if (sfFieldCollisionSound && collision) Mix_PlayChannel(3,collision,0);
     sfFieldCollisionSound=sfFieldMiningSound=false;
     sfCoop.soundBoss=sfCoop.soundHit=false;
@@ -1672,6 +1698,22 @@ static void sfCoopText180(SDL_Renderer *renderer,int width,int height,int x,int 
     }
 }
 static int sfHudBarHeight(int width) {return std::max(10,width/60);}
+static int sfPlayerSafeBottomInset(int height)
+{
+    if(!sfCoop.soloDiagnostic || height<=0)return 0;
+#if defined(__ANDROID__)
+    SDL_Rect usable{};
+    if(SDL_GetDisplayUsableBounds(0,&usable)==0 && usable.h>0){
+        const int reported=std::clamp(height-(usable.y+usable.h),0,height/5);
+        if(reported>0)return reported+std::max(4,height/240);
+    }
+    // Some fullscreen Samsung/SDL combinations report the whole framebuffer
+    // while the navigation bar overlays it. Reserve a conservative fallback.
+    return std::max(18,height/18);
+#else
+    return 0;
+#endif
+}
 static int sfBossHudBarHeight(int width) {return std::max(5,width/110);}
 static Uint8 sfBossHudBackgroundAlpha() {return 88;}
 static Uint8 sfBossHudFillAlpha() {return 188;}
@@ -1682,12 +1724,14 @@ static SDL_Rect sfPlayerPvRect(int owner,int width,int height)
 {
     const int margin=std::max(8,width/30),w=int(width*.43f),h=sfHudBarHeight(width);
     SDL_Rect base{margin,int(height*.925f),w,h};
+    if(owner==1)base.y=std::max(0,base.y-sfPlayerSafeBottomInset(height));
     return owner==0 ? sfMirrorRect180(base,width,height) : base;
 }
 static SDL_Rect sfPlayerEnergyRect(int owner,int width,int height)
 {
     const int margin=std::max(8,width/30),w=int(width*.43f),h=sfHudBarHeight(width);
     SDL_Rect base{margin,int(height*.963f),w,h};
+    if(owner==1)base.y=std::max(0,base.y-sfPlayerSafeBottomInset(height));
     return owner==0 ? sfMirrorRect180(base,width,height) : base;
 }
 static SDL_Rect sfBossHudRectAt(int index,int width,int height,bool upper=false)
@@ -1949,7 +1993,9 @@ static void sfCoopDrawArena(SDL_Renderer *renderer,int width,int height)
         sfDrawRatioBar(renderer,sfPlayerPvRect(owner,width,height),pvRatio,sfHealthColor(pvRatio),upper);
         sfDrawRatioBar(renderer,sfPlayerEnergyRect(owner,width,height),energyRatio,team,upper);
         const int logicalX=margin,logicalW=int(width*.43f);
-        const int nameY=int(height*.895f),pvY=int(height*.908f),energyY=int(height*.946f);
+        const int safeLift=upper?0:sfPlayerSafeBottomInset(height);
+        const int nameY=int(height*.895f)-safeLift,pvY=int(height*.908f)-safeLift,
+                  energyY=int(height*.946f)-safeLift;
         const std::string name=upper ? (sfActiveMode==SF_COOP_AI ? "ORION IA" : "PILOTE ORANGE") : "PILOTE BLEU";
         if(upper) {
             sfCoopText180(renderer,width,height,logicalX,nameY,name,logicalW,std::max(2,width/280),team);
