@@ -31,6 +31,23 @@ static void sfCoopSoloBonusImpact(tupl at,sfsolo::bonus::Kind kind){
     if(sfCoop.soloBonusImpacts.size()>=64)sfCoop.soloBonusImpacts.erase(sfCoop.soloBonusImpacts.begin());
     sfCoop.soloBonusImpacts.push_back({at,kind,sfCoop.soloBonus.time+.5});
 }
+static bool sfCoopSoloBonusPickupInFlight(std::uint32_t pickupId){
+    const double now=sfCoop.soloBonus.time;
+    return std::any_of(sfCoop.soloBonusEjections.begin(),sfCoop.soloBonusEjections.end(),
+        [&](const SfSoloBonusEjection &e){return e.pickupId==pickupId && e.until>now;});
+}
+static bool sfCoopSoloBonusQueueTest(sfsolo::bonus::Kind kind){
+    using sfsolo::bonus::Kind;
+    if(!sfCoopSoloBonusesEnabled() || !sfCoop.bossPresent || sfCoop.health<=0 ||
+       kind==Kind::None || unsigned(kind)>=unsigned(Kind::None) ||
+       sfCoop.soloBonusPending.size()>=48)return false;
+    sfCoop.soloBonusPending.push_back(kind);sfCoop.soloLootRetry=0;return true;
+}
+static unsigned sfCoopSoloBonusQueueAllTests(){
+    unsigned queued=0;
+    for(unsigned i=0;i<8;++i)queued+=sfCoopSoloBonusQueueTest(sfsolo::bonus::Kind(i))?1u:0u;
+    return queued;
+}
 static void sfCoopSoloBonusTick(float dt){
     if(!sfCoopSoloBonusesEnabled() || !std::isfinite(dt)||dt<=0)return;
     auto &s=sfCoop.soloBonus;
@@ -53,6 +70,9 @@ static void sfCoopSoloBonusTick(float dt){
     }
     auto &fx=sfCoop.soloBonusImpacts;
     fx.erase(std::remove_if(fx.begin(),fx.end(),[&](const auto &v){return v.until<=s.time;}),fx.end());
+    auto &ejections=sfCoop.soloBonusEjections;
+    ejections.erase(std::remove_if(ejections.begin(),ejections.end(),
+        [&](const SfSoloBonusEjection &e){return e.until<=s.time;}),ejections.end());
 }
 static bool sfCoopSoloBonusFire(int owner,float heatBefore){
     using namespace sfsolo::bonus;
@@ -86,6 +106,7 @@ static void sfCoopSoloBonusCollectAndDrop(){
     // Contact cannot reach through terrain; placement guarantees a navigable
     // component, collection additionally checks the short contact segment.
     for(auto i=s.pickups.begin();i!=s.pickups.end();){
+        if(sfCoopSoloBonusPickupInFlight(i->id)){++i;continue;}
         const float reach=sfCoopSoloPickupHull()+i->radius;
         if(i->expires>s.time && std::hypot(ship->x-i->x,ship->y-i->y)<=reach &&
            (!sfCoop.soloWorldMode || (sfCoop.soloWorldFirstImpact &&
@@ -118,7 +139,15 @@ static void sfCoopSoloBonusCollectAndDrop(){
             bool overlaps=false;
             for(const auto &p:s.pickups)if(std::hypot(at.x-p.x,at.y-p.y)<radius+p.radius+3){overlaps=true;break;}
             if(overlaps)continue;
-            placed=s.addPickup(sfCoop.soloBonusPending.front(),at.x,at.y,radius);
+            const auto kind=sfCoop.soloBonusPending.front();
+            const std::uint32_t pickupId=s.nextId;
+            placed=s.addPickup(kind,at.x,at.y,radius);
+            if(placed){
+                const double flight=.42+.035*double(pickupId%4);
+                if(sfCoop.soloBonusEjections.size()>=48)sfCoop.soloBonusEjections.erase(sfCoop.soloBonusEjections.begin());
+                sfCoop.soloBonusEjections.push_back(
+                    {kind,sfCoop.position,at,s.time,s.time+flight,pickupId});
+            }
         }
         if(!placed)break; // retry after collection, never place inside a wall
         sfCoop.soloBonusPending.erase(sfCoop.soloBonusPending.begin());
