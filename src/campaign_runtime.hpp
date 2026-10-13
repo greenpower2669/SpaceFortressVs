@@ -1752,6 +1752,12 @@ static int sfPlayerSafeBottomInset(int height)
     return 0;
 #endif
 }
+struct SfSoloDiagnosticHudY {int life=0,energy=0,title=0;};
+static SfSoloDiagnosticHudY sfSoloDiagnosticHudY(int height)
+{
+    const int lift=sfPlayerSafeBottomInset(height);
+    return {height-58-lift,height-40-lift,height-85-lift};
+}
 static int sfBossHudBarHeight(int width) {return std::max(5,width/110);}
 static Uint8 sfBossHudBackgroundAlpha() {return 88;}
 static Uint8 sfBossHudFillAlpha() {return 188;}
