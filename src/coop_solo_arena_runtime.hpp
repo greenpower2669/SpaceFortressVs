@@ -439,9 +439,8 @@ extern "C" int runCoopSoloArena(){
         // SOLO draws its own bottom HUD after the common campaign HUD. Apply
         // the Android safe inset HERE as well; otherwise Samsung navigation
         // still overlays these two diagnostic bars.
-        const int soloHudLift=sfPlayerSafeBottomInset(height);
-        const int lifeY=height-58-soloHudLift,energyY=height-40-soloHudLift;
-        const int titleY=height-85-soloHudLift;
+        const auto soloHud=sfSoloDiagnosticHudY(height);
+        const int lifeY=soloHud.life,energyY=soloHud.energy,titleY=soloHud.title;
         SDL_Rect lifeBg{margin,lifeY,barW,12};
         SDL_SetRenderDrawColor(renderer,42,26,57,255);SDL_RenderFillRect(renderer,&lifeBg);
         SDL_Rect life{margin,lifeY,int(barW*std::clamp(Spritej2->pv/1000.0f,0.0f,1.0f)),12};
