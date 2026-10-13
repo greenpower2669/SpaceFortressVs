@@ -1411,8 +1411,11 @@ static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,M
         const auto variant=sfAsteroidExplosionFxVariant(++asteroidFxSequence);
         Mix_Chunk *sample=(variant.sample && boss) ? boss : hit;
         if(sample){
-            const int channel=Mix_PlayChannel(-1,sample,0);
-            if(channel>=0)Mix_Volume(channel,variant.volume);
+            // Channel 8 is reserved here for asteroid destruction so its
+            // slight level change never leaks into shots, boss or mining FX.
+            if(Mix_AllocateChannels(-1)<9)Mix_AllocateChannels(9);
+            Mix_Volume(8,variant.volume);
+            Mix_PlayChannel(8,sample,0);
         }
     }
     if (sfFieldCollisionSound && collision) Mix_PlayChannel(3,collision,0);
