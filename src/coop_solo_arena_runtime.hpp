@@ -186,7 +186,8 @@ extern "C" int runCoopSoloArena(){
                 for(const auto &cell:maze->pickupBatchCells)
                     if(maze->firstWallImpact(boss,cell,clearance)>=.999f)eligible.push_back(cell);
                 sfsolo::CoopWorldPoint at;
-                const bool found=maze->selectPickup(eligible,{desired.x,desired.y},occupied,maxRadius*2+3,at);
+                const float separation=(maxRadius*2+3)*(sfCoop.soloBonusTestBurst?.58f:1.0f);
+                const bool found=maze->selectPickup(eligible,{desired.x,desired.y},occupied,separation,at);
                 if(found)result=tupl(at.x,at.y);
                 return found;
             }:nullptr;
@@ -212,6 +213,7 @@ extern "C" int runCoopSoloArena(){
             sfCoop.bossPresent=false;sfCoop.soloBonus.clearBoss();
             sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
             sfCoop.soloBonusPending.clear();sfCoop.soloBonusEjections.clear();
+            sfCoop.soloBonusTestBurst=0;
         }else{
             tupl position(sfArenaW*.5f,sfArenaH*.25f);
             if(worldActive){
@@ -502,7 +504,7 @@ extern "C" int runCoopSoloArena(){
     sfCoop.soloWorldCanOccupy=nullptr;
     sfCoop.soloWorldFirstImpact=nullptr;sfCoop.soloWorldPlacePickup=nullptr;sfCoop.soloWorldPreparePickups=nullptr;
     sfCoop.soloBonus.reset();sfCoop.soloBonusPending.clear();sfCoop.soloBonusImpacts.clear();
-    sfCoop.soloBonusEjections.clear();
+    sfCoop.soloBonusEjections.clear();sfCoop.soloBonusTestBurst=0;
     sfCoop.soloWorldWidth=sfCoop.soloWorldHeight=0;
     sfFixResetAsteroidField();sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
     if(mixerOpen)Mix_HaltChannel(-1);
