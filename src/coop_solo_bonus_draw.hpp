@@ -65,7 +65,30 @@ struct SfCoopSoloBonusRenderer {
         const auto project=[&](float x,float y){return world?world->toScreen({x,y}):sfsolo::CoopWorldPoint{x,y};};
         const auto visible=[&](sfsolo::CoopWorldPoint p,float r){return p.x+r>=0&&p.y+r>=0&&p.x-r<width&&p.y-r<height;};
         const auto &s=sfCoop.soloBonus;
+        // BONUS-013: reward visuals are born at the boss and visibly travel
+        // to their already-validated landing cells. The real pickup remains
+        // hidden and non-collectable until this short ejection completes.
+        for(const auto &e:sfCoop.soloBonusEjections){
+            const double duration=std::max(.001,e.until-e.started);
+            const float t=float(std::clamp((s.time-e.started)/duration,0.0,1.0));
+            const float smooth=t*t*(3.0f-2.0f*t);
+            const float dx=e.target.x-e.origin.x,dy=e.target.y-e.origin.y;
+            const float length=std::max(1.0f,std::hypot(dx,dy));
+            const float direction=(e.pickupId&1u)?1.0f:-1.0f;
+            const float arc=std::sin(t*float(PI))*std::min(sfArenaW*.035f,length*.10f)*direction;
+            const float x=e.origin.x+dx*smooth-dy/length*arc;
+            const float y=e.origin.y+dy*smooth+dx/length*arc;
+            const auto p=project(x,y);
+            const float r=std::max(10.0f,sfArenaW*.023f)*1.6f;
+            if(!visible(p,r*2))continue;
+            const Uint8 alpha=Uint8(205+35*std::sin(t*float(PI)));
+            ring(p.x,p.y,r*(.72f+.25f*t),color(e.kind,alpha),t*5.0f,8);
+            icon(e.kind,p.x,p.y,r*1.55f,t*150.0f,alpha);
+        }
         for(const auto &pickup:s.pickups){
+            const bool flying=std::any_of(sfCoop.soloBonusEjections.begin(),sfCoop.soloBonusEjections.end(),
+                [&](const SfSoloBonusEjection &e){return e.pickupId==pickup.id && e.until>s.time;});
+            if(flying)continue;
             const auto p=project(pickup.x,pickup.y);const float r=pickup.radius*1.6f;
             if(!visible(p,r*2))continue;
             const bool expiring=pickup.expires-s.time<5;
