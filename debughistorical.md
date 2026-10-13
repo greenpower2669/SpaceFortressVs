@@ -543,3 +543,10 @@ Retour Fab : CORE-012 ne donnait pas l’impression que les récompenses sortaie
 **Audio :** le chemin `sfFieldMiningSound` partageait le chunk d’impact avec d’autres événements. Il est maintenant séparé : variante pseudo-aléatoire entre les deux prises historiques d’explosion quand disponibles, volume borné de MIX_MAX_VOLUME à MIX_MAX_VOLUME-10, canal 8 réservé. `sfCoop.soundHit`, boss, tirs et collisions gardent leurs chemins. Dans le diagnostic, la deuxième prise est passée par un argument `asteroidAlt` distinct afin de ne pas rendre audible/modifier le son boss.
 
 Tests ajoutés/renforcés : origine boss, état in-flight non collectable, 8 tests simultanés, mur WORLD, bornes FX, safe-bottom Android native smoke. C++/SDL2 verts sur commits intermédiaires ; Android final du HEAD `77a42531` reste à confirmer. `src/main.cpp` vérifié blob `835059a0...`. METEOR-009 toujours suspendu.
+
+## BONUS-013 — livraison vérifiée 13/10/2026
+Les deux RED intermédiaires provenaient de tests trop stricts (premier pickup supposé PV; hash audio ne couvrant pas les deux variantes sur 32 séquences), corrigés sans modifier le contrat gameplay. La CI finale exacte est verte.
+
+Source `488de2195e2aa2a1e40f2eec96abaeba19863fad`; CI Android/C++/SDL2 `38361581767` SUCCESS; publish-release SKIPPED.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21.apk`: 94185274 octets, SHA256 `4a3511c380d04b21b46593806e01d991e9320c44691c529c6022e60aa4d1a18b`.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21-unsigned.aab`: 91532662 octets, SHA256 `3fb742b7b3964620b5f0b8eb76dae0d0fc2b18f2c2e245d87809b08468a68d3a`.

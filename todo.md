@@ -590,6 +590,14 @@ Source `95743f2386b220bb692112197c4ddee02d27ae2b` ; [CI Android/C++/SDL2 verte](
 - [x] Relever uniquement le HUD joueur SOLO au-dessus de la navigation Android ; HUD boss inchangé ; fallback Samsung si usable bounds absent.
 - [x] Isoler les variations d’explosion d’astéroïde des autres FX : deux prises historiques + faible variation de volume, canal dédié.
 - [x] Tests C++/SDL2 BONUS-013 ajoutés et verts sur les commits intermédiaires.
-- [ ] Confirmer le workflow Android du HEAD final BONUS-013 et relever run/artifact/SHA avant APK téléphone.
+- [x] Confirmer le workflow Android du HEAD final BONUS-013 et relever run/artifact/SHA avant APK téléphone.
 - [ ] Validation Samsung : TEST BONUS fermé/ouvert, huit boutons + TOUS X8, éjection visible depuis boss, collecte après atterrissage, barres joueur au-dessus des boutons système, variations audio discrètes.
 - [ ] Après validation seulement : décider d’une livraison APK 🟢 / AAB 📦 dédiée. Aucun merge main ni Release.
+
+## BONUS-013 — livraison vérifiée 13/10/2026
+- [x] CI finale BONUS-013 exacte, APK/AAB et SHA256 vérifiés/exportés.
+- [ ] Samsung: confirmer panneau OFF/ON, huit bonus + TOUS X8, éjection depuis boss, HUD au-dessus navigation et variété FX.
+
+Source `488de2195e2aa2a1e40f2eec96abaeba19863fad`; CI Android/C++/SDL2 `38361581767` SUCCESS; publish-release SKIPPED.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21.apk`: 94185274 octets, SHA256 `4a3511c380d04b21b46593806e01d991e9320c44691c529c6022e60aa4d1a18b`.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21-unsigned.aab`: 91532662 octets, SHA256 `3fb742b7b3964620b5f0b8eb76dae0d0fc2b18f2c2e245d87809b08468a68d3a`.

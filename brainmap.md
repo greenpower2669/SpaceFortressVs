@@ -525,3 +525,10 @@ Source `95743f2386b220bb692112197c4ddee02d27ae2b` ; [CI Android/C++/SDL2 verte](
 
 ## 13/10/2026 — SOLO BONUS-013
 Correctif de CORE-012 sur `feature/solo-coop-core-v1` : bonus désormais éjectés visuellement depuis le boss avant collecte ; WORLD exige destination pilote accessible + segment boss→pickup sans mur. Toggle `TEST BONUS OFF/ON` avec 8 boutons + `TOUS X8`, fermeture sans pause/reset et boss requis. HUD joueur SOLO relevé au-dessus de la navigation Android via safe-bottom inset, HUD boss inchangé. Explosions d’astéroïdes seulement : alternance légère `explo1/explo2` + faible volume sur canal dédié. Tourelles et METEOR-009 restent OFF, `src/main.cpp` protégé. HEAD code avant mémoire `77a42531`; CI Android finale encore à confirmer.
+
+## BONUS-013 — livraison vérifiée 13/10/2026
+Livraison diagnostic: `temp/solo-bonus-013/`. Source et CI exactes ci-dessous; aucun merge main ni Release.
+
+Source `488de2195e2aa2a1e40f2eec96abaeba19863fad`; CI Android/C++/SDL2 `38361581767` SUCCESS; publish-release SKIPPED.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21.apk`: 94185274 octets, SHA256 `4a3511c380d04b21b46593806e01d991e9320c44691c529c6022e60aa4d1a18b`.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21-unsigned.aab`: 91532662 octets, SHA256 `3fb742b7b3964620b5f0b8eb76dae0d0fc2b18f2c2e245d87809b08468a68d3a`.

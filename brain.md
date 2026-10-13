@@ -638,3 +638,10 @@ Source `95743f2386b220bb692112197c4ddee02d27ae2b` ; [CI Android/C++/SDL2 verte](
 - Astéroïdes : variation légère limitée aux destructions/minage roche via alternance pseudo-aléatoire des deux prises historiques `explo1/explo2` + petite variation de volume, canal mixer dédié 8. Tir/boss/contact/autres FX inchangés.
 - Tourelles SOLO toujours interdites ; `SF_COOP_SOLO_METEOR_WAVES_ENABLED=false` inchangé. CLASSIQUE/DUEL/COOP protégés.
 - Régressions C++ et SDL2 ont déjà passé sur les commits BONUS-013 intermédiaires. Workflow Android du HEAD final à confirmer avant livraison téléphone ; ne pas annoncer validation Samsung avant essai physique.
+
+## BONUS-013 — livraison vérifiée 13/10/2026
+BONUS-013 compilé et packagé depuis le HEAD exact. TEST BONUS, éjection boss, safe-area joueur Samsung et variation audio astéroïdes sont inclus; validation physique Samsung reste nécessaire.
+
+Source `488de2195e2aa2a1e40f2eec96abaeba19863fad`; CI Android/C++/SDL2 `38361581767` SUCCESS; publish-release SKIPPED.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21.apk`: 94185274 octets, SHA256 `4a3511c380d04b21b46593806e01d991e9320c44691c529c6022e60aa4d1a18b`.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21-unsigned.aab`: 91532662 octets, SHA256 `3fb742b7b3964620b5f0b8eb76dae0d0fc2b18f2c2e245d87809b08468a68d3a`.

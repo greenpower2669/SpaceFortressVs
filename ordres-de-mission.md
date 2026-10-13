@@ -659,3 +659,10 @@ Source `95743f2386b220bb692112197c4ddee02d27ae2b` ; [CI Android/C++/SDL2 verte](
 Autorisation : corriger CORE-012 sans `src/main.cpp`. Exigences : (1) variations légères uniquement pour explosions d’astéroïdes ; (2) relever PV/énergie joueur masqués par navigation Samsung, sans déplacer HUD boss ; (3) toggle TEST BONUS masquant/affichant 8 commandes + TOUS X8, chaque commande éjectant réellement depuis BOSS TEST, fermeture sans interrompre la partie.
 
 Implémentation branche `feature/solo-coop-core-v1`, HEAD code avant mémoire `77a425310ad0ec9b17cffc4271fd6b6005086d83` : ejections boss temporisées, pickup non collectable en vol, destination WORLD accessible et segment sans ROCK, panneau test sans reset, safe-bottom HUD joueur SOLO, explosion astéroïde isolée sur canal mixer dédié avec `explo1/explo2` et faible variation de volume. Tests dédiés ajoutés. Tourelles SOLO et vagues METEOR-009 restent désactivées ; caméra/pilotage/minage/recharge/CORE-012 préservés ; CLASSIQUE/DUEL/COOP hors modification fonctionnelle. `src/main.cpp` blob canonique inchangé. C++/SDL2 déjà verts ; Android final reste à confirmer avant remise téléphone. Aucun merge main, aucune Release.
+
+## BONUS-013 — livraison vérifiée 13/10/2026
+Statut technique BONUS-013: livré en diagnostic à tester sur Samsung. `src/main.cpp` protégé; METEOR-009/tourelles SOLO restent OFF; aucun merge main ni Release.
+
+Source `488de2195e2aa2a1e40f2eec96abaeba19863fad`; CI Android/C++/SDL2 `38361581767` SUCCESS; publish-release SKIPPED.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21.apk`: 94185274 octets, SHA256 `4a3511c380d04b21b46593806e01d991e9320c44691c529c6022e60aa4d1a18b`.
+- `SpaceFortressVs-1.4.2-SOLO-BONUS-013-488de21-unsigned.aab`: 91532662 octets, SHA256 `3fb742b7b3964620b5f0b8eb76dae0d0fc2b18f2c2e245d87809b08468a68d3a`.
