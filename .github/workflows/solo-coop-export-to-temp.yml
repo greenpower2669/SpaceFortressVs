@@ -1,13 +1,10 @@
 name: Unpack verified SOLO COOP artifact into temp
 
-# Never replace Fab's previous validated APK. New files live in a separate
-# temp/ directory and may only be unpacked from the exact GREEN Android CI.
+# Export only the exact GREEN source; retain all earlier diagnostics.
 on:
   push:
-    branches:
-      - feature/solo-coop-core-v1
-    paths:
-      - .github/workflows/solo-coop-export-to-temp.yml
+    branches: [feature/solo-coop-core-v1]
+    paths: [.github/workflows/solo-coop-export-to-temp.yml]
   workflow_dispatch:
 
 permissions:
@@ -30,20 +27,16 @@ jobs:
           ref: feature/solo-coop-core-v1
           persist-credentials: true
 
-      - name: Require GREEN tests and download exact diagnostic source
+      - name: Require GREEN tests and export exact BONUS-012 diagnostic
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          source_run=38209069899
-          source_sha=ad5cb08e945bf919e10abe77131a4c873ccadea6
-          artifact_dir="$RUNNER_TEMP/coop-solo-turrets-off-011"
-          destination="temp/solo-turrets-off-011"
-          mkdir -p "$artifact_dir" "$destination"
-
-          # IMPORTANT: this workflow starts independently of Android CI. Do
-          # not unpack old binaries, even if the new Android build is pending.
+          source_run=38299079636
+          source_sha=95743f2386b220bb692112197c4ddee02d27ae2b
+          artifact_dir="$RUNNER_TEMP/coop-solo-bonus-core-012"
+          mkdir -p "$artifact_dir"
           gh run watch "$source_run" --repo "$GITHUB_REPOSITORY" --exit-status
           actual_conclusion="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json conclusion --jq '.conclusion')"
           actual_sha="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json headSha --jq '.headSha')"
@@ -54,85 +47,153 @@ jobs:
           gh run download "$source_run" --repo "$GITHUB_REPOSITORY" \
             --name SpaceFortressVs-1.4.2-release-files --dir "$artifact_dir"
           (cd "$artifact_dir" && sha256sum --check SHA256SUMS)
-          python3 - "$artifact_dir" "$source_sha" <<'PY'
+          python3 - "$artifact_dir" "$source_sha" "$source_run" <<'PY'
+          import hashlib
           import json
           from pathlib import Path
+          import shutil
           import sys
-          d, expected = Path(sys.argv[1]), sys.argv[2]
-          manifest = json.loads((d / 'SpaceFortressVs-1.4.2-build.json').read_text())
+
+          source, expected, run = Path(sys.argv[1]), sys.argv[2], int(sys.argv[3])
+          manifest = json.loads((source / 'SpaceFortressVs-1.4.2-build.json').read_text())
           assert manifest['commit'] == expected
           assert manifest['packageName'] == 'com.greenpower2669.spacefortressvs.diagnostic'
-          for filename in ('SpaceFortressVs-1.4.2.apk',
-                           'SpaceFortressVs-1.4.2-unsigned.aab',
-                           'SpaceFortressVs-1.4.2-build.json',
-                           'SHA256SUMS', 'release-notes.md'):
-              p = d / filename
-              assert p.is_file() and p.stat().st_size < 100_000_000, filename
-              print(f'VERIFIED {filename} ({p.stat().st_size} bytes)')
-          PY
-          cp "$artifact_dir/SpaceFortressVs-1.4.2.apk" "$destination/"
-          cp "$artifact_dir/SpaceFortressVs-1.4.2-unsigned.aab" "$destination/"
-          cp "$artifact_dir/SpaceFortressVs-1.4.2-build.json" "$destination/"
-          cp "$artifact_dir/SHA256SUMS" "$destination/"
-          cp "$artifact_dir/release-notes.md" "$destination/"
-          (cd "$destination" && sha256sum --check SHA256SUMS)
-          cat > "$destination/README.md" <<'TXT'
-          # SpaceFortress — SOLO TURRETS OFF-011 (DIAGNOSTIC)
-          
-          Nouveau build extrait UNIQUEMENT après CI complète verte :
-          https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38209069899
-          
-          Source compilée et testée : ad5cb08e945bf919e10abe77131a4c873ccadea6
-          Branche : feature/solo-coop-core-v1
-          APK Android diagnostic : SpaceFortressVs-1.4.2.apk
-          AAB NON SIGNÉ : SpaceFortressVs-1.4.2-unsigned.aab
-          Empreintes : SHA256SUMS (contrôlées après extraction)
-          Identité Android : com.greenpower2669.spacefortressvs.diagnostic
-          
-          RETOUR SAMSUNG : les vagues de météorites ajoutées dans METEOR-009
-          restent coincées dans des parois. NE PAS déclarer le placement ou
-          leur trajectoire corrigés/validés sur téléphone.
-          STABILISATION : vagues supplémentaires entièrement SUSPENDUES.
-          Les astéroïdes historiques, le minage/dust/recharge, le vrai pilote,
-          caméra, arme, bouclier et sons charge 0,20 s / READY 2 s sont préservés.
-          Le CLASSIQUE et COOP historiques ne changent pas.
-          Audit: point libre à la naissance != trajet libéré; la physique
-          des rochers historiques n'applique pas les parois ROCK du labyrinthe.
-          Des rochers historiques peuvent encore être affectés: investigation
-          distincte encore ouverte, contrôle physique Samsung requis.
-          BOSS TEST/OFF : mannequin immobile uniquement, PAS rencontre finale.
-          SOLO-011 : le diagnostic entier (ARENE et MONDE) n'active JAMAIS
-          le bonus ni les tourelles défensives. Correction du chemin ARENE
-          boss=ON : garde soloDiagnostic, purge des tirs tourelle kind=5,
-          inhibition du rendu tactique historique. L'activation du boss en
-          MONDE TEST ne doit pas réintroduire d'entités.
-          Vérifications automatiques avec/sans boss, nouveau démarrage,
-          CLASSIQUE/COOP conservés. Confirmation physique Samsung attendue.
-          Le HUD SOLO-011 identifie cette édition malgré version 1.4.2.
-          
-          Les anciens fichiers temp/SpaceFortressVs-1.4.2.apk et
-          temp/SpaceFortressVs-1.4.2-unsigned.aab et
-          temp/solo-world-cleanup-008/ et
-          temp/solo-world-meteor-009/ et
-          temp/solo-world-stabilization-010/ sont CONSERVÉS.
-          Aucune fusion main ni Release publique. Validation Samsung requise.
-          TXT
+          destination = Path('temp/solo-bonus-core-012')
+          destination.mkdir(parents=True, exist_ok=True)
+          prefix = 'SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2'
+          def digest(path):
+              with path.open('rb') as stream:
+                  return hashlib.file_digest(stream, 'sha256').hexdigest()
+          files = {}
+          for suffix in ('.apk', '-unsigned.aab'):
+              original = source / ('SpaceFortressVs-1.4.2' + suffix)
+              assert original.is_file() and 0 < original.stat().st_size < 100_000_000
+              sha = digest(original)
+              assert sha == manifest['files'][original.name]['sha256']
+              target = destination / (prefix + suffix)
+              if target.exists():
+                  assert digest(target) == sha, 'Refuse to replace another diagnostic'
+              else:
+                  shutil.copy2(original, target)
+              files[target.name] = {'sha256': sha, 'size': target.stat().st_size}
+          manifest['sourceArtifactFiles'] = manifest['files']
+          manifest['files'] = files
+          manifest['mission'] = 'SOLO BONUS CORE-012'
+          manifest['sourceRun'] = run
+          manifest['aabNote'] = 'NON SIGNE, launcher release historique; SOLO diagnostic accessible dans APK debug.'
+          manifest_path = destination / (prefix + '-build.json')
+          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
+          checksums = [f"{meta['sha256']}  {name}" for name, meta in files.items()]
+          checksums.append(f'{digest(manifest_path)}  {manifest_path.name}')
+          (destination / 'SHA256SUMS').write_text('\n'.join(checksums) + '\n')
+          ci = f'https://github.com/greenpower2669/SpaceFortressVs/actions/runs/{run}'
+          evidence = f'Source `{expected}` ; [CI Android/C++/SDL2 verte]({ci}), publication Release SKIPPED.\n'
+          evidence += '\n'.join(f"- `{name}` : {meta['size']} octets, SHA256 `{meta['sha256']}`." for name, meta in files.items())
+          readme = f'''# SpaceFortress — SOLO BONUS CORE-012 (DIAGNOSTIC)
 
-      - name: Commit unpacked new APK without replacing previous file
+          Branche : feature/solo-coop-core-v1. Aucun merge main ni Release publique.
+          {evidence}
+
+          APK : `{prefix}.apk`, identité `com.greenpower2669.spacefortressvs.diagnostic`.
+          AAB : `{prefix}-unsigned.aab`, NON SIGNÉ ; launcher release historique.
+          Le menu SOLO de test est celui de l'APK diagnostic, pas celui de l'AAB release.
+          Empreintes après extraction : SHA256SUMS ; manifeste joint avec commit et CI source.
+          Tous les diagnostics précédents sont conservés.
+
+          ## Essai Samsung
+
+          Ouvrir **SOLO BONUS 012 : MOTEUR COOP**, puis **MONDE TEST** pour le labyrinthe.
+          **BOSS TEST/OFF** commande le boss ; le boss du MONDE reste stationnaire de test.
+          Le même système de bonus fonctionne dans l'arène et dans le labyrinthe.
+          Les récompenses tombent à 75/50/25 % PV et après défaite ; collecte par contact.
+          Les salves restent commandées par le joueur, sans tir automatique.
+
+          - PV : +350, plafond 1000, aucune résurrection.
+          - Énergie : chaleur nrj -25, bornée à 0..50 (0 = pleine réserve).
+          - Furtivité : 5 s, coque semi-transparente et acquisition dirigée suspendue ; collisions physiques conservées.
+          - Missiles : 3 s sans coût énergétique, cadence et commande humaines historiques.
+          - Prison : impact 12 et statut immobilisation 2 s.
+          - Glace : impact 12 et statut vitesse x0,4 pendant 4 s.
+          - Lave : impact 12 puis 24 dégâts/s pendant 4 s, sans cumul du débit.
+          - Météore : attaque ciblée, impact 120 et effets propres ; aucune vague automatique METEOR-009.
+
+          Reprise d'un pouvoir temporisé : durée réinitialisée, jamais additionnée.
+          Même type d'orbes : +3 salves, maximum 6 ; nouveau type : remplace par 3 salves.
+          Chaque salve contient 3 projectiles guidés et paie une seule dépense historique.
+          Missiles gratuits prioritaires sans consommer l'inventaire d'orbes.
+          Boss OFF : tirs ordinaires possibles, charges d'orbes conservées.
+          Pause : durées gelées. Changement arène/monde et relancement : bonus remis à zéro.
+          Collectibles : durée 45 s, maximum 24 simultanés, positions accessibles à la coque.
+
+          ## Limites vérifiées et travail restant
+
+          Tests purs, moteur réel, collisions/collecte, rendu SDL2 et compilation Android verts.
+          Prison/Glace modifient le mouvement du boss d'arène dans les tests automatisés.
+          Aucun ralentissement mobile n'est démontré sur le boss stationnaire du labyrinthe.
+          FPS/ergonomie réels Samsung encore à contrôler ; logs SOLO_BONUS_012 moyenne/max disponibles.
+          Astéroïdes historiques, minage/recharge conservés ; leur défaut face aux parois reste ouvert.
+          Nouvelles vagues METEOR-009 suspendues. Aucune tourelle ni ancien bonus à tourelles en SOLO.
+          src/main.cpp inchangé ; modes historiques protégés par gardes SOLO et régressions.
+          Carte/progression/sauvegardes antérieures conservées ; raccord complet à la future campagne encore distinct.
+          '''
+          # Strip YAML/Python indentation while retaining ordinary Markdown paragraphs.
+          (destination / 'README.md').write_text('\n'.join(line.lstrip() for line in readme.splitlines()) + '\n')
+          marker = '## CORE-012 — livraison vérifiée 13/10/2026'
+          notes = {
+              'brain.md': 'Brique huit bonus livrée sur le vrai moteur COOP commun arène/labyrinthe. Commande humaine, coûts historiques, durées exactes et cumul borné. Boss monde stationnaire de test ; validation Samsung et intégration future progression/IA restent ouvertes.',
+              'brainmap.md': 'src/solo_bonus_core.hpp = état pur ; coop_solo_bonus_runtime.hpp = moteur historique ; coop_solo_bonus_draw.hpp = sprites/FX/HUD commun ; coop_solo_world_bridge.hpp = trajectoires/collecte et placement accessible. Livraison : temp/solo-bonus-core-012/.',
+              'debughistorical.md': 'Régressions C++/SDL2/Android et huit pouvoirs vertes au SHA compilé. Seuils de drops capturés avant soins, aucune résurrection boss mort, rayon coque réel et BFS par paquet. Perf hôte seule mesurée ; FPS Samsung inconnu. Défaut des astéroïdes historiques contre murs NON corrigé, METEOR-009 toujours suspendu.',
+              'todo.md': '- [x] CORE-012 code, huit pouvoirs, tests, CI exacte et export APK/AAB avec empreintes.\n- [ ] Samsung : boss OFF/ON, arène/labyrinthe, relance, chaque pouvoir, contrôles et performances.\n- [ ] Futures missions : IA mobile du boss monde, raccord progression/sauvegardes, astéroïdes historiques face aux parois.',
+              'ordres-de-mission.md': 'Statut CORE-012 : LIVRÉ, À VALIDER SUR SAMSUNG. Autorisation Fab exécutée pour cette brique, sans prétendre finir toute la migration SOLO. Boss monde reste de test ; pas de main/src/main.cpp, pas de merge main ni Release. Anciennes APK conservées.',
+          }
+          for filename, note in notes.items():
+              path = Path(filename)
+              contents = path.read_text()
+              if marker not in contents:
+                  if filename == 'todo.md':
+                      start = contents.index('## SOLO BONUS CORE-012 — 12/10/2026')
+                      end = contents.index('\n### ', start)
+                      section = contents[start:end]
+                      for title in ('Cœur huit pouvoirs', 'Tir humain réel/salves', 'Rendu sprites/FX/HUD', 'Régressions réelles + SDL2/Android CI'):
+                          section = section.replace('- [ ] ' + title, '- [x] ' + title)
+                      contents = contents[:start] + section + contents[end:]
+                  if filename == 'ordres-de-mission.md':
+                      contents = contents.replace('SOLO BONUS CORE-012 — autorisation Fab, en cours', 'SOLO BONUS CORE-012 — autorisation Fab, livré à valider')
+                      contents = contents.replace('Statut : implémentation en cours, aucune APK 012 encore livrée.', 'Statut : livré à valider sur Samsung ; preuves de livraison CORE-012 ci-dessous.')
+                      if '## IMMUTABLE / À PRÉSERVER' not in contents:
+                          immutable = '''## IMMUTABLE / À PRÉSERVER
+
+          - Identité release/store historique : `com.greenpower2669.spacefortressvs` ; ne pas renommer pour une mise à jour.
+          - Diagnostic existant : suffixe `.diagnostic`, soit `com.greenpower2669.spacefortressvs.diagnostic`.
+          - APK diagnostic debug ; AAB release livré NON SIGNÉ. Aucune nouvelle clé de signature créée pour ce lot ; ne jamais copier de clé privée dans le dépôt ou les logs.
+          - `src/main.cpp` protégé. Aucun merge main ni Release sans validation explicite Fab.
+          - Livrer APK identifiable sous temp avec source CI verte exacte et SHA256 ; préserver les diagnostics précédents.
+
+          '''
+                          immutable = '\n'.join(line.lstrip() for line in immutable.splitlines())
+                          title, rest = contents.split('\n', 1)
+                          contents = title + '\n\n' + immutable + '\n' + rest
+                  contents += '\n\n' + marker + '\n' + note + '\n\n' + evidence + '\n'
+                  path.write_text(contents)
+          plan = Path('docs/superpowers/plans/2026-10-12-solo-bonus-core-012.md')
+          plan.write_text(plan.read_text().replace('- [ ] 6. Actualiser mémoires', '- [x] 6. Actualiser mémoires'))
+          print(evidence)
+          PY
+          (cd temp/solo-bonus-core-012 && sha256sum --check SHA256SUMS)
+
+      - name: Commit diagnostic and five living memories without replacing previous APK
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- temp/solo-turrets-off-011/
+          git add -- temp/solo-bonus-core-012/ brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md \
+            docs/superpowers/plans/2026-10-12-solo-bonus-core-012.md
           if git diff --cached --quiet; then
             echo "No new artifact content to publish."
             exit 0
           fi
-          git commit -m "chore(solo): unpack verified turrets-off-011 diagnostic, retain previous [skip ci]"
-          # The five living memories (or independent documentation updates) may advance the branch while the green
-          # build artifact is downloading. Rebase just this NEW temp commit;
-          # never force-push, merge main or overwrite the previous APK.
+          git commit -m "chore(solo): deliver verified BONUS-012 APK and AAB with five living memories [skip ci]"
           git fetch origin feature/solo-coop-core-v1
           git rebase origin/feature/solo-coop-core-v1
           git push origin HEAD:refs/heads/feature/solo-coop-core-v1
