@@ -1,0 +1,39 @@
+name: Build SOLO bonus animation atlas
+
+on:
+  push:
+    branches: [feature/solo-coop-core-v1]
+    paths:
+      - scripts/build-solo-bonus-animation-atlas.py
+      - .github/workflows/solo-bonus-animation-atlas.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build-atlas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/solo-coop-core-v1
+          persist-credentials: true
+      - name: Pillow
+        run: python3 -m pip install --disable-pip-version-check pillow
+      - name: Generate deterministic production atlas
+        run: python3 scripts/build-solo-bonus-animation-atlas.py
+      - name: Validate PNG and commit
+        run: |
+          set -euo pipefail
+          python3 scripts/prepare-assets.py --output "$RUNNER_TEMP/assets"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/pict/solo/SoloBonusAnimations.png
+          if git diff --cached --quiet; then
+            echo "Atlas already up to date."
+            exit 0
+          fi
+          git commit -m "art(solo): add production BONUS animation atlas [skip ci]"
+          git fetch origin feature/solo-coop-core-v1
+          git rebase origin/feature/solo-coop-core-v1
+          git push origin HEAD:refs/heads/feature/solo-coop-core-v1
