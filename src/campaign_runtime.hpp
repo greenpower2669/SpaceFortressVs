@@ -1391,8 +1391,9 @@ static SfAsteroidExplosionFxVariant sfAsteroidExplosionFxVariant(unsigned sequen
 {
     // Tiny deterministic pseudo-random spread: two historical explosion takes
     // provide the tonal/envelope variation; volume moves only within ~8%.
-    const std::uint32_t x=sequence*1664525u+1013904223u;
-    return {int((x>>29)&1u),MIX_MAX_VOLUME-int((x>>8)%11u)};
+    std::uint32_t x=sequence+0x9e3779b9u;
+    x^=x>>16;x*=0x7feb352du;x^=x>>15;x*=0x846ca68bu;x^=x>>16;
+    return {int(x&1u),MIX_MAX_VOLUME-int((x>>8)%11u)};
 }
 static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,Mix_Chunk *hit,
                              Mix_Chunk *collision,Mix_Chunk *asteroidAlt=nullptr)
