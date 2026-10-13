@@ -215,17 +215,23 @@ static void testSoloBonusWorldPlacementAndWallImpact(){
 static void testSoloBonusDiagnosticQueueAndEjection(){
     using namespace sfsolo::bonus;
     sfBonusTestSetup();
-    assert(sfCoopSoloBonusQueueTest(Kind::Health));
     assert(sfCoopSoloBonusQueueAllTests()==8);
-    assert(sfCoop.soloBonusPending.size()==9);
+    assert(sfCoop.soloBonusTestBurst==8);
+    assert(sfCoop.soloBonusPending.size()==8);
+    const double before=sfCoop.soloBonus.time;
     sfCoopSoloBonusCollectAndDrop();
-    assert(sfCoop.soloBonus.pickups.size()==9);
-    assert(sfCoop.soloBonusEjections.size()==9);
+    assert(sfCoop.soloBonus.pickups.size()==8);
+    assert(sfCoop.soloBonusEjections.size()==8);
+    assert(sfCoop.soloBonusPending.empty() && sfCoop.soloBonusTestBurst==0);
+    std::array<bool,8> kinds{};
     for(const auto &e:sfCoop.soloBonusEjections){
         assert(std::abs(e.origin.x-sfCoop.position.x)<.001f);
         assert(std::abs(e.origin.y-sfCoop.position.y)<.001f);
         assert(sfCoopSoloBonusPickupInFlight(e.pickupId));
+        assert(std::abs(e.started-before)<.0001);
+        kinds[unsigned(e.kind)]=true;
     }
+    for(bool value:kinds)assert(value); // all eight kinds in the SAME batch
     sfCoopSoloBonusTick(.8f);assert(sfCoop.soloBonusEjections.empty());
     sfCoop.bossPresent=false;
     assert(!sfCoopSoloBonusQueueTest(Kind::Energy));
