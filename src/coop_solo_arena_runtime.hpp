@@ -72,11 +72,14 @@ extern "C" int runCoopSoloArena(){
     }
     sfObserved={};
     sfCoop.soloAimTarget=tupl(Spritej2->x,Spritej2->y-120);
-    SDL_Log("SOLO_013_BONUS_EJECTION arena %.0fx%.0f activeMask=%d boss=%d",
+    SDL_Log("SOLO_014_BONUS_VISUALS arena %.0fx%.0f activeMask=%d boss=%d",
             sfArenaW,sfArenaH,int(sfCoop.pilots.activeMask),sfCoop.bossPresent);
 
     bool audioInit=false,mixerOpen=false;
     Mix_Chunk *shotCue=nullptr,*hitCue=nullptr,*altExplosionCue=nullptr;
+    Mix_Chunk *slowExplosionCue=nullptr,*fastExplosionCue=nullptr;
+    std::vector<Uint8> slowExplosionStorage,fastExplosionStorage;
+    SfAsteroidExplosionBank asteroidExplosionBank{};
     SfCoopSoloChargeCueGate chargeCueGate;
     if(SDL_InitSubSystem(SDL_INIT_AUDIO)==0){
         audioInit=true;Mix_Init(MIX_INIT_OGG);
@@ -86,6 +89,13 @@ extern "C" int runCoopSoloArena(){
             shotCue=Mix_LoadWAV("resources/assets/sounds/laser2.ogg");
             hitCue=Mix_LoadWAV("resources/assets/sounds/explo1.ogg");
             altExplosionCue=Mix_LoadWAV("resources/assets/sounds/explo2.ogg");
+            slowExplosionCue=sfCreateRateShiftedChunk(hitCue,.97f,slowExplosionStorage);
+            fastExplosionCue=sfCreateRateShiftedChunk(altExplosionCue?altExplosionCue:hitCue,1.03f,fastExplosionStorage);
+            asteroidExplosionBank.variants={
+                slowExplosionCue?slowExplosionCue:hitCue,
+                hitCue,
+                altExplosionCue?altExplosionCue:hitCue,
+                fastExplosionCue?fastExplosionCue:(altExplosionCue?altExplosionCue:hitCue)};
             // The SAME kinetic audio implementation as historical COOP:
             // charge at .20 s, READY at 2 s, quiet hold, then release/cancel.
             sfKineticAudioEnsure();
@@ -424,16 +434,22 @@ extern "C" int runCoopSoloArena(){
         }
         const float energy=sfKineticEnergyFraction(Spritej2->nrj);
         const int margin=std::max(8,width/30),barW=std::max(100,int(width*.43f));
-        SDL_Rect lifeBg{margin,height-58,barW,12};
+        // SOLO draws its own bottom HUD after the common campaign HUD. Apply
+        // the Android safe inset HERE as well; otherwise Samsung navigation
+        // still overlays these two diagnostic bars.
+        const int soloHudLift=sfPlayerSafeBottomInset(height);
+        const int lifeY=height-58-soloHudLift,energyY=height-40-soloHudLift;
+        const int titleY=height-85-soloHudLift;
+        SDL_Rect lifeBg{margin,lifeY,barW,12};
         SDL_SetRenderDrawColor(renderer,42,26,57,255);SDL_RenderFillRect(renderer,&lifeBg);
-        SDL_Rect life{margin,height-58,int(barW*std::clamp(Spritej2->pv/1000.0f,0.0f,1.0f)),12};
+        SDL_Rect life{margin,lifeY,int(barW*std::clamp(Spritej2->pv/1000.0f,0.0f,1.0f)),12};
         SDL_SetRenderDrawColor(renderer,105,229,150,255);SDL_RenderFillRect(renderer,&life);
-        SDL_Rect energyBg{margin,height-40,barW,10};
+        SDL_Rect energyBg{margin,energyY,barW,10};
         SDL_SetRenderDrawColor(renderer,32,31,69,255);SDL_RenderFillRect(renderer,&energyBg);
-        SDL_Rect energyBar{margin,height-40,int(barW*energy),10};
+        SDL_Rect energyBar{margin,energyY,int(barW*energy),10};
         SDL_SetRenderDrawColor(renderer,169,135,242,255);SDL_RenderFillRect(renderer,&energyBar);
-        sfCoopText(renderer,margin,height-85,
-                   worldActive?"MONDE / LABYRINTHE SOLO-013":"COOP CORE SOLO-013",
+        sfCoopText(renderer,margin,titleY,
+                   worldActive?"MONDE / LABYRINTHE SOLO-014":"COOP CORE SOLO-014",
                    width-2*margin,2);
         sfCoopButton(renderer,{int(width*.02f),8,int(width*.30f),int(height*.08f)},
                      bonusTestOpen?"TEST BONUS ON":"TEST BONUS OFF");
@@ -455,7 +471,7 @@ extern "C" int runCoopSoloArena(){
         // apply sfFixRequestedScreen=HOME and repaint the Classic mode selector.
         SDL_RenderPresent(renderer);
         if(mixerOpen){
-            sfCoopPlaySounds(nullptr,shotCue,nullptr,hitCue,hitCue,altExplosionCue);
+            sfCoopPlaySounds(nullptr,shotCue,nullptr,hitCue,hitCue,altExplosionCue,&asteroidExplosionBank);
         }
         const double frameWorkMs=(SDL_GetPerformanceCounter()-counter)*1000.0/frequency;
         bonusFrameTotalMs+=frameWorkMs;bonusFrameMaxMs=std::max(bonusFrameMaxMs,frameWorkMs);++bonusFrameCount;
@@ -490,7 +506,7 @@ extern "C" int runCoopSoloArena(){
     sfCoop.soloWorldWidth=sfCoop.soloWorldHeight=0;
     sfFixResetAsteroidField();sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
     if(mixerOpen)Mix_HaltChannel(-1);
-    for(Mix_Chunk *p:{shotCue,hitCue,altExplosionCue})if(p)Mix_FreeChunk(p);
+    for(Mix_Chunk *p:{slowExplosionCue,fastExplosionCue,shotCue,hitCue,altExplosionCue})if(p)Mix_FreeChunk(p);
     if(mixerOpen){
         // This Android :coopsolo process owns the historical kinetic chunks.
         // Halt before free; no pointers survive its audio device.
