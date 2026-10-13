@@ -1386,17 +1386,46 @@ static void sfCampaignRestoreDuelShips()
     }
     sfDuelShipStylesSaved=false;
 }
-struct SfAsteroidExplosionFxVariant {int sample=0,volume=MIX_MAX_VOLUME;};
+struct SfAsteroidExplosionFxVariant {int sample=0,volume=MIX_MAX_VOLUME;float rate=1.0f;};
+struct SfAsteroidExplosionBank {std::array<Mix_Chunk*,4> variants{};};
 static SfAsteroidExplosionFxVariant sfAsteroidExplosionFxVariant(unsigned sequence)
 {
-    // Tiny deterministic pseudo-random spread: two historical explosion takes
-    // provide the tonal/envelope variation; volume moves only within ~8%.
+    // Four bounded variants: -3%, original take A, original take B, +3%.
+    // Resampling changes pitch AND duration/tempo together, while the tiny
+    // volume spread avoids a machine-gun identical transient.
     std::uint32_t x=sequence+0x9e3779b9u;
     x^=x>>16;x*=0x7feb352du;x^=x>>15;x*=0x846ca68bu;x^=x>>16;
-    return {int(x&1u),MIX_MAX_VOLUME-int((x>>8)%11u)};
+    constexpr float rates[]={.97f,1.0f,1.0f,1.03f};
+    const int sample=int(x&3u);
+    return {sample,MIX_MAX_VOLUME-int((x>>8)%11u),rates[sample]};
+}
+static Mix_Chunk *sfCreateRateShiftedChunk(Mix_Chunk *source,float rate,std::vector<Uint8> &storage)
+{
+    int frequency=0,channels=0;Uint16 format=0;
+    if(!source || !std::isfinite(rate) || rate<.94f || rate>1.06f ||
+       Mix_QuerySpec(&frequency,&format,&channels)==0 || format!=AUDIO_S16SYS || channels<=0)return nullptr;
+    const std::size_t frameBytes=sizeof(Sint16)*std::size_t(channels);
+    const std::size_t inputFrames=source->alen/frameBytes;
+    if(inputFrames<4)return nullptr;
+    const std::size_t outputFrames=std::max<std::size_t>(2,std::size_t((inputFrames-1)/rate));
+    storage.resize(outputFrames*frameBytes);
+    const auto *input=reinterpret_cast<const Sint16*>(source->abuf);
+    auto *output=reinterpret_cast<Sint16*>(storage.data());
+    for(std::size_t frame=0;frame<outputFrames;++frame){
+        const float position=float(frame)*rate;
+        const std::size_t i0=std::min<std::size_t>(std::size_t(position),inputFrames-2);
+        const std::size_t i1=i0+1;
+        const float mix=position-float(i0);
+        for(int channel=0;channel<channels;++channel){
+            const float a=float(input[i0*channels+channel]),b=float(input[i1*channels+channel]);
+            output[frame*channels+channel]=Sint16(std::clamp(a+(b-a)*mix,-32768.0f,32767.0f));
+        }
+    }
+    return Mix_QuickLoad_RAW(storage.data(),Uint32(storage.size()));
 }
 static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,Mix_Chunk *hit,
-                             Mix_Chunk *collision,Mix_Chunk *asteroidAlt=nullptr)
+                             Mix_Chunk *collision,Mix_Chunk *asteroidAlt=nullptr,
+                             const SfAsteroidExplosionBank *asteroidBank=nullptr)
 {
     static Uint64 last=0;static unsigned asteroidFxSequence=0;
     const Uint64 now=SDL_GetTicks64();
@@ -1406,16 +1435,18 @@ static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,M
         if (sound) Mix_PlayChannel(4+owner,sound,0);sfCoop.soundShot[owner]=false;
     }
     if (sfCoop.soundBoss && boss) Mix_PlayChannel(6,boss,0);
-    // Pilot/boss impacts keep their exact historical sound. Only asteroid
-    // mining/destruction receives a small randomised take/volume variation.
     if (sfCoop.soundHit && hit) Mix_PlayChannel(7,hit,0);
     if (sfFieldMiningSound) {
         const auto variant=sfAsteroidExplosionFxVariant(++asteroidFxSequence);
-        Mix_Chunk *alternate=asteroidAlt?asteroidAlt:boss;
-        Mix_Chunk *sample=(variant.sample && alternate) ? alternate : hit;
+        Mix_Chunk *sample=nullptr;
+        if(asteroidBank)sample=asteroidBank->variants[std::clamp(variant.sample,0,3)];
+        if(!sample){
+            Mix_Chunk *alternate=asteroidAlt?asteroidAlt:boss;
+            sample=((variant.sample&1) && alternate) ? alternate : hit;
+        }
         if(sample){
-            // Channel 8 is reserved here for asteroid destruction so its
-            // slight level change never leaks into shots, boss or mining FX.
+            // Channel 8 is reserved for asteroid destruction: pitch/tempo and
+            // volume changes cannot leak into shots, boss or contact FX.
             if(Mix_AllocateChannels(-1)<9)Mix_AllocateChannels(9);
             Mix_Volume(8,variant.volume);
             Mix_PlayChannel(8,sample,0);
