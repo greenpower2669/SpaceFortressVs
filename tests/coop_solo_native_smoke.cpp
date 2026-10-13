@@ -25,6 +25,19 @@ int main(){
     assert(runCoopSoloArena()==0); // real CANONICAL COOP loop in generated maze
     assert(!sfCoop.soloWorldMode); // no dangling world session on exit
     assert(sfCoop.soloWorldContext==nullptr);
+    // Samsung/navigation-bar protection is Android-only and must affect only
+    // the lower SOLO player HUD, never the boss geometry.
+    sfCoop.soloDiagnostic=true;
+    const auto safeEnergy=sfPlayerEnergyRect(1,540,960);
+    const auto safePv=sfPlayerPvRect(1,540,960);
+    assert(sfPlayerSafeBottomInset(960)>0);
+    assert(safeEnergy.y+safeEnergy.h<960);
+    assert(safePv.y<safeEnergy.y);
+    const auto bossBefore=sfBossLifeRect(false,540,960);
+    sfCoop.soloDiagnostic=false;
+    const auto bossAfter=sfBossLifeRect(false,540,960);
+    assert(bossBefore.x==bossAfter.x && bossBefore.y==bossAfter.y &&
+           bossBefore.w==bossAfter.w && bossBefore.h==bossAfter.h);
     // SDL2 has SDL_setenv, but not SDL_unsetenv. This CI smoke exits now;
     // leaving its test-only variable within the process is harmless.
     // The experimental runner must neither invoke the historical campaign
