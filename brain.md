@@ -629,3 +629,12 @@ Brique huit bonus livrée sur le vrai moteur COOP commun arène/labyrinthe. Comm
 Source `95743f2386b220bb692112197c4ddee02d27ae2b` ; [CI Android/C++/SDL2 verte](https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38299079636), publication Release SKIPPED.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2.apk` : 94168883 octets, SHA256 `c61d7e39ecb075d69db863e7cc964021bb9c3ed31ccf0c0597b01b1ffaa09248`.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2-unsigned.aab` : 91525121 octets, SHA256 `a4433fc2f09cae480ab407f1997139821602caa71c0c0f8a61941baceeed6289`.
+
+## SOLO BONUS-013 — correctif boss / TEST BONUS / Samsung / FX (13/10/2026)
+- Code candidat sur `feature/solo-coop-core-v1`, HEAD avant mémoire `77a425310ad0ec9b17cffc4271fd6b6005086d83`. `src/main.cpp` reste au blob protégé `835059a0ecfe0f74708068b3259cad5db1cdb579`.
+- Les drops CORE-012 restent déclenchés uniquement par la vie/défaite du boss. BONUS-013 ajoute une éjection visible depuis la position du boss : pickup final caché et incollectable pendant ~0,42–0,53 s ; en WORLD la destination doit être accessible au pilote ET reliée au boss par un segment sans ROCK ; en ARENE un léger arc décoratif reste permis.
+- Diagnostic : toggle `TEST BONUS OFF/ON`; OFF cache le panneau, ON affiche PV/ENERGIE/FURTIF/MISSILES/PRISON/GLACE/LAVE/METEORE + `TOUS X8`. Fermer le panneau ne pause ni ne reset la partie. Sans `BOSS TEST`, aucune éjection artificielle.
+- Samsung SOLO : seules les jauges/labels du joueur bas sont relevés par un safe-bottom inset SDL, avec fallback Android conservateur si le fullscreen ne rapporte pas la barre de navigation. HUD boss inchangé.
+- Astéroïdes : variation légère limitée aux destructions/minage roche via alternance pseudo-aléatoire des deux prises historiques `explo1/explo2` + petite variation de volume, canal mixer dédié 8. Tir/boss/contact/autres FX inchangés.
+- Tourelles SOLO toujours interdites ; `SF_COOP_SOLO_METEOR_WAVES_ENABLED=false` inchangé. CLASSIQUE/DUEL/COOP protégés.
+- Régressions C++ et SDL2 ont déjà passé sur les commits BONUS-013 intermédiaires. Workflow Android du HEAD final à confirmer avant livraison téléphone ; ne pas annoncer validation Samsung avant essai physique.

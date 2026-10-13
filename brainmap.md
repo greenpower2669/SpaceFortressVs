@@ -522,3 +522,6 @@ src/solo_bonus_core.hpp = état pur ; coop_solo_bonus_runtime.hpp = moteur histo
 Source `95743f2386b220bb692112197c4ddee02d27ae2b` ; [CI Android/C++/SDL2 verte](https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38299079636), publication Release SKIPPED.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2.apk` : 94168883 octets, SHA256 `c61d7e39ecb075d69db863e7cc964021bb9c3ed31ccf0c0597b01b1ffaa09248`.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2-unsigned.aab` : 91525121 octets, SHA256 `a4433fc2f09cae480ab407f1997139821602caa71c0c0f8a61941baceeed6289`.
+
+## 13/10/2026 — SOLO BONUS-013
+Correctif de CORE-012 sur `feature/solo-coop-core-v1` : bonus désormais éjectés visuellement depuis le boss avant collecte ; WORLD exige destination pilote accessible + segment boss→pickup sans mur. Toggle `TEST BONUS OFF/ON` avec 8 boutons + `TOUS X8`, fermeture sans pause/reset et boss requis. HUD joueur SOLO relevé au-dessus de la navigation Android via safe-bottom inset, HUD boss inchangé. Explosions d’astéroïdes seulement : alternance légère `explo1/explo2` + faible volume sur canal dédié. Tourelles et METEOR-009 restent OFF, `src/main.cpp` protégé. HEAD code avant mémoire `77a42531`; CI Android finale encore à confirmer.

@@ -530,3 +530,16 @@ Régressions C++/SDL2/Android et huit pouvoirs vertes au SHA compilé. Seuils de
 Source `95743f2386b220bb692112197c4ddee02d27ae2b` ; [CI Android/C++/SDL2 verte](https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38299079636), publication Release SKIPPED.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2.apk` : 94168883 octets, SHA256 `c61d7e39ecb075d69db863e7cc964021bb9c3ed31ccf0c0597b01b1ffaa09248`.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2-unsigned.aab` : 91525121 octets, SHA256 `a4433fc2f09cae480ab407f1997139821602caa71c0c0f8a61941baceeed6289`.
+
+## 13/10/2026 — SOLO BONUS-013 — diagnostic et correctifs
+Retour Fab : CORE-012 ne donnait pas l’impression que les récompenses sortaient du boss ; jauges joueur occultées par la navigation Samsung ; explosions d’astéroïdes répétitives ; besoin d’un panneau manuel TEST BONUS.
+
+**Cause bonus prouvée en source :** `sfCoopSoloBonusCollectAndDrop()` calculait une destination accessible puis appelait directement `addPickup(..., at.x, at.y)`. Les seuils 75/50/25/0 provenaient bien du boss, mais le pickup naissait visuellement à sa destination. BONUS-013 conserve la destination gameplay mais ajoute `SfSoloBonusEjection` : origine figée = position réelle boss, cible = pickup validé, pickup caché/incollectable jusqu’à la fin de l’éjection (~0,42–0,53 s). En WORLD, la sélection filtre aussi `firstWallImpact(boss,target,clearance)>=.999`; le rendu WORLD suit ce segment sans arc afin de ne pas traverser ROCK.
+
+**TEST BONUS :** le HEAD GitHub CORE-012 n’avait pas encore ce panneau. Ajout d’un toggle `TEST BONUS OFF/ON`; ON affiche huit types + `TOUS X8`. Chaque commande alimente le même pipeline de placement/éjection que les drops boss. Boss absent/mort => commande ignorée. Fermer le panneau change uniquement le booléen d’affichage : aucune pause, reset, suppression de pickup ou bascule BOSS.
+
+**Samsung :** cause visible en source : barres joueur autour de `.925H` et `.963H`, l’énergie pouvant être sous la barre système. `sfPlayerSafeBottomInset` relève uniquement le HUD inférieur du SOLO diagnostic ; tentative `SDL_GetDisplayUsableBounds`, puis fallback Android `height/18` si le fullscreen rapporte tout le framebuffer. Les fonctions HUD boss ne dépendent pas de cet inset.
+
+**Audio :** le chemin `sfFieldMiningSound` partageait le chunk d’impact avec d’autres événements. Il est maintenant séparé : variante pseudo-aléatoire entre les deux prises historiques d’explosion quand disponibles, volume borné de MIX_MAX_VOLUME à MIX_MAX_VOLUME-10, canal 8 réservé. `sfCoop.soundHit`, boss, tirs et collisions gardent leurs chemins. Dans le diagnostic, la deuxième prise est passée par un argument `asteroidAlt` distinct afin de ne pas rendre audible/modifier le son boss.
+
+Tests ajoutés/renforcés : origine boss, état in-flight non collectable, 8 tests simultanés, mur WORLD, bornes FX, safe-bottom Android native smoke. C++/SDL2 verts sur commits intermédiaires ; Android final du HEAD `77a42531` reste à confirmer. `src/main.cpp` vérifié blob `835059a0...`. METEOR-009 toujours suspendu.

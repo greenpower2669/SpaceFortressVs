@@ -545,7 +545,7 @@
 - [x] Démontrer par source le chemin ARENE (non MONDE) `soloDiagnostic` sans garde `soloWorldMode` : bonus → temps des tourelles → déploiement/tirs kind5 → dessin tactique. Identifier un éventuel visuel WORLD distinct avec Fab, sans inventer de causalité.
 - [x] Garde global diagnostic SOLO, état/purge projectiles au démarrage et transitions boss, bonus/IA stoppés, rendu ARENE non-tourelles; préserver toutes ressources/armes/caméra/sons + CLASSIQUE/COOP.
 - [x] Tests moteur nouveau `testSoloDiagnosticTurretsRemainAbsent` avec deux lancements, boss off/on, non régression historique, vague météores ajoutée toujours suspendue.
-- [ ] Vérifier Android/SDL2/CI run 38209069899 puis extraction `temp/solo-turrets-off-011/` UNIQUEMENT après vert; contrôler manifeste SHA et taille. Ne pas annoncer prêt auparavant.
+- [x] Historique SOLO-011 : CI C++/SDL2/Android 38209069899 et export 38209723734 déjà validés ; ancienne case ouverte corrigée le 13/10.
 - [ ] Vérification physique Samsung dans MONDE et ARENE, boss OFF/ON après relancement, HUD `SOLO-011`, vaisseau/mine/recharge/météorites historiques, aucun effet/tir/collision/dessin de tourelle. Identifier photo de tout objet douteux sans conclure trop vite.
 - [ ] Aucune modification main/src/main.cpp, aucun merge ni release, ne pas activer les vagues METEOR-009.
 
@@ -582,3 +582,14 @@
 Source `95743f2386b220bb692112197c4ddee02d27ae2b` ; [CI Android/C++/SDL2 verte](https://github.com/greenpower2669/SpaceFortressVs/actions/runs/38299079636), publication Release SKIPPED.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2.apk` : 94168883 octets, SHA256 `c61d7e39ecb075d69db863e7cc964021bb9c3ed31ccf0c0597b01b1ffaa09248`.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-012-95743f2-unsigned.aab` : 91525121 octets, SHA256 `a4433fc2f09cae480ab407f1997139821602caa71c0c0f8a61941baceeed6289`.
+
+## SOLO BONUS-013 — 13/10/2026
+- [x] Faire naître visuellement les pickups depuis le boss au lieu de les afficher directement à la destination ; bloquer collecte/rendu final pendant le vol.
+- [x] WORLD : destination dans la composante accessible du pilote et segment d’éjection boss→destination sans ROCK ; ARENE : dispersion visuelle légère autorisée.
+- [x] Ajouter `TEST BONUS OFF/ON`, 8 boutons individuels + `TOUS X8`; fermeture du panneau sans pause/reset ; boss requis.
+- [x] Relever uniquement le HUD joueur SOLO au-dessus de la navigation Android ; HUD boss inchangé ; fallback Samsung si usable bounds absent.
+- [x] Isoler les variations d’explosion d’astéroïde des autres FX : deux prises historiques + faible variation de volume, canal dédié.
+- [x] Tests C++/SDL2 BONUS-013 ajoutés et verts sur les commits intermédiaires.
+- [ ] Confirmer le workflow Android du HEAD final BONUS-013 et relever run/artifact/SHA avant APK téléphone.
+- [ ] Validation Samsung : TEST BONUS fermé/ouvert, huit boutons + TOUS X8, éjection visible depuis boss, collecte après atterrissage, barres joueur au-dessus des boutons système, variations audio discrètes.
+- [ ] Après validation seulement : décider d’une livraison APK 🟢 / AAB 📦 dédiée. Aucun merge main ni Release.
