@@ -688,16 +688,18 @@ static void testCoopHudAndMissile()
     assert(bossKineticColor.r>bossKineticColor.g && bossKineticColor.g>bossKineticColor.b);
     assert(sfBossHudBackgroundAlpha()<160 && sfBossHudFillAlpha()<230);
 
-    // BONUS-013 asteroid FX: pseudo-random choice spans both historical
-    // explosion takes while the level variation stays intentionally tiny.
-    bool sawExplosionTake0=false,sawExplosionTake1=false;
-    for(unsigned sequence=1;sequence<=32;++sequence){
+    // BONUS-014 asteroid FX: four bounded choices include true -3/+3 %
+    // rate shifts, so pitch and tempo vary together without distorting the cue.
+    bool seen[4]={false,false,false,false};
+    for(unsigned sequence=1;sequence<=96;++sequence){
         const auto variant=sfAsteroidExplosionFxVariant(sequence);
-        assert(variant.sample==0 || variant.sample==1);
+        assert(variant.sample>=0 && variant.sample<4);
         assert(variant.volume>=MIX_MAX_VOLUME-10 && variant.volume<=MIX_MAX_VOLUME);
-        sawExplosionTake0|=variant.sample==0;sawExplosionTake1|=variant.sample==1;
+        assert(variant.rate>=.97f && variant.rate<=1.03f);
+        seen[variant.sample]=true;
     }
-    assert(sawExplosionTake0 && sawExplosionTake1);
+    for(bool value:seen)assert(value);
+    assert(sfAsteroidExplosionFxVariant(1).rate>=.97f);
 
     // The whole label is mirrored too: normal above the lower block, rotated
     // counterpart below the upper block.
