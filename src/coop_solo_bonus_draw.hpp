@@ -75,7 +75,10 @@ struct SfCoopSoloBonusRenderer {
             const float dx=e.target.x-e.origin.x,dy=e.target.y-e.origin.y;
             const float length=std::max(1.0f,std::hypot(dx,dy));
             const float direction=(e.pickupId&1u)?1.0f:-1.0f;
-            const float arc=std::sin(t*float(PI))*std::min(sfArenaW*.035f,length*.10f)*direction;
+            // WORLD landing cells have a tested wall-free boss segment; keep
+            // that exact line. Arena may use a small decorative side arc.
+            const float arc=world?0.0f:
+                std::sin(t*float(PI))*std::min(sfArenaW*.035f,length*.10f)*direction;
             const float x=e.origin.x+dx*smooth-dy/length*arc;
             const float y=e.origin.y+dy*smooth+dx/length*arc;
             const auto p=project(x,y);
