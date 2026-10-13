@@ -433,7 +433,7 @@ extern "C" int runCoopSoloArena(){
         SDL_Rect energyBar{margin,height-40,int(barW*energy),10};
         SDL_SetRenderDrawColor(renderer,169,135,242,255);SDL_RenderFillRect(renderer,&energyBar);
         sfCoopText(renderer,margin,height-85,
-                   worldActive?"MONDE / LABYRINTHE SOLO-012":"COOP CORE SOLO-012",
+                   worldActive?"MONDE / LABYRINTHE SOLO-013":"COOP CORE SOLO-013",
                    width-2*margin,2);
         sfCoopButton(renderer,{int(width*.02f),8,int(width*.30f),int(height*.08f)},
                      bonusTestOpen?"TEST BONUS ON":"TEST BONUS OFF");
