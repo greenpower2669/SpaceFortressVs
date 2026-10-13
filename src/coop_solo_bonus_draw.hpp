@@ -175,7 +175,9 @@ struct SfCoopSoloBonusRenderer {
                 ring(p.x-shot.velocity.vx/speed*trail,p.y-shot.velocity.vy/speed*trail,
                      shot.radius*(1-.18f*i),color(shot.bonusKind,Uint8(150-i*35)),0,8);
             }
-            const int frame=int(std::floor(shot.age*14.0f))&7;
+            // Flight is deliberately limited to the four approach frames.
+            // Frames 4..7 are impact/closure frames and must never flash early.
+            const int frame=int(std::floor(shot.age*11.0f))&3;
             if(shot.bonusKind==Kind::Meteor){
                 const float tail=shot.radius*2.3f;
                 animatedSprite(Kind::Lava,frame,
