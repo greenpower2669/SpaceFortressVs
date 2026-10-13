@@ -45,6 +45,7 @@ struct SfCoopState {
     std::vector<sfsolo::bonus::Kind> soloBonusPending;
     std::vector<SfSoloBonusImpact> soloBonusImpacts;
     std::vector<SfSoloBonusEjection> soloBonusEjections;
+    unsigned soloBonusTestBurst=0; // diagnostic TOUS X8 must launch as one batch
     float soloBossClock=0,soloBossStep=0;
     double soloLootRetry=0,soloCollectUntil=0;
     sfsolo::bonus::Kind soloLastCollected=sfsolo::bonus::Kind::None;
