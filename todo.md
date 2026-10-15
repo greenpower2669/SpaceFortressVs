@@ -635,3 +635,17 @@ GAME-015 : hôte/selector/activité, quatre miniboss, antre/arène, transition e
 GAME-015 / contrôles complémentaires : snapshot haute densité et état SDL vérifiés ; temps résiduel de transition corrigé ; furtivité conserve le contact miniboss, test RED puis GREEN ; anciens FX libérés au changement de scène. En cours : revue finale, suite globale fraîche et CI Android.
 
 GAME-015 / validation locale finale 15/10/2026 : `bash scripts/test-regressions.sh` terminé avec code 0 ; tests ciblés de furtivité/contact et changement de scène verts. Revue indépendante finale sans défaut critique/important restant. `src/main.cpp` conserve le blob 835059a0ecfe0f74708068b3259cad5db1cdb579. CI Android et export restent à confirmer au SHA du commit envoyé. La modification locale ultérieure de ParoisModeSolo.png est séparée et exclue du commit GAME-015.
+
+## GAME-015 — livraison vérifiée 15/10/2026
+- [x] GAME-015 : vrai sélecteur, hôte partagé et processus Android isolé.
+- [x] GAME-015 : quatre miniboss, aucun bonus, antre/transition/arène commune.
+- [x] GAME-015 : progression compatible, reprise au premier niveau non terminé.
+- [x] GAME-015 : revue, régressions C++/SDL2 et CI Android exacte verte.
+- [x] GAME-015 : APK/AAB exportés et SHA256 vérifiés.
+- [ ] Samsung : fluidité, équilibre, cycle Android, transition, collecte/victoire et relance.
+- [ ] Anciennes collisions astéroïdes/parois : hors de cette mission ; METEOR-009 reste OFF.
+
+Source `f5b4ce4f82e99057d041767d982914e903afbf7f`; CI Android/C++/SDL2 `38724287864` SUCCESS; publish-release SKIPPED.
+- Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
+- `SpaceFortressVs-1.4.2-SOLO-GAME-015-f5b4ce4.apk`: 95023204 octets, SHA256 `f5138def32cdb8553e86006f6e079ce6a61a979b764c6c62f1757aca61ca8ec7`.
+- `SpaceFortressVs-1.4.2-SOLO-GAME-015-f5b4ce4-unsigned.aab`: 92378949 octets, SHA256 `1b4d9a9bffb7ade770ec033bd25162c20c440c9a01db71ad8613c2156aee0e7c`.

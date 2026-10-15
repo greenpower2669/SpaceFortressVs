@@ -1,0 +1,23 @@
+{
+  "mission": "SOLO GAME-015",
+  "branch": "feature/solo-coop-core-v1",
+  "commit": "f5b4ce4f82e99057d041767d982914e903afbf7f",
+  "sourceRun": 38724287864,
+  "packageName": "com.greenpower2669.spacefortressvs.diagnostic",
+  "animationAtlas": {
+    "path": "assets/pict/solo/SoloBonusAnimations.png",
+    "layout": "4x8 frames, 192x192",
+    "sha256": "1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001"
+  },
+  "files": {
+    "SpaceFortressVs-1.4.2-SOLO-GAME-015-f5b4ce4.apk": {
+      "sha256": "f5138def32cdb8553e86006f6e079ce6a61a979b764c6c62f1757aca61ca8ec7",
+      "size": 95023204
+    },
+    "SpaceFortressVs-1.4.2-SOLO-GAME-015-f5b4ce4-unsigned.aab": {
+      "sha256": "1b4d9a9bffb7ade770ec033bd25162c20c440c9a01db71ad8613c2156aee0e7c",
+      "size": 92378949
+    }
+  },
+  "aabNote": "NON SIGNE; diagnostic phone is the APK debug; no public Release."
+}

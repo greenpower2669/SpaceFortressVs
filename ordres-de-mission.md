@@ -690,3 +690,11 @@ GAME-015 : quatre miniboss effectivement intégrés sur le chemin accessible, sa
 GAME-015 / suivi 15/10/2026 : plusieurs miniboss effectivement implémentés (quatre par parcours), zéro bonus de leur part. Entrée SOLO par le vrai sélecteur, diagnostic séparé, moteur final commun, transition et sauvegarde raccordés. Fab doit encore valider l’équilibrage et le rendu sur Samsung ; aucune validation physique ni nouvelle livraison Android annoncée avant preuve CI.
 
 GAME-015 / validation locale finale 15/10/2026 : `bash scripts/test-regressions.sh` terminé avec code 0 ; tests ciblés de furtivité/contact et changement de scène verts. Revue indépendante finale sans défaut critique/important restant. `src/main.cpp` conserve le blob 835059a0ecfe0f74708068b3259cad5db1cdb579. CI Android et export restent à confirmer au SHA du commit envoyé. La modification locale ultérieure de ParoisModeSolo.png est séparée et exclue du commit GAME-015.
+
+## GAME-015 — livraison vérifiée 15/10/2026
+Ordre Fab GAME-015 exécuté sur feature/solo-coop-core-v1 : plusieurs miniboss maintenant inclus, aucune récompense de miniboss, vrai SOLO relié au sélecteur et au moteur final commun. Pas de merge main, pas de Release, pas de modification src/main.cpp. Livraison APK diagnostic identifiée et AAB non signé ; validation Samsung réservée à Fab.
+
+Source `f5b4ce4f82e99057d041767d982914e903afbf7f`; CI Android/C++/SDL2 `38724287864` SUCCESS; publish-release SKIPPED.
+- Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
+- `SpaceFortressVs-1.4.2-SOLO-GAME-015-f5b4ce4.apk`: 95023204 octets, SHA256 `f5138def32cdb8553e86006f6e079ce6a61a979b764c6c62f1757aca61ca8ec7`.
+- `SpaceFortressVs-1.4.2-SOLO-GAME-015-f5b4ce4-unsigned.aab`: 92378949 octets, SHA256 `1b4d9a9bffb7ade770ec033bd25162c20c440c9a01db71ad8613c2156aee0e7c`.
