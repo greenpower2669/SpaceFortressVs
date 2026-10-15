@@ -7,7 +7,9 @@ struct SfCoopSoloBonusRenderer {
     SDL_Renderer *renderer;
     SDL_Texture *atlas=nullptr,*animationAtlas=nullptr;
     std::array<SDL_Texture*,4> icons{};
-    explicit SfCoopSoloBonusRenderer(SDL_Renderer *r):renderer(r){
+    explicit SfCoopSoloBonusRenderer(SDL_Renderer *r):renderer(r){reload();}
+    void reload(){
+        release();SDL_Renderer *r=renderer;
         atlas=IMG_LoadTexture(r,"resources/assets/pict/solo/EnvironnementsModeSolo.png");
         animationAtlas=IMG_LoadTexture(r,"resources/assets/pict/solo/SoloBonusAnimations.png");
         const char *paths[]={"remaster/heart_blue.png","remaster/energy_ice.png",
@@ -227,7 +229,7 @@ struct SfCoopSoloBonusRenderer {
         if(sfCoop.bossPresent){
             const int bossY=int(height*.105f),barWidth=width-2*margin;
             const float ratio=std::clamp(sfCoop.health/sfCoopProfile().health,0.0f,1.0f);
-            sfCoopText(renderer,margin,bossY,"BOSS TEST : "+std::to_string(int(std::ceil(sfCoop.health)))+" PV",
+            sfCoopText(renderer,margin,bossY,std::string(sfCoop.soloDiagnostic?"BOSS TEST : ":"BOSS FINAL : ")+std::to_string(int(std::ceil(sfCoop.health)))+" PV",
                        barWidth,hudScale,{224,207,255,235});
             sfDrawBossRatioBar(renderer,{margin,bossY+hudScale*7+8,barWidth,9},ratio,sfHealthColor(ratio),false);
             sfDrawBossRatioBar(renderer,{margin,bossY+hudScale*7+4,barWidth,3},sfCoop.bossEnergyReserve,sfBossEnergyColor(),false);

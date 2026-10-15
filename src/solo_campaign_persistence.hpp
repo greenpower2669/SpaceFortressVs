@@ -34,4 +34,17 @@ inline bool finishAndSave(CampaignController &campaign,const std::string &path,
     campaign.active.reset();
     return true;
 }
+// Same durable commit order for the new runtime, without instantiating Session.
+inline bool finishAndSave(CampaignController &campaign,const RunResult &run,
+                          const std::string &path,const std::string &player,
+                          const std::string &submissionId,int points){
+    if(campaign.active)return false;
+    const auto entry=makeSoloHallEntry(run,player,submissionId,points);
+    if(!entry.valid() || run.world!=campaign.launchedSelection.world ||
+       run.stage!=campaign.launchedSelection.stage ||
+       run.difficulty!=campaign.launchedSelection.difficulty)return false;
+    Progression updated=campaign.progression;
+    if(!updated.complete(run.world,run.stage,true) || !saveProgression(path,updated))return false;
+    campaign.progression=updated;campaign.localHall.record(entry);return true;
+}
 } // namespace sfsolo

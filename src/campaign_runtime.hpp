@@ -4,7 +4,10 @@
 #include "campaign_save.hpp"
 #include "coop_pilot_roster.hpp"
 #include "solo_bonus_core.hpp"
+#include "solo_miniboss.hpp"
 #include <map>
+
+enum class SfSoloEncounterRole { None, MiniBoss, FinalBoss };
 
 enum class SfCoopPhase { Intro, Combat, Dying, Name, Saved, Defeat, Paused };
 struct SfCoopShot {
@@ -29,7 +32,9 @@ struct SfSoloBonusEjection {
 struct SfCoopState {
     SfCoopPilotRoster pilots{}; // two by default, never infer presence from PV
     bool bossPresent=true; // future SOLO exploration: no boss before encounter
-    bool soloDiagnostic=false; // suppress historical campaign save in test
+    bool soloGame=false; // production SOLO, independent of developer controls
+    bool soloDiagnostic=false;
+    SfSoloEncounterRole soloEncounterRole=SfSoloEncounterRole::FinalBoss;
     bool soloFreeAim=false;    // one blue human uses 360-degree direct aim
     bool soloWorldMode=false;  // opt-in, canonical COOP remains default
     void *soloWorldContext=nullptr;
@@ -77,6 +82,8 @@ struct SfCoopState {
     std::array<float,2> redDustCooldown{};
     std::array<bool,2> chargeHit{};
     bool chargeActive=false;
+    std::vector<SfSoloMiniboss> soloMinibosses;
+    unsigned soloMinibossDefeated=0;
     std::vector<SfCoopShot> shots;
     std::vector<SfCoopBeam> beams;
     std::vector<SfCoopWave> waves;
@@ -739,7 +746,7 @@ static void sfCoopMovePlayers(float dt)
 // Keep their real gameplay for canonical COOP, CLASSIC and DUEL ONLY.
 static bool sfCoopSoloExcludesTurrets()
 {
-    return sfCoop.soloDiagnostic || sfCoop.soloWorldMode;
+    return sfCoop.soloGame || sfCoop.soloDiagnostic || sfCoop.soloWorldMode;
 }
 static bool sfCoopShouldDrawHistoricalTactics()
 {
@@ -783,6 +790,9 @@ static void sfCoopDefences(float dt)
     }
 }
 
+// SOLO lightweight encounters share the historical projectile integration.
+#include "coop_solo_miniboss_runtime.hpp"
+
 static void sfCoopProjectiles(float dt)
 {
     // Defensive backstop: an inherited turret projectile cannot collide even
@@ -808,6 +818,7 @@ static void sfCoopProjectiles(float dt)
             shot.phase=guide.phase;
             shot.velocity=tuplv(guide.vx,guide.vy);
         }
+        if(!sfCoop.bossPresent)sfSoloMinibossGuide(shot,dt);
         if (shot.kind==1 && shot.age<.75f) {
             int target=-1;
             float nearest=std::numeric_limits<float>::max();
@@ -861,6 +872,7 @@ static void sfCoopProjectiles(float dt)
                 impact.vx=shot.velocity.vx/60;impact.vy=shot.velocity.vy/60;
                 sfMineAsteroid(rock,&impact);shot.life=0;break;
             }
+            sfSoloMinibossHit(shot);
             if (sfCoop.bossPresent && shot.life>0 && sfSegmentDistance(shot.previous,shot.position,sfCoop.position)<sfCoopBossRadius()*.75f+shot.radius) {
                 const float energyStress=.018f+.102f*std::clamp(shot.damage/60.0f,0.0f,1.0f);
                 sfCoop.bossEnergyReserve=std::clamp(sfCoop.bossEnergyReserve-energyStress,0.0f,1.0f);
@@ -1275,6 +1287,7 @@ static void sfCoopTick(float dt)
         // dust pickup, kinetic charge and missile loop. There is NO dummy
         // boss with zero PV and NO call to the COOP victory save.
         sfCoopMovePlayers(dt);
+        sfSoloMinibossTick(dt);
         sfCoopProjectiles(dt);
         sfCoopResources(dt);
         sfCoopSoloMeteorites(dt);
@@ -1325,7 +1338,7 @@ static void sfCoopTick(float dt)
     sfCoopProjectiles(dt);sfCoopApplyMiningConeBossDamage(dt);sfCoopResources(dt);sfCoopBonus(dt);
     sfCoopSoloBonusCollectAndDrop();
     if (sfCoop.health<=0 && sfCoopAnyAlive()) {
-        if(sfCoop.soloDiagnostic){
+        if(sfCoop.soloGame || sfCoop.soloDiagnostic){
             // Combat/graphics were the REAL COOP engine. A diagnostic SOLO
             // victory only exits its encounter; it must not write COOP saves.
             sfCoop.bossPresent=false;
@@ -1738,7 +1751,7 @@ static void sfCoopText180(SDL_Renderer *renderer,int width,int height,int x,int 
 static int sfHudBarHeight(int width) {return std::max(10,width/60);}
 static int sfPlayerSafeBottomInset(int height)
 {
-    if(!sfCoop.soloDiagnostic || height<=0)return 0;
+    if(!(sfCoop.soloGame || sfCoop.soloDiagnostic) || height<=0)return 0;
 #if defined(__ANDROID__)
     SDL_Rect usable{};
     if(SDL_GetDisplayUsableBounds(0,&usable)==0 && usable.h>0){

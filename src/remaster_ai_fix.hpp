@@ -171,6 +171,13 @@ static void sfFixApplyUiRequests()
     }
 
     if (sfFixLaunchPending.exchange(false)) {
+        if(sfSelectedMode==SF_SOLO_GAME){
+            // Start another native process, never recursively own SDL here.
+            sfSoloLaunchFailed=!sfLaunchSoloGame(sfBossDangerIndex);
+            sfFixRequestedScreen.store(SF_UI_HOME);sfUiScreen=SF_UI_HOME;
+            setgui=true;
+            return;
+        }
         setia = sfFixRequestedIa.load();
         sfActiveMode=sfSelectedMode;
         if (!sfIsCoop()) sfCampaignRestoreDuelShips();
@@ -243,7 +250,7 @@ static void sfFixHandleEvent(SDL_Event *event)
 
             if (requestedScreen == SF_UI_HOME) {
                 if (y >= 0.39f && y <= 0.505f) {
-                    sfSelectedMode=(sfSelectedMode+1)%4;
+                    sfSelectedMode=(sfSelectedMode+1)%SF_GAME_MODE_COUNT;
                     sfFixRequestedIa.store(sfModeHasAi(sfSelectedMode));
                 } else if (y >= 0.515f && y <= 0.60f) {
                     sfBossDangerNext();

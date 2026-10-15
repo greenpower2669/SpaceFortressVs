@@ -616,3 +616,22 @@ Source `f9323f3cd239e9027d964e38db369a9217ef02cb`; CI Android/C++/SDL2 `38420099
 - Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-014-f9323f3.apk`: 94989574 octets, SHA256 `0dfe83dbb1f2716e33442a2d2933356b1a6582180a85a9c2fed5a77b1ebe59ff`.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-014-f9323f3-unsigned.aab`: 92342299 octets, SHA256 `564b0c9427bd776ed93bcb32d3012d86d232f3354ffded5d85b020cfd7424965`.
+
+
+## SOLO GAME-015 — plan actif, 14/10/2026
+- [x] Audit validé, autorisation de coder et précision « plusieurs miniboss » consignées ; base 0c3f4a1.
+- [x] Extraire l’hôte SOLO partagé, isoler le diagnostic, ajouter le vrai sélecteur et l’activité interne Android.
+- [x] Plusieurs miniboss accessibles et espacés, IA simple, dégâts réels, projectiles historiques et zéro bonus.
+- [x] Antre physique, transition zoom/ondulation, arène finale commune à BOSS TEST, conservation PV/énergie/pouvoirs.
+- [x] Fin de combat permettant la collecte, progression/sauvegarde SOLO sans ancien moteur Session.
+- [ ] Tests ciblés, régressions complètes, revue indépendante, CI Android et APK dans temp/solo-game-015/.
+- [ ] Samsung : entrée/sortie/reprise, caméra, rencontres, lisibilité transition, bonus et FPS. Non testé sur appareil.
+Plan détaillé : `docs/superpowers/plans/2026-10-14-solo-game-015.md`.
+
+GAME-015 / étape 1 : sélecteur SOLO, activité interne `:sologame`, hôte commun et droits diagnostic séparés implémentés localement. Test ciblé RED (injection hors diagnostic acceptée auparavant) puis GREEN ; launcher statique GREEN. Suite globale arrivée aux tests cinétiques finaux sans erreur visible, statut de processus perdu lors de la reprise de session : une exécution finale avec code retour enregistré reste requise. Android et Samsung non encore validés.
+
+GAME-015 : hôte/selector/activité, quatre miniboss, antre/arène, transition et résultat durable codés. Tests ciblés gameplay GREEN ; parcours vérifiés sur 18 cartes représentatives (6 mondes × stages 1/10/20, difficultés 1/5/9), transition/reset/fallback et sauvegarde/rollback GREEN. Restent suite globale avec code retour enregistré, revue indépendante, Android CI puis export APK/Samsung.
+
+GAME-015 / contrôles complémentaires : snapshot haute densité et état SDL vérifiés ; temps résiduel de transition corrigé ; furtivité conserve le contact miniboss, test RED puis GREEN ; anciens FX libérés au changement de scène. En cours : revue finale, suite globale fraîche et CI Android.
+
+GAME-015 / validation locale finale 15/10/2026 : `bash scripts/test-regressions.sh` terminé avec code 0 ; tests ciblés de furtivité/contact et changement de scène verts. Revue indépendante finale sans défaut critique/important restant. `src/main.cpp` conserve le blob 835059a0ecfe0f74708068b3259cad5db1cdb579. CI Android et export restent à confirmer au SHA du commit envoyé. La modification locale ultérieure de ParoisModeSolo.png est séparée et exclue du commit GAME-015.

@@ -25,6 +25,10 @@ int main(){
     assert(runCoopSoloArena()==0); // real CANONICAL COOP loop in generated maze
     assert(!sfCoop.soloWorldMode); // no dangling world session on exit
     assert(sfCoop.soloWorldContext==nullptr);
+    assert(runSoloGame()==0); // true entry: maze directly, no diagnostic capability
+    assert(sfCoop.soloGame && !sfCoop.soloDiagnostic);
+    assert(sfCoop.soloWorldContext==nullptr);
+    sfCoop.soloGame=false;
     // Samsung/navigation-bar protection is Android-only and must affect only
     // the lower SOLO player HUD, never the boss geometry.
     sfCoop.soloDiagnostic=true;

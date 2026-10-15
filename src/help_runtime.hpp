@@ -66,13 +66,29 @@ inline constexpr std::array<SfHelpPage,18> SF_HELP_DETAILED_PAGES{{
     {"AIDE EN PLEINE PARTIE","LE ? SUSPEND VOTRE COMBAT","RETOUR REPREND SANS RESET",2}
 }};
 
+inline constexpr std::array<SfHelpPage,8> SF_HELP_SOLO_PAGES{{
+    {"SOLO EXPLORATION","TRAVERSEZ LE LABYRINTHE","TROUVEZ L ANTRE DU BOSS",10},
+    {"PILOTAGE SOLO","GLISSEZ LE PREMIER DOIGT","LES BORDS FONT DEFILER LE MONDE",1},
+    {"TIR ET VISEE","2E DOIGT BREF = UN TIR","VISEZ AUTOUR DU VAISSEAU",1},
+    {"CINETIQUE","MAINTENEZ LE SECOND DOIGT","CHARGE PRETE : RELACHEZ",6},
+    {"RESSOURCES","MINEZ LES ASTEROIDES","POUSSIERE BLANCHE = RECHARGE",4},
+    {"MINIBOSS","QUATRE RENCONTRES DANGEREUSES","ILS NE DONNENT AUCUN BONUS",7},
+    {"BOSS FINAL","ENTREZ DANS SON ANTRE","LUI SEUL EJECTE LES BONUS",0},
+    {"VICTOIRE","RAMASSEZ PUIS TOUCHEZ TERMINER","LE NIVEAU SUIVANT EST DEBLOQUE",10}
+}};
+
 static int sfHelpPageCount(SfHelpFormat format)
 {
+    if(sfSelectedMode==SF_SOLO_GAME)return int(SF_HELP_SOLO_PAGES.size());
     return format==SfHelpFormat::Quick ? int(SF_HELP_QUICK_PAGES.size()) : int(SF_HELP_DETAILED_PAGES.size());
 }
 
 static const SfHelpPage &sfHelpCurrentPage()
 {
+    if(sfSelectedMode==SF_SOLO_GAME){
+        sfHelpState.page=std::clamp(sfHelpState.page,0,int(SF_HELP_SOLO_PAGES.size())-1);
+        return SF_HELP_SOLO_PAGES[size_t(sfHelpState.page)];
+    }
     if(sfHelpState.format==SfHelpFormat::Quick) {
         sfHelpState.page=std::clamp(sfHelpState.page,0,int(SF_HELP_QUICK_PAGES.size())-1);
         return SF_HELP_QUICK_PAGES[size_t(sfHelpState.page)];

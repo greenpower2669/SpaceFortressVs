@@ -67,6 +67,7 @@ add_library(main SHARED
     "${CMAKE_CURRENT_LIST_DIR}/sdl_entry.cpp"
     "${REPO_ROOT}/src/solo_prototype.cpp" # opt-in DEBUG launcher, no duplicate main
     "${CMAKE_CURRENT_LIST_DIR}/hall_sync_jni.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/solo_launch_jni.cpp"
 )
 
 target_include_directories(main PRIVATE
@@ -77,7 +78,7 @@ target_include_directories(main PRIVATE
     "${THIRD_PARTY}/SDL_mixer/include"
 )
 
-target_compile_definitions(main PRIVATE GL_GLEXT_PROTOTYPES)
+target_compile_definitions(main PRIVATE GL_GLEXT_PROTOTYPES SF_ANDROID_SOLO_LAUNCH=1)
 # Enable on-device persistent crash breadcrumbs in DEBUG APK only.
 target_compile_definitions(main PRIVATE $<$<CONFIG:Debug>:SF_DIAGNOSTICS_DEBUG=1>)
 

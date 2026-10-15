@@ -2,6 +2,7 @@
 // SOLO-specific score records: never reinterpret legacy DUEL/COOP hall entries.
 // Remote payload transport is intentionally separate until server schema audit.
 #include "solo_session.hpp"
+#include "solo_run_result.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <map>
@@ -47,6 +48,19 @@ inline SoloHallEntry makeSoloHallEntry(const Session &session,
     e.points=points;e.damageTaken=session.pilot.damageTaken;
     e.bossDefeated=session.bossDefeated;
     e.reachedFinish=session.reachedFinish;e.alive=session.pilot.health>0;
+    return e;
+}
+inline SoloHallEntry makeSoloHallEntry(const RunResult &run,
+    const std::string &player,const std::string &submissionId,int points){
+    SoloHallEntry e;
+    if(!std::isfinite(run.seconds) || run.seconds<=0 || run.seconds>86400 ||
+       !std::isfinite(run.health) || run.health<=0)return e;
+    e.submissionId=submissionId;e.playerName=player;e.mapId=run.mapId;
+    e.mapVersion=run.mapVersion;e.world=run.world;e.stage=run.stage;e.difficulty=run.difficulty;
+    e.enemiesDefeated=run.enemiesDefeated;e.enemiesAvailable=run.enemiesAvailable;
+    e.durationMs=static_cast<uint64_t>(run.seconds*1000.0f);
+    e.points=points;e.damageTaken=run.damageTaken;
+    e.bossDefeated=run.bossDefeated;e.reachedFinish=run.reachedFinish;e.alive=true;
     return e;
 }
 struct SoloHallLocal {

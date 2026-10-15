@@ -674,3 +674,19 @@ Source `f9323f3cd239e9027d964e38db369a9217ef02cb`; CI Android/C++/SDL2 `38420099
 - Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-014-f9323f3.apk`: 94989574 octets, SHA256 `0dfe83dbb1f2716e33442a2d2933356b1a6582180a85a9c2fed5a77b1ebe59ff`.
 - `SpaceFortressVs-1.4.2-SOLO-BONUS-014-f9323f3-unsigned.aab`: 92342299 octets, SHA256 `564b0c9427bd776ed93bcb32d3012d86d232f3354ffded5d85b020cfd7424965`.
+
+
+## 14/10/2026 — SOLO GAME-015 — autorisation Fab, en cours
+Fab valide l’audit de la branche `feature/solo-coop-core-v1` puis demande : « Ok, met l ordre de mission net les mémoires à jour et tu te sent de coder ça? ». Précision immédiate : plusieurs **miniboss sur les chemins du labyrinthe**, à implémenter dans cette mission, pas seulement à préparer pour plus tard.
+
+Contrat demandé : une entrée SOLO dans le véritable sélecteur existant ; lancement direct du labyrinthe ; pilotage/caméra/astéroïdes/minage/énergie/cinétique/sons validés préservés. Plusieurs miniboss peu résistants, dangereux, à IA simple et lisible ; **aucun bonus ni seuil 75/50/25/mort pour les miniboss**. Antre identifiable, arrêt propre du pilotage, transition courte zoom/distorsion, puis arène dédiée utilisant le même cœur que BOSS TEST. Aucun contrôle de diagnostic dans le vrai jeu. Le boss final seul éjecte les récompenses BONUS-014 aux seuils 75/50/25 et à sa mort, avec collecte accessible et animations conservées.
+
+Protections : `src/main.cpp` intact, CLASSIQUE/DUEL/COOP inchangés, tourelles SOLO et METEOR-009 toujours OFF. Aucune fusion main ni Release. Tests C++/SDL2, CI Android et nouvelle APK diagnostic identifiable dans `temp/solo-game-015/`. Le gel « audit seulement » est levé par cette autorisation ; les anciens incidents de parois restent documentés. Statut : implémentation autorisée, non livrée. Référence audit : `0c3f4a1118c7306025bcd8c8bf50495b0d82eba9`.
+
+GAME-015 / étape 1 : sélecteur SOLO, activité interne `:sologame`, hôte commun et droits diagnostic séparés implémentés localement. Test ciblé RED (injection hors diagnostic acceptée auparavant) puis GREEN ; launcher statique GREEN. Suite globale arrivée aux tests cinétiques finaux sans erreur visible, statut de processus perdu lors de la reprise de session : une exécution finale avec code retour enregistré reste requise. Android et Samsung non encore validés.
+
+GAME-015 : quatre miniboss effectivement intégrés sur le chemin accessible, sans récompense ; antre et arène commune codés. Transition et progression en vérification locale, pas encore livrés.
+
+GAME-015 / suivi 15/10/2026 : plusieurs miniboss effectivement implémentés (quatre par parcours), zéro bonus de leur part. Entrée SOLO par le vrai sélecteur, diagnostic séparé, moteur final commun, transition et sauvegarde raccordés. Fab doit encore valider l’équilibrage et le rendu sur Samsung ; aucune validation physique ni nouvelle livraison Android annoncée avant preuve CI.
+
+GAME-015 / validation locale finale 15/10/2026 : `bash scripts/test-regressions.sh` terminé avec code 0 ; tests ciblés de furtivité/contact et changement de scène verts. Revue indépendante finale sans défaut critique/important restant. `src/main.cpp` conserve le blob 835059a0ecfe0f74708068b3259cad5db1cdb579. CI Android et export restent à confirmer au SHA du commit envoyé. La modification locale ultérieure de ParoisModeSolo.png est séparée et exclue du commit GAME-015.

@@ -1,13 +1,14 @@
 #pragma once
 // Adapter inside the historical campaign TU: no second world, pilot, firing
 // clock, energy equation, FabLib definition or global session.
-static bool sfCoopSoloBonusesEnabled(){return sfCoop.soloDiagnostic || sfCoop.soloWorldMode;}
+static bool sfCoopSoloBonusesEnabled(){return sfCoop.soloGame || sfCoop.soloDiagnostic || sfCoop.soloWorldMode;}
 static float sfCoopSoloPickupHull(){
     const auto *ship=sfCoopShip(1);
     return std::max(sfCoopShipRadius(),std::max(ship->w,ship->h)*.5f);
 }
 static void sfCoopSoloBonusObserveBossHealth(){
-    if(!sfCoopSoloBonusesEnabled() || !sfCoop.bossPresent)return;
+    if(!sfCoopSoloBonusesEnabled() || !sfCoop.bossPresent ||
+       sfCoop.soloEncounterRole!=SfSoloEncounterRole::FinalBoss)return;
     const auto drops=sfCoop.soloBonus.drops(sfCoop.health,sfCoopProfile().health);
     for(auto k:drops)if(sfCoop.soloBonusPending.size()<48)sfCoop.soloBonusPending.push_back(k);
     if(!drops.empty())sfCoop.soloLootRetry=0;
@@ -38,7 +39,8 @@ static bool sfCoopSoloBonusPickupInFlight(std::uint32_t pickupId){
 }
 static bool sfCoopSoloBonusQueueTest(sfsolo::bonus::Kind kind){
     using sfsolo::bonus::Kind;
-    if(!sfCoopSoloBonusesEnabled() || !sfCoop.bossPresent || sfCoop.health<=0 ||
+    if(!sfCoop.soloDiagnostic || sfCoop.soloEncounterRole!=SfSoloEncounterRole::FinalBoss ||
+       !sfCoopSoloBonusesEnabled() || !sfCoop.bossPresent || sfCoop.health<=0 ||
        kind==Kind::None || unsigned(kind)>=unsigned(Kind::None) ||
        sfCoop.soloBonusPending.size()>=48)return false;
     sfCoop.soloBonusPending.push_back(kind);sfCoop.soloLootRetry=0;return true;

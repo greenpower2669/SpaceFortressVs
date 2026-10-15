@@ -154,6 +154,23 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         sfTacticalRing(renderer,tupl(p.x,p.y),radius,{255,185,98,92});
     }
 
+    // Minibosses reuse the historical animated boss atlas, with local HP and
+    // a readable warning. They never become sfCoop's final boss state.
+    for(const auto &m:sfCoop.soloMinibosses)if(m.health>0){
+        const auto p=project(m.position.x,m.position.y);
+        if(!visible(p.x,p.y,m.radius*2))continue;
+        sfDrawEncounterBoss(renderer,textures.bosses,m.appearance,tupl(p.x,p.y),
+                            m.radius,sfCoop.time,m.hit,0);
+        if(m.warning>0){
+            sfTacticalRing(renderer,tupl(p.x,p.y),m.radius*1.4f,{255,110,70,200});
+            const auto end=project(m.position.x+std::cos(m.aim)*sfArenaW*.22f,
+                                   m.position.y+std::sin(m.aim)*sfArenaW*.22f);
+            SDL_SetRenderDrawColor(renderer,255,115,70,175);
+            SDL_RenderDrawLineF(renderer,p.x,p.y,end.x,end.y);
+        }
+        sfDrawBossRatioBar(renderer,{int(p.x-m.radius),int(p.y-m.radius-12),int(m.radius*2),5},
+                           m.health/180.0f,sfHealthColor(m.health/180.0f),false);
+    }
     // The atlas boss and its kinetic shield are projected to the REAL
     // viewport, never drawn at the original arena origin. This is a WORLD
     // diagnostic encounter; the existing boss physics handles meteor hits.

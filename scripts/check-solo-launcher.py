@@ -13,6 +13,7 @@ T = "{http://schemas.android.com/tools}"
 LEGACY = "com.greenpower2669.spacefortressvs.SpaceFortressActivity"
 SOLO = "com.greenpower2669.spacefortressvs.SpaceFortressSoloActivity"
 HUB = "com.greenpower2669.spacefortressvs.SpaceFortressHubActivity"
+SOLO_GAME = "com.greenpower2669.spacefortressvs.SpaceFortressSoloGameActivity"
 COOP_SOLO = "com.greenpower2669.spacefortressvs.SpaceFortressCoopSoloActivity"
 
 def activities(path):
@@ -30,6 +31,9 @@ def launcher(activity):
 
 main = activities(APP / "main/AndroidManifest.xml")
 debug = activities(APP / "debug/AndroidManifest.xml")
+assert SOLO_GAME in main and not launcher(main[SOLO_GAME])
+assert main[SOLO_GAME].get(A+"exported")=="false"
+assert main[SOLO_GAME].get(A+"process")==":sologame"
 assert LEGACY in main and launcher(main[LEGACY]), "release launcher changed"
 assert ET.parse(APP / "debug/AndroidManifest.xml").getroot().find(
     "./application").get(A+"name", "").endswith(".SpaceFortressDebugApplication"), (

@@ -3,14 +3,22 @@
 #include "solo_prototype.hpp"
 #include "solo_android_diagnostics.hpp"
 #include <cstring>
+#include <cstdlib>
 #include <string>
 
 extern int SDL_main();
 extern "C" int runCoopSoloArena();
+extern "C" int runSoloGame();
+#include "boss_danger.hpp"
 
 extern "C" int SpaceFortressMain(int argc, char **argv)
 {
+    for(int i=0;argv && i<argc;++i)
+        if(argv[i] && std::strncmp(argv[i],"--boss-danger=",14)==0)
+            sfBossDangerIndex=std::clamp(std::atoi(argv[i]+14),0,8);
     for (int i=0; argv && i<argc; ++i) {
+        if(argv[i] && std::strcmp(argv[i],"--spacefortress-solo-game")==0)
+            return runSoloGame();
         if(argv[i] && std::strcmp(argv[i],"--spacefortress-coop-solo-arena")==0){
             sfDebugNativeLog("coopsolo","SDL_ENTRY_REAL_COOP_ARENA");
             const int result=runCoopSoloArena();

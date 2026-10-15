@@ -161,10 +161,10 @@ public final class SpaceFortressHubActivity extends Activity {
         put(body, label("CLASSIQUE  ·  DUEL  ·  VS IA\n"
                       + "COOPERATION  ·  CAMPAGNE", 18, MUTED, true), 75, 10);
 
-        action(body, "JEU ORIGINAL", "Ouvrir le menu avec tous les modes historiques",
+        action(body, "JOUER : SOLO / COOP / DUEL", "Ouvrir le vrai sélecteur de modes",
                 Color.rgb(25, 86, 147), Color.rgb(24, 47, 94),
                 SpaceFortressActivity.class);
-        action(body, "MODE SOLO", "Mondes, niveaux et combats : prototype en test",
+        action(body, "ANCIEN PROTOTYPE SOLO", "Diagnostic de la première version exploratoire",
                 Color.rgb(28, 143, 108), Color.rgb(14, 74, 87),
                 SpaceFortressSoloActivity.class);
 

@@ -318,7 +318,7 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.055f),
                      "SPACE FORTRESS", titleScale, 235, 250, 255);
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.115f),
-                     "DUEL + CAMPAGNE COOP", base, 105, 200, 240);
+                     "DUEL + COOP + SOLO", base, 105, 200, 240);
 
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.355f),
                      "TOUCHEZ LE MODE POUR LE CHANGER", base,
@@ -331,7 +331,7 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
     sfUiPanel(renderer, mode, 7, 18, 42,
               setia ? 225 : 70, setia ? 105 : 200, setia ? 215 : 245);
 
-    const char *modes[] = {"DUEL : 2 JOUEURS","DUEL : JOUEUR + IA","COOP : 2 JOUEURS","COOP : JOUEUR + IA"};
+    const char *modes[] = {"DUEL : 2 JOUEURS","DUEL : JOUEUR + IA","COOP : 2 JOUEURS","COOP : JOUEUR + IA","SOLO : LABYRINTHE"};
     const char *modeText = modes[sfSelectedMode];
     sfUiCenteredText(renderer, width,
                      mode.y + (mode.h - 7 * buttonScale) / 2,
@@ -372,9 +372,9 @@ static void sfUiDrawHome(SDL_Renderer *renderer)
     sfUiGear(renderer, static_cast<int>(width * 0.31f), gy, width / 28);
     sfUiGear(renderer, static_cast<int>(width * 0.69f), gy, width / 28);
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.858f),
-                     "EN PARTIE", base, 125, 185, 225);
+                     sfSoloLaunchFailed?"SOLO INDISPONIBLE - REESSAYEZ":"EN PARTIE", base, 125, 185, 225);
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.947f),
-                     sfSelectedMode>=SF_COOP_LOCAL ? "COOP : PAUSE PUIS ACCUEIL" : "DEUX ENGRENAGES = ACCUEIL", base, 205, 225, 240);
+                     sfSelectedMode==SF_SOLO_GAME ? "SOLO : RETOUR = ACCUEIL" : sfModeIsCoop(sfSelectedMode) ? "COOP : PAUSE PUIS ACCUEIL" : "DEUX ENGRENAGES = ACCUEIL", base, 205, 225, 240);
 }
 
 static void sfUiHelpLine(SDL_Renderer *renderer, int width, int y,
@@ -400,7 +400,7 @@ static void sfUiDrawHelp(SDL_Renderer *renderer)
 
     const int base = (width / 300) > 2 ? (width / 300) : 2;
     const int titleScale = base * 2;
-    const bool coop = sfSelectedMode>=SF_COOP_LOCAL;
+    const bool coop = sfModeIsCoop(sfSelectedMode);
 
     sfUiCenteredText(renderer, width, static_cast<int>(height * 0.055f),
                      "COMMENT JOUER", titleScale, 235, 250, 255);
