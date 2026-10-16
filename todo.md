@@ -718,3 +718,5 @@ Source `3ef362cd1375034519c458a0effb2d7abef03490`; CI Android/C++/SDL2 `38956636
 - [ ] Fournir APK diagnostic et AAB **non signé** après CI verte, avec liens et identification exacts.
 - [ ] Essai Fab Samsung : murs face/angle, dégagement sans latence, maintien du doigt, pinch sans tir ni changement de vitesse et 30/60/120 FPS ; valider le ressenti.
 - [ ] Aucune fusion main/Release sans validation explicite Fab. src/main.cpp, assets, audio et modes historiques inchangés.
+
+SOLO-018 / CI reprise : test de stress multichocs à 100000 px/s corrigé par `a85ca0d` après l'échec de `38962472820`. Nouvelle CI `38963255438` à examiner avant livrable Android. Aucun nouveau feu vert Samsung demandé pour coder ; accord maintenu pour le correctif SOLO, non pour main/Release.
