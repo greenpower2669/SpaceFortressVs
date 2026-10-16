@@ -701,3 +701,5 @@ Source `f5b4ce4f82e99057d041767d982914e903afbf7f`; CI Android/C++/SDL2 `38724287
 
 ## 16/10/2026 — SOLO PARALLAX-016
 Fab autorise PARALLAX-016 : réutiliser ParoisModeSolo.png, EnvironnementsModeSolo.png et fond4hlow.png ; créer une seule planche minérale ajourée FondsParallaxeModeSolo.png ; raccorder le vrai SOLO GAME015 sans changer géométrie/collisions. Aucune modification src/main.cpp, aucun merge main ni Release ; tourelles SOLO et METEOR-009 OFF. Portée graphique uniquement : demandes d'astéroïdes immobiles, zone caméra lente et nouveaux comportements miniboss du précédent audit restent distinctes.
+
+PARALLAX-016 — export préparé : source `2a933a60639d890fd6168befb8ce1784ba9a18c8`, CI `38837760766`. Le workflow attend obligatoirement SUCCESS et vérifie le SHA exact avant publication dans `temp/solo-parallax-016/`. CI/export pas encore déclarés terminés.

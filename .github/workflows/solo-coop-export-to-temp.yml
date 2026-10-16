@@ -1,4 +1,4 @@
-name: Export verified SOLO GAME-015 to temp
+name: Export verified SOLO PARALLAX-016 to temp
 
 on:
   push:
@@ -26,23 +26,23 @@ jobs:
           ref: feature/solo-coop-core-v1
           persist-credentials: true
 
-      - name: Require exact GREEN GAME-015 CI and unpack
+      - name: Require exact GREEN PARALLAX-016 CI and unpack
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          source_run=38724287864
-          source_sha=f5b4ce4f82e99057d041767d982914e903afbf7f
-          short_sha=f5b4ce4
-          source_dir="$RUNNER_TEMP/solo-game-015"
+          source_run=38837760766
+          source_sha=2a933a60639d890fd6168befb8ce1784ba9a18c8
+          short_sha=2a933a6
+          source_dir="$RUNNER_TEMP/solo-parallax-016"
           mkdir -p "$source_dir"
 
           gh run watch "$source_run" --repo "$GITHUB_REPOSITORY" --exit-status
           conclusion="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json conclusion --jq '.conclusion')"
           actual_sha="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json headSha --jq '.headSha')"
           [[ "$conclusion" == success && "$actual_sha" == "$source_sha" ]] || {
-            echo "::error::GAME-015 source CI is not the required GREEN commit"
+            echo "::error::PARALLAX-016 source CI is not the required GREEN commit"
             exit 1
           }
 
@@ -57,9 +57,9 @@ jobs:
           source_sha = sys.argv[2]
           short_sha = sys.argv[3]
           source_run = int(sys.argv[4])
-          destination = Path("temp/solo-game-015")
+          destination = Path("temp/solo-parallax-016")
           destination.mkdir(parents=True, exist_ok=True)
-          prefix = f"SpaceFortressVs-1.4.2-SOLO-GAME-015-{short_sha}"
+          prefix = f"SpaceFortressVs-1.4.2-SOLO-PARALLAX-016-{short_sha}"
 
           source_manifest = json.loads((source / "SpaceFortressVs-1.4.2-build.json").read_text())
           assert source_manifest["commit"] == source_sha
@@ -91,8 +91,12 @@ jobs:
           atlas_sha = digest(atlas)
           assert atlas_sha == "1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001"
 
+          parallax = Path("assets/pict/solo/FondsParallaxeModeSolo.png")
+          parallax_sha = digest(parallax)
+          assert parallax_sha == "4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44"
+
           manifest = {
-              "mission": "SOLO GAME-015",
+              "mission": "SOLO PARALLAX-016",
               "branch": "feature/solo-coop-core-v1",
               "commit": source_sha,
               "sourceRun": source_run,
@@ -102,6 +106,8 @@ jobs:
                   "layout": "4x8 frames, 192x192",
                   "sha256": atlas_sha,
               },
+              "parallaxAtlas": {"path": str(parallax), "sha256": parallax_sha,
+                                "width": 1254, "height": 1254, "alpha": True},
               "files": delivered,
               "aabNote": "NON SIGNE; diagnostic phone is the APK debug; no public Release.",
           }
@@ -114,11 +120,12 @@ jobs:
           evidence_lines = [
               f"Source `{source_sha}`; CI Android/C++/SDL2 `{source_run}` SUCCESS; publish-release SKIPPED.",
               f"- Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `{atlas_sha}`.",
+              f"- Fond ajouré : `{parallax}`, RGBA1254x1254, SHA256 `{parallax_sha}`.",
               *[f"- `{name}`: {meta['size']} octets, SHA256 `{meta['sha256']}`." for name, meta in delivered.items()],
           ]
           evidence = "\n".join(evidence_lines)
 
-          readme = f"""# SpaceFortress — SOLO GAME-015 (DIAGNOSTIC)
+          readme = f"""# SpaceFortress — SOLO PARALLAX-016 (DIAGNOSTIC)
 
           Branche : `feature/solo-coop-core-v1`. Aucun merge main ni Release publique.
 
@@ -132,6 +139,10 @@ jobs:
 
           ## Contenu
 
+          - NOUVEAU : ciel historique lointain, fond minéral avec neuf ouvertures alpha réelles.
+          - Parallaxe indépendante : ciel 0,08, minéral 0,34, parois/acteurs 1,0 ; aucun changement de pilotage.
+          - ParoisModeSolo et EnvironnementsModeSolo raccordés au vrai SOLO ; murs pleins, géométrie inchangée.
+          - Raccords testés à plusieurs échelles, dont la capture réduite de l'antre ; rechargement textures après reset.
           - Labyrinthe existant avec quatre miniboss espacés sur le chemin accessible vers l'antre.
           - Miniboss : 180 PV, poursuite courte, avertissement puis salve x3 ; aucun bonus, même à la mort.
           - Pilotage tactile, caméra circulaire, énergie, minage et cinétique historiques conservés.
@@ -148,23 +159,23 @@ jobs:
 
           ## À vérifier physiquement sur Samsung
 
-          1. Lancement depuis le vrai sélecteur, retour Android et relancement.
+          1. Vrai sélecteur SOLO : vérifier textures des murs, trous vers le ciel et retour exact du décor en revenant sur ses pas.
           2. Vaisseau sous le doigt, caméra continue, minage et commandes de tir humain.
           3. Quatre rencontres : placement, lisibilité, dégâts et zéro bonus après les minibosses.
           4. Antre : zoom/ondulation lisible, sans tir involontaire ni bouton de test dans l'arène.
           5. Mise en arrière-plan/reprise pendant la transition, sans perte de PV/énergie/pouvoirs.
           6. Boss final, quatre seuils de récompenses, collecte puis TERMINER et niveau suivant.
-          7. Fluidité réelle et jauges au-dessus de la barre Android ; aucun FPS téléphone n'est encore certifié.
+          7. Aspect des répétitions de parois, fluidité réelle et jauges au-dessus de la barre Android ; aucun FPS téléphone n'est encore certifié.
           """
           (destination / "README.md").write_text("\n".join(line.lstrip() for line in readme.splitlines()) + "\n")
 
-          marker = "## GAME-015 — livraison vérifiée 15/10/2026"
+          marker = "## PARALLAX-016 — livraison vérifiée 16/10/2026"
           additions = {
-              "brain.md": "GAME-015 livré techniquement : vrai sélecteur SOLO, labyrinthe, quatre miniboss sans bonus, antre animé et arène finale utilisant le cœur commun BOSS TEST. BONUS-014 et règles historiques conservés ; progression SOLO sauvegardée à TERMINER. Validation physique Samsung encore requise.",
-              "brainmap.md": "GAME-015 : game_mode/start_ui/remaster_ai_fix → JNI/SpaceFortressSoloGameActivity (:sologame) → coop_solo_session_runtime. Parcours/antre = solo_level_flow ; miniboss = coop_solo_miniboss_runtime ; arène commune = coop_solo_encounter ; effet = solo_lair_transition ; résultat = solo_run_result + solo_campaign_persistence. APK/AAB : temp/solo-game-015/.",
-              "debughistorical.md": "GAME-015 : revue indépendante sans défaut majeur restant, 1080 combinaisons monde/niveau/danger traversables avec quatre miniboss distincts. Corrections de revue : temps résiduel après transition, collisions furtives et nettoyage des FX de scène. Tests SDL haute densité, régressions historiques, tests huit pouvoirs BONUS et CI Android exacts verts. src/main.cpp inchangé ; tourelles SOLO et METEOR-009 désactivés. Performances et cycle de vie Samsung restent à tester.",
-              "ordres-de-mission.md": "Ordre Fab GAME-015 exécuté sur feature/solo-coop-core-v1 : plusieurs miniboss maintenant inclus, aucune récompense de miniboss, vrai SOLO relié au sélecteur et au moteur final commun. Pas de merge main, pas de Release, pas de modification src/main.cpp. Livraison APK diagnostic identifiée et AAB non signé ; validation Samsung réservée à Fab.",
-              "todo.md": "- [x] GAME-015 : vrai sélecteur, hôte partagé et processus Android isolé.\n- [x] GAME-015 : quatre miniboss, aucun bonus, antre/transition/arène commune.\n- [x] GAME-015 : progression compatible, reprise au premier niveau non terminé.\n- [x] GAME-015 : revue, régressions C++/SDL2 et CI Android exacte verte.\n- [x] GAME-015 : APK/AAB exportés et SHA256 vérifiés.\n- [ ] Samsung : fluidité, équilibre, cycle Android, transition, collecte/victoire et relance.\n- [ ] Anciennes collisions astéroïdes/parois : hors de cette mission ; METEOR-009 reste OFF.",
+              "brain.md": "PARALLAX-016 livré : trois plans visuels du vrai SOLO, ciel historique et fond minéral ajouré, atlas de parois/environnements réutilisés. Aucun changement de caméra/physique/gameplay. Validation Samsung encore requise.",
+              "brainmap.md": "PARALLAX-016 : coop_solo_session_runtime → CoopSoloScenery ; ressources communes solo_scenery_assets/atlas ; textures par renderer, reset/release explicites. Diagnostic APK/AAB : temp/solo-parallax-016/ ; détails docs/solo-parallax-016.md.",
+              "debughistorical.md": "PARALLAX-016 : défaut de raccord à échelle fractionnaire trouvé par revue puis corrigé par éventail de triangles sans scissor par cellule. Tests pixel rectangle/32cellules et murs sur fonds opposés verts à quatre échelles. CI complète C++/SDL2/Android du commit exact verte. Validation visuelle et performances Samsung encore à faire.",
+              "ordres-de-mission.md": "Ordre graphique Fab PARALLAX-016 exécuté. Atlas existants et géométrie conservés ; vraie transparence et parallaxe indépendante. src/main.cpp inchangé, aucun merge main ni Release, tourelles SOLO et METEOR-009 OFF. APK diagnostic identifiée et AAB non signé exportés après CI verte.",
+              "todo.md": "- [x] PARALLAX-016 : nouveau fond, ressources existantes et rendu du vrai SOLO.\n- [x] Revue, correction des jointures et tests SDL à plusieurs échelles.\n- [x] CI C++/SDL2/Android du commit exact et export APK/AAB avec SHA256.\n- [ ] Samsung : aspect, lisibilité, répétitions, fluidité, pause/reprise et antre.\n- [ ] Hors périmètre : astéroïdes stationnaires, nouvelle couronne lente et nouvelles poursuites miniboss.",
           }
           for filename, note in additions.items():
               p = Path(filename)
@@ -176,20 +187,20 @@ jobs:
           print(evidence)
           PY
 
-          (cd temp/solo-game-015 && sha256sum --check SHA256SUMS)
+          (cd temp/solo-parallax-016 && sha256sum --check SHA256SUMS)
 
-      - name: Commit GAME-015 diagnostic and living memories
+      - name: Commit PARALLAX-016 diagnostic and living memories
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- temp/solo-game-015/ brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md
+          git add -- temp/solo-parallax-016/ brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md
           if git diff --cached --quiet; then
-            echo "GAME-015 diagnostic already exported."
+            echo "PARALLAX-016 diagnostic already exported."
             exit 0
           fi
-          git commit -m "chore(solo): deliver verified GAME-015 APK and AAB [skip ci]"
+          git commit -m "chore(solo): deliver verified PARALLAX-016 APK and AAB [skip ci]"
           git fetch origin feature/solo-coop-core-v1
           git rebase origin/feature/solo-coop-core-v1
           git push origin HEAD:refs/heads/feature/solo-coop-core-v1

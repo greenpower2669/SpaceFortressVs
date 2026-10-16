@@ -563,3 +563,5 @@ Source `f5b4ce4f82e99057d041767d982914e903afbf7f`; CI Android/C++/SDL2 `38724287
 
 ## 16/10/2026 — SOLO PARALLAX-016
 coop_solo_session_runtime → CoopSoloScenery, textures par renderer, load/reset/release. solo_scenery_assets/solo_scenery_atlas mutualisent les ressources avec l'ancien SoloAssets ; pas de Session ni de global supplémentaire. Corps Rock plein, matière fixe dans le monde, bevels internes sur faces exposées. Lave/Beam restent traversables selon le moteur. Arène finale reste sfCoopDrawArena. Détails : docs/solo-parallax-016.md.
+
+PARALLAX-016 — export préparé : source `2a933a60639d890fd6168befb8ce1784ba9a18c8`, CI `38837760766`. Le workflow attend obligatoirement SUCCESS et vérifie le SHA exact avant publication dans `temp/solo-parallax-016/`. CI/export pas encore déclarés terminés.

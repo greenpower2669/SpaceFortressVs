@@ -677,3 +677,5 @@ Source `f5b4ce4f82e99057d041767d982914e903afbf7f`; CI Android/C++/SDL2 `38724287
 
 ## 16/10/2026 — SOLO PARALLAX-016
 Trois profondeurs visuelles : ciel .08, minéral ajouré .34, murs/acteurs1.0 ; aucune écriture de carte/caméra/physique. Nouvelle planche ImageGen RGBA1254², 21,81 % alpha0, neuf ouvertures. Atlas existants inchangés. Tests ciblés du rendu et de continuité à quatre échelles verts ; CI Android complète en attente. Pas de performance Samsung revendiquée.
+
+PARALLAX-016 — export préparé : source `2a933a60639d890fd6168befb8ce1784ba9a18c8`, CI `38837760766`. Le workflow attend obligatoirement SUCCESS et vérifie le SHA exact avant publication dans `temp/solo-parallax-016/`. CI/export pas encore déclarés terminés.

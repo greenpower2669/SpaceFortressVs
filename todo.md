@@ -658,3 +658,5 @@ Source `f5b4ce4f82e99057d041767d982914e903afbf7f`; CI Android/C++/SDL2 `38724287
 - [ ] APK/AAB vérifiés dans temp/solo-parallax-016.
 - [ ] Samsung : aspect des parois/répétitions, lisibilité, fluidité et pause/reprise/antre.
 - [ ] Hors périmètre : astéroïdes stationnaires, nouvelle couronne caméra, poursuites miniboss.
+
+PARALLAX-016 — export préparé : source `2a933a60639d890fd6168befb8ce1784ba9a18c8`, CI `38837760766`. Le workflow attend obligatoirement SUCCESS et vérifie le SHA exact avant publication dans `temp/solo-parallax-016/`. CI/export pas encore déclarés terminés.
