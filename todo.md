@@ -720,3 +720,6 @@ Source `3ef362cd1375034519c458a0effb2d7abef03490`; CI Android/C++/SDL2 `38956636
 - [ ] Aucune fusion main/Release sans validation explicite Fab. src/main.cpp, assets, audio et modes historiques inchangés.
 
 SOLO-018 / CI reprise : test de stress multichocs à 100000 px/s corrigé par `a85ca0d` après l'échec de `38962472820`. Nouvelle CI `38963255438` à examiner avant livrable Android. Aucun nouveau feu vert Samsung demandé pour coder ; accord maintenu pour le correctif SOLO, non pour main/Release.
+
+## SOLO-018 — export vérifié
+SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32ab31116. Export vérifié dans temp/solo-bounce-pinch-018. APK diagnostic + AAB non signé. Rebond et touch/zoom restent à valider sur le Samsung de Fab ; pas de main/Release.

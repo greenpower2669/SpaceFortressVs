@@ -20,3 +20,6 @@ Vérifier sur Samsung : pilotage coque, deux doigts hors coque sans tir, glissem
 
 ## Première CI : échec ciblé et relance
 `38962472820` : solo-core SUCCESS, SDL2-ui SUCCESS, Android arrêt des régressions sur une assertion de signe final pour une vitesse artificielle `100000 px/s`. Le sens final après plusieurs impacts ne prouve pas l'absence de rebond ; le test a été remplacé par les invariants anti-traversée et vitesse finie, le rebond unique/oblique restant vérifié par le test autonome `coop_solo_world_bridge_regressions.cpp`. Commit `a85ca0dbd8e94e463d11e42b5b2cefb32ab31116`, CI `38963255438` en attente.
+
+## Export vérifié
+SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32ab31116. Export vérifié dans temp/solo-bounce-pinch-018. APK diagnostic + AAB non signé. Rebond et touch/zoom restent à valider sur le Samsung de Fab ; pas de main/Release.

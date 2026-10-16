@@ -1,0 +1,18 @@
+{
+  "mission": "SOLO BOUNCE-PINCH-018",
+  "commit": "a85ca0dbd8e94e463d11e42b5b2cefb32ab31116",
+  "ciRun": 38963255438,
+  "branch": "feature/solo-coop-core-v1",
+  "packageName": "com.greenpower2669.spacefortressvs.diagnostic",
+  "files": {
+    "SpaceFortressVs-1.4.2-SOLO-BOUNCE-018-a85ca0d.apk": {
+      "sha256": "30ad47bd4904dd17a813131359b1a504e889b0f392b9cf74fd82e025704a05df",
+      "bytes": 98432834
+    },
+    "SpaceFortressVs-1.4.2-SOLO-BOUNCE-018-a85ca0d-unsigned.aab": {
+      "sha256": "8cf73b55d167c710ab041c493e20f27df88c749434ea08c276fd68f7fc8203ce",
+      "bytes": 95728254
+    }
+  },
+  "note": "APK debug installable; AAB unsigned; never a public Release"
+}
