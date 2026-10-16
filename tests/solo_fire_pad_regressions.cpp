@@ -13,7 +13,7 @@ int main(){
     p.handle(SDL_FINGERDOWN,3,x,y,w,h);
     a=p.handle(SDL_FINGERUP,3,x,y,w,h);assert(a.fire&&p.dx>.99f);
     for(int i=0;i<8;++i){
-        const float phi=i*sfsolo::FirePad::pi*.25f;
+        const float phi=i*sfsolo::FirePad::padPi*.25f;
         a=p.handle(SDL_FINGERDOWN,100+i,x+std::cos(phi)*p.orbit(w),
             y+std::sin(phi)*p.orbit(w),w,h);
         assert(a.fire&&a.owned);assert(std::abs(p.dx-std::cos(phi))<.001f);

@@ -12,7 +12,7 @@ struct FirePad {
     std::int64_t finger=-1;
     bool stick=false;
     float dx=0,dy=-1,dragX=0,dragY=0;
-    static constexpr float pi=3.14159265358979323846f;
+    static constexpr float padPi=3.14159265358979323846f;
     float cx(int w)const {return right?w-std::max(100.f,w*.20f):std::max(100.f,w*.20f);}
     float cy(int h)const {return h-std::max(142.f,h*.17f);}
     float orbit(int w)const {return std::clamp(w*.15f,64.f,86.f);}
@@ -35,7 +35,7 @@ struct FirePad {
         if(type!=SDL_FINGERDOWN)return {};
         const float px=cx(w),py=cy(h),r=orbit(w);
         for(int i=0;i<8;++i){
-            const float a=i*pi*.25f;
+            const float a=i*padPi*.25f;
             if(std::hypot(x-px-r*std::cos(a),y-py-r*std::sin(a))<=std::max(19.f,w*.038f)){
                 finger=id;stick=false;set(std::cos(a),std::sin(a));return {true,true};
             }
@@ -53,7 +53,7 @@ struct FirePad {
         auto ring=[&](float px,float py,float radius,SDL_Color c){
             SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,c.a);
             for(int j=0;j<48;++j){
-                const float a=j*pi/24,b=(j+1)*pi/24;
+                const float a=j*padPi/24,b=(j+1)*padPi/24;
                 SDL_RenderDrawLine(renderer,int(px+std::cos(a)*radius),int(py+std::sin(a)*radius),
                        int(px+std::cos(b)*radius),int(py+std::sin(b)*radius));
             }
@@ -61,7 +61,7 @@ struct FirePad {
         ring(x,y,35,{120,220,255,170});
         ring(x,y,29,{120,220,255,70});
         for(int i=0;i<8;++i){
-            const float a=i*pi*.25f,bx=x+std::cos(a)*r,by=y+std::sin(a)*r;
+            const float a=i*padPi*.25f,bx=x+std::cos(a)*r,by=y+std::sin(a)*r;
             ring(bx,by,std::max(17.f,w*.032f),{140,220,255,170});
             SDL_SetRenderDrawColor(renderer,180,245,255,205);
             SDL_RenderDrawLine(renderer,int(bx-std::cos(a)*7),int(by-std::sin(a)*7),
