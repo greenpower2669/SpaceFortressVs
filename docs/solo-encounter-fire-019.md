@@ -8,3 +8,8 @@ Précision SOLO-019 : le joystick/boutons à 45° suppriment uniquement la dispe
 ## SOLO-020 — 50 % de rayon de combat supplémentaire et nouvelle croisière douce
 Les rayons des barrières des mini-boss/hordes passent à 1,5x ; les conditions de dernier KO restent inchangées. L'antre final reste indépendant.
 Nouvelle bande de défilement lente/progressive dans le vrai SOLO entre environ deux diamètres physiques du vaisseau autour du centre de l'écran et les anneaux précédents décalés vers l'extérieur. Loi sans saut : 0 -> 0,1 à 65 % du rayon extérieur, 0,1 -> 2 à 80 %, puis 2 -> 6 à l'extérieur. La vitesse maximale, l'inertie, les rebonds et les modes historiques restent identiques. Loi partagée par le pilotage doigt-maintenu et la caméra. Tests des huit directions et des deux frontières ajoutés. Essai Samsung reste à faire.
+
+## SOLO-020 — livraison CI + dépôt direct vérifiés
+- Code source `dd6a4c75066fd51a359c00bbd952a32674eaaa25` ; Android/C++/SDL2 CI `38973185112` **SUCCESS**.
+- Export GitHub `38973239202` **SUCCESS**, fichiers réels dans `temp/solo-cruise-020/` : APK diagnostic 98 449 216 octets, SHA-256 `ad683345d31f6857cc90589557905931a4076634ea69781bc636e8887ddfffb0` ; AAB non signé 95 742 279 octets, SHA-256 `16dfdbc3948a8d2689aa43d0320ee1a1f1f09b82e3e5b388fa59749f4bfccbfa`. Sommes vérifiées par workflow. Pas de main ni de Release.
+- **Reste :** validation tactile réelle Samsung (défilement proche centre, x1.5 zones, dégâts/barrières et joystick).

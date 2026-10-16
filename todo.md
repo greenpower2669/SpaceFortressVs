@@ -742,7 +742,12 @@ SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32
 - [x] Ajouter une pré-bande de défilement autour du centre dès ~deux diamètres de vaisseau avec smoothstep et progression continue vers la vitesse existante.
 - [x] Partager la nouvelle loi entre cible doigt-maintenu et caméra sans altérer ShipMotion ou les modes historiques.
 - [x] Renforcer tests 8 directions/seuils de vitesse et rayons mini-boss/hordes.
-- [ ] Vérifier C++/SDL2/Android SHA dd6a4c7 CI 38973185112 ; si échec corriger.
-- [ ] APK diagnostic + AAB non signé directs temp/solo-cruise-020/ seulement après CI verte et SHA256 vérifié.
+- [x] CI Android/C++/SDL2 SHA dd6a4c7, run 38973185112 SUCCESS.
+- [x] APK diagnostic + AAB non signé en fichiers directs temp/solo-cruise-020/, SHA256 vérifiés (export 38973239202 SUCCESS).
 - [ ] Essai Samsung sensation défilement proche centre, collisions, barrières agrandies et joystick.
 - [ ] Main et Release interdits sans validation explicite Fab.
+
+## SOLO-020 — livraison CI + dépôt direct vérifiés
+- Code source `dd6a4c75066fd51a359c00bbd952a32674eaaa25` ; Android/C++/SDL2 CI `38973185112` **SUCCESS**.
+- Export GitHub `38973239202` **SUCCESS**, fichiers réels dans `temp/solo-cruise-020/` : APK diagnostic 98 449 216 octets, SHA-256 `ad683345d31f6857cc90589557905931a4076634ea69781bc636e8887ddfffb0` ; AAB non signé 95 742 279 octets, SHA-256 `16dfdbc3948a8d2689aa43d0320ee1a1f1f09b82e3e5b388fa59749f4bfccbfa`. Sommes vérifiées par workflow. Pas de main ni de Release.
+- **Reste :** validation tactile réelle Samsung (défilement proche centre, x1.5 zones, dégâts/barrières et joystick).

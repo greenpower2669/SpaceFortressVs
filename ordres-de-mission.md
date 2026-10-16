@@ -746,3 +746,8 @@ Fab demande des barrières si mini-boss vivant et des commandes de tir joystick 
 
 ## SOLO-020 — ordre de Fab, 16 octobre 2026
 « Parfait une zone moitié plus grande sera mieux, je veux une zone supplémentaire de déplacement par defilement aussi entre le presque centre 2 véseau de diamètre et le début de la zone actuel et en progressif aussi ». Appliquer x1,5 au rayon des seules zones de mini-boss/hordes, pas à l'antre final. Créer une bande de croisière progressive du centre (~deux diamètres du vaisseau) vers le début des zones externes, en gardant l'inertie/rebond, vitesse extérieure, pilotage doigt-sur-coque, pince et tir à huit directions. Sur branche feature/solo-coop-core-v1 uniquement, code dd6a4c7, tests CI en cours ; aucune fusion main ni Release. Export diagnostic direct après CI verte.
+
+## SOLO-020 — livraison CI + dépôt direct vérifiés
+- Code source `dd6a4c75066fd51a359c00bbd952a32674eaaa25` ; Android/C++/SDL2 CI `38973185112` **SUCCESS**.
+- Export GitHub `38973239202` **SUCCESS**, fichiers réels dans `temp/solo-cruise-020/` : APK diagnostic 98 449 216 octets, SHA-256 `ad683345d31f6857cc90589557905931a4076634ea69781bc636e8887ddfffb0` ; AAB non signé 95 742 279 octets, SHA-256 `16dfdbc3948a8d2689aa43d0320ee1a1f1f09b82e3e5b388fa59749f4bfccbfa`. Sommes vérifiées par workflow. Pas de main ni de Release.
+- **Reste :** validation tactile réelle Samsung (défilement proche centre, x1.5 zones, dégâts/barrières et joystick).

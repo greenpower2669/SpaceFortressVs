@@ -722,3 +722,8 @@ Fab précise : « Pas l'antre, les portions de chaque mini boss ou hordes ». De
 
 ## SOLO-020 — 16 octobre 2026 (candidat CI)
 Fab accepte les barrières mini-boss/hordes du SOLO-019 et demande leur zone « moitié plus grande » : rayon barrière x1,5 (jamais antre). Demande également une bande progressive de défilement commençant près du centre à deux diamètres du vaisseau, en amont des zones de croisière actuelles. Le précédent seuil radial était déjà à ~2 diamètres : première bande historique repoussée à 65 % du rayon externe, transition à 80 %, vitesse douce 0→0,1→2→6, même pour doigt maintenu et caméra. Inertie/rebond, zoom, joystick et modes historiques inchangés. Code source `dd6a4c75066fd51a359c00bbd952a32674eaaa25`; run exact 38973185112 lancé, à valider ; aucun main/Release.
+
+## SOLO-020 — livraison CI + dépôt direct vérifiés
+- Code source `dd6a4c75066fd51a359c00bbd952a32674eaaa25` ; Android/C++/SDL2 CI `38973185112` **SUCCESS**.
+- Export GitHub `38973239202` **SUCCESS**, fichiers réels dans `temp/solo-cruise-020/` : APK diagnostic 98 449 216 octets, SHA-256 `ad683345d31f6857cc90589557905931a4076634ea69781bc636e8887ddfffb0` ; AAB non signé 95 742 279 octets, SHA-256 `16dfdbc3948a8d2689aa43d0320ee1a1f1f09b82e3e5b388fa59749f4bfccbfa`. Sommes vérifiées par workflow. Pas de main ni de Release.
+- **Reste :** validation tactile réelle Samsung (défilement proche centre, x1.5 zones, dégâts/barrières et joystick).

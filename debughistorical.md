@@ -627,3 +627,8 @@ Une première lecture trop large voulait verrouiller l'antre. Fab corrige explic
 
 ## SOLO-020 — détail physique et défaut de conception évité
 Ancien inner radial ~0.21 fois largeur d'écran, soit ~113 px pour 540 px, quasiment identique aux deux diamètres du vaisseau COOP (~114 px). Impossible d'insérer une pré-bande mesurable sans décaler le début historique : SOLO-020 réserve ~32 px à une interpolation smoothstep 0→0.1 puis poursuit sans saut de vitesse. Pas de nouveau pilotage ni intégrateur, conservation des limites d'accélération et protections mur. Rayons horde et solo x1.5 une seule fois ; pas x1.5 par frame. CI/essai Samsung à confirmer.
+
+## SOLO-020 — livraison CI + dépôt direct vérifiés
+- Code source `dd6a4c75066fd51a359c00bbd952a32674eaaa25` ; Android/C++/SDL2 CI `38973185112` **SUCCESS**.
+- Export GitHub `38973239202` **SUCCESS**, fichiers réels dans `temp/solo-cruise-020/` : APK diagnostic 98 449 216 octets, SHA-256 `ad683345d31f6857cc90589557905931a4076634ea69781bc636e8887ddfffb0` ; AAB non signé 95 742 279 octets, SHA-256 `16dfdbc3948a8d2689aa43d0320ee1a1f1f09b82e3e5b388fa59749f4bfccbfa`. Sommes vérifiées par workflow. Pas de main ni de Release.
+- **Reste :** validation tactile réelle Samsung (défilement proche centre, x1.5 zones, dégâts/barrières et joystick).
