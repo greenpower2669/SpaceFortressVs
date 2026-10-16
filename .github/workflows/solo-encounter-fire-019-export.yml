@@ -85,15 +85,6 @@ jobs:
                   'Ne pas désinstaller le jeu historique ; ne pas publier cet AAB non signé.\n\n'
                   +sums)
           (destination/'README.md').write_text(readme)
-          report=('SOLO-019 : CI exacte 38969053715 SUCCESS, code '
-                  +commit+'. Export vérifié dans temp/solo-encounter-fire-019. '
-                  'APK diagnostic + AAB non signé. Barrières de rencontre et joystick restent '
-                  'à valider sur le Samsung de Fab ; pas de main/Release.\n')
-          for name in ('brain.md','brainmap.md','debughistorical.md','ordres-de-mission.md','todo.md'):
-              f=Path(name)
-              f.write_text(f.read_text().rstrip()+'\n\n## SOLO-019 — export vérifié\n'+report)
-          doc=Path('docs/solo-encounter-fire-019.md')
-          doc.write_text(doc.read_text().rstrip()+'\n\n## Export vérifié\n'+report)
           PY
           (cd temp/solo-encounter-fire-019 && sha256sum --check SHA256SUMS)
 
@@ -103,8 +94,8 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add temp/solo-encounter-fire-019/ docs/solo-encounter-fire-019.md \
-            brain.md brainmap.md debughistorical.md todo.md ordres-de-mission.md
+          # Direct binary-only delivery; never rebase competing live memory edits.
+          git add -- temp/solo-encounter-fire-019/
           if git diff --cached --quiet; then
             echo "Already exported";exit 0
           fi
