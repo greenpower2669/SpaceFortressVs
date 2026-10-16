@@ -44,6 +44,7 @@ struct SfCoopState {
     bool soloDiagnostic=false;
     SfSoloEncounterRole soloEncounterRole=SfSoloEncounterRole::FinalBoss;
     bool soloFreeAim=false;    // one blue human uses 360-degree direct aim
+    bool soloFirePadExact=false; // SOLO joystick only; never retunes historical COOP fire
     bool soloWorldMode=false;  // opt-in, canonical COOP remains default
     void *soloWorldContext=nullptr;
     bool (*soloEventVisible)(void*,tupl)=nullptr;
@@ -635,7 +636,8 @@ static bool sfCoopFire(int owner)
         if(vlong(dx,dy)>.0001f)angle=std::atan2(dy,dx);
     }
     const unsigned sequence=++sfCoop.shotSequence[owner];
-    if (!missile) angle+=sfCoopShotSpread(heatBefore,sequence,owner);
+    if (!missile && !(owner==1 && sfCoop.soloGame && sfCoop.soloFirePadExact))
+        angle+=sfCoopShotSpread(heatBefore,sequence,owner);
     const float radius=sfCoopShipRadius();
     sfCoopEmit(tupl(ship->x+std::cos(angle)*radius,ship->y+std::sin(angle)*radius),
                angle,missile ? sfArenaW*.65f : speed,owner,missile ? 60 : SF_COOP_PHASER_DAMAGE,missile ? 4 : 0);

@@ -178,7 +178,9 @@ static int runCoopSoloSession(bool diagnostics){
         sfCoop.soloAimTarget=tupl(Spritej2->x+firePad.dx*sfArenaW*3,
                                   Spritej2->y+firePad.dy*sfArenaW*3);
         sfCoop.soloKineticAxes.aimAt(1,firePad.dx,firePad.dy);
+        sfCoop.soloFirePadExact=true;
         sfCoopFire(1);
+        sfCoop.soloFirePadExact=false;
     };
     auto setWorldMode=[&](bool enabled){
         if(enabled==worldActive)return;
