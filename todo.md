@@ -736,3 +736,13 @@ SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32
 - [ ] Export direct APK diagnostic / AAB non signé dans `temp/solo-encounter-fire-019/`, vérification du manifest et SHA256.
 - [ ] Tests Samsung du contact, ouvertures aux derniers KO, tir 8 directions, joystick et options miroir ; validation Fab.
 - [ ] Aucun merge main ni Release sans validation. `src/main.cpp` protégé.
+
+## SOLO-020 — demande Fab zone plus grande et scroll proche centre
+- [x] Barrières de mini-boss isolés et hordes, rayon x1,5, pas de changement d'antre.
+- [x] Ajouter une pré-bande de défilement autour du centre dès ~deux diamètres de vaisseau avec smoothstep et progression continue vers la vitesse existante.
+- [x] Partager la nouvelle loi entre cible doigt-maintenu et caméra sans altérer ShipMotion ou les modes historiques.
+- [x] Renforcer tests 8 directions/seuils de vitesse et rayons mini-boss/hordes.
+- [ ] Vérifier C++/SDL2/Android SHA dd6a4c7 CI 38973185112 ; si échec corriger.
+- [ ] APK diagnostic + AAB non signé directs temp/solo-cruise-020/ seulement après CI verte et SHA256 vérifié.
+- [ ] Essai Samsung sensation défilement proche centre, collisions, barrières agrandies et joystick.
+- [ ] Main et Release interdits sans validation explicite Fab.

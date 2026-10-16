@@ -624,3 +624,6 @@ SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32
 
 ## SOLO-019 — correction de la cible et de compilation
 Une première lecture trop large voulait verrouiller l'antre. Fab corrige explicitement : ce sont les portions de chaque mini-boss / horde. Implémentation isolée par rencontre sans toucher à l'antre. Première CI de `16ce8df` : logique et SDL2 verts, mais test natif FabLib bloque sur `#define pi` opposé à `FirePad::pi` (`fablib.hpp:8`), pas un souci physique. Renommage en `padPi` au commit `568d689` ; CI exacte `38969053715` en attente. Compteur mini-boss et horde non modifiés, pas de faux résultat de test Android déclaré.
+
+## SOLO-020 — détail physique et défaut de conception évité
+Ancien inner radial ~0.21 fois largeur d'écran, soit ~113 px pour 540 px, quasiment identique aux deux diamètres du vaisseau COOP (~114 px). Impossible d'insérer une pré-bande mesurable sans décaler le début historique : SOLO-020 réserve ~32 px à une interpolation smoothstep 0→0.1 puis poursuit sans saut de vitesse. Pas de nouveau pilotage ni intégrateur, conservation des limites d'accélération et protections mur. Rayons horde et solo x1.5 une seule fois ; pas x1.5 par frame. CI/essai Samsung à confirmer.
