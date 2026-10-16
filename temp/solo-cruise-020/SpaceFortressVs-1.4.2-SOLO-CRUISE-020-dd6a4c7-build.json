@@ -1,0 +1,18 @@
+{
+  "mission": "SOLO CRUISE-020",
+  "commit": "dd6a4c75066fd51a359c00bbd952a32674eaaa25",
+  "ciRun": 38973185112,
+  "branch": "feature/solo-coop-core-v1",
+  "packageName": "com.greenpower2669.spacefortressvs.diagnostic",
+  "files": {
+    "SpaceFortressVs-1.4.2-SOLO-CRUISE-020-dd6a4c7.apk": {
+      "sha256": "ad683345d31f6857cc90589557905931a4076634ea69781bc636e8887ddfffb0",
+      "bytes": 98449216
+    },
+    "SpaceFortressVs-1.4.2-SOLO-CRUISE-020-dd6a4c7-unsigned.aab": {
+      "sha256": "16dfdbc3948a8d2689aa43d0320ee1a1f1f09b82e3e5b388fa59749f4bfccbfa",
+      "bytes": 95742279
+    }
+  },
+  "note": "APK debug installable; AAB unsigned; never a public Release"
+}
