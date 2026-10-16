@@ -715,3 +715,7 @@ SOLO-018 / contrôle 2 : première CI `38962472820` refusée uniquement par le t
 
 ## SOLO-018 — export vérifié
 SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32ab31116. Export vérifié dans temp/solo-bounce-pinch-018. APK diagnostic + AAB non signé. Rebond et touch/zoom restent à valider sur le Samsung de Fab ; pas de main/Release.
+
+
+## 16/10/2026 — SOLO-019, correction du périmètre (candidat)
+Fab précise : « Pas l'antre, les portions de chaque mini boss ou hordes ». Des barrières d'énergie locales ne ferment donc que la portion de combat engagée. Un mini-boss isolé constitue une rencontre, tous les membres d'une horde une rencontre commune ; ouverture au dernier KO, antre final inchangé. NOUVEAU joystick semi-transparent de tir en bas gauche, huit boutons d'angles espacés de 45°, drag/release = tir vectorisé, tap = dernier vecteur, menu OPTIONS SOLO pour passer à droite et mémoriser la préférence. Mode SOLO seul ; tir historique, zoom et pilotage de coque préservés. Source `568d689c9e08ee06065eb7e3e8a7746dd2f27099`, tests/CI exacts `38969053715` en cours, pas encore livré Samsung.

@@ -620,3 +620,7 @@ SOLO-018 / CI 1 `38962472820` : jobs solo-core et SDL2 SUCCESS ; job Android éc
 
 ## SOLO-018 — export vérifié
 SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32ab31116. Export vérifié dans temp/solo-bounce-pinch-018. APK diagnostic + AAB non signé. Rebond et touch/zoom restent à valider sur le Samsung de Fab ; pas de main/Release.
+
+
+## SOLO-019 — correction de la cible et de compilation
+Une première lecture trop large voulait verrouiller l'antre. Fab corrige explicitement : ce sont les portions de chaque mini-boss / horde. Implémentation isolée par rencontre sans toucher à l'antre. Première CI de `16ce8df` : logique et SDL2 verts, mais test natif FabLib bloque sur `#define pi` opposé à `FirePad::pi` (`fablib.hpp:8`), pas un souci physique. Renommage en `padPi` au commit `568d689` ; CI exacte `38969053715` en attente. Compteur mini-boss et horde non modifiés, pas de faux résultat de test Android déclaré.

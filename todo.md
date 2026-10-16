@@ -723,3 +723,16 @@ SOLO-018 / CI reprise : test de stress multichocs à 100000 px/s corrigé par `a
 
 ## SOLO-018 — export vérifié
 SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32ab31116. Export vérifié dans temp/solo-bounce-pinch-018. APK diagnostic + AAB non signé. Rebond et touch/zoom restent à valider sur le Samsung de Fab ; pas de main/Release.
+
+
+## SOLO-019 — portions mini-boss/hordes, joystick de tir
+- [x] Comprendre la correction de Fab : **aucun verrou de l'antre final** ; uniquement les portions de rencontres mini-boss ou hordes.
+- [x] Verrouillage local pendant la rencontre, groupe de horde ouvert au dernier KO ; rendu énergétique et résistance physique du pilote.
+- [x] Joystick tir semi-transparent gauche, tir au relâchement selon vecteur, tap reprend dernier vecteur ; huit boutons aux angles fixes 45°.
+- [x] OPTION SOLO pour miroir gauche/droite et stockage local, sans modifier options historiques.
+- [x] Tests de groupe de hordes et de joystick 8 angles ajoutés au script de régressions.
+- [x] Collision de macro `pi` historique résolue par `padPi` sans modifier FabLib.
+- [ ] CI Android/C++/SDL2 exacte sur SHA `568d689`, run `38969053715`.
+- [ ] Export direct APK diagnostic / AAB non signé dans `temp/solo-encounter-fire-019/`, vérification du manifest et SHA256.
+- [ ] Tests Samsung du contact, ouvertures aux derniers KO, tir 8 directions, joystick et options miroir ; validation Fab.
+- [ ] Aucun merge main ni Release sans validation. `src/main.cpp` protégé.

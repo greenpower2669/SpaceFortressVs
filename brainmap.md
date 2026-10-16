@@ -601,3 +601,7 @@ SOLO-018 / reprise CI : `8875905` implémente la physique et le zoom ; `a85ca0d`
 
 ## SOLO-018 — export vérifié
 SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32ab31116. Export vérifié dans temp/solo-bounce-pinch-018. APK diagnostic + AAB non signé. Rebond et touch/zoom restent à valider sur le Samsung de Fab ; pas de main/Release.
+
+
+## SOLO-019 — zones de mini-boss/hordes et pad de tir
+`solo_encounter_gates.hpp` regroupe par pack et ouvre après dernier KO ; `coop_solo_world_bridge.hpp` porte la barrière physique locale active ; `coop_solo_session_runtime.hpp` relie déclenchement, rendu de cercle énergétique et OPTIONS. **Aucun verrou de l'antre, aucune altération de `enterLair`**. `solo_fire_pad.hpp` : huit directions 0..315° de 45 en 45, joystick à relâchement avec mémoire du vecteur, menu de permutation gauche/droite sauvegardé. `campaign_runtime.hpp` : précision du pad SOLO seule, tirs historiques autres inchangés. Source `568d689`, CI `38969053715` à vérifier. Rapport : `docs/solo-encounter-fire-019.md`.

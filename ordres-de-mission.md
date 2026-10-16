@@ -739,3 +739,7 @@ SOLO-018 / suivi CI : le test antérieur d'arrêt `vx==0` avait été remplacé 
 
 ## SOLO-018 — export vérifié
 SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32ab31116. Export vérifié dans temp/solo-bounce-pinch-018. APK diagnostic + AAB non signé. Rebond et touch/zoom restent à valider sur le Samsung de Fab ; pas de main/Release.
+
+
+## 16/10/2026 — SOLO-019 — instruction corrigée par Fab
+Fab demande des barrières si mini-boss vivant et des commandes de tir joystick + huit boutons directionnels (tous les 45°) et inversion pour droitier via options SOLO. **Rectification explicite immédiate : « Pas l'antre, les portions de chaque mini boss ou ordes... ».** C'est l'autorité sur l'ordre de mission : verrouiller les portions de combat activées de mini-boss isolés ou hordes entières jusqu'à leur défaite, aucune condition sur l'antre. Joystick bas gauche semi-transparent, geste vectorisé puis relâché déclenchant le tir ; tap seul réutilise dernier vecteur ; huit petits boutons directs, permutation bas droite par menu et préférence locale. Code candidat SOLO `568d689`; CI `38969053715` à vérifier ; build APK et AAB seulement sur résultat vert ; `src/main.cpp`, CLASSIQUE, COOP, DUEL, main, Release intouchés.
