@@ -18,7 +18,7 @@ struct CoopSoloWorldBridge {
     SDL_Rect screen{};
     float combatWidth=1.0f;
     float pixelsPerCell=1.0f;
-    float cameraLeft=0,cameraTop=0;
+    float cameraLeft=0,cameraTop=0,zoom=1;
     bool ready=false;
     std::vector<CoopWorldPoint> pickupBatchCells; // rebuilt once per reward batch
     bool create(MapOptions options,SDL_Rect output,float historicCombatWidth){
@@ -31,13 +31,13 @@ struct CoopSoloWorldBridge {
         screen=output;
         combatWidth=historicCombatWidth;
         pixelsPerCell=historicCombatWidth/(SOLO_REFERENCE_COLUMNS/SOLO_MAP_ZOOM);
-        cameraLeft=cameraTop=0;
+        cameraLeft=cameraTop=0;zoom=1;
         return ready=true;
     }
     float worldWidth() const {return map.width*pixelsPerCell;}
     float worldHeight() const {return map.height*pixelsPerCell;}
-    float visibleWidth() const {return float(screen.w);}
-    float visibleHeight() const {return float(screen.h);}
+    float visibleWidth() const {return float(screen.w)/zoom;}
+    float visibleHeight() const {return float(screen.h)/zoom;}
     CoopWorldPoint start() const {
         for(int y=0;y<map.height;++y)for(int x=0;x<map.width;++x)
             if(map.at(x,y)==Tile::Start)
@@ -49,10 +49,10 @@ struct CoopSoloWorldBridge {
         cameraTop=soloClampCamera(ship.y-visibleHeight()*.5f,worldHeight(),visibleHeight());
     }
     CoopWorldPoint toScreen(CoopWorldPoint world) const {
-        return {screen.x+world.x-cameraLeft,screen.y+world.y-cameraTop};
+        return {screen.x+(world.x-cameraLeft)*zoom,screen.y+(world.y-cameraTop)*zoom};
     }
     CoopWorldPoint toWorld(CoopWorldPoint pixel) const {
-        return {pixel.x-screen.x+cameraLeft,pixel.y-screen.y+cameraTop};
+        return {(pixel.x-screen.x)/zoom+cameraLeft,(pixel.y-screen.y)/zoom+cameraTop};
     }
     // The held first fingertip has TWO meanings: a precise on-screen ship
     // position, and (outside the inner circular dead zone) a persistent world
@@ -172,25 +172,44 @@ struct CoopSoloWorldBridge {
     CoopWorldPoint moveWithoutTunnelling(CoopWorldPoint from,CoopWorldPoint to,
                                          float hullRadius) const {
         if(!canOccupy(from,hullRadius))return from;
-        const float distance=std::hypot(to.x-from.x,to.y-from.y);
-        const float step=std::max(.5f,pixelsPerCell*.20f);
-        const int count=std::clamp(int(std::ceil(distance/step)),1,200);
-        CoopWorldPoint cursor=from;
-        for(int i=1;i<=count;++i){
-            const float t=float(i)/count;
-            const CoopWorldPoint next{from.x+(to.x-from.x)*t,
-                                      from.y+(to.y-from.y)*t};
-            if(canOccupy(next,hullRadius)){cursor=next;continue;}
-            // Slide along either free axis, but NEVER tunnel through a rock.
-            const CoopWorldPoint slideX{next.x,cursor.y};
-            const CoopWorldPoint slideY{cursor.x,next.y};
-            if(canOccupy(slideX,hullRadius))cursor=slideX;
-            else if(canOccupy(slideY,hullRadius))cursor=slideY;
-            else break;
+        const float dx=to.x-from.x,dy=to.y-from.y;
+        const float length=std::hypot(dx,dy);
+        const float hit=firstWallImpact(from,to,hullRadius);
+        if(hit>=1 && canOccupy(to,hullRadius))return to;
+        const float fraction=std::max(0.f,hit-.01f/std::max(1.f,length));
+        CoopWorldPoint cursor{from.x+dx*fraction,from.y+dy*fraction};
+        // Resolve the remaining tangent motion with another sweep, never a
+        // long endpoint sample. Even a frame crossing >200 tiles is safe.
+        for(int axis=0;axis<2;++axis){
+            CoopWorldPoint target=cursor;
+            if(axis==0)target.x=to.x;else target.y=to.y;
+            const float distance=std::hypot(target.x-cursor.x,target.y-cursor.y);
+            const float t=firstWallImpact(cursor,target,hullRadius);
+            const float safe=t>=1?1:std::max(0.f,t-.01f/std::max(1.f,distance));
+            const CoopWorldPoint accepted{cursor.x+(target.x-cursor.x)*safe,cursor.y+(target.y-cursor.y)*safe};
+            if(canOccupy(accepted,hullRadius))cursor=accepted;
         }
         return cursor;
     }
 
+    void setZoom(float value,CoopWorldPoint anchor){
+        const auto pixel=toScreen(anchor);zoom=std::clamp(value,1.f,2.f);
+        cameraLeft=soloClampCamera(anchor.x-(pixel.x-screen.x)/zoom,worldWidth(),visibleWidth());
+        cameraTop=soloClampCamera(anchor.y-(pixel.y-screen.y)/zoom,worldHeight(),visibleHeight());
+    }
+    bool directView(CoopWorldPoint observer,CoopWorldPoint event)const{
+        const auto p=toScreen(event);
+        return p.x>=screen.x && p.x<screen.x+screen.w && p.y>=screen.y && p.y<screen.y+screen.h &&
+            firstWallImpact(observer,event,.1f)>=1;
+    }
+    void followPhysicalShip(CoopWorldPoint ship,CoopWorldPoint displacement,float dt){
+        panIfShipActuallyMoved(ship,displacement,dt);
+        // Safety envelope follows the physical hull, never the touch. It also
+        // works after release, at max zoom, and when a long frame hits a wall.
+        const float mx=visibleWidth()*.14f,my=visibleHeight()*.16f;
+        cameraLeft=soloClampCamera(std::clamp(cameraLeft,ship.x-visibleWidth()+mx,ship.x-mx),worldWidth(),visibleWidth());
+        cameraTop=soloClampCamera(std::clamp(cameraTop,ship.y-visibleHeight()+my,ship.y-my),worldHeight(),visibleHeight());
+    }
     // Draw only the visible part of the immutable real SOLO map, in SCREEN
     // coordinates, with connected wall masses and subtle inner cracks.
     void draw(SDL_Renderer *r) const {

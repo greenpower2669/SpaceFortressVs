@@ -127,6 +127,7 @@ struct SfCoopSoloBonusRenderer {
     void draw(const sfsolo::CoopSoloWorldBridge *world,int width,int height){
         if(!sfCoopSoloBonusesEnabled())return;
         using namespace sfsolo::bonus;
+        const float z=world?world->zoom:1.f;
         SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
         const auto project=[&](float x,float y){return world?world->toScreen({x,y}):sfsolo::CoopWorldPoint{x,y};};
         const auto visible=[&](sfsolo::CoopWorldPoint p,float r){return p.x+r>=0&&p.y+r>=0&&p.x-r<width&&p.y-r<height;};
@@ -148,7 +149,7 @@ struct SfCoopSoloBonusRenderer {
             const float x=e.origin.x+dx*smooth-dy/length*arc;
             const float y=e.origin.y+dy*smooth+dx/length*arc;
             const auto p=project(x,y);
-            const float r=std::max(10.0f,sfArenaW*.023f)*1.6f;
+            const float r=std::max(10.0f,sfArenaW*.023f)*z*1.6f;
             if(!visible(p,r*2))continue;
             const Uint8 alpha=Uint8(205+35*std::sin(t*float(PI)));
             ring(p.x,p.y,r*(.72f+.25f*t),color(e.kind,alpha),t*5.0f,8);
@@ -158,7 +159,7 @@ struct SfCoopSoloBonusRenderer {
             const bool flying=std::any_of(sfCoop.soloBonusEjections.begin(),sfCoop.soloBonusEjections.end(),
                 [&](const SfSoloBonusEjection &e){return e.pickupId==pickup.id && e.until>s.time;});
             if(flying)continue;
-            const auto p=project(pickup.x,pickup.y);const float r=pickup.radius*1.6f;
+            const auto p=project(pickup.x,pickup.y);const float r=pickup.radius*z*1.6f;
             if(!visible(p,r*2))continue;
             const bool expiring=pickup.expires-s.time<5;
             const Uint8 alpha=expiring?Uint8(150+90*std::sin(s.time*9)):Uint8(240);
@@ -170,36 +171,36 @@ struct SfCoopSoloBonusRenderer {
         }
         for(const auto &shot:sfCoop.shots)if(isOrb(shot.bonusKind)){
             const auto p=project(shot.position.x,shot.position.y);
-            if(!visible(p,shot.radius*6))continue;
+            if(!visible(p,shot.radius*z*6))continue;
             const float speed=std::max(1.0f,std::hypot(shot.velocity.vx,shot.velocity.vy));
             for(int i=1;i<=3;++i){
-                const float trail=shot.radius*i*1.6f;
+                const float trail=shot.radius*z*i*1.6f;
                 ring(p.x-shot.velocity.vx/speed*trail,p.y-shot.velocity.vy/speed*trail,
-                     shot.radius*(1-.18f*i),color(shot.bonusKind,Uint8(150-i*35)),0,8);
+                     shot.radius*z*(1-.18f*i),color(shot.bonusKind,Uint8(150-i*35)),0,8);
             }
             // Flight is deliberately limited to the four approach frames.
             // Frames 4..7 are impact/closure frames and must never flash early.
             const int frame=int(std::floor(shot.age*11.0f))&3;
             if(shot.bonusKind==Kind::Meteor){
-                const float tail=shot.radius*2.3f;
+                const float tail=shot.radius*z*2.3f;
                 animatedSprite(Kind::Lava,frame,
                     p.x-shot.velocity.vx/speed*tail,p.y-shot.velocity.vy/speed*tail,
-                    shot.radius*4.0f,shot.age*180,145,false);
-                animatedSprite(Kind::Meteor,frame,p.x,p.y,shot.radius*4.8f,shot.age*150,255,false);
+                    shot.radius*z*4.0f,shot.age*180,145,false);
+                animatedSprite(Kind::Meteor,frame,p.x,p.y,shot.radius*z*4.8f,shot.age*150,255,false);
             }else{
-                animatedSprite(shot.bonusKind,frame,p.x,p.y,shot.radius*4.4f,shot.age*150,245,false);
+                animatedSprite(shot.bonusKind,frame,p.x,p.y,shot.radius*z*4.4f,shot.age*150,245,false);
             }
-            ring(p.x,p.y,shot.radius*1.5f,color(shot.bonusKind,150),shot.age,12);
+            ring(p.x,p.y,shot.radius*z*1.5f,color(shot.bonusKind,150),shot.age,12);
         }
         for(const auto &fx:sfCoop.soloBonusImpacts){
             const auto p=project(fx.position.x,fx.position.y);
             const float life=float(std::clamp((fx.until-s.time)/.5,0.0,1.0));
             const float progress=1.0f-life;
-            const float r=sfArenaW*.07f*(progress+.2f);
+            const float r=sfArenaW*z*.07f*(progress+.2f);
             if(!visible(p,r*2))continue;
             if(isOrb(fx.kind)){
                 const int frame=std::clamp(int(progress*8.0f),0,7);
-                const float side=std::max(sfArenaW*.095f,sfCoopBossRadius()*2.15f);
+                const float side=std::max(sfArenaW*.095f,sfCoopBossRadius()*2.15f)*z;
                 animatedSprite(fx.kind,frame,p.x,p.y,side,progress*55,Uint8(235*life+20),true);
                 // The production atlas already contains the authored lava/smoke
                 // impact. Do not cover it with the old generic explosion sprite.
@@ -207,11 +208,11 @@ struct SfCoopSoloBonusRenderer {
         }
         if(s.stealth() && Spritej2->pv>0){
             const auto p=project(Spritej2->x,Spritej2->y);
-            ring(p.x,p.y,sfCoopShipRadius()*1.3f,color(Kind::Stealth,95),float(s.time),6);
+            ring(p.x,p.y,sfCoopShipRadius()*z*1.3f,color(Kind::Stealth,95),float(s.time),6);
         }
         if(sfCoop.bossPresent){
             const auto p=project(sfCoop.position.x,sfCoop.position.y);
-            const float bossR=sfCoopBossRadius();
+            const float bossR=sfCoopBossRadius()*z;
             for(Kind k:{Kind::Prison,Kind::Ice,Kind::Lava})if(s.remaining(k)>0 && visible(p,bossR*2.3f)){
                 // Hold the closing production frames around the actual boss:
                 // rock cage, crystal lock or lava envelope.

@@ -40,21 +40,40 @@ struct LevelFlow {
         std::reverse(path.begin(),path.end());
         if(path.size()<10)return false;
         lair=path.back();entranceRadius=world.pixelsPerCell*.85f;
-        // Four spaced encounters lie on the navigable route, never in walls.
-        for(unsigned n=1;n<=4;++n){
-            const auto at=path[(path.size()-1)*n/5];
-            if(world.map.at(int(at.x/world.pixelsPerCell),int(at.y/world.pixelsPerCell))==Tile::Lava ||
-               world.map.at(int(at.x/world.pixelsPerCell),int(at.y/world.pixelsPerCell))==Tile::Beam){
-                // A small neighbouring search keeps the arena out of a hazard.
-                bool found=false;
-                const int index=int((path.size()-1)*n/5);
-                for(int offset=1;offset<10&&!found;++offset)for(int sign:{-1,1}){
-                    const int k=index+offset*sign;if(k<=0||k>=int(path.size())-1)continue;
-                    const auto p=path[k];const auto tile=world.map.at(int(p.x/world.pixelsPerCell),int(p.y/world.pixelsPerCell));
-                    if(tile!=Tile::Lava && tile!=Tile::Beam){minibossAnchors.push_back(p);found=true;break;}
-                }
-                if(!found)return false;
-            }else minibossAnchors.push_back(at);
+        // Nine varied encounter areas plus 1..3 nearby pack companions.
+        // Prefer real intersections/safe rooms near irregular route targets;
+        // side cells are eligible, so guards do not form a metronomic row.
+        const auto candidates=world.reachablePickupCells(start,hull);
+        Rng placement(0x1700u+world.map.world*137u+world.map.stage*31u);
+        const auto placeNear=[&](CoopWorldPoint desired,float spread)->bool{
+            float best=std::numeric_limits<float>::max();CoopWorldPoint chosen{};bool found=false;
+            for(const auto at:candidates){
+                if(std::hypot(at.x-start.x,at.y-start.y)<world.combatWidth*.6f ||
+                   std::hypot(at.x-lair.x,at.y-lair.y)<world.combatWidth*.5f)continue;
+                bool overlap=false;
+                for(const auto other:minibossAnchors)if(std::hypot(at.x-other.x,at.y-other.y)<world.combatWidth*.21f){overlap=true;break;}
+                if(overlap)continue;
+                const float distance=std::hypot(at.x-desired.x,at.y-desired.y);
+                if(spread>0 && distance>spread)continue;
+                const int x=int(at.x/world.pixelsPerCell),y=int(at.y/world.pixelsPerCell);
+                int degree=0;for(const auto offset:std::array<std::array<int,2>,4>{{{1,0},{-1,0},{0,1},{0,-1}}})
+                    degree+=world.map.at(x+offset[0],y+offset[1])!=Tile::Rock;
+                const float score=distance-degree*world.pixelsPerCell*.22f;
+                if(score<best){best=score;chosen=at;found=true;}
+            }
+            if(found)minibossAnchors.push_back(chosen);return found;
+        };
+        for(unsigned n=0;n<9;++n){
+            const float fraction=(n+.55f+(placement.next()%70)/100.f)/10.f;
+            const auto desired=path[std::min(path.size()-2,size_t(fraction*(path.size()-1)))];
+            if(!placeNear(desired,0))return false;
+        }
+        const auto packAnchor=minibossAnchors[4];
+        for(unsigned n=0;n<1+world.map.stage%3;++n){
+            const float angle=n*2.1f;
+            if(!placeNear({packAnchor.x+std::cos(angle)*world.combatWidth*.32f,
+                           packAnchor.y+std::sin(angle)*world.combatWidth*.32f},world.combatWidth*1.3f))
+                if(!placeNear(packAnchor,0))return false;
         }
         for(int i=0;i<w*h;++i)if(world.map.at(i%w,i/w)==Tile::Trigger)relays.push_back(centre(i));
         relayReached.resize(relays.size(),false);

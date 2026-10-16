@@ -1,3 +1,5 @@
+#include "solo_maze_path.hpp"
+#include "solo_zoom_gesture.hpp"
 #pragma once
 // EXPERIMENTAL SOLO-COOP-SOCLE-001. Included ONLY in historical th2.h / TU.
 // This does NOT duplicate FabLib, projectiles, asteroid/dust physics or render.
@@ -142,6 +144,7 @@ static int runCoopSoloSession(bool diagnostics){
     }
     bool appActive=true,capturePending=false,arenaEntered=false,levelReady=diagnostics;
 
+    sfsolo::ZoomGesture zoomGesture;
     SDL_FingerID moveFinger=-1,aimFinger=-1;
     float moveScreenX=width*.5f,moveScreenY=height*.5f;
     float aimScreenX=width*.5f,aimScreenY=height*.4f;
@@ -202,6 +205,17 @@ static int runCoopSoloSession(bool diagnostics){
                 return static_cast<sfsolo::CoopSoloWorldBridge*>(context)->
                     canOccupy({at.x,at.y},radius);
             }:nullptr;
+        sfCoop.soloRoute=enabled?
+            +[](void *context,tupl from,tupl to,float radius,int variant,std::vector<tupl> &out){
+                const auto *maze=static_cast<sfsolo::CoopSoloWorldBridge*>(context);
+                const auto path=sfsolo::mazeRoute(*maze,{from.x,from.y},{to.x,to.y},radius,variant);
+                out.clear();for(const auto p:path)out.emplace_back(p.x,p.y);
+            }:nullptr;
+        sfCoop.soloEventVisible=enabled?
+            +[](void *context,tupl at)->bool{
+                const auto *maze=static_cast<sfsolo::CoopSoloWorldBridge*>(context);
+                return maze->directView({Spritej2->x,Spritej2->y},{at.x,at.y});
+            }:+[](void*,tupl at)->bool{return at.x>=0 && at.y>=0 && at.x<sfArenaW && at.y<sfArenaH;};
         sfCoop.soloWorldFirstImpact=enabled?
             +[](void *context,tupl from,tupl to,float radius)->float{
                 return static_cast<sfsolo::CoopSoloWorldBridge*>(context)->
@@ -235,7 +249,25 @@ static int runCoopSoloSession(bool diagnostics){
         Spritej2->x=start.x;Spritej2->y=start.y;
         sfFixResetSpriteHistory(Spritej2);Spritej2->startup();
         sfObserved[1]={};
-        if(enabled)world.centerOn(start);
+        if(enabled){
+            world.centerOn(start);
+            // Fixed mineral deposits in the reachable component. The legacy
+            // generator remains OFF in exploration, including after depletion.
+            const auto cells=world.reachablePickupCells(start,sfCoopSoloPickupHull());
+            for(const auto at:cells){
+                const int cx=int(at.x/world.pixelsPerCell),cy=int(at.y/world.pixelsPerCell);
+                const unsigned hash=sfsolo::CoopSoloScenery::hash(cx,cy);
+                if(hash%19!=0 || sa1.size()>=96 || std::hypot(at.x-start.x,at.y-start.y)<sfArenaW*.7f)continue;
+                const float radius=world.pixelsPerCell*(.22f+.14f*((hash>>8)%100)/99.f);
+                bool clear=world.canOccupy(at,radius);
+                for(const auto *other:sa1)if(std::hypot(other->x-at.x,other->y-at.y)<radius+sfSoloRockRadius(other)+world.pixelsPerCell)clear=false;
+                if(!clear)continue;
+                auto *rock=new sprite;rock->setxywh(at.x,at.y,radius*2,radius*2);
+                rock->sw=rock->w;rock->sh=rock->h;rock->vx=rock->vy=0;rock->as=0;
+                rock->pv=1;rock->timer=0;rock->name="a"+std::to_string(1+hash%4);rock->startup();sa1.push_back(rock);
+            }
+            incra1=int(sa1.size());
+        }
         sfCoop.controls[1].target=tupl(start.x,start.y);
         sfCoop.soloAimTarget=tupl(start.x,start.y-120.0f);
         sfCoop.soloKineticAxes.aimAt(1,0,-1);
@@ -244,6 +276,7 @@ static int runCoopSoloSession(bool diagnostics){
             enabled?world.map.height:0,sfArenaW);
     };
     auto cancelControls=[&](){
+        zoomGesture.reset();zoomGesture.zoom=world.zoom;
         moveFinger=aimFinger=-1;mouseAimHeld=false;chargeCueGate.reset();
         sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
         sfCoop.controls[1].velocity.set(0,0);sfCoop.fireFingers.clear();
@@ -331,7 +364,10 @@ static int runCoopSoloSession(bool diagnostics){
             for(unsigned i=0;i<level.minibossAnchors.size();++i){
                 const auto at=level.minibossAnchors[i];SfSoloMiniboss mini;
                 mini.position=mini.anchor=tupl(at.x,at.y);mini.radius=sfArenaW*.045f;
-                mini.appearance=int(i+1);sfCoop.soloMinibosses.push_back(mini);
+                mini.appearance=int(i+1);mini.role=int(i%4);
+                mini.pack=(i==4||i>=9)?1:-1;
+                if(mini.pack>=0)mini.role=i==4?1:int(2+(i-9)%2);
+                mini.repath=i*.073f;sfCoop.soloMinibosses.push_back(mini);
             }
         }else SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,"SOLO_GAME_LEVEL_NOT_TRAVERSABLE");
     }
@@ -399,6 +435,23 @@ static int runCoopSoloSession(bool diagnostics){
                 const float tx=event.tfinger.x*sfArenaW;
                 const float ty=event.tfinger.y*sfArenaH;
                 const SDL_FingerID id=event.tfinger.fingerId;
+                if(worldActive && aimFinger<0 && (moveFinger<0 || zoomGesture.selected)){
+                    const auto shipPixel=world.toScreen({Spritej2->x,Spritej2->y});
+                    const float time=float(SDL_GetTicks64())*.001f;
+                    bool consumed=false;
+                    if(event.type==SDL_FINGERDOWN)consumed=zoomGesture.down(id,tx,ty,time,shipPixel.x,shipPixel.y,
+                        std::max(20.f,sfCoopShipRadius()*world.zoom));
+                    else if(event.type==SDL_FINGERMOTION)consumed=zoomGesture.motion(id,tx,ty,time);
+                    else consumed=zoomGesture.up(id,tx,ty,time);
+                    if(consumed){
+                        world.setZoom(zoomGesture.zoom,{Spritej2->x,Spritej2->y});
+                        continue;
+                    }
+                    // A hull tap that turns into a drag becomes normal piloting.
+                    if(event.type==SDL_FINGERMOTION && moveFinger<0){
+                        moveFinger=id;sfCoop.controls[1].finger=id;sfCoop.controls[1].down=true;
+                    }
+                }
                 if(event.type==SDL_FINGERDOWN){
                     if(!diagnostics && level.phase==sfsolo::LevelPhase::Victory && ty<sfArenaH*.10f){
                         completeLevel();continue;
@@ -445,10 +498,8 @@ static int runCoopSoloSession(bool diagnostics){
                     if(id==moveFinger){
                         moveFinger=-1;sfCoop.controls[1].down=false;
                         sfCoop.controls[1].finger=-1;
-                        // WORLD camera must stop when the steering fingertip
-                        // lifts. Prevent legacy touch inertia from pushing
-                        // the pilot beyond the now-frozen viewport.
-                        if(worldActive)sfCoop.controls[1].velocity.set(0,0);
+                        // Physical momentum survives release; only scene/lifecycle
+                        // cancellation neutralizes velocity.
                     }
                     if(id==aimFinger){
                         aimAt(tx,ty);aimFinger=-1;chargeRelease();
@@ -501,10 +552,9 @@ static int runCoopSoloSession(bool diagnostics){
                     }else if(arenaEntered && !sfCoop.bossPresent && sfCoop.health<=0 && Spritej2->pv>0)
                         level.phase=sfsolo::LevelPhase::Victory;
                 }
-                if(worldActive&&moveFinger>=0)
-                    world.panIfShipActuallyMoved({Spritej2->x,Spritej2->y},
-                        {Spritej2->x-oldX,Spritej2->y-oldY},subDt,
-                        sfsolo::CoopWorldPoint{moveScreenX,moveScreenY});
+                if(worldActive)
+                    world.followPhysicalShip({Spritej2->x,Spritej2->y},
+                        {Spritej2->x-oldX,Spritej2->y-oldY},subDt);
                 // Start the true kinetic charge sound only when the actual
                 // COOP field becomes visible and vulnerable (0.20 s).
                 if(chargeCueGate.startWhenVisible(sfKineticSurges[1])){
@@ -525,14 +575,20 @@ static int runCoopSoloSession(bool diagnostics){
             // no world position is ever overwritten just to draw an image.
             scenery.draw(renderer,world,sfCoop.time);
             sfCoopSoloWorldActors(renderer,world);
+            // Opaque physical terrain masks sprites/FX that extend behind it.
+            scenery.drawWalls(renderer,world,sfCoop.time);
+            if(zoomGesture.selected){
+                const auto at=world.toScreen({Spritej2->x,Spritej2->y});
+                sfTacticalRing(renderer,tupl(at.x,at.y),sfCoopShipRadius()*world.zoom*1.25f,{160,230,255,125});
+            }
             if(!diagnostics && levelReady){
                 const auto entrance=world.toScreen(level.lair);
-                sfTacticalRing(renderer,tupl(entrance.x,entrance.y),level.entranceRadius,{190,130,255,220});
-                sfTacticalRing(renderer,tupl(entrance.x,entrance.y),level.entranceRadius*.70f,{110,220,255,180});
+                sfTacticalRing(renderer,tupl(entrance.x,entrance.y),level.entranceRadius*world.zoom,{190,130,255,220});
+                sfTacticalRing(renderer,tupl(entrance.x,entrance.y),level.entranceRadius*world.zoom*.70f,{110,220,255,180});
                 sfCoopText(renderer,int(entrance.x-90),int(entrance.y-level.entranceRadius-24),"ANTRE DU BOSS",180,2);
                 for(unsigned i=0;i<level.relays.size();++i)if(level.relayReached[i]){
                     const auto at=world.toScreen(level.relays[i]);
-                    sfTacticalRing(renderer,tupl(at.x,at.y),world.pixelsPerCell*.65f,{110,255,170,210});
+                    sfTacticalRing(renderer,tupl(at.x,at.y),world.pixelsPerCell*world.zoom*.65f,{110,255,170,210});
                 }
             }
         }else sfCoopDrawArena(renderer,width,height);
@@ -595,7 +651,7 @@ static int runCoopSoloSession(bool diagnostics){
                 if(!saveError.empty())sfCoopCentered(renderer,width,height/2,saveError,2);
             }else if(worldActive){
                 const auto relayCount=std::count(level.relayReached.begin(),level.relayReached.end(),true);
-                sfCoopText(renderer,margin,12,"MINIBOSS "+std::to_string(sfCoop.soloMinibossDefeated)+"/4  RELAIS "+
+                sfCoopText(renderer,margin,12,"MINIBOSS "+std::to_string(sfCoop.soloMinibossDefeated)+"/"+std::to_string(level.minibossAnchors.size())+"  RELAIS "+
                     std::to_string(relayCount)+"/"+std::to_string(level.relays.size()),width-2*margin,2);
             }
         }
@@ -632,7 +688,7 @@ static int runCoopSoloSession(bool diagnostics){
         if(smokeFrames>0&&--smokeFrames==0)running=false;
     }
     sfCampaignSuspend();chargeCueGate.reset();
-    sfCoop.soloWorldMode=false;sfCoop.soloWorldContext=nullptr;
+    sfCoop.soloWorldMode=false;sfCoop.soloWorldContext=nullptr;sfCoop.soloEventVisible=nullptr;sfCoop.soloRoute=nullptr;
     sfCoop.soloWorldResolve=nullptr;
     sfCoop.soloWorldCanOccupy=nullptr;
     sfCoop.soloWorldFirstImpact=nullptr;sfCoop.soloWorldPlacePickup=nullptr;sfCoop.soloWorldPreparePickups=nullptr;

@@ -19,6 +19,7 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
     SDL_RenderSetViewport(renderer,&screen);
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     auto &textures=sfCoopTextures(renderer);
+    const float z=world.zoom;
     auto project=[&](float x,float y){
         return world.toScreen({x,y});
     };
@@ -28,8 +29,8 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
     };
     auto disc=[&](float x,float y,float radius,SDL_Color color){
         const auto p=project(x,y);
-        if(visible(p.x,p.y,radius))
-            sfCoopDisc(renderer,p.x,p.y,radius,color);
+        if(visible(p.x,p.y,radius*z))
+            sfCoopDisc(renderer,p.x,p.y,radius*z,color);
     };
     // Historical four asteroid atlases + their actual physics dimensions.
     for(const auto *rock:sa1){
@@ -39,8 +40,8 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         if(!visible(p.x,p.y,radius))continue;
         const int ix=rock->name.size()==2?
             std::clamp(rock->name[1]-'1',0,3):0;
-        SDL_Rect dest{int(p.x-rock->w*.5f),int(p.y-rock->h*.5f),
-                      int(rock->w),int(rock->h)};
+        SDL_Rect dest{int(p.x-rock->w*z*.5f),int(p.y-rock->h*z*.5f),
+                      int(rock->w*z),int(rock->h*z)};
         if(textures.rocks[ix])
             SDL_RenderCopyEx(renderer,textures.rocks[ix],nullptr,&dest,
                 rock->rand0+sfCoop.time*rock->as*rock->asign,nullptr,rock->flip);
@@ -61,7 +62,7 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         SDL_Texture *fx=(smoke&&!weak)?textures.impact:textures.explosion;
         if(!fx)fx=textures.explosion?textures.explosion:textures.impact;
         if(!fx)continue;
-        SDL_Rect rect{int(p.x-e->w*.5f),int(p.y-e->h*.5f),int(e->w),int(e->h)};
+        SDL_Rect rect{int(p.x-e->w*z*.5f),int(p.y-e->h*z*.5f),int(e->w*z),int(e->h*z)};
         SDL_RenderCopyEx(renderer,fx,nullptr,&rect,
             sfCoop.time*e->as*e->asign*5,nullptr,e->flip);
     }
@@ -76,8 +77,8 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         if(shot.kind==2)
             color=shot.age<1.2f?SDL_Color{255,200,75,190}:SDL_Color{255,70,50,255};
         if(shot.kind==4 && textures.missile){
-            const int w=std::max(8,int(shot.radius*1.55f)),
-                      h=std::max(18,int(shot.radius*4.8f));
+            const int w=std::max(8,int(shot.radius*z*1.55f)),
+                      h=std::max(18,int(shot.radius*z*4.8f));
             SDL_Rect rect{int(p.x-w*.5f),int(p.y-h*.5f),w,h};
             const float speed=std::max(1.0f,vlong(shot.velocity.vx,shot.velocity.vy));
             const float ux=shot.velocity.vx/speed,uy=shot.velocity.vy/speed;
@@ -96,7 +97,7 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         }else if(shot.kind==0 && shot.owner>=0){
             SDL_Texture *orb=shot.owner==0?textures.orbOrange:textures.orbBlue;
             if(orb){
-                const int side=std::max(7,int(shot.radius*2.55f));
+                const int side=std::max(7,int(shot.radius*z*2.55f));
                 SDL_Rect rect{int(p.x-side*.5f),int(p.y-side*.5f),side,side};
                 SDL_RenderCopy(renderer,orb,nullptr,&rect);
             }else disc(shot.position.x,shot.position.y,shot.radius,color);
@@ -139,9 +140,9 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         const float radius=diameter*SF_KINETIC_MAX_SHIELD_DIAMETER*.5f;
         const float pulse=.5f+.5f*std::sin(float(SDL_GetTicks64())*.010f+1.7f);
         const float progress=sfKineticSuperchargeProgress(1);
-        sfTacticalRing(renderer,tupl(p.x,p.y),radius,
+        sfTacticalRing(renderer,tupl(p.x,p.y),radius*z,
             sfKineticSuperchargeColor(progress,Uint8(132+38*pulse)));
-        sfTacticalRing(renderer,tupl(p.x,p.y),std::max(1.0f,radius-3.0f),
+        sfTacticalRing(renderer,tupl(p.x,p.y),std::max(1.0f,radius*z-3.0f),
             sfKineticSuperchargeColor(progress,Uint8(70+24*pulse)));
     }
     for(const auto &wave:sfKineticWaves){
@@ -151,7 +152,7 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         const float radius=sfKineticWaveRadiusAt(wave,diameter,wave.age);
         if(radius<=0)continue;
         const auto p=project(Spritej2->x,Spritej2->y);
-        sfTacticalRing(renderer,tupl(p.x,p.y),radius,{255,185,98,92});
+        sfTacticalRing(renderer,tupl(p.x,p.y),radius*z,{255,185,98,92});
     }
 
     // Minibosses reuse the historical animated boss atlas, with local HP and
@@ -160,15 +161,15 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         const auto p=project(m.position.x,m.position.y);
         if(!visible(p.x,p.y,m.radius*2))continue;
         sfDrawEncounterBoss(renderer,textures.bosses,m.appearance,tupl(p.x,p.y),
-                            m.radius,sfCoop.time,m.hit,0);
+                            m.radius*z,sfCoop.time,m.hit,0);
         if(m.warning>0){
-            sfTacticalRing(renderer,tupl(p.x,p.y),m.radius*1.4f,{255,110,70,200});
+            sfTacticalRing(renderer,tupl(p.x,p.y),m.radius*z*1.4f,{255,110,70,200});
             const auto end=project(m.position.x+std::cos(m.aim)*sfArenaW*.22f,
                                    m.position.y+std::sin(m.aim)*sfArenaW*.22f);
             SDL_SetRenderDrawColor(renderer,255,115,70,175);
             SDL_RenderDrawLineF(renderer,p.x,p.y,end.x,end.y);
         }
-        sfDrawBossRatioBar(renderer,{int(p.x-m.radius),int(p.y-m.radius-12),int(m.radius*2),5},
+        sfDrawBossRatioBar(renderer,{int(p.x-m.radius*z),int(p.y-m.radius*z-12),int(m.radius*z*2),5},
                            m.health/180.0f,sfHealthColor(m.health/180.0f),false);
     }
     // The atlas boss and its kinetic shield are projected to the REAL
@@ -179,10 +180,10 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         const float radius=sfCoopBossRadius();
         if(visible(boss.x,boss.y,radius*1.3f)){
             sfCoopCircleAlpha(renderer,int(boss.x),int(boss.y),
-                int(radius*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE),
+                int(radius*z*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE),
                 145,95,215,sfCoopBossKineticVisibilityAlpha(sfCoop.bossKineticReserve));
             sfDrawEncounterBoss(renderer,textures.bosses,sfCoop.encounter,
-                tupl(boss.x,boss.y),radius,sfCoop.time,sfCoop.hit,0.0f);
+                tupl(boss.x,boss.y),radius*z,sfCoop.time,sfCoop.hit,0.0f);
         }
     }
 
@@ -191,8 +192,8 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
     // fallback retains an identifiable craft if the Android PNG is absent.
     auto *ship=Spritej2;
     const auto p=project(ship->x,ship->y);
-    const SDL_Rect hull{int(p.x-ship->w*.5f),int(p.y-ship->h*.5f),
-                        std::max(1,int(ship->w)),std::max(1,int(ship->h))};
+    const SDL_Rect hull{int(p.x-ship->w*z*.5f),int(p.y-ship->h*z*.5f),
+                        std::max(1,int(ship->w*z)),std::max(1,int(ship->h*z))};
     if(ship->pv>0 && visible(p.x,p.y,ship->w)){
         if(textures.blue){
             SDL_SetTextureColorMod(textures.blue,255,255,255);
@@ -204,14 +205,14 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         }else{
             const SDL_Color blue{80,222,255,sfCoopSoloShipAlpha(1,245)};
             const SDL_Vertex shipVertices[]={
-                {{p.x,p.y-ship->h*.42f},blue,{0,0}},
-                {{p.x-ship->w*.35f,p.y+ship->h*.28f},{25,110,245,sfCoopSoloShipAlpha(1,240)},{0,0}},
-                {{p.x+ship->w*.35f,p.y+ship->h*.28f},{25,110,245,sfCoopSoloShipAlpha(1,240)},{0,0}}};
+                {{p.x,p.y-ship->h*z*.42f},blue,{0,0}},
+                {{p.x-ship->w*z*.35f,p.y+ship->h*z*.28f},{25,110,245,sfCoopSoloShipAlpha(1,240)},{0,0}},
+                {{p.x+ship->w*z*.35f,p.y+ship->h*z*.28f},{25,110,245,sfCoopSoloShipAlpha(1,240)},{0,0}}};
             const int tri[]={0,1,2};
             SDL_RenderGeometry(renderer,nullptr,shipVertices,3,tri,3);
         }
         // Always distinguish the ship's centre from its larger power ring.
-        sfCoopDisc(renderer,p.x,p.y,std::max(2.0f,ship->w*.055f),
+        sfCoopDisc(renderer,p.x,p.y,std::max(2.0f,ship->w*z*.055f),
                    {180,246,255,sfCoopSoloShipAlpha(1,220)});
     }
     SDL_RenderSetViewport(renderer,&original);

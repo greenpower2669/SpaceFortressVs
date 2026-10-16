@@ -10,7 +10,9 @@ static void sfCoopSoloBeginBoss(tupl position){
 }
 static void sfCoopSoloEnterFinalArena(){
     // Preserve the one physical pilot's health, heat, powers and fire cadence.
+    sfCoop.soloRoute=nullptr;
     sfCoop.soloWorldMode=false;sfCoop.soloWorldContext=nullptr;
+    sfCoop.soloEventVisible=+[](void*,tupl at)->bool{return at.x>=0&&at.y>=0&&at.x<sfArenaW&&at.y<sfArenaH;};
     sfCoop.soloWorldResolve=nullptr;sfCoop.soloWorldCanOccupy=nullptr;
     sfCoop.soloWorldFirstImpact=nullptr;sfCoop.soloWorldPreparePickups=nullptr;
     sfCoop.soloWorldPlacePickup=nullptr;sfCoop.soloWorldWidth=sfCoop.soloWorldHeight=0;

@@ -5,6 +5,7 @@
 #include "coop_pilot_roster.hpp"
 #include "solo_bonus_core.hpp"
 #include "solo_miniboss.hpp"
+#include "solo_ship_motion.hpp"
 #include <map>
 
 enum class SfSoloEncounterRole { None, MiniBoss, FinalBoss };
@@ -38,6 +39,8 @@ struct SfCoopState {
     bool soloFreeAim=false;    // one blue human uses 360-degree direct aim
     bool soloWorldMode=false;  // opt-in, canonical COOP remains default
     void *soloWorldContext=nullptr;
+    bool (*soloEventVisible)(void*,tupl)=nullptr;
+    void (*soloRoute)(void*,tupl,tupl,float,int,std::vector<tupl>&)=nullptr;
     tupl (*soloWorldResolve)(void *,tupl,tupl,float)=nullptr;
     bool (*soloWorldCanOccupy)(void *,tupl,float)=nullptr;
     float (*soloWorldFirstImpact)(void *,tupl,tupl,float)=nullptr;
@@ -693,7 +696,12 @@ static void sfCoopMovePlayers(float dt)
         sfCoop.invulnerable[owner]=std::max(0.0f,sfCoop.invulnerable[owner]-dt);
         if (ship->pv<=0) continue;
         const tupl previous(ship->x,ship->y);
-        if (owner==0 && sfActiveMode==SF_COOP_AI) control.velocity=sfCoopAiVelocity(dt);
+        sfsolo::ShipMotion inertial{ship->x,ship->y,control.velocity.vx,control.velocity.vy};
+        const bool soloInertia=sfCoop.soloWorldMode && owner==1;
+        if(soloInertia){
+            inertial.step(control.target.x,control.target.y,control.down,sfArenaW,sfBossDangerIndex,dt);
+            control.velocity=tuplv(inertial.vx,inertial.vy);
+        }else if (owner==0 && sfActiveMode==SF_COOP_AI) control.velocity=sfCoopAiVelocity(dt);
         else if (control.down) {
             const float distance=vlong(control.target.x-ship->x,control.target.y-ship->y);
             control.velocity=sfUnitVelocity(previous,control.target,std::min(sfArenaW*3.10f,distance*30));
@@ -702,11 +710,12 @@ static void sfCoopMovePlayers(float dt)
         if(sfCoop.soloWorldMode && sfCoop.soloWorldResolve && owner==1){
             // Same actual COOP velocity. Only the collision-bound movement
             // constraint changes to the world hull (no duplicate pilot).
-            const tupl desired(ship->x+control.velocity.vx*dt,
-                               ship->y+control.velocity.vy*dt);
+            const tupl desired(inertial.x,inertial.y);
             const tupl accepted=sfCoop.soloWorldResolve(
                 sfCoop.soloWorldContext,previous,desired,std::max(halfWidth,halfHeight));
             ship->x=accepted.x;ship->y=accepted.y;
+            if(std::abs(accepted.x-desired.x)>.01f)control.velocity.vx=0;
+            if(std::abs(accepted.y-desired.y)>.01f)control.velocity.vy=0;
         }else{
             ship->x=std::clamp(ship->x+control.velocity.vx*dt,halfWidth,sfArenaW-halfWidth);
             ship->y=std::clamp(ship->y+control.velocity.vy*dt,sfArenaH*.105f+halfHeight,sfArenaH*.895f-halfHeight);
@@ -1046,7 +1055,7 @@ static bool sfCoopBossKineticAsteroidImpact(sprite *rock)
     sfCoop.bossKineticReserve=std::clamp(sfCoop.bossKineticReserve-stress,0.0f,1.0f);
     sfCoop.bossKineticFlash=SF_COOP_BOSS_KINETIC_RING_DURATION;
     sfCoop.bossAsteroidCooldown[rock]=.42f;
-    sfFieldCollisionSound=true;
+    if(sfFieldAudible(rock->x,rock->y))sfFieldCollisionSound=true;
 
     // Boss field only absorbs/deflects: the asteroid survives.
     const float bossVx=sfCoop.motion.velocity.vx/60.0f,bossVy=sfCoop.motion.velocity.vy/60.0f;
@@ -1072,6 +1081,7 @@ static void sfCoopBossKineticField()
 static void sfCoopAdvanceAsteroidSpawner(float dt)
 {
     if(sfCoop.phase!=SfCoopPhase::Combat || dt<=0) return;
+    if(sfCoop.soloWorldMode && (sfCoop.soloGame||sfCoop.soloDiagnostic))return;
     sfCoop.asteroidSpawnTimer-=dt;
     if(sfCoop.asteroidSpawnTimer>0) return;
     while(sfCoop.asteroidSpawnTimer<=0) sfCoop.asteroidSpawnTimer+=SF_COOP_ASTEROID_SPAWN_SECONDS;
@@ -1089,6 +1099,17 @@ static void sfCoopAdvanceAsteroidSpawner(float dt)
         auto it=sa1.begin();std::advance(it,std::min(oldCount,sa1.size()));
         for(;it!=sa1.end();++it){
             (*it)->x+=shiftX;(*it)->y+=shiftY;(*it)->startup();
+        }
+    }
+    if((sfCoop.soloGame||sfCoop.soloDiagnostic) && !sfCoop.soloWorldMode){
+        auto it=sa1.begin();std::advance(it,std::min(oldCount,sa1.size()));
+        for(;it!=sa1.end();){
+            auto *rock=*it;const float r=sfSoloRockRadius(rock);
+            rock->x=std::clamp(rock->x,r+1,sfArenaW-r-1);
+            rock->y=std::clamp(rock->y,r+1,sfArenaH-r-1);
+            bool clear=std::hypot(rock->x-sfCoopShip(1)->x,rock->y-sfCoopShip(1)->y)>r+sfCoopShipRadius()*2;
+            for(auto *other:sa1)if(other!=rock && other->pv>0 && std::hypot(other->x-rock->x,other->y-rock->y)<r+sfSoloRockRadius(other)+2)clear=false;
+            if(clear){rock->startup();++it;}else{delete rock;it=sa1.erase(it);}
         }
     }
     W=oldW;H=oldH;WIDTH=oldWidth;HEIGHT=oldHeight;k0=oldK;
@@ -1278,6 +1299,9 @@ static tupl sfCoopBossPosition(float time)
 static void sfCoopTick(float dt)
 {
     if (sfCoop.phase!=SfCoopPhase::Combat || !std::isfinite(dt) || dt<=0) return;
+    const bool solo=sfCoop.soloGame||sfCoop.soloDiagnostic;
+    SfSoloFieldScope fieldScope({solo,sfCoop.soloWorldMode,sfCoop.soloWorldContext,
+        sfCoop.soloWorldResolve,sfCoop.soloWorldCanOccupy,sfCoop.soloWorldFirstImpact,sfCoop.soloEventVisible});
     sfCoopSoloBonusTick(dt);
     sfKineticAdvanceSurges(dt);sfKineticAudioUpdate();
     sfCoop.time+=dt;sfCoop.hit=std::max(0.0f,sfCoop.hit-dt);

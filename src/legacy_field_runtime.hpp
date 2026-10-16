@@ -14,7 +14,7 @@ static void sfMineAsteroid(sprite *rock,sprite *shot)
 {
     if (rock->pv<=0 || shot->pv<=0) return;
     partsforiw(rock,shot);
-    sfFieldMiningSound=true;
+    if(sfFieldAudible(rock->x,rock->y))sfFieldMiningSound=true;
     sfFieldImpact(rock,shot);
     const float cm=sfArenaH/1000.0f;
     rock->w=std::max(0.0f,rock->w-cm);rock->h=std::max(0.0f,rock->h-cm);
@@ -98,7 +98,7 @@ static void sfKineticSurgeMineAsteroids(float dt,
         sfKineticSurgeMiningVisualClock[owner]+=dt;
         const bool visualPulse=sfKineticSurgeMiningVisualClock[owner]>=SF_KINETIC_SURGE_MINING_VISUAL_INTERVAL;
         if(visualPulse) sfKineticSurgeMiningVisualClock[owner]=std::fmod(sfKineticSurgeMiningVisualClock[owner],SF_KINETIC_SURGE_MINING_VISUAL_INTERVAL);
-        bool minedAny=false;
+        bool minedAny=false,minedAudible=false;
         for(auto *rock:sa1) {
             if(!rock || rock->pv<=0) continue;
             const float rockRadius=std::max(rock->w,rock->h)*.5f;
@@ -112,12 +112,12 @@ static void sfKineticSurgeMineAsteroids(float dt,
             if(shrink<=0) continue;
             rock->w=std::max(0.0f,rock->w-shrink);rock->h=std::max(0.0f,rock->h-shrink);
             rock->sw=rock->w;rock->sh=rock->h;rock->startup();
-            minedAny=true;
+            minedAny=true;minedAudible|=sfFieldAudible(rock->x,rock->y);
             if(visualPulse) sfKineticTideVisual(rock,ship,diameter);
             if(rock->w<sfArenaH/100.0f || rock->h<sfArenaH/100.0f) rock->pv=0;
         }
         if(minedAny && visualPulse) {
-            sfFieldMiningSound=true;
+            if(minedAudible)sfFieldMiningSound=true;
             if(owner==0 && sfActiveMode==SF_DUEL_AI) {
                 static Uint64 lastAiMiningLog=0;
                 const Uint64 now=SDL_GetTicks64();
@@ -411,17 +411,22 @@ static bool sfKineticTryLayer(sprite *rock,sprite *ship,int owner,SfKineticLayer
     return false;
 }
 
+#include "solo_field_runtime.hpp"
+
 static void sfLegacyFieldStep(void (*hurt)(int,float),unsigned activePilotMask=0x03u,
                               const SfKineticAimAxes *aims=nullptr,
                               float soloWorldWidth=0,float soloWorldHeight=0)
 {
-    if (sa1.empty()) {setastswall();setasts(2);}
-    else if (sa1.size()<8) setasts(2);
+    if (!sfSoloField.enabled){
+        if (sa1.empty()) {setastswall();setasts(2);}
+        else if (sa1.size()<8) setasts(2);
+    }
     std::vector<sprite*> rocks(sa1.begin(),sa1.end());
     for (auto *rock:rocks) {
         if (rock->pv<=0) continue;
         const float fromX=rock->x,fromY=rock->y;
-        rock->ast();
+        if(sfSoloField.enabled)sfSoloRockMove(rock);else rock->ast();
+        if(rock->pv<=0)continue;
         const bool insideField=soloWorldWidth>0 && soloWorldHeight>0 ?
             (rock->x>-soloWorldWidth*.02f && rock->x<soloWorldWidth*1.02f &&
              rock->y>-soloWorldHeight*.02f && rock->y<soloWorldHeight*1.02f) :
@@ -473,6 +478,10 @@ static void sfLegacyFieldStep(void (*hurt)(int,float),unsigned activePilotMask=0
                 (a->x>=0&&a->y>=0&&a->x<soloWorldWidth&&a->y<soloWorldHeight):inxy(a);
             const bool bInside=worldClip ?
                 (b->x>=0&&b->y>=0&&b->x<soloWorldWidth&&b->y<soloWorldHeight):inxy(b);
+            if(sfSoloField.enabled){
+                if(b->pv>0)sfSoloRockPair(a,b);
+                continue;
+            }
             if (b->pv<=0 || a->timer || b->timer || !(aInside||bInside) || !colee(a,b)) continue;
             sfFieldCollisionSound=true;sfFieldImpact(a,b,true);
             const float h1=std::sqrt(a->w*a->h),h2=std::sqrt(b->w*b->h);

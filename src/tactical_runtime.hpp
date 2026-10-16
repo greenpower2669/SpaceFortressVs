@@ -18,6 +18,7 @@ inline Uint64 sfTacticsLastTick = 0;
 inline Uint64 sfNextAsteroidId = 0;
 inline float sfFieldRemainder=0;
 inline bool sfFieldCollisionSound=false,sfFieldMiningSound=false;
+#include "solo_field_policy.hpp"
 
 struct SfKineticAudioState {
     Mix_Chunk *charge=nullptr,*ready=nullptr,*release=nullptr;

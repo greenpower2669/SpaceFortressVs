@@ -6,9 +6,9 @@ int main(){
     CoopSoloWorldBridge world;MapOptions options;options.width=54;options.height=160;
     assert(world.create(options,{0,0,540,960},540));
     LevelFlow flow;assert(flow.create(world,40.5f));
-    assert(flow.minibossAnchors.size()==4);
+    assert(flow.minibossAnchors.size()>=10 && flow.minibossAnchors.size()<=12);
     assert(world.canOccupy(flow.lair,40.5f));
-    for(unsigned i=0;i<4;++i){
+    for(unsigned i=0;i<flow.minibossAnchors.size();++i){
         assert(world.canOccupy(flow.minibossAnchors[i],40.5f));
         for(unsigned j=0;j<i;++j)
             assert(std::hypot(flow.minibossAnchors[i].x-flow.minibossAnchors[j].x,
@@ -32,7 +32,7 @@ int main(){
     for(unsigned w=1;w<=6;++w)for(unsigned stage:{1u,10u,20u}){
         options.world=w;options.stage=stage;options.difficulty=stage==1?1:stage==10?5:9;
         assert(world.create(options,{0,0,540,960},540));
-        assert(flow.create(world,40.5f) && flow.minibossAnchors.size()==4);
+        assert(flow.create(world,40.5f) && flow.minibossAnchors.size()>=10 && flow.minibossAnchors.size()<=12);
     }
     // Full hull traversability, not only open centres: a blocked map fails safely.
     std::fill(world.map.tiles.begin(),world.map.tiles.end(),Tile::Rock);

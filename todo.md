@@ -673,3 +673,16 @@ Source `2a933a60639d890fd6168befb8ce1784ba9a18c8`; CI Android/C++/SDL2 `38837760
 - Fond ajouré : `assets/pict/solo/FondsParallaxeModeSolo.png`, RGBA1254x1254, SHA256 `4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44`.
 - `SpaceFortressVs-1.4.2-SOLO-PARALLAX-016-2a933a6.apk`: 98400063 octets, SHA256 `62a029ca828a85783f324301bcb5d1411cfa8f343875f7e5ebf4108b5ce8515f`.
 - `SpaceFortressVs-1.4.2-SOLO-PARALLAX-016-2a933a6-unsigned.aab`: 95691410 octets, SHA256 `1c18b7d99a45816a2332cd77415927cbf26cbb93cc1346897160c18eafc76703`.
+
+
+## 16/10/2026 — SOLO PHYSICS-017
+- [x] Base PARALLAX-016/branche et cinq mémoires inspectées.
+- [x] Contrat + plan PHYSICS-017 enregistrés.
+- [ ] Inertie/caméra/zoom et tests.
+- [ ] Roches stables/trajectoires/audio et tests.
+- [ ] 10–12 rencontres/chasse/meutes et tests.
+- [ ] Régressions, revue, CI Android, export APK/AAB exact.
+- [ ] Samsung : essais nécessaires avant toute intégration définitive.
+État : en cours, aucun code PHYSICS-017 livré.
+
+PHYSICS-017 — point de reprise 16/10 après interruption : implémentation locale des briques (inertie/caméra/zoom, repos/collision roches, visibilité audio, 10–12 rencontres/chasse) présente, NON LIVRÉE. Tests purs inertie Danger9/FPS, contact/repos roches, zoom exclusif, navigation réelle/occlusion et placement des rencontres passés. Suite complète a révélé une erreur de portée de variable dans le son du minage, corrigée ; compilation globale/tests runtime à reprendre. Environnement /tmp réinitialisé entre les tours, dépendances SDL en reconstitution dans scratch persistant de la session. Aucun APK-017 annoncé, aucune validation Samsung. Prochaine étape : tests réels moteur, revue, CI Android, export exact.

@@ -103,11 +103,11 @@ struct CoopSoloScenery {
         if(!r||!world.ready)return;
         DrawState saved(r);
         const SDL_FRect screen{float(world.screen.x),float(world.screen.y),float(world.screen.w),float(world.screen.h)};
-        colorRect(r,screen,{4,8,19,255});const float width=world.combatWidth*2.5f;
-        tiled(r,space,screen,world.cameraLeft*spaceDepth,world.cameraTop*spaceDepth,
+        colorRect(r,screen,{4,8,19,255});const float width=world.combatWidth*2.5f*world.zoom;
+        tiled(r,space,screen,world.cameraLeft*spaceDepth*world.zoom,world.cameraTop*spaceDepth*world.zoom,
             width,width*1795.0f/1024.0f,{155,170,205,255});
-        if(openings)tiled(r,mineral,screen,world.cameraLeft*mineralDepth,
-            world.cameraTop*mineralDepth,width,width,{66,76,94,255});
+        if(openings)tiled(r,mineral,screen,world.cameraLeft*mineralDepth*world.zoom,
+            world.cameraTop*mineralDepth*world.zoom,width,width,{66,76,94,255});
     }
     static unsigned hash(int x,int y){
         unsigned value=unsigned(x)*0x9e3779b1u^unsigned(y)*0x85ebca6bu;
@@ -118,14 +118,14 @@ struct CoopSoloScenery {
     }
     void drawWalls(SDL_Renderer *r,const CoopSoloWorldBridge &world,float seconds) const {
         if(!r||!world.ready)return;
-        DrawState saved(r);const auto &map=world.map;const float cell=world.pixelsPerCell;
-        const int x0=std::max(0,int(std::floor(world.cameraLeft/cell)));
-        const int y0=std::max(0,int(std::floor(world.cameraTop/cell)));
-        const int x1=std::min(map.width,int(std::ceil((world.cameraLeft+world.visibleWidth())/cell)));
-        const int y1=std::min(map.height,int(std::ceil((world.cameraTop+world.visibleHeight())/cell)));
+        DrawState saved(r);const auto &map=world.map;const float physicalCell=world.pixelsPerCell,cell=physicalCell*world.zoom;
+        const int x0=std::max(0,int(std::floor(world.cameraLeft/physicalCell)));
+        const int y0=std::max(0,int(std::floor(world.cameraTop/physicalCell)));
+        const int x1=std::min(map.width,int(std::ceil((world.cameraLeft+world.visibleWidth())/physicalCell)));
+        const int y1=std::min(map.height,int(std::ceil((world.cameraTop+world.visibleHeight())/physicalCell)));
         const int theme=worldTheme(map.world);
         for(int y=y0;y<y1;++y)for(int x=x0;x<x1;++x){
-            const auto at=world.toScreen({x*cell,y*cell});const SDL_FRect rect{at.x,at.y,cell,cell};
+            const auto at=world.toScreen({x*physicalCell,y*physicalCell});const SDL_FRect rect{at.x,at.y,cell,cell};
             const auto tile=map.at(x,y);
             if(tile==Tile::Rock){
                 colorRect(r,rect,{57,59,69,255});

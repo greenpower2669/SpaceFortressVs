@@ -35,6 +35,7 @@ enti *iago = new enti, *iago1 = new enti, *iacalc = new enti, *iatake = new enti
 #include "difficulty_regressions.hpp"
 #include "solo_bonus_runtime_regressions.hpp"
 #include "solo_game_regressions.hpp"
+#include "solo_physics_runtime_regressions.hpp"
 
 static SDL_Event finger(Uint32 type, SDL_FingerID id, float x, float y)
 {
@@ -274,6 +275,7 @@ int main(int argc,char **argv)
     if (argc==2) {
         const std::string test=argv[1];
         if (test=="--solo-game") {testSoloGame015();return 0;}
+        if (test=="--solo-physics") {testSoloPhysics017();return 0;}
         if (test=="--difficulty") {testDifficultyRendering(std::getenv("SPACEFORTRESS_DIFFICULTY_PREVIEW"));return 0;}
         if (test=="--restore-field") {testRealCoopField();return 0;}
         if (test=="--restore-input") {testNoHumanAutofire();return 0;}
@@ -302,7 +304,7 @@ int main(int argc,char **argv)
     testDuelStyleRoundTrip();testShipBreathing();testCoopHumanAim();testUnknownSaveWithBackup(campaignDirectory);
     testSaveRecoveryPreservation(campaignDirectory);
     testNoHumanAutofire();testPassiveCoopTurrets();testSharedLinearShieldModel();testKineticFieldAndHullRegen();testCollectedBonusAndShield();testRealCoopField();testCoopSoloFoundation();testActualCoopMovementInWorld();testCoopHeldFingerContinuousWorldCruise();testSoloWorldExcludesTurretsAndBonuses();testSoloDiagnosticTurretsRemainAbsent();
-    testSoloBonusRuntime012();testSoloBonusRendering012();testSoloGame015();
+    testSoloBonusRuntime012();testSoloBonusRendering012();testSoloGame015();testSoloPhysics017();
     testCoopDifficultyChain();testCoopIncomingDamageMultiplier();testCoopHudAndMissile();
     testDurableV1Migration(campaignDirectory);testDifficultySelection();testDifficultyGameplay();
     testDifficultyRendering(std::getenv("SPACEFORTRESS_DIFFICULTY_PREVIEW"));
