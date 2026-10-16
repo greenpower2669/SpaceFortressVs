@@ -707,3 +707,14 @@ Source `3ef362cd1375034519c458a0effb2d7abef03490`; CI Android/C++/SDL2 `38956636
 - Fond ajouré : `assets/pict/solo/FondsParallaxeModeSolo.png`, RGBA1254x1254, SHA256 `4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44`.
 - `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c.apk`: 98432836 octets, SHA256 `8387c28fb63ae6d2fe4017af5ac3b29b49c906682e5124c8273031d6cebb2ac9`.
 - `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c-unsigned.aab`: 95725985 octets, SHA256 `3af4730f3104606e4e6f3af694baa3165a9cc3447174705c4553b72d6736b95f`.
+
+
+## SOLO-018 — rebond immédiat et geste tactile direct, 16/10/2026
+- [x] Lire PHYSICS-017 et reproduire causalement l'arrêt `velocity=0`, le blocage doigt-mur et la règle de premier doigt.
+- [x] Intégrer sur la branche SOLO le solveur de rebond, la déviation, la gestion du reste du frame et le décollage face au doigt maintenu ; préserver l'inertie libre.
+- [x] Réserver le pilotage au DOWN sur coque ; réserver deux DOWN hors coque à un pincement ×1..×2, sans tir/charge au moment de reconnaissance.
+- [x] Ajuster tests moteur/bridge/zoom pour remplacer le contrat historique d'arrêt.
+- [ ] Vérifier CI exacte Android/C++/SDL2 et corriger toute régression, run 38962472820 pour code 8875905.
+- [ ] Fournir APK diagnostic et AAB **non signé** après CI verte, avec liens et identification exacts.
+- [ ] Essai Fab Samsung : murs face/angle, dégagement sans latence, maintien du doigt, pinch sans tir ni changement de vitesse et 30/60/120 FPS ; valider le ressenti.
+- [ ] Aucune fusion main/Release sans validation explicite Fab. src/main.cpp, assets, audio et modes historiques inchangés.

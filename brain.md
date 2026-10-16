@@ -706,3 +706,7 @@ Source `3ef362cd1375034519c458a0effb2d7abef03490`; CI Android/C++/SDL2 `38956636
 - Fond ajouré : `assets/pict/solo/FondsParallaxeModeSolo.png`, RGBA1254x1254, SHA256 `4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44`.
 - `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c.apk`: 98432836 octets, SHA256 `8387c28fb63ae6d2fe4017af5ac3b29b49c906682e5124c8273031d6cebb2ac9`.
 - `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c-unsigned.aab`: 95725985 octets, SHA256 `3af4730f3104606e4e6f3af694baa3165a9cc3447174705c4553b72d6736b95f`.
+
+
+## 16/10/2026 — SOLO COLLISION + PINCH-018 (correctif candidat)
+Fab valide l'inertie de PHYSICS-017 sur Samsung mais constate le collage sur les parois, le rebond retardé et des commandes momentanément inopérantes. Ordre « Ok corrige » autorise sur feature/solo-coop-core-v1 : rebond amorti continu, normale de contact, mouvement restant du frame, récupération de léger chevauchement, protection temporaire de l'impulsion face au doigt encore dirigé dans le mur ; pilotage seulement si DOWN initial sur coque et zoom direct à deux doigts hors coque sans tir/charge parasite. Code candidat 8875905fc3b6c39d8162fa668670e279a1b2e6d7, Android/CI run 38962472820 lancé ; aucun résultat de cette CI ni essai Samsung nouveau présumés. main/Release et src/main.cpp intacts.

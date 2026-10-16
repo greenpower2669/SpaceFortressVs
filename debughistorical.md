@@ -611,3 +611,7 @@ Source `3ef362cd1375034519c458a0effb2d7abef03490`; CI Android/C++/SDL2 `38956636
 - Fond ajouré : `assets/pict/solo/FondsParallaxeModeSolo.png`, RGBA1254x1254, SHA256 `4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44`.
 - `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c.apk`: 98432836 octets, SHA256 `8387c28fb63ae6d2fe4017af5ac3b29b49c906682e5124c8273031d6cebb2ac9`.
 - `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c-unsigned.aab`: 95725985 octets, SHA256 `3af4730f3104606e4e6f3af694baa3165a9cc3447174705c4553b72d6736b95f`.
+
+
+## 16/10/2026 — défaut réel PHYSICS-017 : collage mur + délai apparent du rebond
+Retour Samsung Fab : le vaisseau perd le contrôle un moment au contact d'une paroi. Cause démontrée : `campaign_runtime.hpp` met `control.velocity.vx/vy` à zéro si la position désirée est rejetée ; `moveWithoutTunnelling` renvoie une position sans normale/vitesse et le test `testSoloPhysicalShipAndCamera` imposait `vx==0`. Le doigt tenu en direction du mur réinjecte ensuite une accélération sans sortie de contact ; possible coinçage numérique si `canOccupy(from,radius)==false`. Également le premier doigt disponible déplaçait le vaisseau hors coque, en conflit avec le zoom direct. Correctif candidat `8875905` : solveur `moveWithBounce`, callback SOLO dédié, retour collision/rebond et fenêtre de neutralisation de la seule pression normale ; contrôle tactile corrigé et pincement direct. CI Android run `38962472820` et essai téléphone à confirmer, pas de régression déclarée corrigée sans preuve.

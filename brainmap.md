@@ -592,3 +592,7 @@ Source `3ef362cd1375034519c458a0effb2d7abef03490`; CI Android/C++/SDL2 `38956636
 - Fond ajouré : `assets/pict/solo/FondsParallaxeModeSolo.png`, RGBA1254x1254, SHA256 `4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44`.
 - `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c.apk`: 98432836 octets, SHA256 `8387c28fb63ae6d2fe4017af5ac3b29b49c906682e5124c8273031d6cebb2ac9`.
 - `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c-unsigned.aab`: 95725985 octets, SHA256 `3af4730f3104606e4e6f3af694baa3165a9cc3447174705c4553b72d6736b95f`.
+
+
+## SOLO BOUNCE + DIRECT PINCH-018 — 16/10/2026
+Retour Fab Samsung : inertie de PHYSICS-017 excellente ; murs collants, rebond tardif, doigt bloqué. Correctif autorisé : `coop_solo_world_bridge.hpp::moveWithBounce` (collision balayée + restitution .46 + tangente .94 + sous-temps restant + récupération légère), `campaign_runtime.hpp::sfCoopMovePlayers` (vitesse réfléchie, 0,20 s suppression de pression vers paroi, sortie immédiate), `coop_solo_session_runtime.hpp` (DOWN mouvement sur coque uniquement, pinch direct avec deux doigts hors coque), `solo_zoom_gesture.hpp` (pinch exclusif sans présélection). Tests mis à jour : moteur, bridge, zoom. Code `8875905`; CI Android `38962472820` en cours lors de ce suivi. Ne pas présenter comme testé Samsung, ni faire merge/main/Release. Guide : `docs/solo-bounce-pinch-018.md`.

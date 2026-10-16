@@ -730,3 +730,7 @@ Source `3ef362cd1375034519c458a0effb2d7abef03490`; CI Android/C++/SDL2 `38956636
 - Fond ajouré : `assets/pict/solo/FondsParallaxeModeSolo.png`, RGBA1254x1254, SHA256 `4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44`.
 - `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c.apk`: 98432836 octets, SHA256 `8387c28fb63ae6d2fe4017af5ac3b29b49c906682e5124c8273031d6cebb2ac9`.
 - `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c-unsigned.aab`: 95725985 octets, SHA256 `3af4730f3104606e4e6f3af694baa3165a9cc3447174705c4553b72d6736b95f`.
+
+
+## 16/10/2026 — SOLO BOUNCE-PINCH-018 — feu vert explicite Fab
+Après audit du ressenti PHYSICS-017 sur Samsung, Fab dit « Ok corrige ». Portée exacte : conserver inertie excellente, empêcher le vaisseau de coller longtemps aux parois et rendre le rebond immédiat, conserver pilotabilité vers l'extérieur, régler la première pression tactile : uniquement sur la coque pour initier mouvement ; zoom pinch-in/out direct à deux doigts hors coque, sans vols de doigt/tir intempestif. Préserver mode SOLO et anciens modes, caméra, parallax, armes, assets/sounds et src/main.cpp ; pas de merge main ni de Release. Livraison distincte attendue : APK Android diagnostic et AAB non signé après CI verte, validation Samsung ensuite. Code initial `8875905`, CI `38962472820` lancée ; aucune validation inventée. Doc `docs/solo-bounce-pinch-018.md`.
