@@ -721,3 +721,12 @@ PHYSICS-017 — point de reprise 16/10 après interruption : implémentation loc
 
 ## PHYSICS-017 — implémentation et revue, 16/10/2026
 PHYSICS-017 en phase de validation : toutes les fonctions demandées codées dans le vrai SOLO, sans modifier src/main.cpp, les assets ou les fichiers audio. Nouvelles familles sonores toujours reportées. Validation technique finale puis APK diagnostic + AAB non signé via export GitHub autorisé ; Samsung et accord Fab restent nécessaires avant main/Release.
+
+## PHYSICS-017 — livraison vérifiée 16/10/2026
+Ordre complet Fab PHYSICS-017 exécuté et diagnostic exporté après validation technique exacte. src/main.cpp, assets et audio conservés ; modes historiques protégés ; METEOR-009 reste OFF. Aucun merge main ni Release. Intégration définitive seulement après essai Samsung et accord explicite de Fab. Nouveaux bruitages reportés.
+
+Source `3ef362cd1375034519c458a0effb2d7abef03490`; CI Android/C++/SDL2 `38956636032` SUCCESS; publish-release SKIPPED.
+- Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
+- Fond ajouré : `assets/pict/solo/FondsParallaxeModeSolo.png`, RGBA1254x1254, SHA256 `4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44`.
+- `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c.apk`: 98432836 octets, SHA256 `8387c28fb63ae6d2fe4017af5ac3b29b49c906682e5124c8273031d6cebb2ac9`.
+- `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c-unsigned.aab`: 95725985 octets, SHA256 `3af4730f3104606e4e6f3af694baa3165a9cc3447174705c4553b72d6736b95f`.

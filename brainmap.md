@@ -583,3 +583,12 @@ PHYSICS-017 — point de reprise 16/10 après interruption : implémentation loc
 
 ## PHYSICS-017 — implémentation et revue, 16/10/2026
 Nouveaux modules : solo_ship_motion, solo_zoom_gesture, solo_rock_physics, solo_field_policy/runtime, solo_maze_path. Intégration opt-in dans campaign_runtime, hôte SOLO, bridge, rendu et miniboss ; historique inchangé hors SOLO. Rapport/protocole : docs/solo-physics-017.md. CI source puis export vérifié temp/solo-physics-017 à suivre.
+
+## PHYSICS-017 — livraison vérifiée 16/10/2026
+PHYSICS-017 : ShipMotion/ZoomGesture → hôte du vrai SOLO ; bridge écran/monde et balayages ; SoloFieldPolicy opt-in pour roches et audio ; mazeRoute + miniboss pour la chasse. Rapport et protocole : docs/solo-physics-017.md. APK/AAB directs : temp/solo-physics-017/.
+
+Source `3ef362cd1375034519c458a0effb2d7abef03490`; CI Android/C++/SDL2 `38956636032` SUCCESS; publish-release SKIPPED.
+- Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
+- Fond ajouré : `assets/pict/solo/FondsParallaxeModeSolo.png`, RGBA1254x1254, SHA256 `4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44`.
+- `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c.apk`: 98432836 octets, SHA256 `8387c28fb63ae6d2fe4017af5ac3b29b49c906682e5124c8273031d6cebb2ac9`.
+- `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c-unsigned.aab`: 95725985 octets, SHA256 `3af4730f3104606e4e6f3af694baa3165a9cc3447174705c4553b72d6736b95f`.

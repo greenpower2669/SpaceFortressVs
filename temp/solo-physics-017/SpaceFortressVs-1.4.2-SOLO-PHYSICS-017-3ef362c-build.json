@@ -1,0 +1,30 @@
+{
+  "mission": "SOLO PHYSICS-017",
+  "branch": "feature/solo-coop-core-v1",
+  "commit": "3ef362cd1375034519c458a0effb2d7abef03490",
+  "sourceRun": 38956636032,
+  "packageName": "com.greenpower2669.spacefortressvs.diagnostic",
+  "animationAtlas": {
+    "path": "assets/pict/solo/SoloBonusAnimations.png",
+    "layout": "4x8 frames, 192x192",
+    "sha256": "1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001"
+  },
+  "parallaxAtlas": {
+    "path": "assets/pict/solo/FondsParallaxeModeSolo.png",
+    "sha256": "4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true
+  },
+  "files": {
+    "SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c.apk": {
+      "sha256": "8387c28fb63ae6d2fe4017af5ac3b29b49c906682e5124c8273031d6cebb2ac9",
+      "size": 98432836
+    },
+    "SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c-unsigned.aab": {
+      "sha256": "3af4730f3104606e4e6f3af694baa3165a9cc3447174705c4553b72d6736b95f",
+      "size": 95725985
+    }
+  },
+  "aabNote": "NON SIGNE; diagnostic phone is the APK debug; no public Release."
+}

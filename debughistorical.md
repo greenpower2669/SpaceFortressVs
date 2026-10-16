@@ -602,3 +602,12 @@ PHYSICS-017 — point de reprise 16/10 après interruption : implémentation loc
 
 ## PHYSICS-017 — implémentation et revue, 16/10/2026
 Revue PHYSICS-017 : corrigés l’inertie perdue dans l’arène, les UP de sélection ignorés avec un autre doigt actif, le masquage des bonus et la double composition translucide, le couplage zoom/vitesse, les contacts de roches interpolés sur un chemin de glissement non rectiligne, et les fragments cinétiques simplifiés à tort. Calcul historique résiduel/6 ou 4 fragments conservé, placement seul sécurisé. Test moteur ciblé --solo-physics réussi, y compris parcours généré aux neuf dangers. Le test de parcours devait sélectionner une ancre nécessitant un détour (la première pouvait être en ligne directe) ; assertion rectifiée sans masquer de défaut moteur. Suite complète exacte et Android : CI à lancer.
+
+## PHYSICS-017 — livraison vérifiée 16/10/2026
+PHYSICS-017 : revue a corrigé inertie désactivée dans l'arène, UP tactile perdu avec deuxième doigt, double couche translucide/FX au-dessus des murs, couplage zoom/croisière, segment de glissement impropre aux contacts de météores et perte des trajectoires cinétiques historiques. Tests purs et moteur, SDL natif/UBSan et CI exacte verts. Samsung : ressenti, fluidité et visibilité restent à valider.
+
+Source `3ef362cd1375034519c458a0effb2d7abef03490`; CI Android/C++/SDL2 `38956636032` SUCCESS; publish-release SKIPPED.
+- Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
+- Fond ajouré : `assets/pict/solo/FondsParallaxeModeSolo.png`, RGBA1254x1254, SHA256 `4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44`.
+- `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c.apk`: 98432836 octets, SHA256 `8387c28fb63ae6d2fe4017af5ac3b29b49c906682e5124c8273031d6cebb2ac9`.
+- `SpaceFortressVs-1.4.2-SOLO-PHYSICS-017-3ef362c-unsigned.aab`: 95725985 octets, SHA256 `3af4730f3104606e4e6f3af694baa3165a9cc3447174705c4553b72d6736b95f`.

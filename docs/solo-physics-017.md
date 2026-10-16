@@ -1,7 +1,7 @@
 # SOLO PHYSICS-017 — diagnostic
 
 Branche `feature/solo-coop-core-v1`, prolongement de PARALLAX-016.
-État : implémentation et vérification technique en cours ; Samsung non validé.
+État : vérification technique C++/SDL2/Android réussie ; Samsung non validé.
 Aucun merge main, aucune Release, aucune nouvelle ressource graphique ou sonore.
 
 ## Fonctionnement
