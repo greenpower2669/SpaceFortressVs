@@ -1,0 +1,18 @@
+{
+  "mission": "SOLO ENCOUNTER-FIRE-019",
+  "commit": "568d689c9e08ee06065eb7e3e8a7746dd2f27099",
+  "ciRun": 38969053715,
+  "branch": "feature/solo-coop-core-v1",
+  "packageName": "com.greenpower2669.spacefortressvs.diagnostic",
+  "files": {
+    "SpaceFortressVs-1.4.2-SOLO-ENCOUNTER-FIRE-019-568d689.apk": {
+      "sha256": "9aa1bd2bcc274156bf1dbd8821a6111132bc6195c4b3c1d13c4a28a2fbc1c86c",
+      "bytes": 98449221
+    },
+    "SpaceFortressVs-1.4.2-SOLO-ENCOUNTER-FIRE-019-568d689-unsigned.aab": {
+      "sha256": "7ba84ace3ca913d54a5e1b2c656c5937422390562294cbf3ae71a4c260290a82",
+      "bytes": 95740743
+    }
+  },
+  "note": "APK debug installable; AAB unsigned; never a public Release"
+}
