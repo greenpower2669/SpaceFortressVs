@@ -5,6 +5,12 @@ static void sfPhysicsWorld(sfsolo::CoopSoloWorldBridge &world){
     sfCoop.soloWorldResolve=+[](void *c,tupl from,tupl to,float r){
         const auto p=static_cast<sfsolo::CoopSoloWorldBridge*>(c)->moveWithoutTunnelling({from.x,from.y},{to.x,to.y},r);return tupl(p.x,p.y);
     };
+    sfCoop.soloWorldBounce=+[](void *c,tupl from,tupl to,tuplv velocity,float r,float dt)->SfSoloWallBounce{
+        const auto p=static_cast<sfsolo::CoopSoloWorldBridge*>(c)->moveWithBounce(
+            {from.x,from.y},{to.x,to.y},{velocity.vx,velocity.vy},r,dt);
+        return {tupl(p.position.x,p.position.y),tuplv(p.velocity.x,p.velocity.y),
+                tupl(p.normal.x,p.normal.y),p.collided};
+    };
     sfCoop.soloEventVisible=+[](void *c,tupl p){return static_cast<sfsolo::CoopSoloWorldBridge*>(c)->directView({Spritej2->x,Spritej2->y},{p.x,p.y});};
     sfCoop.soloRoute=+[](void *c,tupl a,tupl b,float r,int role,std::vector<tupl>&out){
         out.clear();for(auto p:sfsolo::mazeRoute(*static_cast<sfsolo::CoopSoloWorldBridge*>(c),{a.x,a.y},{b.x,b.y},r,role))out.emplace_back(p.x,p.y);
@@ -26,7 +32,10 @@ static void testSoloPhysicalShipAndCamera(){
     const float cell=world.pixelsPerCell;const int wall=int(Spritej2->x/cell)+3;
     for(int y=0;y<world.map.height;++y)world.map.tiles[y*world.map.width+wall]=sfsolo::Tile::Rock;
     c.down=true;c.target=tupl(100000,1300);c.velocity.vx=100000;
-    sfCoopMovePlayers(.1f);assert(Spritej2->x<wall*cell && c.velocity.vx==0);
+    sfCoopMovePlayers(.1f);assert(Spritej2->x<wall*cell && c.velocity.vx<0);
+    // A held command toward the wall cannot cancel recoil on the next tick.
+    const float recoilX=Spritej2->x;
+    sfCoopMovePlayers(.01f);assert(Spritej2->x<recoilX && c.velocity.vx<0);
     assert(world.canOccupy({Spritej2->x,Spritej2->y},sfCoopSoloPickupHull()));
     sfCoopSoloEnterFinalArena();assert(c.velocity.vx==0 && c.velocity.vy==0 && !c.down);
     // Same physical pilot in the boss arena: bounded acceleration, reversal, coast.

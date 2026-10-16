@@ -27,5 +27,13 @@ int main(){
     assert(g.down(3,100,100,.2f,100,100,30));g.up(3,100,100,.3f);
     assert(!g.selected);assert(g.down(4,100,100,.4f,100,100,30));
     g.up(4,100,100,.5f);assert(g.selected);
-    puts("PASS: explicit selection, pinch limits and exclusive touch ownership");
+    g.reset();
+    // Direct pinch requires no preparatory hull selection.
+    g.beginDirectPinch(10,200,300,11,300,300);
+    assert(g.direct && g.pinching && g.owns(10) && g.owns(11));
+    assert(g.motion(11,400,300,.1f) && g.zoom==2.f);
+    assert(g.motion(11,210,300,.2f) && g.zoom==1.f);
+    assert(g.up(10,200,300,.3f) && g.pinching && g.owns(11));
+    assert(g.up(11,210,300,.4f) && !g.selected && !g.pinching && !g.direct);
+    puts("PASS: hull selection legacy, direct pinch limits and exclusive touch ownership");
 }

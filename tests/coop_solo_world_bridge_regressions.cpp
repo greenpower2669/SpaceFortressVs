@@ -18,6 +18,15 @@ static void testSweptWallsAndReachableRewards(){
     assert(world.firstWallImpact(left,{left.x,left.y+cell},12)==1);
     assert(world.firstWallImpact({5.5f*cell,5.5f*cell},right,12)==0);
     assert(world.firstWallImpact(left,{world.worldWidth()+1000,left.y},12)<impact);
+    // Rebound in the SAME frame, not stop-and-wait. Keep free tangent.
+    const auto front=world.moveWithBounce(left,{6.5f*cell,left.y},
+                                          {3000,0},12,.12f);
+    assert(front.collided && front.normal.x<0 && front.velocity.x<0);
+    assert(front.position.x<5*cell-12);
+    const auto diagonal=world.moveWithBounce(left,{6.5f*cell,left.y+cell},
+                                             {3000,400},12,.12f);
+    assert(diagonal.collided && diagonal.velocity.x<0 && diagonal.velocity.y>0);
+    assert(world.canOccupy(diagonal.position,12));
     // A parallel tangent does not get mistaken for an entry into the wall.
     assert(world.firstWallImpact({5*cell-12,4*cell},{5*cell-12,8*cell},12)==1);
     CoopWorldPoint reward;

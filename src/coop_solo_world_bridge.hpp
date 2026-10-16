@@ -13,6 +13,10 @@
 
 namespace sfsolo {
 struct CoopWorldPoint { float x=0,y=0; };
+struct CoopBounceMotion {
+    CoopWorldPoint position{},velocity{},normal{};
+    bool collided=false;
+};
 struct CoopSoloWorldBridge {
     Map map;
     SDL_Rect screen{};
@@ -183,6 +187,89 @@ struct CoopSoloWorldBridge {
             if(canOccupy(accepted,hullRadius))cursor=accepted;
         }
         return cursor;
+    }
+
+    // SOLO ONLY: carry the velocity through the first swept contact.
+    // Unlike moveWithoutTunnelling(), this response restores a fraction
+    // of normal momentum and integrates the frame's unused time.
+    CoopBounceMotion moveWithBounce(CoopWorldPoint from,CoopWorldPoint desired,
+                                    CoopWorldPoint velocity,float radius,float dt) const {
+        CoopBounceMotion result{from,velocity,{0,0},false};
+        if(!ready||radius<=0||!std::isfinite(dt)||dt<=0)return result;
+        if(!canOccupy(result.position,radius)){
+            // Recover a *nearby* valid centre after tiny numeric overlap,
+            // without jumping a passage or crossing an opaque wall.
+            bool recovered=false;
+            const float step=std::max(.02f,std::min(radius*.15f,pixelsPerCell*.075f));
+            for(int ring=1;ring<=12&&!recovered;++ring){
+                for(int ray=0;ray<16;++ray){
+                    const float angle=float(ray)*6.28318530718f/16.f;
+                    const CoopWorldPoint candidate{from.x+std::cos(angle)*ring*step,
+                                                   from.y+std::sin(angle)*ring*step};
+                    if(canOccupy(candidate,radius)){
+                        result.position=candidate;recovered=true;break;
+                    }
+                }
+            }
+            if(!recovered){result.velocity={0,0};result.collided=true;return result;}
+        }
+        float remaining=dt;
+        for(int attempt=0;attempt<4&&remaining>1e-6f;++attempt){
+            const CoopWorldPoint start=result.position;
+            const CoopWorldPoint goal=attempt==0?desired:
+                CoopWorldPoint{start.x+result.velocity.x*remaining,
+                               start.y+result.velocity.y*remaining};
+            const float dx=goal.x-start.x,dy=goal.y-start.y;
+            const float distance=std::hypot(dx,dy);
+            if(distance<1e-5f)break;
+            const float t=firstWallImpact(start,goal,radius);
+            if(t>=1 && canOccupy(goal,radius)){result.position=goal;break;}
+            result.collided=true;
+            const float hit=std::clamp(t,0.f,1.f);
+            const CoopWorldPoint contact{start.x+dx*hit,start.y+dy*hit};
+            const float safe=std::max(0.f,hit-.05f/std::max(1.f,distance));
+            result.position={start.x+dx*safe,start.y+dy*safe};
+            // Recover a geometric contact normal from the nearest solid tile.
+            CoopWorldPoint normal{-dx/distance,-dy/distance};
+            float nearestDistance=std::numeric_limits<float>::infinity();
+            const int xmin=int(std::floor((contact.x-radius)/pixelsPerCell))-1;
+            const int xmax=int(std::floor((contact.x+radius)/pixelsPerCell))+1;
+            const int ymin=int(std::floor((contact.y-radius)/pixelsPerCell))-1;
+            const int ymax=int(std::floor((contact.y+radius)/pixelsPerCell))+1;
+            for(int iy=ymin;iy<=ymax;++iy)for(int ix=xmin;ix<=xmax;++ix){
+                if(map.at(ix,iy)!=Tile::Rock)continue;
+                const float px=std::clamp(contact.x,ix*pixelsPerCell,(ix+1)*pixelsPerCell);
+                const float py=std::clamp(contact.y,iy*pixelsPerCell,(iy+1)*pixelsPerCell);
+                const float nx=contact.x-px,ny=contact.y-py;
+                const float length=std::hypot(nx,ny);
+                if(length>1e-5f && length<nearestDistance){
+                    const float ux=nx/length,uy=ny/length;
+                    if(result.velocity.x*ux+result.velocity.y*uy<0){
+                        normal={ux,uy};nearestDistance=length;
+                    }
+                }
+            }
+            const float vn=result.velocity.x*normal.x+result.velocity.y*normal.y;
+            result.normal=normal;
+            if(vn<0){
+                const float restitution=(-vn>combatWidth*.018f)? .46f:0.f;
+                // A slight tangential loss stops endless corner vibrations.
+                result.velocity.x=(result.velocity.x-vn*normal.x)*.94f-vn*restitution*normal.x;
+                result.velocity.y=(result.velocity.y-vn*normal.y)*.94f-vn*restitution*normal.y;
+            }else{
+                // Conservative expanded AABBs occasionally report an edge
+                // while already moving away; do not reverse that movement.
+                result.position=moveWithoutTunnelling(start,goal,radius);
+                break;
+            }
+            const CoopWorldPoint separated{
+                result.position.x+normal.x*.055f,result.position.y+normal.y*.055f};
+            if(canOccupy(separated,radius))result.position=separated;
+            remaining*=1.f-hit;
+            if(std::hypot(result.velocity.x,result.velocity.y)<combatWidth*.001f)break;
+        }
+        if(!canOccupy(result.position,radius))result.position=from;
+        return result;
     }
 
     void setZoom(float value,CoopWorldPoint anchor){

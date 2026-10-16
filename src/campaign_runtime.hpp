@@ -22,7 +22,14 @@ struct SfCoopShot {
 };
 struct SfCoopBeam { tupl origin; float angle=0,age=0,warning=.9f; };
 struct SfCoopWave { tupl origin; float age=0,radius=0; };
-struct SfCoopControl { SDL_FingerID finger=-1; tupl target; bool down=false; tuplv velocity; };
+struct SfCoopControl {
+    SDL_FingerID finger=-1; tupl target; bool down=false; tuplv velocity;
+    // SOLO-only normal-pressure filter after impact; other modes never read it.
+    float wallGrace=0,wallNX=0,wallNY=0;
+};
+struct SfSoloWallBounce {
+    tupl position; tuplv velocity; tupl normal; bool collided=false;
+};
 struct SfSoloBonusImpact {tupl position;sfsolo::bonus::Kind kind;double until;};
 struct SfSoloBonusEjection {
     sfsolo::bonus::Kind kind=sfsolo::bonus::Kind::None;
@@ -42,6 +49,7 @@ struct SfCoopState {
     bool (*soloEventVisible)(void*,tupl)=nullptr;
     void (*soloRoute)(void*,tupl,tupl,float,int,std::vector<tupl>&)=nullptr;
     tupl (*soloWorldResolve)(void *,tupl,tupl,float)=nullptr;
+    SfSoloWallBounce (*soloWorldBounce)(void *,tupl,tupl,tuplv,float,float)=nullptr;
     bool (*soloWorldCanOccupy)(void *,tupl,float)=nullptr;
     float (*soloWorldFirstImpact)(void *,tupl,tupl,float)=nullptr;
     void (*soloWorldPreparePickups)(void *,tupl,float)=nullptr;
@@ -699,7 +707,19 @@ static void sfCoopMovePlayers(float dt)
         sfsolo::ShipMotion inertial{ship->x,ship->y,control.velocity.vx,control.velocity.vy};
         const bool soloInertia=(sfCoop.soloGame || sfCoop.soloDiagnostic || sfCoop.soloWorldMode) && owner==1;
         if(soloInertia){
-            inertial.step(control.target.x,control.target.y,control.down,sfArenaW,sfBossDangerIndex,dt);
+            control.wallGrace=std::max(0.f,control.wallGrace-dt);
+            tupl target=control.target;
+            if(sfCoop.soloWorldMode && control.wallGrace>0 && control.down){
+                const float dx=target.x-ship->x,dy=target.y-ship->y;
+                const float pressure=dx*control.wallNX+dy*control.wallNY;
+                if(pressure<0){
+                    // Do not let a held finger immediately erase the recoil.
+                    // Outward and tangential steering remain fully responsive.
+                    target.x-=pressure*control.wallNX;
+                    target.y-=pressure*control.wallNY;
+                }
+            }
+            inertial.step(target.x,target.y,control.down,sfArenaW,sfBossDangerIndex,dt);
             control.velocity=tuplv(inertial.vx,inertial.vy);
         }else if (owner==0 && sfActiveMode==SF_COOP_AI) control.velocity=sfCoopAiVelocity(dt);
         else if (control.down) {
@@ -707,9 +727,18 @@ static void sfCoopMovePlayers(float dt)
             control.velocity=sfUnitVelocity(previous,control.target,std::min(sfArenaW*3.10f,distance*30));
         } else { const float decay=std::exp(-dt*8);control.velocity.vx*=decay;control.velocity.vy*=decay; }
         const float halfWidth=std::max(radius,ship->w*.5f),halfHeight=ship->h*.5f;
-        if(sfCoop.soloWorldMode && sfCoop.soloWorldResolve && owner==1){
-            // Same actual COOP velocity. Only the collision-bound movement
-            // constraint changes to the world hull (no duplicate pilot).
+        if(sfCoop.soloWorldMode && sfCoop.soloWorldBounce && owner==1){
+            const auto resolved=sfCoop.soloWorldBounce(
+                sfCoop.soloWorldContext,previous,tupl(inertial.x,inertial.y),
+                control.velocity,std::max(halfWidth,halfHeight),dt);
+            ship->x=resolved.position.x;ship->y=resolved.position.y;
+            control.velocity=resolved.velocity;
+            if(resolved.collided){
+                control.wallGrace=.20f;
+                control.wallNX=resolved.normal.x;
+                control.wallNY=resolved.normal.y;
+            }
+        }else if(sfCoop.soloWorldMode && sfCoop.soloWorldResolve && owner==1){
             const tupl desired(inertial.x,inertial.y);
             const tupl accepted=sfCoop.soloWorldResolve(
                 sfCoop.soloWorldContext,previous,desired,std::max(halfWidth,halfHeight));
@@ -721,8 +750,10 @@ static void sfCoopMovePlayers(float dt)
             ship->x=std::clamp(desired.x,halfWidth,sfArenaW-halfWidth);
             ship->y=std::clamp(desired.y,sfArenaH*.105f+halfHeight,sfArenaH*.895f-halfHeight);
             if(soloInertia){
-                if(ship->x!=desired.x)control.velocity.vx=0;
-                if(ship->y!=desired.y)control.velocity.vy=0;
+                // SOLO final arena bounds also restitute momentum; legacy
+                // COOP/DUEL boundaries are deliberately unchanged.
+                if(ship->x!=desired.x)control.velocity.vx=-control.velocity.vx*.46f;
+                if(ship->y!=desired.y)control.velocity.vy=-control.velocity.vy*.46f;
             }
         }
         ship->vx=ship->vy=0; ship->startup();

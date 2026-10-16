@@ -7,11 +7,19 @@ namespace sfsolo {
 // belong to zoom from DOWN until both UPs: no speculative weapon/charge events.
 struct ZoomGesture {
     using Id=std::int64_t;
-    bool selected=false,candidate=false,pinching=false;
+    bool selected=false,candidate=false,pinching=false,direct=false;
     Id first=-1,second=-1;
     float ax=0,ay=0,bx=0,by=0,startX=0,startY=0,startTime=0,startDistance=0,startZoom=1,zoom=1;
     void reset(){*this=ZoomGesture{};}
     bool owns(Id id)const{return id>=0&&(id==first||id==second);}
+    // Modern SOLO pinch needs no prior hull tap: two touches outside
+    // the hull become an exclusive zoom gesture. Caller cancels pending aim.
+    void beginDirectPinch(Id a,float x,float y,Id b,float xx,float yy){
+        selected=true;direct=true;candidate=false;pinching=true;
+        first=a;second=b;ax=x;ay=y;bx=xx;by=yy;
+        startDistance=std::max(12.f,std::hypot(ax-bx,ay-by));
+        startZoom=zoom;
+    }
     bool accepts(Id id,bool eligible)const{return owns(id)||eligible;}
     bool down(Id id,float x,float y,float time,float shipX,float shipY,float radius){
         if(!selected){
@@ -40,8 +48,8 @@ struct ZoomGesture {
         candidate=false;
         if(id==first)first=-1;else second=-1;
         if(first<0&&second<0){
-            if(!pinching && !selecting)selected=false;
-            pinching=false;
+            if(direct || (!pinching && !selecting))selected=false;
+            pinching=false;direct=false;
         }
         return true;
     }
