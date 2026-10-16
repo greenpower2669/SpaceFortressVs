@@ -24,6 +24,9 @@ struct CoopSoloWorldBridge {
     float pixelsPerCell=1.0f;
     float cameraLeft=0,cameraTop=0,zoom=1;
     bool ready=false;
+    bool localGateClosed=false;
+    CoopWorldPoint localGateCentre{};
+    float localGateRadius=0;
     std::vector<CoopWorldPoint> pickupBatchCells; // rebuilt once per reward batch
     bool create(MapOptions options,SDL_Rect output,float historicCombatWidth){
         // Never change the original COOP arena, nrj/damage or projectile
@@ -36,6 +39,7 @@ struct CoopSoloWorldBridge {
         combatWidth=historicCombatWidth;
         pixelsPerCell=historicCombatWidth/(SOLO_REFERENCE_COLUMNS/SOLO_MAP_ZOOM);
         cameraLeft=cameraTop=0;zoom=1;
+        localGateClosed=false;localGateRadius=0;
         return ready=true;
     }
     float worldWidth() const {return map.width*pixelsPerCell;}
@@ -269,6 +273,28 @@ struct CoopSoloWorldBridge {
             if(std::hypot(result.velocity.x,result.velocity.y)<combatWidth*.001f)break;
         }
         if(!canOccupy(result.position,radius))result.position=from;
+        // A sealed LOCAL encounter portion reflects the player inward.
+        // No world map mutation, no effect on projectiles or the boss lair.
+        if(localGateClosed && localGateRadius>radius &&
+           std::hypot(from.x-localGateCentre.x,from.y-localGateCentre.y)<
+               localGateRadius-radius){
+            const float nx=result.position.x-localGateCentre.x;
+            const float ny=result.position.y-localGateCentre.y;
+            const float length=std::hypot(nx,ny);
+            const float limit=localGateRadius-radius;
+            if(length>limit){
+                const float ux=nx/length,uy=ny/length;
+                const CoopWorldPoint goal{localGateCentre.x+ux*(limit-.1f),
+                                           localGateCentre.y+uy*(limit-.1f)};
+                result.position=moveWithoutTunnelling(from,goal,radius);
+                const float normal=result.velocity.x*ux+result.velocity.y*uy;
+                if(normal>0){
+                    result.velocity.x=(result.velocity.x-normal*ux)*.94f-normal*.46f*ux;
+                    result.velocity.y=(result.velocity.y-normal*uy)*.94f-normal*.46f*uy;
+                }
+                result.normal={-ux,-uy};result.collided=true;
+            }
+        }
         return result;
     }
 

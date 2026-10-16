@@ -18,6 +18,12 @@ for test in solo_ship_motion solo_zoom_gesture solo_rock_physics; do
     g++ -std=c++17 -O2 -Wall -Wextra -I "$sf_repo/src" "$sf_repo/tests/${test}_regressions.cpp" -o "$sf_test_dir/$test"
     "$sf_test_dir/$test"
 done
+g++ -std=c++17 -O2 -Wall -Wextra -I "$sf_repo/src" "$sf_repo/tests/solo_encounter_gates_regressions.cpp" \
+    $(pkg-config --cflags --libs sdl2) -o "$sf_test_dir/solo-gate"
+"$sf_test_dir/solo-gate"
+g++ -std=c++17 -O2 -Wall -Wextra -I "$sf_repo/src" "$sf_repo/tests/solo_fire_pad_regressions.cpp" \
+    $(pkg-config --cflags --libs sdl2) -o "$sf_test_dir/solo-fire-pad"
+"$sf_test_dir/solo-fire-pad"
 python3 "$sf_repo/scripts/prepare-assets.py" --output "$sf_test_dir/resources/assets"
 python3 "$sf_repo/tests/test_assets.py"
 g++ -std=c++17 -O1 -I "$sf_repo/src" "$sf_repo/tests/solo_campaign_model_regressions.cpp" -o "$sf_test_dir/solo-model"

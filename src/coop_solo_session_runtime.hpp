@@ -19,6 +19,8 @@
 #include "coop_solo_encounter.hpp"
 #include "solo_level_flow.hpp"
 #include "solo_lair_transition.hpp"
+#include "solo_encounter_gates.hpp"
+#include "solo_fire_pad.hpp"
 #include "solo_campaign_persistence.hpp"
 
 // Keep a build-time guarantee that Android's historical HOME/HELP overlay
@@ -120,6 +122,15 @@ static int runCoopSoloSession(bool diagnostics){
     bool worldActive=false;
     sfsolo::LevelFlow level;
     sfsolo::LairTransition transition;
+    sfsolo::EncounterGates encounterGates;
+    sfsolo::FirePad firePad;
+    bool soloOptionsOpen=false;
+    std::string handPreferencePath;
+    if(char *root=SDL_GetPrefPath("greenpower2669","SpaceFortressVs")){
+        handPreferencePath=std::string(root)+"solo-fire-hand-v1.cfg";SDL_free(root);
+        std::ifstream input(handPreferencePath);
+        char h='L';if(input>>h)firePad.right=(h=='R');
+    }
     sfsolo::CampaignController campaign;
     std::string soloSavePath,saveError;
     bool saveBlocked=false;
@@ -162,6 +173,12 @@ static int runCoopSoloSession(bool diagnostics){
         const auto point=fromFinger(tx,ty);
         sfCoop.soloAimTarget=point;
         sfCoop.soloKineticAxes.aimAt(1,point.x-Spritej2->x,point.y-Spritej2->y);
+    };
+    auto fireAlongPad=[&](){
+        sfCoop.soloAimTarget=tupl(Spritej2->x+firePad.dx*sfArenaW*3,
+                                  Spritej2->y+firePad.dy*sfArenaW*3);
+        sfCoop.soloKineticAxes.aimAt(1,firePad.dx,firePad.dy);
+        sfCoopFire(1);
     };
     auto setWorldMode=[&](bool enabled){
         if(enabled==worldActive)return;
@@ -254,6 +271,7 @@ static int runCoopSoloSession(bool diagnostics){
                 return found;
             }:nullptr;
         worldActive=enabled;
+        world.localGateClosed=false;encounterGates.active=-1;
         const auto start=enabled?world.start():
             sfsolo::CoopWorldPoint{sfArenaW*.5f,sfArenaH*.72f};
         Spritej2->x=start.x;Spritej2->y=start.y;
@@ -292,6 +310,7 @@ static int runCoopSoloSession(bool diagnostics){
     auto cancelControls=[&](){
         zoomGesture.reset();zoomGesture.zoom=world.zoom;
         moveFinger=aimFinger=-1;mouseAimHeld=false;chargeCueGate.reset();
+        firePad.cancel();soloOptionsOpen=false;
         sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
         sfCoop.controls[1].velocity.set(0,0);sfCoop.fireFingers.clear();
         sfCoop.controls[1].wallGrace=sfCoop.controls[1].wallNX=sfCoop.controls[1].wallNY=0;
@@ -384,6 +403,7 @@ static int runCoopSoloSession(bool diagnostics){
                 if(mini.pack>=0)mini.role=i==4?1:int(2+(i-9)%2);
                 mini.repath=i*.073f;sfCoop.soloMinibosses.push_back(mini);
             }
+            encounterGates.create(sfCoop.soloMinibosses,sfArenaW);
         }else SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,"SOLO_GAME_LEVEL_NOT_TRAVERSABLE");
     }
     // CI-only deterministic lifetime. No timer or in-game automation in user
@@ -450,6 +470,31 @@ static int runCoopSoloSession(bool diagnostics){
                 const float tx=event.tfinger.x*sfArenaW;
                 const float ty=event.tfinger.y*sfArenaH;
                 const SDL_FingerID id=event.tfinger.fingerId;
+                const SDL_Rect options{int(width*.76f),4,int(width*.22f),std::max(36,int(height*.05f))};
+                if(!diagnostics && event.type==SDL_FINGERDOWN &&
+                   tx>=options.x && tx<options.x+options.w &&
+                   ty>=options.y && ty<options.y+options.h){
+                    soloOptionsOpen=!soloOptionsOpen;firePad.cancel();
+                    moveFinger=aimFinger=-1;sfCoop.controls[1].down=false;
+                    sfCoop.controls[1].finger=-1;zoomGesture.reset();
+                    sfKineticSurgeCancel(1);sfKineticAudioCancel(1);chargeCueGate.reset();
+                    continue;
+                }
+                if(soloOptionsOpen){
+                    if(event.type==SDL_FINGERDOWN &&
+                       ty>height*.39f && ty<height*.56f){
+                        firePad.right=!firePad.right;
+                        if(!handPreferencePath.empty()){
+                            std::ofstream saved(handPreferencePath,std::ios::trunc);
+                            if(saved)saved<<(firePad.right?'R':'L')<<"\n";
+                        }
+                    }
+                    continue;
+                }
+                if(!diagnostics){
+                    const auto pad=firePad.handle(event.type,id,tx,ty,width,height);
+                    if(pad.owned){if(pad.fire)fireAlongPad();continue;}
+                }
                 // Steering is awarded ONLY to a finger whose DOWN began
                 // on the real ship hull. An independent off-hull pair directly
                 // owns zoom; cancel the speculative first-finger charge.
@@ -564,6 +609,13 @@ static int runCoopSoloSession(bool diagnostics){
                 if(!diagnostics){
                     level.seconds+=subDt;level.damageTaken+=std::max(0.0f,beforeHealth-Spritej2->pv);
                     if(worldActive){
+                        encounterGates.tick({Spritej2->x,Spritej2->y},sfCoop.soloMinibosses);
+                        const auto *activeGate=encounterGates.closed();
+                        world.localGateClosed=activeGate!=nullptr;
+                        if(activeGate){
+                            world.localGateCentre=activeGate->centre;
+                            world.localGateRadius=activeGate->radius;
+                        }
                         level.observeShip({Spritej2->x,Spritej2->y});
                         const auto ship=sfsolo::CoopWorldPoint{Spritej2->x,Spritej2->y};
                         if(sfCoop.phase==SfCoopPhase::Combat &&
@@ -610,6 +662,15 @@ static int runCoopSoloSession(bool diagnostics){
                 for(unsigned i=0;i<level.relays.size();++i)if(level.relayReached[i]){
                     const auto at=world.toScreen(level.relays[i]);
                     sfTacticalRing(renderer,tupl(at.x,at.y),world.pixelsPerCell*world.zoom*.65f,{110,255,170,210});
+                }
+            }
+            // Energy boundary for THIS engaged mini-boss or entire horde.
+            // The separate final lair does not acquire any new lock.
+            if(!diagnostics){
+                if(const auto *gate=encounterGates.closed()){
+                    const auto p=world.toScreen(gate->centre);
+                    sfTacticalRing(renderer,tupl(p.x,p.y),gate->radius*world.zoom,{125,210,255,190});
+                    sfTacticalRing(renderer,tupl(p.x,p.y),(gate->radius-4)*world.zoom,{225,145,255,130});
                 }
             }
             // Only opaque terrain masks world actors; transparent scenery is drawn once.
@@ -676,6 +737,20 @@ static int runCoopSoloSession(bool diagnostics){
                 const auto relayCount=std::count(level.relayReached.begin(),level.relayReached.end(),true);
                 sfCoopText(renderer,margin,12,"MINIBOSS "+std::to_string(sfCoop.soloMinibossDefeated)+"/"+std::to_string(level.minibossAnchors.size())+"  RELAIS "+
                     std::to_string(relayCount)+"/"+std::to_string(level.relays.size()),width-2*margin,2);
+            }
+        }
+        if(!diagnostics && level.phase!=sfsolo::LevelPhase::Transition){
+            firePad.draw(renderer,width,height);
+            sfCoopButton(renderer,{int(width*.76f),4,int(width*.22f),std::max(36,int(height*.05f))},"OPTIONS");
+            if(soloOptionsOpen){
+                SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+                SDL_SetRenderDrawColor(renderer,12,17,36,225);
+                const SDL_Rect pane{int(width*.10f),int(height*.28f),int(width*.80f),int(height*.42f)};
+                SDL_RenderFillRect(renderer,&pane);
+                sfCoopCentered(renderer,width,int(height*.33f),"OPTIONS SOLO",2);
+                sfCoopButton(renderer,{int(width*.14f),int(height*.40f),int(width*.72f),int(height*.16f)},
+                             firePad.right?"TIR A DROITE":"TIR A GAUCHE");
+                sfCoopCentered(renderer,width,int(height*.61f),"OPTIONS POUR FERMER",1);
             }
         }
         if(diagnostics)diagnosticUi.draw(renderer,width,height,worldActive,bonusTestOpen);
