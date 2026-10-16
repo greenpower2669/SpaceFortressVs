@@ -1,0 +1,30 @@
+{
+  "mission": "SOLO PARALLAX-016",
+  "branch": "feature/solo-coop-core-v1",
+  "commit": "2a933a60639d890fd6168befb8ce1784ba9a18c8",
+  "sourceRun": 38837760766,
+  "packageName": "com.greenpower2669.spacefortressvs.diagnostic",
+  "animationAtlas": {
+    "path": "assets/pict/solo/SoloBonusAnimations.png",
+    "layout": "4x8 frames, 192x192",
+    "sha256": "1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001"
+  },
+  "parallaxAtlas": {
+    "path": "assets/pict/solo/FondsParallaxeModeSolo.png",
+    "sha256": "4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true
+  },
+  "files": {
+    "SpaceFortressVs-1.4.2-SOLO-PARALLAX-016-2a933a6.apk": {
+      "sha256": "62a029ca828a85783f324301bcb5d1411cfa8f343875f7e5ebf4108b5ce8515f",
+      "size": 98400063
+    },
+    "SpaceFortressVs-1.4.2-SOLO-PARALLAX-016-2a933a6-unsigned.aab": {
+      "sha256": "1c18b7d99a45816a2332cd77415927cbf26cbb93cc1346897160c18eafc76703",
+      "size": 95691410
+    }
+  },
+  "aabNote": "NON SIGNE; diagnostic phone is the APK debug; no public Release."
+}

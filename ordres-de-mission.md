@@ -703,3 +703,12 @@ Source `f5b4ce4f82e99057d041767d982914e903afbf7f`; CI Android/C++/SDL2 `38724287
 Fab autorise PARALLAX-016 : réutiliser ParoisModeSolo.png, EnvironnementsModeSolo.png et fond4hlow.png ; créer une seule planche minérale ajourée FondsParallaxeModeSolo.png ; raccorder le vrai SOLO GAME015 sans changer géométrie/collisions. Aucune modification src/main.cpp, aucun merge main ni Release ; tourelles SOLO et METEOR-009 OFF. Portée graphique uniquement : demandes d'astéroïdes immobiles, zone caméra lente et nouveaux comportements miniboss du précédent audit restent distinctes.
 
 PARALLAX-016 — export préparé : source `2a933a60639d890fd6168befb8ce1784ba9a18c8`, CI `38837760766`. Le workflow attend obligatoirement SUCCESS et vérifie le SHA exact avant publication dans `temp/solo-parallax-016/`. CI/export pas encore déclarés terminés.
+
+## PARALLAX-016 — livraison vérifiée 16/10/2026
+Ordre graphique Fab PARALLAX-016 exécuté. Atlas existants et géométrie conservés ; vraie transparence et parallaxe indépendante. src/main.cpp inchangé, aucun merge main ni Release, tourelles SOLO et METEOR-009 OFF. APK diagnostic identifiée et AAB non signé exportés après CI verte.
+
+Source `2a933a60639d890fd6168befb8ce1784ba9a18c8`; CI Android/C++/SDL2 `38837760766` SUCCESS; publish-release SKIPPED.
+- Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
+- Fond ajouré : `assets/pict/solo/FondsParallaxeModeSolo.png`, RGBA1254x1254, SHA256 `4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44`.
+- `SpaceFortressVs-1.4.2-SOLO-PARALLAX-016-2a933a6.apk`: 98400063 octets, SHA256 `62a029ca828a85783f324301bcb5d1411cfa8f343875f7e5ebf4108b5ce8515f`.
+- `SpaceFortressVs-1.4.2-SOLO-PARALLAX-016-2a933a6-unsigned.aab`: 95691410 octets, SHA256 `1c18b7d99a45816a2332cd77415927cbf26cbb93cc1346897160c18eafc76703`.

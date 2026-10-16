@@ -565,3 +565,12 @@ Source `f5b4ce4f82e99057d041767d982914e903afbf7f`; CI Android/C++/SDL2 `38724287
 coop_solo_session_runtime → CoopSoloScenery, textures par renderer, load/reset/release. solo_scenery_assets/solo_scenery_atlas mutualisent les ressources avec l'ancien SoloAssets ; pas de Session ni de global supplémentaire. Corps Rock plein, matière fixe dans le monde, bevels internes sur faces exposées. Lave/Beam restent traversables selon le moteur. Arène finale reste sfCoopDrawArena. Détails : docs/solo-parallax-016.md.
 
 PARALLAX-016 — export préparé : source `2a933a60639d890fd6168befb8ce1784ba9a18c8`, CI `38837760766`. Le workflow attend obligatoirement SUCCESS et vérifie le SHA exact avant publication dans `temp/solo-parallax-016/`. CI/export pas encore déclarés terminés.
+
+## PARALLAX-016 — livraison vérifiée 16/10/2026
+PARALLAX-016 : coop_solo_session_runtime → CoopSoloScenery ; ressources communes solo_scenery_assets/atlas ; textures par renderer, reset/release explicites. Diagnostic APK/AAB : temp/solo-parallax-016/ ; détails docs/solo-parallax-016.md.
+
+Source `2a933a60639d890fd6168befb8ce1784ba9a18c8`; CI Android/C++/SDL2 `38837760766` SUCCESS; publish-release SKIPPED.
+- Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
+- Fond ajouré : `assets/pict/solo/FondsParallaxeModeSolo.png`, RGBA1254x1254, SHA256 `4becaec70bf7f23d823c3eccbd902b86aa4dbb6942115a1389409bc6a7f7df44`.
+- `SpaceFortressVs-1.4.2-SOLO-PARALLAX-016-2a933a6.apk`: 98400063 octets, SHA256 `62a029ca828a85783f324301bcb5d1411cfa8f343875f7e5ebf4108b5ce8515f`.
+- `SpaceFortressVs-1.4.2-SOLO-PARALLAX-016-2a933a6-unsigned.aab`: 95691410 octets, SHA256 `1c18b7d99a45816a2332cd77415927cbf26cbb93cc1346897160c18eafc76703`.
