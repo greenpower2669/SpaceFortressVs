@@ -347,6 +347,7 @@ static void sfKineticUpdateEffects(float dt)
     sfKineticAdvanceWaves(dt);
     sfKineticAdvanceDustFlashes(dt);
 }
+static bool sfSoloRockFits(tupl p,float radius);
 static bool sfKineticFragmentRock(sprite *rock,const sprite *ship,int owner,SfKineticLayer layer,
                         const SfKineticSolution &solution)
 {
@@ -377,6 +378,28 @@ static bool sfKineticFragmentRock(sprite *rock,const sprite *ship,int owner,SfKi
         const float relSpeed=solution.relativeSpeed*retained*(i<penetrators ? .82f : .62f);
         fragment->vx=(shipVx+std::cos(angle)*relSpeed)/60.0f;
         fragment->vy=(shipVy+std::sin(angle)*relSpeed)/60.0f;
+        if(sfSoloField.enabled){
+            // Preserve the solved kinetic trajectories/stages/count. Only the
+            // spawn location changes: no overlapping debris inside walls or
+            // siblings, and no debris materializes on the pilot's hull.
+            const float radius=std::max(fw,fh)*.5f;
+            bool placed=false;
+            for(int ring=1;ring<=4 && !placed;++ring)for(int sample=0;sample<16 && !placed;++sample){
+                const float theta=angle+sample*float(PI)*.125f;
+                const float offset=radius*(2.1f+ring*.65f);
+                const tupl at(rock->x+std::cos(theta)*offset,rock->y+std::sin(theta)*offset);
+                if(!sfSoloRockFits(at,radius))continue;
+                if(sfSoloField.maze && sfSoloField.sweep &&
+                   sfSoloField.sweep(sfSoloField.context,tupl(rock->x,rock->y),at,radius)<1)continue;
+                if(vlong(at.x-ship->x,at.y-ship->y)<radius+sfKineticShipDiameter(ship)*.52f)continue;
+                bool clear=true;
+                for(const auto *other:sa1)if(other!=rock && other->pv>0 &&
+                    vlong(at.x-other->x,at.y-other->y)<radius+std::max(other->w,other->h)*.5f+1){clear=false;break;}
+                if(clear){fragment->x=at.x;fragment->y=at.y;placed=true;}
+            }
+            if(!placed){delete fragment;continue;} // blocked matter becomes the parent's dust
+            fragment->rand0=rock->rand0;fragment->as=rock->as;
+        }
         fragment->startup();
         if(i==0) SDL_Log("KINETIC_DUST type=debris vibrated=false deflected=true velocityBefore=(%.3f,%.3f) velocityAfter=(%.3f,%.3f)",
             rock->vx,rock->vy,fragment->vx,fragment->vy);

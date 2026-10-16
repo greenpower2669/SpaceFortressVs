@@ -57,27 +57,20 @@ struct CoopSoloWorldBridge {
     // The held first fingertip has TWO meanings: a precise on-screen ship
     // position, and (outside the inner circular dead zone) a persistent world
     // exploration direction. Merely aiming the canonical COOP pilot at the
-    // fingertip's current world position would make the pilot STOP as soon as
-    // it caught the finger; the camera, correctly limited by actual movement,
-    // would then stop too. Aim the SAME historical pilot a little beyond the
-    // fingertip so the real sfCoopMovePlayers physics keeps making progress.
-    // No new pilot physics, no fake camera motion and no ship teleportation.
+    // fingertip remains a world-space intention, with an outward lead in the
+    // circular cruise zones. This lead and the physical camera speed use the
+    // combat reference width, so zoom never retunes the pilot's world speed.
     CoopWorldPoint heldFingerPilotTarget(CoopWorldPoint finger) const {
         const auto exact=toWorld(finger);
         if(!ready)return exact;
         const auto zone=soloCirclePan(finger.x,finger.y,screen,
-                                       visibleWidth()/pixelsPerCell);
+                                       combatWidth/pixelsPerCell);
         if(zone.speed<=0.0f)return exact;
         const float vectorLength=std::hypot(zone.vx,zone.vy);
         if(vectorLength<=.0001f)return exact;
-        // Historical COOP speed = min(3.10*W, distanceToTarget*30).
-        // The target's look-ahead distance must therefore give the SAME
-        // velocity as the SOLO 0.1 -> 2 -> 6 circular pan request.
-        // A larger arbitrary lead made the ship overshoot the finger by
-        // ~45 screen pixels in the MIDDLE ring, even as the background moved.
-        // Outer ring is naturally limited by the existing COOP max speed.
+        // ShipMotion approaches distance*12 before its physical speed cap.
         const float desiredCameraPxPerSecond=vectorLength*pixelsPerCell;
-        const float lead=desiredCameraPxPerSecond/30.0f;
+        const float lead=desiredCameraPxPerSecond/12.0f;
         return {exact.x+zone.vx/vectorLength*lead,
                 exact.y+zone.vy/vectorLength*lead};
     }
@@ -264,7 +257,7 @@ struct CoopSoloWorldBridge {
         // User arbitration about 4.32 vs 3.10 visible widths/s is still
         // pending; preserve the already agreed radial speed, do not retune it.
         const auto pan=soloCirclePan(onscreen.x,onscreen.y,screen,
-                                     visibleWidth()/pixelsPerCell);
+                                     combatWidth/pixelsPerCell);
         float desiredX=pan.vx*pixelsPerCell*std::min(dt,.05f);
         float desiredY=pan.vy*pixelsPerCell*std::min(dt,.05f);
         if(fingerScreen){

@@ -116,7 +116,7 @@ struct CoopSoloScenery {
     static int worldTheme(unsigned world){
         constexpr int themes[6]={0,4,1,2,3,5};return themes[(std::max(1u,world)-1)%6];
     }
-    void drawWalls(SDL_Renderer *r,const CoopSoloWorldBridge &world,float seconds) const {
+    void drawWalls(SDL_Renderer *r,const CoopSoloWorldBridge &world,float seconds,bool opaqueOnly=false) const {
         if(!r||!world.ready)return;
         DrawState saved(r);const auto &map=world.map;const float physicalCell=world.pixelsPerCell,cell=physicalCell*world.zoom;
         const int x0=std::max(0,int(std::floor(world.cameraLeft/physicalCell)));
@@ -127,6 +127,7 @@ struct CoopSoloScenery {
         for(int y=y0;y<y1;++y)for(int x=x0;x<x1;++x){
             const auto at=world.toScreen({x*physicalCell,y*physicalCell});const SDL_FRect rect{at.x,at.y,cell,cell};
             const auto tile=map.at(x,y);
+            if(opaqueOnly && tile!=Tile::Rock)continue;
             if(tile==Tile::Rock){
                 colorRect(r,rect,{57,59,69,255});
                 tiled(r,material[theme],rect,x*cell,y*cell,cell*4.5f,cell*2.0f,{195,200,214,255});

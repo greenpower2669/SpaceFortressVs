@@ -124,7 +124,7 @@ struct SfCoopSoloBonusRenderer {
         SDL_RenderCopyExF(renderer,texture,crop?&source:nullptr,&rect,rotation,nullptr,SDL_FLIP_NONE);
         SDL_SetTextureAlphaMod(texture,255);
     }
-    void draw(const sfsolo::CoopSoloWorldBridge *world,int width,int height){
+    void drawWorld(const sfsolo::CoopSoloWorldBridge *world,int width,int height){
         if(!sfCoopSoloBonusesEnabled())return;
         using namespace sfsolo::bonus;
         const float z=world?world->zoom:1.f;
@@ -224,6 +224,11 @@ struct SfCoopSoloBonusRenderer {
                      color(k,105),float(s.time)*.20f,k==Kind::Prison?8:24);
             }
         }
+    }
+    void drawHud(const sfsolo::CoopSoloWorldBridge *world,int width,int height){
+        if(!sfCoopSoloBonusesEnabled())return;
+        using namespace sfsolo::bonus;
+        const auto &s=sfCoop.soloBonus;
         // Fixed screen HUD; timers never inherit the camera transform.
         const int hudScale=std::clamp(width/220,2,5);
         const int margin=std::max(8,width/30),line=std::max(hudScale*8+8,height/45);
@@ -255,4 +260,5 @@ struct SfCoopSoloBonusRenderer {
             sfCoopText(renderer,margin,statusY,value,width-margin*2,hudScale,color(k));statusY+=line;
         }
     }
+    void draw(const sfsolo::CoopSoloWorldBridge *world,int width,int height){drawWorld(world,width,height);drawHud(world,width,height);}
 };

@@ -101,9 +101,8 @@ int main(){
     const auto outsideWorld=bridge.toWorld(outer);
     assert(same(outside.x,outsideWorld.x));
     assert(outside.y<outsideWorld.y-70);
-    // Canonical COOP uses target distance*30 below its speed cap. Verify the
-    // lead chosen for each circular ring drives at the SAME velocity as its
-    // camera request, preventing a new 40px drift in the intermediate ring.
+    // SOLO inertia uses distance*12 for its desired velocity; the cruise
+    // lead expresses the circular camera law before physical acceleration.
     for(const CoopWorldPoint held:{
         CoopWorldPoint{384,480}, // just outside central dead zone
         CoopWorldPoint{440,480}, // middle circle
@@ -112,10 +111,10 @@ int main(){
         const auto goal=bridge.heldFingerPilotTarget(held);
         const auto exact=bridge.toWorld(held);
         const auto pan=soloCirclePan(held.x,held.y,bridge.screen,
-                                     bridge.visibleWidth()/bridge.pixelsPerCell);
+                                     bridge.combatWidth/bridge.pixelsPerCell);
         const float requestedVelocity=std::hypot(pan.vx,pan.vy)*bridge.pixelsPerCell;
         const float trueCoopVelocity=std::min(bridge.combatWidth*3.10f,
-                                              std::hypot(goal.x-exact.x,goal.y-exact.y)*30.0f);
+                                              std::hypot(goal.x-exact.x,goal.y-exact.y)*12.0f);
         assert(std::abs(trueCoopVelocity-
                         std::min(bridge.combatWidth*3.10f,requestedVelocity))<.02f);
     }

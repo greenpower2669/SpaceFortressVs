@@ -697,7 +697,7 @@ static void sfCoopMovePlayers(float dt)
         if (ship->pv<=0) continue;
         const tupl previous(ship->x,ship->y);
         sfsolo::ShipMotion inertial{ship->x,ship->y,control.velocity.vx,control.velocity.vy};
-        const bool soloInertia=sfCoop.soloWorldMode && owner==1;
+        const bool soloInertia=(sfCoop.soloGame || sfCoop.soloDiagnostic || sfCoop.soloWorldMode) && owner==1;
         if(soloInertia){
             inertial.step(control.target.x,control.target.y,control.down,sfArenaW,sfBossDangerIndex,dt);
             control.velocity=tuplv(inertial.vx,inertial.vy);
@@ -717,8 +717,13 @@ static void sfCoopMovePlayers(float dt)
             if(std::abs(accepted.x-desired.x)>.01f)control.velocity.vx=0;
             if(std::abs(accepted.y-desired.y)>.01f)control.velocity.vy=0;
         }else{
-            ship->x=std::clamp(ship->x+control.velocity.vx*dt,halfWidth,sfArenaW-halfWidth);
-            ship->y=std::clamp(ship->y+control.velocity.vy*dt,sfArenaH*.105f+halfHeight,sfArenaH*.895f-halfHeight);
+            const tupl desired=soloInertia?tupl(inertial.x,inertial.y):tupl(ship->x+control.velocity.vx*dt,ship->y+control.velocity.vy*dt);
+            ship->x=std::clamp(desired.x,halfWidth,sfArenaW-halfWidth);
+            ship->y=std::clamp(desired.y,sfArenaH*.105f+halfHeight,sfArenaH*.895f-halfHeight);
+            if(soloInertia){
+                if(ship->x!=desired.x)control.velocity.vx=0;
+                if(ship->y!=desired.y)control.velocity.vy=0;
+            }
         }
         ship->vx=ship->vy=0; ship->startup();
         sfObserved[owner].observe(tupl(ship->x,ship->y),dt);
@@ -727,7 +732,13 @@ static void sfCoopMovePlayers(float dt)
         const float distance=vlong(ship->x-sfCoop.position.x,ship->y-sfCoop.position.y);
         if (sfCoop.bossPresent && distance<collision) {
             const tuplv push=sfUnitVelocity(sfCoop.position,tupl(ship->x,ship->y),collision);
-            ship->x=sfCoop.position.x+push.vx; ship->y=sfCoop.position.y+push.vy;
+            tupl pushed(sfCoop.position.x+push.vx,sfCoop.position.y+push.vy);
+            if(soloInertia){
+                if(sfCoop.soloWorldMode && sfCoop.soloWorldResolve)
+                    pushed=sfCoop.soloWorldResolve(sfCoop.soloWorldContext,tupl(ship->x,ship->y),pushed,std::max(halfWidth,halfHeight));
+                else {pushed.x=std::clamp(pushed.x,halfWidth,sfArenaW-halfWidth);pushed.y=std::clamp(pushed.y,sfArenaH*.105f+halfHeight,sfArenaH*.895f-halfHeight);}
+            }
+            ship->x=pushed.x;ship->y=pushed.y;
             sfCoopBossContact(owner,dt); ship->startup();
         }
         sfCoop.cooldown[owner]-=dt;
@@ -891,7 +902,7 @@ static void sfCoopProjectiles(float dt)
                 if(boosted){
                     sfCoop.soloBonus.hitBoss(shot.bonusKind);
                     sfCoopSoloBonusImpact(shot.position,shot.bonusKind);
-                    sfCoop.soundHit=true;
+                    if(sfFieldAudible(shot.position.x,shot.position.y))sfCoop.soundHit=true;
                 }
             }
         } else if (shot.kind!=2 || shot.age>1.2f) {
@@ -1039,7 +1050,7 @@ static bool sfCoopBossKineticAsteroidImpact(sprite *rock)
     if(distance<1.0f) {dx=1.0f;dy=0.0f;distance=1.0f;}
     const float fieldRadius=sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE;
     const float rockRadius=std::max(rock->w,rock->h)*.5f;
-    if(distance>fieldRadius+rockRadius) return false;
+    if(distance>fieldRadius+rockRadius+(sfSoloField.enabled?.05f:0.f)) return false;
     const float nx=dx/distance,ny=dy/distance;
     const auto raw=sfResolveKinetic(SF_COOP_BOSS_ASTEROID_BASE_DAMAGE,
         sfKineticMassFactorFromArea(std::max(0.0f,rock->w*rock->h),sfArenaH),
@@ -1066,8 +1077,15 @@ static bool sfCoopBossKineticAsteroidImpact(sprite *rock)
     const float bouncedNormal=(vn<0 ? -vn : vn)*retained;
     rock->vx=bossVx+nx*bouncedNormal+tx*retained;
     rock->vy=bossVy+ny*bouncedNormal+ty*retained;
-    rock->x=sfCoop.position.x+nx*(fieldRadius+rockRadius+2.0f);
-    rock->y=sfCoop.position.y+ny*(fieldRadius+rockRadius+2.0f);
+    const tupl requested(sfCoop.position.x+nx*(fieldRadius+rockRadius+2.0f),sfCoop.position.y+ny*(fieldRadius+rockRadius+2.0f));
+    tupl safe=requested;
+    if(sfSoloField.enabled){
+        if(sfSoloField.maze && sfSoloField.resolve)safe=sfSoloField.resolve(sfSoloField.context,tupl(rock->x,rock->y),requested,rockRadius);
+        else {safe.x=std::clamp(safe.x,rockRadius,sfArenaW-rockRadius);safe.y=std::clamp(safe.y,rockRadius,sfArenaH-rockRadius);}
+        if(std::abs(safe.x-requested.x)>.01f)rock->vx=0;
+        if(std::abs(safe.y-requested.y)>.01f)rock->vy=0;
+    }
+    rock->x=safe.x;rock->y=safe.y;
     rock->startup();
 
     SDL_Log("BOSS_KINETIC_FIELD raw=%.3f dissipated=%.3f residual=%.3f hp=%.3f asteroidSurvives=true",
@@ -1184,6 +1202,11 @@ static void sfCoopResources(float dt)
         sfCoopAdvanceBossKineticCooldowns(dt);
     }
     sfCoopAdvanceAsteroidSpawner(dt);
+    if(sfSoloField.enabled){
+        sfSoloField.bossPresent=sfCoop.bossPresent;
+        sfSoloField.bossCentre=sfCoop.position;
+        sfSoloField.bossRadius=sfCoopBossRadius()*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE;
+    }
     sfLegacyFieldFrame(dt,sfCoopAsteroidHurt,sfCoop.pilots.activeMask,
                        sfCoop.soloFreeAim?&sfCoop.soloKineticAxes:nullptr,
                        sfCoop.soloWorldMode?sfCoop.soloWorldWidth:0,

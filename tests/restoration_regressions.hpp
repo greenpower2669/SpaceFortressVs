@@ -319,20 +319,12 @@ static void testCoopHeldFingerContinuousWorldCruise()
         sfCoopMovePlayers(dt); // actual historical COOP engine
         const sfsolo::CoopWorldPoint moved{Spritej2->x-priorX,
                                            Spritej2->y-priorY};
-        world.panIfShipActuallyMoved({Spritej2->x,Spritej2->y},moved,dt,finger);
+        world.followPhysicalShip({Spritej2->x,Spritej2->y},moved,dt);
         const auto screen=world.toScreen({Spritej2->x,Spritej2->y});
-        if(std::abs(screen.x-finger.x)>=2 || std::abs(screen.y-finger.y)>=2){
-            std::fprintf(stderr,
-                "COOP_WORLD_FINGER_DRIFT frame=%d screen=(%.3f,%.3f) finger=(%.3f,%.3f) ship=(%.3f,%.3f) camera=(%.3f,%.3f) old=(%.3f,%.3f) target=(%.3f,%.3f) velocity=(%.3f,%.3f)\n",
-                frame,screen.x,screen.y,finger.x,finger.y,
-                Spritej2->x,Spritej2->y,world.cameraLeft,world.cameraTop,
-                priorX,priorY,sfCoop.controls[1].target.x,
-                sfCoop.controls[1].target.y,
-                sfCoop.controls[1].velocity.vx,
-                sfCoop.controls[1].velocity.vy);
-        }
-        assert(std::abs(screen.x-finger.x)<2);
-        assert(std::abs(screen.y-finger.y)<2);
+        // PHYSICS-017 deliberately permits separation from the finger.
+        // The contract is now physical motion + visibility, never finger lock.
+        assert(screen.x>0 && screen.x<world.screen.w);
+        assert(screen.y>0 && screen.y<world.screen.h);
         assert(world.canOccupy({Spritej2->x,Spritej2->y},40.5f));
     }
     assert(initialShip-Spritej2->y>700);   // canonical pilot never stopped
@@ -343,8 +335,8 @@ static void testCoopHeldFingerContinuousWorldCruise()
         sfCoop.controls[1].target=tupl(target.x,target.y);
         const float previous=Spritej2->y;
         sfCoopMovePlayers(dt);
-        world.panIfShipActuallyMoved({Spritej2->x,Spritej2->y},
-                                      {0,Spritej2->y-previous},dt,finger);
+        world.followPhysicalShip({Spritej2->x,Spritej2->y},
+                                      {0,Spritej2->y-previous},dt);
         assert(world.canOccupy({Spritej2->x,Spritej2->y},40.5f));
     }
     assert(world.cameraTop<beforeRock);
@@ -356,8 +348,8 @@ static void testCoopHeldFingerContinuousWorldCruise()
         sfCoop.controls[1].target=tupl(target.x,target.y);
         const float previous=Spritej2->y;
         sfCoopMovePlayers(dt);
-        world.panIfShipActuallyMoved({Spritej2->x,Spritej2->y},
-                                      {0,Spritej2->y-previous},dt,finger);
+        world.followPhysicalShip({Spritej2->x,Spritej2->y},
+                                      {0,Spritej2->y-previous},dt);
     }
     assert(std::abs(world.cameraTop-blockedCamera)<2.0f);
     assert(std::abs(Spritej2->y-blockedY)<2.0f);

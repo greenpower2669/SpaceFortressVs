@@ -7,6 +7,8 @@ struct SfSoloFieldPolicy {
     bool (*occupy)(void*,tupl,float)=nullptr;
     float (*sweep)(void*,tupl,tupl,float)=nullptr;
     bool (*audible)(void*,tupl)=nullptr;
+    bool bossPresent=false;
+    tupl bossCentre{};float bossRadius=0;
 };
 inline SfSoloFieldPolicy sfSoloField;
 struct SfSoloFieldScope {

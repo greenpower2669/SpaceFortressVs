@@ -37,7 +37,7 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         if(!rock || rock->pv<=0)continue;
         const auto p=project(rock->x,rock->y);
         const float radius=std::max(rock->w,rock->h)*.75f;
-        if(!visible(p.x,p.y,radius))continue;
+        if(!visible(p.x,p.y,radius*z))continue;
         const int ix=rock->name.size()==2?
             std::clamp(rock->name[1]-'1',0,3):0;
         SDL_Rect dest{int(p.x-rock->w*z*.5f),int(p.y-rock->h*z*.5f),
@@ -55,7 +55,7 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
     for(const auto *e:explos){
         if(!e || e->pv<=0 || e->w<=0 || e->h<=0)continue;
         const auto p=project(e->x,e->y);
-        if(!visible(p.x,p.y,std::max(e->w,e->h)))continue;
+        if(!visible(p.x,p.y,std::max(e->w,e->h)*z))continue;
         const bool smoke=e->name=="pous" || e->name=="tj1" || e->name=="tj2";
         const bool weak=sfShieldFraction(Spritej2->nrj)<.35f &&
             vlong(e->x-Spritej2->x,e->y-Spritej2->y)<sfCoopShipRadius()*2.2f;
@@ -71,7 +71,7 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
         if(sfsolo::bonus::isOrb(shot.bonusKind))continue;
         const auto p=project(shot.position.x,shot.position.y);
         const float size=shot.kind==4?shot.radius*5.0f:shot.radius*2.0f;
-        if(!visible(p.x,p.y,size))continue;
+        if(!visible(p.x,p.y,size*z))continue;
         SDL_Color color=shot.owner==0 ? SDL_Color{255,175,75,255} :
             shot.owner==1?SDL_Color{100,220,255,255}:SDL_Color{255,70,140,255};
         if(shot.kind==2)
@@ -159,7 +159,7 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
     // a readable warning. They never become sfCoop's final boss state.
     for(const auto &m:sfCoop.soloMinibosses)if(m.health>0){
         const auto p=project(m.position.x,m.position.y);
-        if(!visible(p.x,p.y,m.radius*2))continue;
+        if(!visible(p.x,p.y,m.radius*z*2))continue;
         sfDrawEncounterBoss(renderer,textures.bosses,m.appearance,tupl(p.x,p.y),
                             m.radius*z,sfCoop.time,m.hit,0);
         if(m.warning>0){
@@ -178,7 +178,7 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
     if(sfCoop.bossPresent){
         const auto boss=project(sfCoop.position.x,sfCoop.position.y);
         const float radius=sfCoopBossRadius();
-        if(visible(boss.x,boss.y,radius*1.3f)){
+        if(visible(boss.x,boss.y,radius*z*1.3f)){
             sfCoopCircleAlpha(renderer,int(boss.x),int(boss.y),
                 int(radius*z*SF_COOP_BOSS_KINETIC_FIELD_RADIUS_SCALE),
                 145,95,215,sfCoopBossKineticVisibilityAlpha(sfCoop.bossKineticReserve));
@@ -194,7 +194,7 @@ static void sfCoopSoloWorldActors(SDL_Renderer *renderer,
     const auto p=project(ship->x,ship->y);
     const SDL_Rect hull{int(p.x-ship->w*z*.5f),int(p.y-ship->h*z*.5f),
                         std::max(1,int(ship->w*z)),std::max(1,int(ship->h*z))};
-    if(ship->pv>0 && visible(p.x,p.y,ship->w)){
+    if(ship->pv>0 && visible(p.x,p.y,ship->w*z)){
         if(textures.blue){
             SDL_SetTextureColorMod(textures.blue,255,255,255);
             SDL_SetTextureAlphaMod(textures.blue,

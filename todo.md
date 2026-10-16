@@ -686,3 +686,10 @@ Source `2a933a60639d890fd6168befb8ce1784ba9a18c8`; CI Android/C++/SDL2 `38837760
 État : en cours, aucun code PHYSICS-017 livré.
 
 PHYSICS-017 — point de reprise 16/10 après interruption : implémentation locale des briques (inertie/caméra/zoom, repos/collision roches, visibilité audio, 10–12 rencontres/chasse) présente, NON LIVRÉE. Tests purs inertie Danger9/FPS, contact/repos roches, zoom exclusif, navigation réelle/occlusion et placement des rencontres passés. Suite complète a révélé une erreur de portée de variable dans le son du minage, corrigée ; compilation globale/tests runtime à reprendre. Environnement /tmp réinitialisé entre les tours, dépendances SDL en reconstitution dans scratch persistant de la session. Aucun APK-017 annoncé, aucune validation Samsung. Prochaine étape : tests réels moteur, revue, CI Android, export exact.
+
+## PHYSICS-017 — implémentation et revue, 16/10/2026
+- [x] PHYSICS-017 : inertie/caméra/zoom, roches/audio, rencontres et compteur dynamique implémentés.
+- [x] Revue indépendante et corrections ; tests ciblés réels incluant labyrinthes/Danger9, fragments résiduels et angles de murs.
+- [ ] Suite exacte C++/SDL2/UBSan et Android sur CI du commit source.
+- [ ] APK/AAB vérifiés et décompressés dans temp/solo-physics-017/.
+- [ ] Essai Samsung et accord Fab avant toute intégration définitive.

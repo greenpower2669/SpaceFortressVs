@@ -74,7 +74,10 @@ int main(){
                     assert((green[size_t(y)*540+x]>>8)!=0x393b45);
                 }
         }
-        SDL_RenderSetScale(r,1,1);
+        SDL_RenderSetScale(r,1,1);world.cameraLeft=world.cameraTop=0;
+        clear(r,15,25,35);scenery.draw(r,world,0);
+        const auto beforeMask=pixels(r);scenery.drawWalls(r,world,0,true);
+        assert(beforeMask==pixels(r)); // translucent hazards are not composited twice
         SDL_Rect viewport{3,4,500,900},clip{7,9,400,800};
         SDL_RenderSetViewport(r,&viewport);SDL_RenderSetScale(r,.75f,.8f);SDL_RenderSetClipRect(r,&clip);
         SDL_Rect beforeV{},beforeC{},afterV{},afterC{};

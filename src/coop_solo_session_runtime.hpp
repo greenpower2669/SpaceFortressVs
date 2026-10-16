@@ -253,7 +253,11 @@ static int runCoopSoloSession(bool diagnostics){
             world.centerOn(start);
             // Fixed mineral deposits in the reachable component. The legacy
             // generator remains OFF in exploration, including after depletion.
-            const auto cells=world.reachablePickupCells(start,sfCoopSoloPickupHull());
+            auto cells=world.reachablePickupCells(start,sfCoopSoloPickupHull());
+            std::sort(cells.begin(),cells.end(),[&](auto a,auto b){
+                return sfsolo::CoopSoloScenery::hash(int(a.x/world.pixelsPerCell),int(a.y/world.pixelsPerCell))<
+                       sfsolo::CoopSoloScenery::hash(int(b.x/world.pixelsPerCell),int(b.y/world.pixelsPerCell));
+            });
             for(const auto at:cells){
                 const int cx=int(at.x/world.pixelsPerCell),cy=int(at.y/world.pixelsPerCell);
                 const unsigned hash=sfsolo::CoopSoloScenery::hash(cx,cy);
@@ -264,7 +268,7 @@ static int runCoopSoloSession(bool diagnostics){
                 if(!clear)continue;
                 auto *rock=new sprite;rock->setxywh(at.x,at.y,radius*2,radius*2);
                 rock->sw=rock->w;rock->sh=rock->h;rock->vx=rock->vy=0;rock->as=0;
-                rock->pv=1;rock->timer=0;rock->name="a"+std::to_string(1+hash%4);rock->startup();sa1.push_back(rock);
+                rock->pv=1;rock->timer=0;rock->rand0=int(hash%360);rock->name="a"+std::to_string(1+hash%4);rock->startup();sa1.push_back(rock);
             }
             incra1=int(sa1.size());
         }
@@ -435,15 +439,20 @@ static int runCoopSoloSession(bool diagnostics){
                 const float tx=event.tfinger.x*sfArenaW;
                 const float ty=event.tfinger.y*sfArenaH;
                 const SDL_FingerID id=event.tfinger.fingerId;
-                if(worldActive && aimFinger<0 && (moveFinger<0 || zoomGesture.selected)){
+                if(worldActive && zoomGesture.accepts(id,aimFinger<0 && (moveFinger<0 || zoomGesture.selected))){
                     const auto shipPixel=world.toScreen({Spritej2->x,Spritej2->y});
                     const float time=float(SDL_GetTicks64())*.001f;
+                    const bool wasSelected=zoomGesture.selected;
                     bool consumed=false;
                     if(event.type==SDL_FINGERDOWN)consumed=zoomGesture.down(id,tx,ty,time,shipPixel.x,shipPixel.y,
                         std::max(20.f,sfCoopShipRadius()*world.zoom));
                     else if(event.type==SDL_FINGERMOTION)consumed=zoomGesture.motion(id,tx,ty,time);
                     else consumed=zoomGesture.up(id,tx,ty,time);
                     if(consumed){
+                        if(!wasSelected && zoomGesture.selected){
+                            moveFinger=aimFinger=-1;sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
+                            sfCoop.fireFingers.clear();sfKineticSurgeCancel(1);sfKineticAudioCancel(1);chargeCueGate.reset();
+                        }
                         world.setZoom(zoomGesture.zoom,{Spritej2->x,Spritej2->y});
                         continue;
                     }
@@ -575,8 +584,7 @@ static int runCoopSoloSession(bool diagnostics){
             // no world position is ever overwritten just to draw an image.
             scenery.draw(renderer,world,sfCoop.time);
             sfCoopSoloWorldActors(renderer,world);
-            // Opaque physical terrain masks sprites/FX that extend behind it.
-            scenery.drawWalls(renderer,world,sfCoop.time);
+            bonusRenderer.drawWorld(&world,width,height);
             if(zoomGesture.selected){
                 const auto at=world.toScreen({Spritej2->x,Spritej2->y});
                 sfTacticalRing(renderer,tupl(at.x,at.y),sfCoopShipRadius()*world.zoom*1.25f,{160,230,255,125});
@@ -591,11 +599,13 @@ static int runCoopSoloSession(bool diagnostics){
                     sfTacticalRing(renderer,tupl(at.x,at.y),world.pixelsPerCell*world.zoom*.65f,{110,255,170,210});
                 }
             }
-        }else sfCoopDrawArena(renderer,width,height);
+            // Only opaque terrain masks world actors; transparent scenery is drawn once.
+            scenery.drawWalls(renderer,world,sfCoop.time,true);
+        }else {sfCoopDrawArena(renderer,width,height);bonusRenderer.drawWorld(nullptr,width,height);}
         transition.endCapture();
         if(!diagnostics && level.phase==sfsolo::LevelPhase::Transition)
             transition.draw(renderer,width,height,level.transitionSeconds);
-        bonusRenderer.draw(worldActive?&world:nullptr,width,height);
+        bonusRenderer.drawHud(worldActive?&world:nullptr,width,height);
         if(worldActive && smokeFrames>0 && smokeVisible){
             // Deterministic REAL SDL2 pixel readback, not just a geometry
             // assertion. Protect Android from losing the ship again because

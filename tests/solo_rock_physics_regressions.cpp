@@ -11,5 +11,8 @@ int main(){
     for(int i=0;i<2000;++i){rockDamp(a,1.f/60,1);rockDamp(b,1.f/60,1);}
     assert(a.vx==0 && b.vx==0);
     for(int fps:{30,60,120}){RockBody c{0,0,100,20,10};for(int i=0;i<fps;++i)rockDamp(c,1.f/fps,1);assert(std::abs(c.vx-100*std::exp(-.85f))<.01f);}
+    assert(std::abs(rockSweep(0,0,1000,0,500,0,20)-.48f)<.0001f);
+    assert(rockSweep(0,0,-1000,0,10,0,20)==1); // separating overlap
+    assert(rockSweep(0,0,1000,0,500,100,20)==1);
     puts("PASS: static pairs, dissipative impact, wake, no repeated impulse and stable sleep");
 }

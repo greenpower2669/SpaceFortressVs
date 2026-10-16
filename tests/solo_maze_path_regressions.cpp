@@ -1,6 +1,7 @@
 #include "solo_maze_path.hpp"
 #include <cassert>
 #include <cstdio>
+#include "solo_ship_motion.hpp"
 int main(){
  using namespace sfsolo;CoopSoloWorldBridge w;MapOptions o;o.width=54;o.height=160;assert(w.create(o,{0,0,780,1680},780));
  std::fill(w.map.tiles.begin(),w.map.tiles.end(),Tile::Empty);
@@ -15,5 +16,22 @@ int main(){
  const auto back=w.toWorld(w.toScreen(goal));assert(std::hypot(back.x-goal.x,back.y-goal.y)<.01f);
  w.followPhysicalShip(goal,{1000,0},1.f/60);const auto on=w.toScreen(goal);assert(on.x>0 && on.x<w.screen.w);
  const auto blocked=w.moveWithoutTunnelling(start,{start.x+c*1000,start.y},10);assert(blocked.x<7*c && w.canOccupy(blocked,10));
+ // Identical held screen gesture keeps world cruise speed across presentation zoom.
+ w.map.width=1000;w.map.tiles.assign(w.map.width*w.map.height,Tile::Empty);
+ for(int danger:{0,4,8}){
+  float distance[2]{};
+  for(int z=1;z<=2;++z){
+   w.zoom=float(z);ShipMotion s{5000,5000,0,0};w.centerOn({s.x,s.y});
+   for(int i=0;i<1000;++i){
+    const auto target=w.heldFingerPilotTarget({w.screen.w*.95f,w.screen.h*.5f});
+    const float old=s.x;s.step(target.x,target.y,true,w.combatWidth,danger,.01f);
+    w.followPhysicalShip({s.x,s.y},{s.x-old,0},.01f);
+    const auto pixel=w.toScreen({s.x,s.y});assert(pixel.x>0 && pixel.x<w.screen.w);
+   }
+   distance[z-1]=s.x-5000;
+  }
+  printf("Cruise Danger %d: zoom1 %.2f zoom2 %.2f\n",danger,distance[0],distance[1]);
+  assert(std::abs(distance[0]-distance[1])<distance[0]*.04f);
+ }
  puts("PASS: real maze routing, occlusion, zoom mapping, drift visibility and long swept wall collision");
 }

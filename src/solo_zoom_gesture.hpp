@@ -12,6 +12,7 @@ struct ZoomGesture {
     float ax=0,ay=0,bx=0,by=0,startX=0,startY=0,startTime=0,startDistance=0,startZoom=1,zoom=1;
     void reset(){*this=ZoomGesture{};}
     bool owns(Id id)const{return id>=0&&(id==first||id==second);}
+    bool accepts(Id id,bool eligible)const{return owns(id)||eligible;}
     bool down(Id id,float x,float y,float time,float shipX,float shipY,float radius){
         if(!selected){
             if(first>=0||std::hypot(x-shipX,y-shipY)>radius)return false;
