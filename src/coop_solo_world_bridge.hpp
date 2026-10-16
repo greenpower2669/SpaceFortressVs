@@ -71,7 +71,7 @@ struct CoopSoloWorldBridge {
     CoopWorldPoint heldFingerPilotTarget(CoopWorldPoint finger) const {
         const auto exact=toWorld(finger);
         if(!ready)return exact;
-        const auto zone=soloCirclePan(finger.x,finger.y,screen,
+        const auto zone=soloSoftCirclePan(finger.x,finger.y,screen,
                                        combatWidth/pixelsPerCell);
         if(zone.speed<=0.0f)return exact;
         const float vectorLength=std::hypot(zone.vx,zone.vy);
@@ -366,10 +366,10 @@ struct CoopSoloWorldBridge {
         std::optional<CoopWorldPoint> fingerScreen=std::nullopt){
         if(!ready||dt<=0||!std::isfinite(dt))return;
         const auto onscreen=toScreen(ship);
-        // Exact existing SOLO concentric law: 0 / 0.1->2 / 2.1->6 / 6.
+        // SOLO-020 progressive extra inner band, outer speed remains 6.
         // User arbitration about 4.32 vs 3.10 visible widths/s is still
         // pending; preserve the already agreed radial speed, do not retune it.
-        const auto pan=soloCirclePan(onscreen.x,onscreen.y,screen,
+        const auto pan=soloSoftCirclePan(onscreen.x,onscreen.y,screen,
                                      combatWidth/pixelsPerCell);
         float desiredX=pan.vx*pixelsPerCell*std::min(dt,.05f);
         float desiredY=pan.vy*pixelsPerCell*std::min(dt,.05f);

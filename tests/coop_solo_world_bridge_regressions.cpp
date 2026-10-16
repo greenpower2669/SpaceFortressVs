@@ -97,6 +97,31 @@ int main(){
     assert(bridge.cameraLeft>oldX);  // actual radial pan followed live movement
     assert(bridge.cameraLeft<=oldX+20.001f);
     assert(same(bridge.combatWidth,540));
+    // SOLO-020: new inner smooth zone from two hull diameters.
+    const SDL_Rect viewport=bridge.screen;
+    const float outerR=soloCircleOuterRadius(viewport);
+    const float nearR=soloSoftCruiseStart(viewport);
+    assert(nearR>outerR*.49f && nearR<outerR*.55f);
+    const float cx=viewport.x+viewport.w*.5f,cy=viewport.y+viewport.h*.5f;
+    auto speed=[&](float r){return soloSoftCircleZoneSpeed(cx+r,cy,viewport);};
+    assert(same(speed(nearR),0.f));
+    const float s1=speed(nearR+(outerR*.65f-nearR)*.25f);
+    const float s2=speed(nearR+(outerR*.65f-nearR)*.5f);
+    const float s3=speed(nearR+(outerR*.65f-nearR)*.75f);
+    assert(s1>0 && s1<s2 && s2<s3 && s3<.1f);
+    assert(same(speed(outerR*.65f),.1f));
+    assert(same(speed(outerR*.80f),2.f));
+    assert(same(speed(outerR),6.f));
+    assert(std::abs(speed(outerR*.65f-.01f)-speed(outerR*.65f+.01f))<.001f);
+    assert(std::abs(speed(outerR*.80f-.01f)-speed(outerR*.80f+.01f))<.001f);
+    for(int i=0;i<8;++i){
+        const float theta=i*3.14159265358979323846f/4.f;
+        const float r=(nearR+outerR*.65f)*.5f;
+        const auto v=soloSoftCirclePan(cx+std::cos(theta)*r,cy+std::sin(theta)*r,
+                                         viewport,bridge.combatWidth/bridge.pixelsPerCell);
+        assert(v.speed>0 && v.speed<.1f);
+        assert(v.vx*std::cos(theta)+v.vy*std::sin(theta)>0);
+    }
     // Stationary finger at centre uses EXACT world target (no auto-cruise).
     const CoopWorldPoint centre{270,480};
     const auto centerTarget=bridge.heldFingerPilotTarget(centre);
@@ -119,7 +144,7 @@ int main(){
         CoopWorldPoint{270,850}}){
         const auto goal=bridge.heldFingerPilotTarget(held);
         const auto exact=bridge.toWorld(held);
-        const auto pan=soloCirclePan(held.x,held.y,bridge.screen,
+        const auto pan=soloSoftCirclePan(held.x,held.y,bridge.screen,
                                      bridge.combatWidth/bridge.pixelsPerCell);
         const float requestedVelocity=std::hypot(pan.vx,pan.vy)*bridge.pixelsPerCell;
         const float trueCoopVelocity=std::min(bridge.combatWidth*3.10f,

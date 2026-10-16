@@ -36,6 +36,7 @@ struct EncounterGates {
             for(unsigned i:z.members)
                 z.radius=std::max(z.radius,std::hypot(enemies[i].anchor.x-z.centre.x,
                     enemies[i].anchor.y-z.centre.y)+width*.32f);
+            z.radius*=1.5f; // SOLO-020: radius 50% greater, once per encounter
         }
     }
     template<class Boss> void tick(CoopWorldPoint player,const std::vector<Boss> &enemies){
@@ -59,10 +60,10 @@ struct EncounterGates {
         active=chosen;
         auto &z=zones[size_t(active)];
         z.radius=std::max(z.radius,std::hypot(player.x-z.centre.x,
-                                              player.y-z.centre.y)+width*.20f);
+                                              player.y-z.centre.y)+width*.30f);
         for(unsigned i:z.members)if(i<enemies.size()&&enemies[i].health>0)
             z.radius=std::max(z.radius,std::hypot(enemies[i].position.x-z.centre.x,
-                enemies[i].position.y-z.centre.y)+width*.20f);
+                enemies[i].position.y-z.centre.y)+width*.30f);
     }
     const EncounterGate *closed()const{
         return active<0?nullptr:&zones[size_t(active)];

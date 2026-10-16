@@ -88,6 +88,31 @@ inline SoloCirclePan soloCirclePan(float screenShipX,float screenShipY,
     const float unitsPerSecond=visibleWorldColumns*.72f*speed;
     return {dx/r*unitsPerSecond,dy/r*unitsPerSecond,speed};
 }
+// COOP SOLO only: new progressive band from two ship diameters near centre.
+// Shift previous rings outward slightly; preserve maximum 6 cruise units.
+inline float soloSoftCruiseStart(SDL_Rect screen){
+    return float(std::min(screen.w,screen.h))*.053f*4.f;
+}
+inline float soloSoftCircleZoneSpeed(float x,float y,SDL_Rect screen){
+    const float outer=soloCircleOuterRadius(screen);
+    if(outer<=0||!std::isfinite(x)||!std::isfinite(y))return 0.f;
+    const float near=std::min(soloSoftCruiseStart(screen),outer*.52f);
+    const float r=std::hypot(x-(screen.x+screen.w*.5f),y-(screen.y+screen.h*.5f));
+    const float first=outer*.65f,middle=outer*.80f;
+    if(r<=near)return 0.f;
+    if(r>=outer)return 6.f;
+    if(r<=first)return .1f*soloSmoothstep((r-near)/(first-near));
+    if(r<=middle)return .1f+1.9f*soloSmoothstep((r-first)/(middle-first));
+    return 2.f+4.f*soloSmoothstep((r-middle)/(outer-middle));
+}
+inline SoloCirclePan soloSoftCirclePan(float x,float y,SDL_Rect screen,float columns){
+    const float speed=soloSoftCircleZoneSpeed(x,y,screen);
+    const float dx=x-(screen.x+screen.w*.5f),dy=y-(screen.y+screen.h*.5f);
+    const float r=std::hypot(dx,dy);
+    if(speed<=0||r<=.0001f||columns<=0)return {};
+    const float unitsPerSecond=columns*.72f*speed;
+    return {dx/r*unitsPerSecond,dy/r*unitsPerSecond,speed};
+}
 inline float soloMapCellPixels(SDL_Rect screen) {
     return screen.w>0?std::max(1.0f,float(screen.w)/
                   (SOLO_REFERENCE_COLUMNS/SOLO_MAP_ZOOM)):1.0f;

@@ -4,3 +4,7 @@ Manette de tir : joystick circulaire semi-transparent en bas à gauche, geste pu
 Tout repose sur le tir historique sfCoopFire (cadence, énergie, sons, FX identiques). Essais C++/CI puis Samsung requis avant validation. Pas de merge main ni Release.
 
 Précision SOLO-019 : le joystick/boutons à 45° suppriment uniquement la dispersion du tir de base pendant l'appui. Les tirs historiques hors joystick et leur dispersion restent inchangés ; armes bonus et missiles conservent leurs règles.
+
+## SOLO-020 — 50 % de rayon de combat supplémentaire et nouvelle croisière douce
+Les rayons des barrières des mini-boss/hordes passent à 1,5x ; les conditions de dernier KO restent inchangées. L'antre final reste indépendant.
+Nouvelle bande de défilement lente/progressive dans le vrai SOLO entre environ deux diamètres physiques du vaisseau autour du centre de l'écran et les anneaux précédents décalés vers l'extérieur. Loi sans saut : 0 -> 0,1 à 65 % du rayon extérieur, 0,1 -> 2 à 80 %, puis 2 -> 6 à l'extérieur. La vitesse maximale, l'inertie, les rebonds et les modes historiques restent identiques. Loi partagée par le pilotage doigt-maintenu et la caméra. Tests des huit directions et des deux frontières ajoutés. Essai Samsung reste à faire.
