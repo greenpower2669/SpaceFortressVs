@@ -698,3 +698,6 @@ Source `f5b4ce4f82e99057d041767d982914e903afbf7f`; CI Android/C++/SDL2 `38724287
 - Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
 - `SpaceFortressVs-1.4.2-SOLO-GAME-015-f5b4ce4.apk`: 95023204 octets, SHA256 `f5138def32cdb8553e86006f6e079ce6a61a979b764c6c62f1757aca61ca8ec7`.
 - `SpaceFortressVs-1.4.2-SOLO-GAME-015-f5b4ce4-unsigned.aab`: 92378949 octets, SHA256 `1b4d9a9bffb7ade770ec033bd25162c20c440c9a01db71ad8613c2156aee0e7c`.
+
+## 16/10/2026 — SOLO PARALLAX-016
+Fab autorise PARALLAX-016 : réutiliser ParoisModeSolo.png, EnvironnementsModeSolo.png et fond4hlow.png ; créer une seule planche minérale ajourée FondsParallaxeModeSolo.png ; raccorder le vrai SOLO GAME015 sans changer géométrie/collisions. Aucune modification src/main.cpp, aucun merge main ni Release ; tourelles SOLO et METEOR-009 OFF. Portée graphique uniquement : demandes d'astéroïdes immobiles, zone caméra lente et nouveaux comportements miniboss du précédent audit restent distinctes.

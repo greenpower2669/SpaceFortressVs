@@ -579,3 +579,6 @@ Source `f5b4ce4f82e99057d041767d982914e903afbf7f`; CI Android/C++/SDL2 `38724287
 - Atlas animé: `assets/pict/solo/SoloBonusAnimations.png`, 1536x768, 4x8 frames de 192 px, SHA256 `1a337adb15a6a3901b76da566dcd26a1d2d76c26893864a37a85e97b63950001`.
 - `SpaceFortressVs-1.4.2-SOLO-GAME-015-f5b4ce4.apk`: 95023204 octets, SHA256 `f5138def32cdb8553e86006f6e079ce6a61a979b764c6c62f1757aca61ca8ec7`.
 - `SpaceFortressVs-1.4.2-SOLO-GAME-015-f5b4ce4-unsigned.aab`: 92378949 octets, SHA256 `1b4d9a9bffb7ade770ec033bd25162c20c440c9a01db71ad8613c2156aee0e7c`.
+
+## 16/10/2026 — SOLO PARALLAX-016
+GAME015 dessinait les parois en aplats : atlas jamais raccordés. Correction par renderer dédié. Revue indépendante : scissor entier par cellule causait de vrais trous sous scale .75/.4266667/1.25. Correctif final : SDL_RenderGeometry à cinq sommets et quatre triangles, UV bornés, évite le raccourci SDL logiciel rectangle/copie sans arrondi de scissor. Test compare rectangle unique et32cellules, puis murs sur fonds rose/vert à4échelles et caméras fractionnaires : vert. Extraction des ressources, ownership/reset et isolation des autres modes vérifiés par revue ; pas d'autre défaut bloquant rapporté. Après interruption de session, reconstruction depuis le patch puis tests relancés ; suite globale/CI restent à confirmer.

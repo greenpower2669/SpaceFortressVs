@@ -11,6 +11,7 @@
 #include <coop_solo_charge_audio.hpp>
 #include <coop_solo_world_bridge.hpp>
 #include <coop_solo_world_draw.hpp>
+#include <coop_solo_scenery.hpp>
 #include "coop_solo_bonus_draw.hpp"
 #include "coop_solo_diagnostic_ui.hpp"
 #include "coop_solo_encounter.hpp"
@@ -40,6 +41,7 @@ static int runCoopSoloSession(bool diagnostics){
     if(!renderer){SDL_DestroyWindow(window);SDL_Quit();return 3;}
     IMG_Init(IMG_INIT_PNG);
     SfCoopSoloBonusRenderer bonusRenderer(renderer);
+    sfsolo::CoopSoloScenery scenery(renderer);
     int width=0,height=0;SDL_GetRendererOutputSize(renderer,&width,&height);
     if(width<=0||height<=0){width=540;height=960;}
     SDL_RenderSetLogicalSize(renderer,width,height);
@@ -364,7 +366,7 @@ static int runCoopSoloSession(bool diagnostics){
                             if(texture)SDL_DestroyTexture(texture);
                         for(auto *texture:entry.rocks)if(texture)SDL_DestroyTexture(texture);
                     }
-                    sfCampaignForgetRenderer(renderer);bonusRenderer.reload();
+                    sfCampaignForgetRenderer(renderer);bonusRenderer.reload();scenery.reload();
                 }
                 continue;
             }
@@ -521,8 +523,7 @@ static int runCoopSoloSession(bool diagnostics){
             // GPU-safe SCREEN projection, not a 54x160-cell viewport.
             // Existing COOP simulation and historic actor assets are reused,
             // no world position is ever overwritten just to draw an image.
-            sfDrawCampaignSpace(renderer,sfCoop.encounter,sfCoop.time,width,height);
-            world.draw(renderer);
+            scenery.draw(renderer,world,sfCoop.time);
             sfCoopSoloWorldActors(renderer,world);
             if(!diagnostics && levelReady){
                 const auto entrance=world.toScreen(level.lair);
@@ -651,7 +652,7 @@ static int runCoopSoloSession(bool diagnostics){
         Mix_CloseAudio();
     }
     if(audioInit){Mix_Quit();SDL_QuitSubSystem(SDL_INIT_AUDIO);}
-    transition.release();bonusRenderer.release();
+    transition.release();bonusRenderer.release();scenery.release();
     sfCampaignForgetRenderer(renderer);
     SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);
     IMG_Quit();SDL_Quit();

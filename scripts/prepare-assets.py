@@ -135,7 +135,7 @@ def assemble(source, output):
         validate_png(path.read_bytes(), name)
     # SOLO art atlases are exact authored binary blobs reused from main.
     # Fail the Android build if either atlas is missing or corrupt.
-    for name in ('ParoisModeSolo.png', 'EnvironnementsModeSolo.png', 'SoloBonusAnimations.png'):
+    for name in ('ParoisModeSolo.png', 'EnvironnementsModeSolo.png', 'SoloBonusAnimations.png', 'FondsParallaxeModeSolo.png'):
         validate_png((output / 'pict/solo' / name).read_bytes(), name)
     animation = output / 'pict/solo' / 'SoloBonusAnimations.png'
     # Production animation atlas contract is 4 rows x 8 columns of 192 px.
@@ -143,7 +143,7 @@ def assemble(source, output):
     width,height=struct.unpack_from('>II',data,16)
     if (width,height)!=(1536,768):
         raise ValueError(f'SoloBonusAnimations.png: unexpected dimensions {(width,height)}')
-    print(f'Validated {len(images)} remaster PNGs and three SOLO atlases.')
+    print(f'Validated {len(images)} remaster PNGs and four SOLO atlases.')
 
 
 if __name__ == '__main__':
