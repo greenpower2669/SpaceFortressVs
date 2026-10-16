@@ -714,8 +714,8 @@ Source `3ef362cd1375034519c458a0effb2d7abef03490`; CI Android/C++/SDL2 `38956636
 - [x] Intégrer sur la branche SOLO le solveur de rebond, la déviation, la gestion du reste du frame et le décollage face au doigt maintenu ; préserver l'inertie libre.
 - [x] Réserver le pilotage au DOWN sur coque ; réserver deux DOWN hors coque à un pincement ×1..×2, sans tir/charge au moment de reconnaissance.
 - [x] Ajuster tests moteur/bridge/zoom pour remplacer le contrat historique d'arrêt.
-- [ ] Vérifier CI exacte Android/C++/SDL2 et corriger toute régression, run 38962472820 pour code 8875905.
-- [ ] Fournir APK diagnostic et AAB **non signé** après CI verte, avec liens et identification exacts.
+- [x] CI complète Android/C++/SDL2/UBSan SUCCESS sur code a85ca0d (run 38963255438), après correction du test de stress multichocs initial.
+- [x] APK diagnostic et AAB **non signé** directement dans temp/solo-bounce-pinch-018/ : fichiers complets et SHA256SUMS vérifiés, workflow d'export 38964102751 SUCCESS.
 - [ ] Essai Fab Samsung : murs face/angle, dégagement sans latence, maintien du doigt, pinch sans tir ni changement de vitesse et 30/60/120 FPS ; valider le ressenti.
 - [ ] Aucune fusion main/Release sans validation explicite Fab. src/main.cpp, assets, audio et modes historiques inchangés.
 
