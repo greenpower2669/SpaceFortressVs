@@ -857,3 +857,19 @@ Le CI Android initial `39057515808` a échoué dans l'étape d'évaluation de r�
 - Suite d'essais : code `39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`, premier correctif du test `51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc`, **second correctif test `57f74d8c4c7437d01cf84d7edea200a57bf4e672`**. CI source épinglé `39058137853`.
 - Le build `39057829358` passait C++/SDL2 mais le test historique `pink==green` sur **l'intégralité du rectangle de roche** a échoué. C'est cohérent avec l'alpha transparent volontaire des bordures irrégulières : les coins ne doivent plus être opaques/carrés. Le nouveau test vérifie opacité indépendante du fond sur le **cœur de la roche**, puis transparence réelle des coins sur deux fonds colorés, tous zooms/échelles. La collision Rock reste intacte.
 - **Rollback intégral logiciel SOLO-023, après accord Fab, sans toucher les autres versions** : dans l'ordre `git revert 57f74d8c4c7437d01cf84d7edea200a57bf4e672`, puis `git revert 51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc`, puis `git revert 39d0a7c2b6969f546a7dc7537b3bcf993b097dcb` sur `feature/solo-coop-core-v1`, avec éventuelle résolution des conflits de documents, puis régressions complètes. Conserver la planche `HabillageRebordsModeSolo.png` et son générateur comme assets historisés, à supprimer séparément uniquement si demandé. Conserver cette note et les mémoires. Jamais de reset/force push/main/Release sans validation.
+
+
+### SOLO-023 — livraison finale vérifiée, 17 octobre 2026
+- Code du nouvel habillage `39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`, correction premier test `51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc`, deuxième `57f74d8c4c7437d01cf84d7edea200a57bf4e672`, troisième **`48b30c4a6d7c200fc2979bb411a3a048b4a3348f`** (supprime une ancienne assertion RGB littérale devenue incompatible avec la roche recomposée ; l'opacité et les coins transparents restent testés).
+- **CI source entière verte** run `39058401438` : suite SOLO, SDL2 et Android ; Release publique SKIPPED.
+- **Export direct vert** run `39058427941`, `temp/solo-rock-rims-023/` ; les fichiers réels ont été vérifiés par métadonnées Git et leurs SHA256.
+- APK diagnostic : `SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4.apk`, **98 710 354 octets**, SHA256 `8ef3769b08a200f382465907486f28c36d54b300294fa17fdafcbb8c0cdb0e71`.
+- AAB non signé : `SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4-unsigned.aab`, **95 998 932 octets**, SHA256 `df8a5097fe619a2316bb51cc8705bdbded916d3f92225af5dc2a1aacbdfe065b`.
+- **Rollback complet code/test, après validation utilisateur** : sur feature/solo-coop-core-v1, faire DANS CET ORDRE
+  1. `git revert 48b30c4a6d7c200fc2979bb411a3a048b4a3348f`
+  2. `git revert 57f74d8c4c7437d01cf84d7edea200a57bf4e672`
+  3. `git revert 51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc`
+  4. `git revert 39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`
+  Résoudre si nécessaire conflits de mémoire et **conserver la présente note d'historique**, puis CI. Atlas et générateur restent conservés mais inutilisés, retrait séparé seulement si explicitement demandé.
+- Point à vérifier par Fab sur Samsung : la fin des carrés, la répétition éventuelle du matériau rocheux, la sensation de collision près des rebords, le zoom/pan et la fluidité. Validation perceptive non revendiquée avant essai réel.
+- Aucun merge main, aucun tag/Release.

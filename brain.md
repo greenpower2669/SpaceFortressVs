@@ -766,3 +766,19 @@ SOLO-023 correctif de test après première CI : `51752da4dd74fffc9b8c0a1448b2d6
 
 
 SOLO-023 correctif de tests 2 `57f74d8c4c7437d01cf84d7edea200a57bf4e672` : le corps du mur est désormais testé opaque comme avant, mais les bordures / angles doivent rester transparents pour supprimer l'effet carré. Le CI `39057829358` échouait à cause de l'attente d'opacité de l'ancien test sur tout le rectangle ; source corrigée `39058137853` et export conditionnel lié à SHA `57f74d8c`. Retour arrière complet = revert des trois commits de code/test dans l'ordre inverse (`57f74d8c`, `51752da4`, `39d0a7c2`), voir ordres de mission.
+
+
+### SOLO-023 — livraison finale vérifiée, 17 octobre 2026
+- Code du nouvel habillage `39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`, correction premier test `51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc`, deuxième `57f74d8c4c7437d01cf84d7edea200a57bf4e672`, troisième **`48b30c4a6d7c200fc2979bb411a3a048b4a3348f`** (supprime une ancienne assertion RGB littérale devenue incompatible avec la roche recomposée ; l'opacité et les coins transparents restent testés).
+- **CI source entière verte** run `39058401438` : suite SOLO, SDL2 et Android ; Release publique SKIPPED.
+- **Export direct vert** run `39058427941`, `temp/solo-rock-rims-023/` ; les fichiers réels ont été vérifiés par métadonnées Git et leurs SHA256.
+- APK diagnostic : `SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4.apk`, **98 710 354 octets**, SHA256 `8ef3769b08a200f382465907486f28c36d54b300294fa17fdafcbb8c0cdb0e71`.
+- AAB non signé : `SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4-unsigned.aab`, **95 998 932 octets**, SHA256 `df8a5097fe619a2316bb51cc8705bdbded916d3f92225af5dc2a1aacbdfe065b`.
+- **Rollback complet code/test, après validation utilisateur** : sur feature/solo-coop-core-v1, faire DANS CET ORDRE
+  1. `git revert 48b30c4a6d7c200fc2979bb411a3a048b4a3348f`
+  2. `git revert 57f74d8c4c7437d01cf84d7edea200a57bf4e672`
+  3. `git revert 51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc`
+  4. `git revert 39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`
+  Résoudre si nécessaire conflits de mémoire et **conserver la présente note d'historique**, puis CI. Atlas et générateur restent conservés mais inutilisés, retrait séparé seulement si explicitement demandé.
+- Point à vérifier par Fab sur Samsung : la fin des carrés, la répétition éventuelle du matériau rocheux, la sensation de collision près des rebords, le zoom/pan et la fluidité. Validation perceptive non revendiquée avant essai réel.
+- Aucun merge main, aucun tag/Release.

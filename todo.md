@@ -806,8 +806,8 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [x] Brancher les sprites aux six thèmes des parois Rock, sans changer la collision ou les textures existantes.
 - [x] Garder l'ancien renderer de secours, les ressources SDL libérables/rechargeables, et le premier/second passage identiques.
 - [x] Ajouter régressions silhouette/alpha, six thèmes et raccords/zoom.
-- [ ] Faire passer CI Android+C++/SDL2 du code source SOLO-023.
-- [ ] Exporter l'APK diagnostic direct temp/ après CI verte avec SHA256, sans ZIP.
+- [x] CI complète du code SOLO-023, correctifs tests inclus : 39058401438 SUCCESS.
+- [x] Export APK diagnostic/AAB direct temp/solo-rock-rims-023/ avec SHA256, sans ZIP.
 - [ ] Vérifier sur Samsung : rebords organiques (fin des carrés), lisibilité du passage, aucune collision perçue anormale, différence de rendu à zoom haut.
 - [ ] Main / Release interdits sans validation.
 
@@ -821,10 +821,26 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 
 - [x] SOLO-023 correction du nom du test du premier CI rouge : commit `51752da4`, nouveau CI `39057829358`.
 - [x] Workflow d'export repointé vers CI/SHA test corrigés, sans reprendre le premier build rouge.
-- [ ] Confirmer réussite CI complète et existence de l'APK direct dans `temp/solo-rock-rims-023/` avec SHA256.
+- [x] CI Android/C++/SDL2 run 39058401438 SUCCESS et export direct 39058427941 SUCCESS ; APK+AAB et SHA256 contrôlés.
 - [ ] Tester les silhouettes de roches sur téléphone, surtout raccords, coins, déplacement et zoom.
 
 
 - [x] SOLO-023 : second correctif de régression `57f74d8c` : opacité corps de roche / alpha découpé coin, CI `39058137853`.
 - [x] Documenter rollback 3 commits, sans perdre l'ancienne planche ni supprimer l'historique.
 - [ ] Vérifier CI sur `57f74d8c` et export `temp/solo-rock-rims-023/`.
+
+
+### SOLO-023 — livraison finale vérifiée, 17 octobre 2026
+- Code du nouvel habillage `39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`, correction premier test `51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc`, deuxième `57f74d8c4c7437d01cf84d7edea200a57bf4e672`, troisième **`48b30c4a6d7c200fc2979bb411a3a048b4a3348f`** (supprime une ancienne assertion RGB littérale devenue incompatible avec la roche recomposée ; l'opacité et les coins transparents restent testés).
+- **CI source entière verte** run `39058401438` : suite SOLO, SDL2 et Android ; Release publique SKIPPED.
+- **Export direct vert** run `39058427941`, `temp/solo-rock-rims-023/` ; les fichiers réels ont été vérifiés par métadonnées Git et leurs SHA256.
+- APK diagnostic : `SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4.apk`, **98 710 354 octets**, SHA256 `8ef3769b08a200f382465907486f28c36d54b300294fa17fdafcbb8c0cdb0e71`.
+- AAB non signé : `SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4-unsigned.aab`, **95 998 932 octets**, SHA256 `df8a5097fe619a2316bb51cc8705bdbded916d3f92225af5dc2a1aacbdfe065b`.
+- **Rollback complet code/test, après validation utilisateur** : sur feature/solo-coop-core-v1, faire DANS CET ORDRE
+  1. `git revert 48b30c4a6d7c200fc2979bb411a3a048b4a3348f`
+  2. `git revert 57f74d8c4c7437d01cf84d7edea200a57bf4e672`
+  3. `git revert 51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc`
+  4. `git revert 39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`
+  Résoudre si nécessaire conflits de mémoire et **conserver la présente note d'historique**, puis CI. Atlas et générateur restent conservés mais inutilisés, retrait séparé seulement si explicitement demandé.
+- Point à vérifier par Fab sur Samsung : la fin des carrés, la répétition éventuelle du matériau rocheux, la sensation de collision près des rebords, le zoom/pan et la fluidité. Validation perceptive non revendiquée avant essai réel.
+- Aucun merge main, aucun tag/Release.

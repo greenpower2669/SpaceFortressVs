@@ -89,3 +89,19 @@ l'antre, pause/reprise et fluidité.
 
 ## SOLO-023 — superposition des rebords (évolution du rendu)
 Le fond `fond4hlow.png` et `FondsParallaxeModeSolo.png` ne changent pas. Le rendu `Rock` utilise désormais la planche 48 silhouettes `HabillageRebordsModeSolo.png` en complément de la bande-source des six thèmes `ParoisModeSolo.png`. La carte jouable et le frustum n'ont pas changé ; le nouveau dégradé de surface est précalculé au chargement, jamais à chaque frame. Le vieux rendu rectangulaire reste un secours automatique si les textures supplémentaires manquent. Voir `ordres-de-mission.md` SOLO-023 pour la procédure de revert, à exécuter uniquement après validation. Test final perceptif Samsung requis.
+
+
+### SOLO-023 — livraison finale vérifiée, 17 octobre 2026
+- Code du nouvel habillage `39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`, correction premier test `51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc`, deuxième `57f74d8c4c7437d01cf84d7edea200a57bf4e672`, troisième **`48b30c4a6d7c200fc2979bb411a3a048b4a3348f`** (supprime une ancienne assertion RGB littérale devenue incompatible avec la roche recomposée ; l'opacité et les coins transparents restent testés).
+- **CI source entière verte** run `39058401438` : suite SOLO, SDL2 et Android ; Release publique SKIPPED.
+- **Export direct vert** run `39058427941`, `temp/solo-rock-rims-023/` ; les fichiers réels ont été vérifiés par métadonnées Git et leurs SHA256.
+- APK diagnostic : `SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4.apk`, **98 710 354 octets**, SHA256 `8ef3769b08a200f382465907486f28c36d54b300294fa17fdafcbb8c0cdb0e71`.
+- AAB non signé : `SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4-unsigned.aab`, **95 998 932 octets**, SHA256 `df8a5097fe619a2316bb51cc8705bdbded916d3f92225af5dc2a1aacbdfe065b`.
+- **Rollback complet code/test, après validation utilisateur** : sur feature/solo-coop-core-v1, faire DANS CET ORDRE
+  1. `git revert 48b30c4a6d7c200fc2979bb411a3a048b4a3348f`
+  2. `git revert 57f74d8c4c7437d01cf84d7edea200a57bf4e672`
+  3. `git revert 51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc`
+  4. `git revert 39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`
+  Résoudre si nécessaire conflits de mémoire et **conserver la présente note d'historique**, puis CI. Atlas et générateur restent conservés mais inutilisés, retrait séparé seulement si explicitement demandé.
+- Point à vérifier par Fab sur Samsung : la fin des carrés, la répétition éventuelle du matériau rocheux, la sensation de collision près des rebords, le zoom/pan et la fluidité. Validation perceptive non revendiquée avant essai réel.
+- Aucun merge main, aucun tag/Release.
