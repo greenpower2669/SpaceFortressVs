@@ -3,6 +3,7 @@
 #include <array>
 #include <cmath>
 #include <vector>
+#include "boss_danger.hpp"
 
 // Shared kinetic model for classic and coop/campaign. Velocities are pixels/second.
 // Gameplay energy remains the historical shared nrj reserve; no new visible heat system exists.
@@ -23,10 +24,18 @@ constexpr float SF_KINETIC_LOW_ENERGY_WAVE_DURATION = .50f;
 constexpr float SF_KINETIC_ENERGY_FATIGUE_EXPONENT = 1.20f;
 constexpr float SF_KINETIC_LOW_ENERGY_WARNING_FRACTION = .10f;
 constexpr float SF_KINETIC_LOW_ENERGY_FLASH_HZ = 4.5f;
-constexpr float SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS = .30f;
+constexpr float SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS = .20f;
 constexpr float SF_KINETIC_SURGE_HOLD_SECONDS = 2.0f;
 constexpr float SF_KINETIC_SURGE_BLAST_DIAMETER = 3.0f;
 constexpr float SF_KINETIC_SURGE_POWER_MULTIPLIER = 2.0f;
+// Fab 2026-10-08: the tide/suction footprint is 50% larger than the previous
+// mining/white-dust radii, but the final release blast stays unchanged.
+constexpr float SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS = 1.35f*1.50f;
+constexpr float SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS = 2.20f*1.50f;
+constexpr float SF_KINETIC_SURGE_CONE_TAN_HALF = .7002075f; // 35 degree half-angle.
+// Trial calibration only: the PDF intentionally leaves Vnear/Vfar open.
+constexpr float SF_KINETIC_SURGE_MINING_NEAR_ARENA_FRACTION_PER_SECOND = .020f;
+constexpr float SF_KINETIC_SURGE_MINING_FAR_ARENA_FRACTION_PER_SECOND = .004f;
 
 struct SfKineticVector { float x=0,y=0; };
 enum class SfKineticLayer { None, Inner, Outer };
@@ -87,24 +96,81 @@ static void sfKineticAdvanceSurges(float dt)
             s.charged=true;
     }
 }
+static bool sfKineticSuperchargeActive(int owner)
+{
+    if(owner<0 || owner>1) return false;
+    const auto &s=sfKineticSurges[owner];
+    return s.held && s.heldSeconds>=SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS;
+}
+static float sfKineticSuperchargeProgress(int owner)
+{
+    if(!sfKineticSuperchargeActive(owner)) return 0.0f;
+    const float span=std::max(.001f,SF_KINETIC_SURGE_HOLD_SECONDS-SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS);
+    return std::clamp((sfKineticSurges[owner].heldSeconds-SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS)/span,0.0f,1.0f);
+}
 static float sfKineticSurgePower(int owner)
 {
     if(owner<0 || owner>1) return 1.0f;
-    const auto &s=sfKineticSurges[owner];
-    if(!s.held || s.heldSeconds<SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS) return 1.0f;
-    return s.charged ? 0.0f : SF_KINETIC_SURGE_POWER_MULTIPLIER;
+    return sfKineticSuperchargeActive(owner) ? 0.0f : 1.0f;
 }
 static bool sfKineticSurgeVisible(int owner)
 {
-    if(owner<0 || owner>1) return false;
-    const auto &s=sfKineticSurges[owner];
-    return s.held && !s.charged && s.heldSeconds>=SF_KINETIC_SURGE_VISIBLE_DELAY_SECONDS;
+    return sfKineticSuperchargeActive(owner);
+}
+
+static bool sfKineticSuctionVisible(int owner)
+{
+    return sfKineticSuperchargeActive(owner);
+}
+static float sfKineticConeDifficultyDivisor()
+{
+    // Fab 2026-10-08: shift the 1..9 danger level by +1, then apply x2.
+    // Human level 1 -> 2/2 = 1.00 (canonical full cone).
+    // Human level 9 -> 2/10 = 0.20 (usable Apocalypse cone).
+    return float(std::clamp(sfBossDangerIndex,0,SF_BOSS_DANGER_COUNT-1)+2);
+}
+static float sfKineticConeDifficultyScale()
+{
+    return 2.0f/sfKineticConeDifficultyDivisor();
+}
+static float sfKineticSurgeMiningRangeDiameters()
+{
+    return SF_KINETIC_SURGE_MINING_RANGE_DIAMETERS*sfKineticConeDifficultyScale();
+}
+static float sfKineticSurgeDustRangeDiameters()
+{
+    return SF_KINETIC_SURGE_DUST_RANGE_DIAMETERS*sfKineticConeDifficultyScale();
+}
+static float sfKineticMiningArenaFractionPerSecond(float normalizedDistance)
+{
+    const float t=std::clamp(normalizedDistance,0.0f,1.0f);
+    const float base=SF_KINETIC_SURGE_MINING_FAR_ARENA_FRACTION_PER_SECOND+
+        (SF_KINETIC_SURGE_MINING_NEAR_ARENA_FRACTION_PER_SECOND-
+         SF_KINETIC_SURGE_MINING_FAR_ARENA_FRACTION_PER_SECOND)*(1.0f-t);
+    return base*sfKineticConeDifficultyScale();
+}
+static float sfKineticConeBossDpsMultiplier(float normalizedDistance)
+{
+    const float t=std::clamp(normalizedDistance,0.0f,1.0f);
+    return (3.0f-2.97f*t)*sfKineticConeDifficultyScale();
+}
+static float sfKineticSurgeConeHalfWidth(float forwardDistance)
+{
+    return std::max(0.0f,forwardDistance)*SF_KINETIC_SURGE_CONE_TAN_HALF*sfKineticConeDifficultyScale();
+}
+static bool sfKineticSurgeConeContains(int owner,float shipX,float shipY,
+                                       float pointX,float pointY,float range,float padding=0.0f)
+{
+    if(owner<0 || owner>1 || range<=0) return false;
+    const float dx=pointX-shipX,dy=pointY-shipY;
+    const float forward=(owner==0 ? dy : -dy); // top pilot looks down; bottom pilot looks up.
+    if(forward<=0) return false;
+    if(std::sqrt(dx*dx+dy*dy)>range+std::max(0.0f,padding)) return false;
+    return std::abs(dx)<=sfKineticSurgeConeHalfWidth(forward)+std::max(0.0f,padding);
 }
 static bool sfKineticSurgeVulnerable(int owner)
 {
-    if(owner<0 || owner>1) return false;
-    const auto &s=sfKineticSurges[owner];
-    return s.held && s.charged;
+    return sfKineticSuperchargeActive(owner);
 }
 static void sfKineticResetSurges()
 {
