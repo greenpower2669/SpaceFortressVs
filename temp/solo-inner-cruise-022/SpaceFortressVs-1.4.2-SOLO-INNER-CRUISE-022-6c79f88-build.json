@@ -1,0 +1,18 @@
+{
+  "mission": "SOLO INNER-CRUISE-022",
+  "commit": "6c79f88addd673c4be8a8efc853c091ee94ae675",
+  "ciRun": 39040122861,
+  "branch": "feature/solo-coop-core-v1",
+  "packageName": "com.greenpower2669.spacefortressvs.diagnostic",
+  "files": {
+    "SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88.apk": {
+      "sha256": "540fdae8cc278550622bcfa4ba11d9ae7eccb774111a529bbc4365118b84cab8",
+      "bytes": 98449221
+    },
+    "SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88-unsigned.aab": {
+      "sha256": "130ab9ad27041aeb7711f86518a3b368063e1aab9c07902a220430c70b93b4ae",
+      "bytes": 95742235
+    }
+  },
+  "note": "APK debug installable; AAB unsigned; never a public Release"
+}
