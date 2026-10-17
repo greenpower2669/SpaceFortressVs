@@ -14,6 +14,31 @@ static void setupTactics()
     loosej1->pv=loosej2->pv=0;
 }
 
+static void testMainShotDispersionByEnergy()
+{
+    const float full=sfMainShotSpreadEnvelope(0.0f);
+    const float tired=sfMainShotSpreadEnvelope(50.0f);
+    assert(full>0.0f && full<.03f);
+    assert(tired>.15f && tired>full*6.0f);
+    assert(sfMainShotSpreadRadians(50.0f,1.0f)>0.0f);
+    assert(sfMainShotSpreadRadians(50.0f,-1.0f)<0.0f);
+    assert(std::abs(sfMainShotSpreadRadians(50.0f,1.0f)+
+                    sfMainShotSpreadRadians(50.0f,-1.0f))<.0001f);
+
+    setupTactics();sfActiveMode=sfSelectedMode=SF_DUEL_LOCAL;setia=false;
+    Spritej2->nrj=35;std::srand(142);
+    bool left=false,right=false;
+    for(int i=0;i<24;++i) {
+        assert(sfFireMain(1));
+        const auto *shot=entitiesj1.back();
+        if(shot->name=="miss") continue;
+        left|=shot->shotVelocityX<-.01f;
+        right|=shot->shotVelocityX>.01f;
+    }
+    assert(left && right);
+    std::puts("PASS: classic ordinary shots regain random left/right spread that widens as energy falls");
+}
+
 static void testTacticalPilot()
 {
     setupTactics();

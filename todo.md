@@ -23,3 +23,30 @@
 - [x] `src/main.cpp` non modifié.
 - [x] Hall, Danger 9, campagne 200, progression et poussières hors périmètre.
 - [x] Aucune vraie clé Hall ajoutée à Git/logs/mémoires.
+
+
+## Mission dispersion / recharge / champ boss
+- [x] Audit : dispersion CLASSIQUE perdue car la copie Android remplace `tirerj1/2` historique par `sfFireMain` où le tir humain part avec X=0.
+- [x] Audit : dispersion COOP existe mais déterministe/faible et est masquée par la recharge passive trop rapide.
+- [x] Audit corrigé : recharge passive CLASSIQUE historique confirmée dans `sprite::update()`.
+- [x] Fab choisit un champ boss fixe moins puissant que joueurs ; lot fixe 55 %.
+- [x] TDD RED pour dispersion, recharge lente COOP et impact astéroïde boss : workflow `37539108268`.
+- [x] Implémentation minimale.
+- [x] CI complète GREEN + APK test : workflow `37540141916` / run 342, artifact `11447494930`.
+- [ ] Validation téléphone Fab.
+- [ ] Aucun merge/release avant ordre explicite.
+
+
+## Avenant Fab post-342
+- [x] Ancien candidat 342 déclaré obsolète avant validation téléphone.
+- [x] RED : boss field non destructif + anneau centre-out transparent — run 343.
+- [x] RED : recharge Danger 4,0 s -> 10,5 s — run 343.
+- [x] RED : spawn astéroïdes COOP continu — run 343.
+- [x] RED : minage/aspiration blanc pendant charge 0,30–2,00 s — run 343.
+- [x] Implémentation minimale codée ; [x] couture CI 345 corrigée ; [x] assertion IA CI 346 adaptée au spread ; [x] CI 347 complète GREEN.
+- [x] Nouvel APK téléphone prêt dans artifact `SpaceFortressVs-1.4.2-release-files` id `11456527917` ; [ ] validation physique Fab.
+- [ ] Aucun merge/release sans ordre explicite.
+
+- [x] Dernier canon recharge ×4→×2 par rapport à v1.4.2 appliqué.
+
+- [x] Canon reconfirmé : champ boss fixe 55 % < joueurs ; recharge passive historique présente et préservée.
