@@ -869,3 +869,17 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [ ] Exporter APK diagnostic direct + AAB uniquement après CI verte.
 - [ ] Tester sur Samsung : arrière-plan qui bouge sans caméra près de la coque, rivages naturels et collision, zoom et pas de répétitions.
 - [ ] Jamais de merge main ou Release sans validation.
+
+
+## SOLO-024 — état de la réalisation
+- [x] Couper le lien artificiel entre texture des bords et cellule individuelle : continuité de tout contour en coordonnées monde, cache borné.
+- [x] Garder les textures existantes et l'ancien habillage SOLO-023 en secours.
+- [x] Ajouter parallaxe seule à proximité 0,5→1 diamètre du vaisseau et transition lisse à 2 diamètres.
+- [x] Respecter collisions et caméra originales, et défilement normal SOLO-022 au-delà.
+- [x] Enrichir tests de contour, cache, opacité, dérive/zoom et seuils.
+- [x] Corriger risque double alpha de masquage des acteurs : commit `2946e9a`.
+- [x] Documenter baseline `d245f0d` et revert exact de 3 commits dans ordres-de-mission.
+- [ ] CI C++/SDL2/Android `39067948776` entièrement verte.
+- [ ] Export direct `temp/solo-organic-024/` et sommes SHA256 vérifiés.
+- [ ] Tester réellement sur Samsung l'organique du terrain et le fond seul en zone proche.
+- [ ] Ni main ni Release sans validation explicite.

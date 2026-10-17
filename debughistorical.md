@@ -699,3 +699,7 @@ SOLO-023 test d'opacité : ancien test supposait que toutes les cellules Rock op
 
 
 SOLO-023 troisième correction de test `48b30c4` : ancienne assertion de couleur `0x393b45` invalide avec la roche recomposée ; seule opacité indépendante du fond du coeur Rock et transparence alpha des coins comptent. CI complète `39058401438` SUCCESS. Export `39058427941` SUCCESS et sommes SHA256 prouvées. Pas d'échec restant, qualité visuelle réelle sur téléphone encore non vérifiée.
+
+
+## SOLO-024 — défauts évités
+SOLO-023 composait une forme « organique » seulement sur un atlas de 128×128px, chaque carreau a une phase de variante propre. Les longs murs sont encore lisibles comme répétition de boîtes. Nouveau champ à phase *globale* sur plusieurs cellules, contours calculés et peints par petits chunks en cache. Ce changement touche seulement l'affichage ; le joueur peut toujours heurter la boîte de collision logique de Rock au bord de la zone adoucie : à inspecter sur Samsung. Fond seul : cumul d'une dérive de texture mise à jour UNIQUEMENT si le vaisseau bouge physiquement dans les zones très proches, aucun mouvement factice de la caméra. Premier run `39067888937` : assertion double occlusion échouée (alpha interpolé par `SDL_ScaleModeLinear`). Correction `2946e9a` -> `SDL_ScaleModeNearest`, qui évite les halos semi-transparents en double rendu. Test final `39067948776`, issue à confirmer.

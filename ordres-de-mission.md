@@ -904,3 +904,10 @@ Le CI Android initial `39057515808` a échoué dans l'étape d'évaluation de r�
 **Tests :** contour continu avec/sans mur, connexion multi-cellules, changement de carte et cache, zoom et occlusion ; gain de parallaxe à 0,5/1/2 diamètres, raccords, dérive sans caméra, interdiction d'une dérive à 0 mouvement/dt ; anciens tests et mécanismes préservés.
 
 **Retour arrière :** code texture organique (nouveau fichier) dans commit `210afab295dd2277986fe44b7377a4e9c2bfd5dd` ; commit d'intégration principal et éventuelles corrections CI seront ajoutés à cet ordre une fois connus. Après accord Fab, utiliser des `git revert` **en ordre chronologique inverse** sur les seuls commits de SOLO-024, sans reset, force-push, merge `main` ni Release. Laisser la trace.
+
+
+
+### SOLO-024 — commits sources exacts, contrôle et revert
+Base historique avant SOLO-024 : `d245f0dda56e8021de3a77eb8be540dedc81a991`. Nouveau renderer de contours continus `210afab295dd2277986fe44b7377a4e9c2bfd5dd`. Intégration des contours + dérive indépendante du fond + tests `599f6a82347f10f25ed9354b35c6f8d895f72ea4`. Correctif pour garantir l'alpha **binaire** et le masquage identique lors du second rendu devant les objets : `2946e9a30cfc9923ccd6371c16a2121c66abc1a3`. Suite test source exacte `39067948776`, export direct conditionnel `.github/workflows/solo-organic-024-export.yml`. La première CI `39067888937` a échoué à l'assertion d'identité des deux passages de mur du fait d'une interpolation linéaire ; le sampler a été remis en mode nearest sur les textures organiques seulement.
+
+**Retour arrière complet, après validation explicite de Fab** : sur `feature/solo-coop-core-v1`, contrôler le diff, puis annuler les commits en **ordre inverse** `git revert 2946e9a30cfc9923ccd6371c16a2121c66abc1a3`, `git revert 599f6a82347f10f25ed9354b35c6f8d895f72ea4`, `git revert 210afab295dd2277986fe44b7377a4e9c2bfd5dd`. Résoudre éventuellement les conflits de ce document en **conservant la trace**, relancer tests. Ne pas supprimer les anciennes planches et ne pas réinitialiser la branche. CI/Android et qualité visuelle Samsung encore à confirmer.
