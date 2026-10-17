@@ -117,11 +117,20 @@ int main(){
             world.cameraLeft=world.cameraTop=camera;SDL_RenderSetScale(r,scale,scale);
             clear(r,255,0,255);scenery.drawWalls(r,world,0);const auto pink=pixels(r);
             clear(r,0,255,0);scenery.drawWalls(r,world,0);const auto green=pixels(r);
-            for(int y=int(std::ceil((91-camera)*scale));y<std::min(960,int((809-camera)*scale));++y)
-                for(int x=int(std::ceil((91-camera)*scale));x<std::min(540,int((449-camera)*scale));++x){
+            // SOLO-023: the exposed 16-24px rim is INTENTIONALLY see-through,
+            // otherwise the silhouette would still be a square. Retain the
+            // old opacity check in the true rock CORE at each zoom/scale.
+            for(int y=int(std::ceil((115-camera)*scale));y<std::min(960,int((785-camera)*scale));++y)
+                for(int x=int(std::ceil((115-camera)*scale));x<std::min(540,int((425-camera)*scale));++x){
                     assert(pink[size_t(y)*540+x]==green[size_t(y)*540+x]);
                     assert((green[size_t(y)*540+x]>>8)!=0x393b45);
                 }
+            // Top-left outside corner MUST be transparent, allowing the
+            // different backgrounds to show through the carved Rock edge.
+            const int edgeX=int(std::floor((92-camera)*scale));
+            const int edgeY=int(std::floor((92-camera)*scale));
+            assert(edgeX>=0 && edgeY>=0 && edgeX<540 && edgeY<960);
+            assert(pink[size_t(edgeY)*540+edgeX]!=green[size_t(edgeY)*540+edgeX]);
         }
         SDL_RenderSetScale(r,1,1);world.cameraLeft=world.cameraTop=0;
         clear(r,15,25,35);scenery.draw(r,world,0);
