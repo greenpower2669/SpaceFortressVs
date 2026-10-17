@@ -865,8 +865,8 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [x] Intégration du rendu de roche et conservation fallback SOLO-023.
 - [x] Ajouter la dérive des fonds seulement en anneau 0,5→1 diamètre puis raccord vers scrolling normal 1→2 diamètres.
 - [x] Ajouter des tests indépendants de dérive, silhouette, cache, continuité.
-- [ ] Faire passer CI complète sur source et corriger uniquement défauts avérés.
-- [ ] Exporter APK diagnostic direct + AAB uniquement après CI verte.
+- [x] CI complète `39067948776` SUCCESS après correction alpha.
+- [x] APK diagnostic direct et AAB non signé exportés via `39068019221`, vérifiés.
 - [ ] Tester sur Samsung : arrière-plan qui bouge sans caméra près de la coque, rivages naturels et collision, zoom et pas de répétitions.
 - [ ] Jamais de merge main ou Release sans validation.
 
@@ -879,7 +879,16 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [x] Enrichir tests de contour, cache, opacité, dérive/zoom et seuils.
 - [x] Corriger risque double alpha de masquage des acteurs : commit `2946e9a`.
 - [x] Documenter baseline `d245f0d` et revert exact de 3 commits dans ordres-de-mission.
-- [ ] CI C++/SDL2/Android `39067948776` entièrement verte.
-- [ ] Export direct `temp/solo-organic-024/` et sommes SHA256 vérifiés.
+- [x] CI C++/SDL2/Android `39067948776` entièrement SUCCESS.
+- [x] Export direct `temp/solo-organic-024/` via run `39068019221` SUCCESS, SHA256 vérifiés.
 - [ ] Tester réellement sur Samsung l'organique du terrain et le fond seul en zone proche.
 - [ ] Ni main ni Release sans validation explicite.
+
+
+### SOLO-024 — livraison vérifiée 17/10/2026
+- Source définitive `2946e9a30cfc9923ccd6371c16a2121c66abc1a3`, CI complète Android/C++/SDL2 **39067948776 SUCCESS**, aucune Release (SKIPPED).
+- Export direct **39068019221 SUCCESS**. Vrais binaires présents dans `temp/solo-organic-024/`.
+- APK debug installable `SpaceFortressVs-1.4.2-SOLO-ORGANIC-024-2946e9a.apk`, **98 710 352 octets**, SHA-256 `25cff97cf6439b52d38d5de092d452f68cdd34c071308decde29d8e74aad930b`.
+- AAB non signé `SpaceFortressVs-1.4.2-SOLO-ORGANIC-024-2946e9a-unsigned.aab`, **96 006 869 octets**, SHA-256 `4aec7e7ea8028551c2c1cf2362301c785c12996aac3496f45efe81927f315454`. Hash et ZIP/artefact source vérifiés dans workflow.
+- À vérifier perceptivement sur Samsung : contours longs à l'intérieur/extérieur des roches, répétitions visuelles, absence d'artéfact d'occlusion, effets de défilement du fond dans zone de rayon 0,5→1 diamètre, raccord à 1→2 diamètres, collision logique inchangée. CI n'est pas preuve de confort visuel.
+- Revert source si demandé par Fab : `git revert 2946e9a30cfc9923ccd6371c16a2121c66abc1a3`, puis `git revert 599f6a82347f10f25ed9354b35c6f8d895f72ea4`, puis `git revert 210afab295dd2277986fe44b7377a4e9c2bfd5dd`, branche `feature/solo-coop-core-v1` uniquement, résoudre les conflits de documentation sans supprimer cette trace, relancer CI. Ne pas réinitialiser, force-push, fusionner main ou faire Release.
