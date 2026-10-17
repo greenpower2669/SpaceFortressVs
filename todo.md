@@ -823,3 +823,8 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [x] Workflow d'export repointé vers CI/SHA test corrigés, sans reprendre le premier build rouge.
 - [ ] Confirmer réussite CI complète et existence de l'APK direct dans `temp/solo-rock-rims-023/` avec SHA256.
 - [ ] Tester les silhouettes de roches sur téléphone, surtout raccords, coins, déplacement et zoom.
+
+
+- [x] SOLO-023 : second correctif de régression `57f74d8c` : opacité corps de roche / alpha découpé coin, CI `39058137853`.
+- [x] Documenter rollback 3 commits, sans perdre l'ancienne planche ni supprimer l'historique.
+- [ ] Vérifier CI sur `57f74d8c` et export `temp/solo-rock-rims-023/`.

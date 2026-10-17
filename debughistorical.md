@@ -668,3 +668,6 @@ Cause de carrés dans capture : `drawWalls` remplissait une cellule entière d'u
 
 
 **SOLO-023 premier run** `39057515808` : échec compilateur lié à `red` vector de capture d'écran masquant `Uint8 red` historique, aucun rapport avec le PNG des rebords. Commit `51752da4` renomme les captures et préserve le comportement du test. Second CI `39057829358`. Éviter la règle de revert insuffisante du seul `39d0a7c2` après ajout d'un fix : annuler les deux dans l'ordre test puis code.
+
+
+SOLO-023 test d'opacité : ancien test supposait que toutes les cellules Rock opaques dessinaient des rectangles pleins ; suite à l'habillage organique, sur le coin physique visible à 1-15 pixels le fond apparaît volontairement. Correctif test `57f74d8c` : ne valider l'opacité sans dépendance au fond que dans la roche (marge 24 px sur 90) ; vérifier en plus la vraie transparence du coin nord-ouest. Ne pas « corriger » le moteur pour rendre les coins opaques, cela réintroduirait le carré. Ci `39058137853`.

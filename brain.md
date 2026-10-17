@@ -763,3 +763,6 @@ Fab a montré une capture des couloirs avec raccords géométriques / tiles rect
 
 
 SOLO-023 correctif de test après première CI : `51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc`, suite source `39057829358`. Le code de rendu reste `39d0a7c2`. L'ancienne compilation a échoué à cause du nom de capture de pixels `red`, désormais `redPixels`. Pour revenir proprement au code SOLO-022 il faut annuler **les deux commits dans l'ordre** (voir ordres-de-mission.md), pas seulement le commit de renderer.
+
+
+SOLO-023 correctif de tests 2 `57f74d8c4c7437d01cf84d7edea200a57bf4e672` : le corps du mur est désormais testé opaque comme avant, mais les bordures / angles doivent rester transparents pour supprimer l'effet carré. Le CI `39057829358` échouait à cause de l'attente d'opacité de l'ancien test sur tout le rectangle ; source corrigée `39058137853` et export conditionnel lié à SHA `57f74d8c`. Retour arrière complet = revert des trois commits de code/test dans l'ordre inverse (`57f74d8c`, `51752da4`, `39d0a7c2`), voir ordres de mission.
