@@ -39,14 +39,14 @@ int main(){
         auto *isolated=scenery.edgeSprites.tile(0,0,1);
         clear(r,255,0,255);
         SoloEdgeSprites::drawCell(r,isolated,soloCell);
-        const auto red=pixels(r);
+        const auto redPixels=pixels(r);
         SoloEdgeSprites::drawCell(r,isolated,soloCell);
-        assert(red==pixels(r)); // Binary alpha: repeated foreground is stable.
+        assert(redPixels==pixels(r)); // Binary alpha: repeated foreground is stable.
         clear(r,0,255,0);
         SoloEdgeSprites::drawCell(r,isolated,soloCell);
-        const auto green=pixels(r);
-        assert(red[size_t(91)*540+91]!=green[size_t(91)*540+91]);
-        assert(red[size_t(135)*540+135]==green[size_t(135)*540+135]);
+        const auto greenPixels=pixels(r);
+        assert(redPixels[size_t(91)*540+91]!=greenPixels[size_t(91)*540+91]);
+        assert(redPixels[size_t(135)*540+135]==greenPixels[size_t(135)*540+135]);
         // A fully surrounded Rock cell cannot develop an artificial crack
         // into traversable space at a shared tile edge.
         const auto *connected=scenery.edgeSprites.tile(0,15,1);
