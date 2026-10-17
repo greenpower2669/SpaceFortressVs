@@ -7,6 +7,11 @@
 namespace sfsolo {
 struct CoopSoloScenery {
     static constexpr float spaceDepth=.08f,mineralDepth=.34f;
+    // SOLO-021: the source strip is 200x58 pixels. The prior repeat
+    // (4.5 x 2.0 cells) enlarged it ~2x horizontally / ~3x vertically
+    // at native zoom, visibly softening the walls before pinch-zoom.
+    // ~2 x 0.65 cells retains near-native texel density at zoom 1.
+    static constexpr float wallRepeatCellsX=2.0f,wallRepeatCellsY=.65f;
     SDL_Renderer *renderer=nullptr;
     SoloSceneryAssets art;
     SDL_Texture *space=nullptr,*mineral=nullptr;
@@ -38,7 +43,9 @@ struct CoopSoloScenery {
                 SDL_FreeSurface(cut);
                 if(material[theme]){
                     SDL_SetTextureBlendMode(material[theme],SDL_BLENDMODE_NONE);
-                    SDL_SetTextureScaleMode(material[theme],SDL_ScaleModeLinear);
+                    // Nearest only on opaque foreground walls: the background
+                    // planes intentionally keep their existing linear filtering.
+                    SDL_SetTextureScaleMode(material[theme],SDL_ScaleModeNearest);
                 }
             }
             SDL_FreeSurface(sheet);
@@ -130,9 +137,13 @@ struct CoopSoloScenery {
             if(opaqueOnly && tile!=Tile::Rock)continue;
             if(tile==Tile::Rock){
                 colorRect(r,rect,{57,59,69,255});
-                tiled(r,material[theme],rect,x*cell,y*cell,cell*4.5f,cell*2.0f,{195,200,214,255});
+                tiled(r,material[theme],rect,x*cell,y*cell,
+                      cell*wallRepeatCellsX,cell*wallRepeatCellsY,
+                      {195,200,214,255});
                 // Exposed bevels stay inside the actual physical wall mass.
-                constexpr int steps=8;const float depth=cell*.15f;
+                // More legible lithic edges: narrower four-step bevel avoids
+                // a long translucent gradient that reads as blurred geometry.
+                constexpr int steps=4;const float depth=cell*.10f;
                 for(int step=0;step<steps;++step){
                     const float inset=depth*step/steps,band=depth/steps;
                     const Uint8 alpha=Uint8(100*(1.0f-float(step)/steps));
