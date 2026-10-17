@@ -27,3 +27,8 @@
 - CLASSIQUE DUEL local : intercepter uniquement le second doigt dans la copie Android générée ; premier doigt reste au moteur historique.
 - En quittant le duel local, annuler uniquement les owners effectivement possédés par le bridge : `sfKineticSurgeCancel(owner)` + `sfKineticAudioCancel(owner)`.
 - DUEL IA garde son chemin owner 1 ; ne pas le doubler.
+
+## Aides et tutoriel — point de vigilance 09/10/2026
+- Un texte d'aide peut devenir trompeur sans changement moteur : en v1.4.2 la poussière rouge réagit aux ondes, sans bonus ; le blanc peut aussi soigner un boss blessé en coop.
+- Le deuxième doigt sert au tir bref et à la charge ; >0,30 s champ ×2, à 2 s champ désactivé jusqu'au relâchement. Ne pas décrire la purge comme un simple tir.
+- L'aide en partie doit conserver le circuit suspendre / reprendre sans altérer la vraie partie. Les mini-jeux tutoriels proposés sont encore hors code.

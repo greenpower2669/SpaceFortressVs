@@ -36,3 +36,10 @@
 - `src/main.cpp` ne doit jamais être modifié.
 - Hall, Danger 9, campagne 200, progression, sauvegardes et poussières hors ordre restent protégés.
 - Ne jamais écraser les assets d’une Release existante sous le même tag.
+
+## Aide en jeu — actualisation du 09/10/2026 (branche de travail)
+- Branche isolée : `feature/help-refresh-tutorial-minigames-20261009` ; base `56b86302`, sans merge/release.
+- Textes RAPIDE (10 pages) / DETAILLE et ANIME (18 pages) rectifiés selon le gameplay réel : deux doigts, énergie et fatigue, poussières, boss, sauvetage coop et Danger.
+- Affichage de l'aide adapté aux écrans étroits ; rappel visible « partie en pause / reprendre » ; tests de contenu ajoutés.
+- Tutoriel : mini-jeux **proposés seulement**, non codés, dans `docs/proposals/2026-10-09-tutorial-mini-jeux.md` ; choix de Fab en attente.
+- Validation CI et téléphone en attente ; moteur, progression, Hall, signatures et `src/main.cpp` inchangés.

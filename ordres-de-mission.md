@@ -176,3 +176,6 @@ Protections :
 - Hall global, Danger 9, campagne 200, progression, sauvegardes et poussières hors périmètre ;
 - TDD obligatoire, CI complète APK/AAB + secret hygiene avant merge/release ;
 - ne jamais écraser v1.4.1.
+
+## MISSION 2026-10-09 — Rafraîchissement de l'aide, proposition de mini-jeux
+Autorisation Fab : corriger **maintenant** les aides en jeu et **proposer** des séquences de mini-jeux pour le tutoriel. Ne pas coder les mini-jeux avant retour de Fab. Branche `feature/help-refresh-tutorial-minigames-20261009`, depuis `main` `56b86302`. Périmètre code : `src/help_runtime.hpp` et test contenu dédié. Les quatre mémoires vivantes restent synchronisées. Les aides décrivent les commandes existantes, sans modification de gameplay. Préserver `src/main.cpp`, Hall, campagne 200, progression, signatures Android. Aucune fusion `main`, Release ni publication sans validation explicite de Fab. Vérifications CI/téléphone à obtenir.
