@@ -784,3 +784,19 @@ La première compilation complète `39018857560` a découvert une **erreur de no
 - **AAB non signé** : `SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d-unsigned.aab`, 95 742 237 octets, SHA-256 `3ae61f0554464c29cec1a0640ad7cc922ba7c047a18e6fae3a04412b4085d4fc`.
 - **Comparaison à faire sur Samsung** : SOLO-020 avant ↔ SOLO-021 après, à zoom 1 et 2 et en mouvement ; noter netteté, effet pixel, raccord et répétition du rocher. Aucun résultat de qualité visuelle vécu ne peut être attribué au téléphone sans test réel.
 - **Retour arrière sans perte de travail** : `git revert 04da08db80f543a081a7a3614f85c1b2fd28e7c1` puis `git revert f896211164481cede61d0073729f6eb3362be177` sur feature/solo-coop-core-v1, suivi de tests. Garder cette trace dans ordres-de-mission. Pas de `main` ni Release.
+
+## SOLO-022 — ajout d'une zone de défilement ultra-lent, 17 octobre 2026
+
+**Ordre explicite :** Fab a demandé « une zone de défilement arrière supplémentaire, de là où elle commence à centre plus un diamètre de vaisseau », **sans code** au premier échange. Ensuite, il a dit « Ok, go » : autorisation de coder et tester ce périmètre précis, pas de toucher aux autres modes.
+
+**Référence avant SOLO-022 :** commit `9e064b552a6a7bead00817fb4bed04f4dd0d5288`, branche `feature/solo-coop-core-v1`. Le cumul existant inclut les correctifs SOLO-018 à 021, notamment les parois plus nettes. Toutes ces améliorations doivent rester.
+
+**Contrat de cette correction :**
+- Garder le centre précis sans croisière automatique jusqu'à **un diamètre** de vaisseau (distance radiale depuis le centre de l'écran).
+- Ajouter une **nouvelle bande de défilement** entre **1 et 2 diamètres** : accélération `smoothstep` de 0 à 0,025 unité de vitesse radiale.
+- Au seuil historique de **2 diamètres**, pas de décélération, pas de retour à zéro : deuxième interpolation `smoothstep` de 0,025 à 0,1 jusqu'à 65 % du cercle extérieur. Ensuite la courbe existante reste : 0,1→2 à 80 %, puis 2→6 au bord extérieur, sans changer la vitesse max.
+- Même fonction `soloSoftCirclePan` pour l'intention du doigt tenu et le défilement réel de caméra ; pilotage acquis uniquement depuis la coque, pince/zoom, tir 8 directions, inertie, rebonds, collisions et minage inchangés. Ne modifier ni les PNG, ni les autres modes.
+- Fonction `soloCirclePan` du prototype SOLO historique inchangée ; seuls `soloSoftCircleZoneSpeed` et ses seuils COOP-SOLO sont concernés.
+- Tests de monotonie, continuité des quatre frontières, symétrie huit directions, mouvement caméra limité au déplacement physique et effet doigt tenu, écran 540×960, sans changer la génération de niveau.
+
+**Retour arrière (avant exécution)** : une seule modification de source et de tests sera regroupée en un commit dédié (SHA à inscrire après création). Pour annuler SOLO-022 sans perdre SOLO-021, faire uniquement `git revert <SHA_DU_COMMIT_CODE_SOLO_022>` sur la branche SOLO après validation, puis relancer la CI. Ne jamais faire `reset --hard`, force-push, merge main, ni Release sans validation.

@@ -772,3 +772,13 @@ SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32
 - **AAB non signé** : `SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d-unsigned.aab`, 95 742 237 octets, SHA-256 `3ae61f0554464c29cec1a0640ad7cc922ba7c047a18e6fae3a04412b4085d4fc`.
 - **Comparaison à faire sur Samsung** : SOLO-020 avant ↔ SOLO-021 après, à zoom 1 et 2 et en mouvement ; noter netteté, effet pixel, raccord et répétition du rocher. Aucun résultat de qualité visuelle vécu ne peut être attribué au téléphone sans test réel.
 - **Retour arrière sans perte de travail** : `git revert 04da08db80f543a081a7a3614f85c1b2fd28e7c1` puis `git revert f896211164481cede61d0073729f6eb3362be177` sur feature/solo-coop-core-v1, suivi de tests. Garder cette trace dans ordres-de-mission. Pas de `main` ni Release.
+
+## SOLO-022 — croisière ultra-lente 1 → 2 diamètres
+- [x] Historique confirmé : début SOLO-020 à deux diamètres ; point de retour `9e064b552a6a7bead00817fb4bed04f4dd0d5288`.
+- [x] Nouvelle couronne de défilement douce d'un diamètre à deux diamètres, vitesse 0→0,025 puis 0,025→0,1 sans arrêt au raccord.
+- [x] Anciennes vitesses extérieures et physique conservées ; loi commune doigt/caméra.
+- [x] Tests seuils, continuité, monotonie, huit directions, mouvement réel de la caméra ajoutés.
+- [ ] CI C++/SDL2/Android à confirmer sur SHA code définitif.
+- [ ] Exporter un APK diagnostic direct GitHub + AAB non signé uniquement après CI verte, vérifications SHA256.
+- [ ] Tester le confort de la nouvelle couronne sur Samsung.
+- [ ] Conserver main / Release intacts.

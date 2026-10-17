@@ -366,7 +366,8 @@ struct CoopSoloWorldBridge {
         std::optional<CoopWorldPoint> fingerScreen=std::nullopt){
         if(!ready||dt<=0||!std::isfinite(dt))return;
         const auto onscreen=toScreen(ship);
-        // SOLO-020 progressive extra inner band, outer speed remains 6.
+        // SOLO-022: very slow additional 1->2 diameter scroll band,
+        // progressing through SOLO-020 without stopping; max remains 6.
         // User arbitration about 4.32 vs 3.10 visible widths/s is still
         // pending; preserve the already agreed radial speed, do not retune it.
         const auto pan=soloSoftCirclePan(onscreen.x,onscreen.y,screen,

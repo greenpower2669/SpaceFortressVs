@@ -97,31 +97,66 @@ int main(){
     assert(bridge.cameraLeft>oldX);  // actual radial pan followed live movement
     assert(bridge.cameraLeft<=oldX+20.001f);
     assert(same(bridge.combatWidth,540));
-    // SOLO-020: new inner smooth zone from two hull diameters.
+    // SOLO-022: add the very slow 1->2 hull-diameter band without
+    // resetting the speed to zero at the two-diameter handoff.
     const SDL_Rect viewport=bridge.screen;
     const float outerR=soloCircleOuterRadius(viewport);
-    const float nearR=soloSoftCruiseStart(viewport);
+    const float nearR=soloSoftCruiseStart(viewport); // pre-existing 2 diameters
+    const float extraR=soloExtraCruiseStart(viewport); // new 1 diameter
     assert(nearR>outerR*.49f && nearR<outerR*.55f);
+    assert(same(extraR*2.f,nearR));
     const float cx=viewport.x+viewport.w*.5f,cy=viewport.y+viewport.h*.5f;
     auto speed=[&](float r){return soloSoftCircleZoneSpeed(cx+r,cy,viewport);};
-    assert(same(speed(nearR),0.f));
+    assert(same(speed(0),0.f));
+    assert(same(speed(extraR*.99f),0.f));
+    assert(same(speed(extraR),0.f));
+    const float verySlow1=speed(extraR+(nearR-extraR)*.25f);
+    const float verySlow2=speed(extraR+(nearR-extraR)*.5f);
+    const float verySlow3=speed(extraR+(nearR-extraR)*.75f);
+    assert(0<verySlow1 && verySlow1<verySlow2 && verySlow2<verySlow3);
+    assert(verySlow3<SOLO_EXTRA_CRUISE_HANDOFF);
+    assert(same(speed(nearR),SOLO_EXTRA_CRUISE_HANDOFF));
     const float s1=speed(nearR+(outerR*.65f-nearR)*.25f);
     const float s2=speed(nearR+(outerR*.65f-nearR)*.5f);
     const float s3=speed(nearR+(outerR*.65f-nearR)*.75f);
-    assert(s1>0 && s1<s2 && s2<s3 && s3<.1f);
+    assert(SOLO_EXTRA_CRUISE_HANDOFF<s1 && s1<s2 && s2<s3 && s3<.1f);
     assert(same(speed(outerR*.65f),.1f));
     assert(same(speed(outerR*.80f),2.f));
     assert(same(speed(outerR),6.f));
-    assert(std::abs(speed(outerR*.65f-.01f)-speed(outerR*.65f+.01f))<.001f);
-    assert(std::abs(speed(outerR*.80f-.01f)-speed(outerR*.80f+.01f))<.001f);
+    for(float cut:{extraR,nearR,outerR*.65f,outerR*.80f,outerR}){
+        assert(std::abs(speed(cut-.01f)-speed(cut+.01f))<.001f);
+    }
+    // Monotonicity across all bands, including their shared boundaries.
+    float previous=speed(0.f);
+    for(int sample=1;sample<=250;++sample){
+        const float next=speed(outerR*sample/250.f);
+        assert(next>=previous-.00005f);
+        previous=next;
+    }
     for(int i=0;i<8;++i){
         const float theta=i*3.14159265358979323846f/4.f;
-        const float r=(nearR+outerR*.65f)*.5f;
+        const float r=(extraR+nearR)*.5f;
         const auto v=soloSoftCirclePan(cx+std::cos(theta)*r,cy+std::sin(theta)*r,
                                          viewport,bridge.combatWidth/bridge.pixelsPerCell);
-        assert(v.speed>0 && v.speed<.1f);
+        assert(v.speed>0 && v.speed<SOLO_EXTRA_CRUISE_HANDOFF);
         assert(v.vx*std::cos(theta)+v.vy*std::sin(theta)>0);
+        // Existing coordinate system and physical movement target are
+        // unchanged: finger still requests world travel in every octant.
+        const auto target=bridge.heldFingerPilotTarget({cx+std::cos(theta)*r,cy+std::sin(theta)*r});
+        const auto exact=bridge.toWorld({cx+std::cos(theta)*r,cy+std::sin(theta)*r});
+        assert((target.x-exact.x)*std::cos(theta)+(target.y-exact.y)*std::sin(theta)>0);
     }
+    // Camera only moves when physical ship does, even in the new band.
+    const CoopWorldPoint middleOfMap{bridge.worldWidth()*.5f,bridge.worldHeight()*.5f};
+    bridge.cameraLeft=middleOfMap.x-cx-(extraR+nearR)*.5f;
+    bridge.cameraTop=middleOfMap.y-cy;
+    const float stoppedX=bridge.cameraLeft;
+    bridge.panIfShipActuallyMoved(middleOfMap,{0,0},.05f);
+    assert(same(bridge.cameraLeft,stoppedX));
+    bridge.panIfShipActuallyMoved(middleOfMap,{12,0},.05f);
+    assert(bridge.cameraLeft>stoppedX && bridge.cameraLeft<=stoppedX+12.f);
+    // Existing later camera tests start with fresh reference positions.
+
     // Stationary finger at centre uses EXACT world target (no auto-cruise).
     const CoopWorldPoint centre{270,480};
     const auto centerTarget=bridge.heldFingerPilotTarget(centre);

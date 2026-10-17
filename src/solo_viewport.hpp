@@ -88,20 +88,36 @@ inline SoloCirclePan soloCirclePan(float screenShipX,float screenShipY,
     const float unitsPerSecond=visibleWorldColumns*.72f*speed;
     return {dx/r*unitsPerSecond,dy/r*unitsPerSecond,speed};
 }
-// COOP SOLO only: new progressive band from two ship diameters near centre.
-// Shift previous rings outward slightly; preserve maximum 6 cruise units.
+// SOLO-020 preserved: existing slow-band landmark at two ship diameters.
+// World/physics hull radius is 5.3% of reference combat width at zoom 1;
+// these radial UI thresholds are *screen* distances, not movement physics.
 inline float soloSoftCruiseStart(SDL_Rect screen){
     return float(std::min(screen.w,screen.h))*.053f*4.f;
 }
+// SOLO-022: new gently progressive inner scroll band. Precise central
+// steering remains until one hull DIAMETER from the screen centre.
+inline float soloExtraCruiseStart(SDL_Rect screen){
+    return soloSoftCruiseStart(screen)*.5f;
+}
+inline constexpr float SOLO_EXTRA_CRUISE_HANDOFF=.025f;
 inline float soloSoftCircleZoneSpeed(float x,float y,SDL_Rect screen){
     const float outer=soloCircleOuterRadius(screen);
     if(outer<=0||!std::isfinite(x)||!std::isfinite(y))return 0.f;
-    const float near=std::min(soloSoftCruiseStart(screen),outer*.52f);
+    const float oldStart=std::min(soloSoftCruiseStart(screen),outer*.52f);
+    const float innerStart=std::min(soloExtraCruiseStart(screen),oldStart*.5f);
     const float r=std::hypot(x-(screen.x+screen.w*.5f),y-(screen.y+screen.h*.5f));
     const float first=outer*.65f,middle=outer*.80f;
-    if(r<=near)return 0.f;
+    if(r<=innerStart)return 0.f;
     if(r>=outer)return 6.f;
-    if(r<=first)return .1f*soloSmoothstep((r-near)/(first-near));
+    // BOTH ends use smoothstep: no discontinuity, visible jolt or stop at
+    // the previous two-diameter threshold (speed now strictly nonzero).
+    if(r<=oldStart)
+        return SOLO_EXTRA_CRUISE_HANDOFF*
+               soloSmoothstep((r-innerStart)/(oldStart-innerStart));
+    if(r<=first)
+        return SOLO_EXTRA_CRUISE_HANDOFF+
+               (.1f-SOLO_EXTRA_CRUISE_HANDOFF)*
+               soloSmoothstep((r-oldStart)/(first-oldStart));
     if(r<=middle)return .1f+1.9f*soloSmoothstep((r-first)/(middle-first));
     return 2.f+4.f*soloSmoothstep((r-middle)/(outer-middle));
 }
