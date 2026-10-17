@@ -1,0 +1,105 @@
+name: SOLO-021 verified APK + AAB to temp
+
+on:
+  push:
+    branches: [feature/solo-coop-core-v1]
+    paths: [.github/workflows/solo-wall-crisp-021-export.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: solo-021-temp-export
+  cancel-in-progress: false
+
+jobs:
+  deliver:
+    if: github.repository == 'greenpower2669/SpaceFortressVs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout SOLO branch only
+        uses: actions/checkout@v4
+        with:
+          ref: feature/solo-coop-core-v1
+          persist-credentials: true
+          fetch-depth: 1
+
+      - name: Require exact successful source CI and verify original checksums
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          source_run=39018857560
+          source_sha=f896211164481cede61d0073729f6eb3362be177
+          gh run watch "$source_run" --repo "$GITHUB_REPOSITORY" --exit-status
+          status="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json conclusion --jq .conclusion)"
+          sha="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json headSha --jq .headSha)"
+          test "$status" = success
+          test "$sha" = "$source_sha"
+          mkdir -p "$RUNNER_TEMP/solo-021-src"
+          gh run download "$source_run" --repo "$GITHUB_REPOSITORY" \
+            --name SpaceFortressVs-1.4.2-release-files --dir "$RUNNER_TEMP/solo-021-src"
+          (cd "$RUNNER_TEMP/solo-021-src" && sha256sum --check SHA256SUMS)
+          python3 - "$RUNNER_TEMP/solo-021-src" "$source_sha" <<'PY'
+          import hashlib, json, shutil, sys
+          from pathlib import Path
+          source=Path(sys.argv[1]); commit=sys.argv[2]
+          destination=Path('temp/solo-wall-crisp-021')
+          destination.mkdir(parents=True,exist_ok=True)
+          meta=json.loads((source/'SpaceFortressVs-1.4.2-build.json').read_text())
+          assert meta['commit']==commit, 'Wrong source commit'
+          assert meta['packageName']=='com.greenpower2669.spacefortressvs.diagnostic'
+          short=commit[:7]
+          prefix=f'SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-{short}'
+          files={}
+          for original,renamed in (
+              ('SpaceFortressVs-1.4.2.apk',prefix+'.apk'),
+              ('SpaceFortressVs-1.4.2-unsigned.aab',prefix+'-unsigned.aab')):
+              src=source/original
+              assert src.exists() and src.stat().st_size>0
+              digest=hashlib.sha256(src.read_bytes()).hexdigest()
+              assert digest==meta['files'][original]['sha256']
+              dst=destination/renamed
+              if dst.exists():
+                  assert hashlib.sha256(dst.read_bytes()).hexdigest()==digest
+              else:
+                  shutil.copy2(src,dst)
+              files[renamed]={'sha256':digest,'bytes':dst.stat().st_size}
+          build={'mission':'SOLO WALL-CRISP-021','commit':commit,
+                 'ciRun':39018857560,'branch':'feature/solo-coop-core-v1',
+                 'packageName':meta['packageName'],'files':files,
+                 'note':'APK debug installable; AAB unsigned; never a public Release'}
+          manifest=destination/(prefix+'-build.json')
+          manifest.write_text(json.dumps(build,ensure_ascii=False,indent=2)+'\n')
+          files[manifest.name]={'sha256':hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                                'bytes':manifest.stat().st_size}
+          sums='\n'.join(f"{v['sha256']}  {k}" for k,v in files.items())+'\n'
+          (destination/'SHA256SUMS').write_text(sums)
+          readme=('# 🚀 SOLO-021 — parois premier plan plus nettes\n\n'
+                  f'APK et AAB de diagnostic, code {commit}, CI 39018857560 SUCCESS.\n'
+                  'App Android : com.greenpower2669.spacefortressvs.diagnostic.\n'
+                  'Ne pas désinstaller le jeu historique ; ne pas publier cet AAB non signé.\n\n'
+                  +sums)
+          (destination/'README.md').write_text(readme)
+          PY
+          (cd temp/solo-wall-crisp-021 && sha256sum --check SHA256SUMS)
+
+      - name: Commit direct APK + AAB and final validation notes on SOLO only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Direct binary-only delivery; never rebase competing live memory edits.
+          git add -- temp/solo-wall-crisp-021/
+          if git diff --cached --quiet; then
+            echo "Already exported";exit 0
+          fi
+          git commit -m "chore(solo): export verified SOLO-021 APK and AAB directly [skip ci]"
+          git fetch origin feature/solo-coop-core-v1
+          git rebase origin/feature/solo-coop-core-v1
+          git push origin HEAD:refs/heads/feature/solo-coop-core-v1
