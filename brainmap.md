@@ -646,3 +646,6 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 
 ## SOLO-023 — planche de rebords rocheux
 `assets/pict/solo/HabillageRebordsModeSolo.png` : 1536×512, 12 colonnes × 4 lignes de sprites 128×128 (3 variantes × 16 connectivités binaires N/E/S/W). `scripts/generate-solo-edge-atlas.py` et action de création d'asset `.github/workflows/solo-023-build-edge-atlas.yml`. `src/solo_edge_sprites.hpp` construit à chargement 6×16×3 textures RGBA en gardant les couleurs des six thèmes `ParoisModeSolo.png`. `src/coop_solo_scenery.hpp` détecte voisins `Tile::Rock`, choisit un variant par hash des coordonnées, et dessine des rebords organiques via SDL_RenderGeometry ; fallback original si le PNG manque. `tests/coop_solo_scenery_regressions.cpp` : présence 288 textures, alpha en coins, occlusion idempotente, rendu fondu identique, collisions inchangées. Pas d'autre mode. Source `39d0a7c2`. Revert ciblé dans ordres de mission.
+
+
+**SOLO-023 correction de test + livraison** : correctif `51752da4` (noms de variables `redPixels`, `greenPixels`) ; run source `39057829358`. Export exact `.github/workflows/solo-rock-rims-023-export.yml` épinglé à ce run/commit. Réversion : test `51752da4` puis fonctionnalité `39d0a7c2`. Référence source du rendu `src/solo_edge_sprites.hpp`, générateur Python séparé.

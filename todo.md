@@ -817,3 +817,9 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [x] Rollback autonome code seul `git revert 39d0a7c2b6969f546a7dc7537b3bcf993b097dcb` écrit et vérifiable.
 - [ ] Terminer CI `39057515808` et export direct temp/solo-rock-rims-023/ ; ne pas annoncer la réussite avant les résultats.
 - [ ] Essayer sur Samsung, puis itérer artistiquement seulement si rendu trop répétitif ou masque visuel gênant.
+
+
+- [x] SOLO-023 correction du nom du test du premier CI rouge : commit `51752da4`, nouveau CI `39057829358`.
+- [x] Workflow d'export repointé vers CI/SHA test corrigés, sans reprendre le premier build rouge.
+- [ ] Confirmer réussite CI complète et existence de l'APK direct dans `temp/solo-rock-rims-023/` avec SHA256.
+- [ ] Tester les silhouettes de roches sur téléphone, surtout raccords, coins, déplacement et zoom.
