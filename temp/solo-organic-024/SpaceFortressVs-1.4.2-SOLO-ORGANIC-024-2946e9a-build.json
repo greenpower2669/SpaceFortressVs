@@ -1,0 +1,18 @@
+{
+  "mission": "SOLO ORGANIC-024",
+  "commit": "2946e9a30cfc9923ccd6371c16a2121c66abc1a3",
+  "ciRun": 39067948776,
+  "branch": "feature/solo-coop-core-v1",
+  "packageName": "com.greenpower2669.spacefortressvs.diagnostic",
+  "files": {
+    "SpaceFortressVs-1.4.2-SOLO-ORGANIC-024-2946e9a.apk": {
+      "sha256": "25cff97cf6439b52d38d5de092d452f68cdd34c071308decde29d8e74aad930b",
+      "bytes": 98710352
+    },
+    "SpaceFortressVs-1.4.2-SOLO-ORGANIC-024-2946e9a-unsigned.aab": {
+      "sha256": "4aec7e7ea8028551c2c1cf2362301c785c12996aac3496f45efe81927f315454",
+      "bytes": 96006869
+    }
+  },
+  "note": "APK debug installable; AAB unsigned; never a public Release"
+}
