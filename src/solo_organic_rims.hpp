@@ -140,7 +140,9 @@ struct SoloOrganicRims {
         SDL_FreeSurface(surf);
         if(!texture)return nullptr; // preserve older slot on failure
         SDL_SetTextureBlendMode(texture,SDL_BLENDMODE_BLEND);
-        SDL_SetTextureScaleMode(texture,SDL_ScaleModeLinear);
+        // Binary alpha remains binary at every zoom: actors masked twice must
+        // not darken soft edge pixels on the second pass.
+        SDL_SetTextureScaleMode(texture,SDL_ScaleModeNearest);
         if(slot->texture)SDL_DestroyTexture(slot->texture);
         slot->texture=texture;slot->cx=cx;slot->cy=cy;
         slot->theme=theme;slot->signature=sig;slot->stamp=++tick;
