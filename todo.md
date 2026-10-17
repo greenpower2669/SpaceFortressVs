@@ -751,3 +751,14 @@ SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32
 - Code source `dd6a4c75066fd51a359c00bbd952a32674eaaa25` ; Android/C++/SDL2 CI `38973185112` **SUCCESS**.
 - Export GitHub `38973239202` **SUCCESS**, fichiers réels dans `temp/solo-cruise-020/` : APK diagnostic 98 449 216 octets, SHA-256 `ad683345d31f6857cc90589557905931a4076634ea69781bc636e8887ddfffb0` ; AAB non signé 95 742 279 octets, SHA-256 `16dfdbc3948a8d2689aa43d0320ee1a1f1f09b82e3e5b388fa59749f4bfccbfa`. Sommes vérifiées par workflow. Pas de main ni de Release.
 - **Reste :** validation tactile réelle Samsung (défilement proche centre, x1.5 zones, dégâts/barrières et joystick).
+
+## SOLO-021 — parois du premier plan, correction réversible
+- [x] Vérifier renderer de la vraie campagne SOLO et comparer les bandes de paroi 200×58 au fond/parallaxe indépendant.
+- [x] Tester répétition de matière proche de la densité native et filtrage nearest sur les six textures opaques uniquement.
+- [x] Réduire biseaux progressifs qui atténuaient les contours ; ne toucher à aucun PNG, à la carte ou à la physique.
+- [x] Enregistrer dans `ordres-de-mission.md` la base `cf6cc6e`, le commit `f896211` et la commande de revert isolée.
+- [x] Ajouter test texture source, sampler des six murs, sampler linéaire des deux plans de fond aux régressions existantes.
+- [ ] Vérifier CI Android/C++/SDL2 run `39018857560` sur `f896211`.
+- [ ] Export APK + AAB diagnostic vers `temp/solo-wall-crisp-021/`, seulement après CI verte, avec manifest et SHA256.
+- [ ] Tester la netteté comparée et les raccords sur Samsung (zoom x1/x2, déplacement, falaises, parois masquant les acteurs) ; revenir au commit original si motifs trop répétitifs ou pixels trop durs.
+- [ ] Aucune fusion dans `main`, aucune Release sans validation explicite Fab.
