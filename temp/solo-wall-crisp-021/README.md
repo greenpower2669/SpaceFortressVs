@@ -1,0 +1,9 @@
+# 🚀 SOLO-021 — parois premier plan plus nettes
+
+APK et AAB de diagnostic, code 04da08db80f543a081a7a3614f85c1b2fd28e7c1, CI 39019113903 SUCCESS.
+App Android : com.greenpower2669.spacefortressvs.diagnostic.
+Ne pas désinstaller le jeu historique ; ne pas publier cet AAB non signé.
+
+5a58885b9a76e52e4c88ceeffd044c5b0862ef421b0a4b4a8848b0dbf38cea43  SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d.apk
+3ae61f0554464c29cec1a0640ad7cc922ba7c047a18e6fae3a04412b4085d4fc  SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d-unsigned.aab
+9ca550c6217edd8c2202aedc352569e3de899aac64eb288524d7c19b367e405f  SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d-build.json
