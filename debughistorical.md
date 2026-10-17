@@ -645,3 +645,7 @@ La texture minérale du 1er plan est une découpe 200×58 px, étalée sur 405×
 - **AAB non signé** : `SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d-unsigned.aab`, 95 742 237 octets, SHA-256 `3ae61f0554464c29cec1a0640ad7cc922ba7c047a18e6fae3a04412b4085d4fc`.
 - **Comparaison à faire sur Samsung** : SOLO-020 avant ↔ SOLO-021 après, à zoom 1 et 2 et en mouvement ; noter netteté, effet pixel, raccord et répétition du rocher. Aucun résultat de qualité visuelle vécu ne peut être attribué au téléphone sans test réel.
 - **Retour arrière sans perte de travail** : `git revert 04da08db80f543a081a7a3614f85c1b2fd28e7c1` puis `git revert f896211164481cede61d0073729f6eb3362be177` sur feature/solo-coop-core-v1, suivi de tests. Garder cette trace dans ordres-de-mission. Pas de `main` ni Release.
+
+
+## SOLO-022 — diagnostic de raccord 1D→2D
+SOLO-020 avait un seuil de défilement 0 exactement à 2 diamètres du vaisseau, donc déplacer simplement ce seuil à 1 diamètre aurait modifié brutalement la courbe sans créer la zone supplémentaire demandée. SOLO-022 conserve le repère 2D mais lui donne **une vitesse positive 0,025**, insère entre 1D et 2D une progression monotone smoothstep 0→0,025, puis redessine 2D→65 % depuis 0,025 vers 0,1. Les maxima externes 2 et 6 restent. Pas de compensation de téléportation ni changement d'inertie. Tests sur 540×960 et les huit angles et limite par la translation réelle. Ancien état `9e064b5`, patch `6c79f88`, validation en cours `39040122861`.

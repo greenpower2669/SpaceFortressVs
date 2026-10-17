@@ -800,3 +800,9 @@ La première compilation complète `39018857560` a découvert une **erreur de no
 - Tests de monotonie, continuité des quatre frontières, symétrie huit directions, mouvement caméra limité au déplacement physique et effet doigt tenu, écran 540×960, sans changer la génération de niveau.
 
 **Retour arrière (avant exécution)** : une seule modification de source et de tests sera regroupée en un commit dédié (SHA à inscrire après création). Pour annuler SOLO-022 sans perdre SOLO-021, faire uniquement `git revert <SHA_DU_COMMIT_CODE_SOLO_022>` sur la branche SOLO après validation, puis relancer la CI. Ne jamais faire `reset --hard`, force-push, merge main, ni Release sans validation.
+
+
+### SOLO-022 — commit source exact et retour arrière
+Correction et tests regroupés dans **`6c79f88addd673c4be8a8efc853c091ee94ae675`** ; base `9e064b552a6a7bead00817fb4bed04f4dd0d5288`. Revenir au défilement SOLO-021 **sans retirer ses parois nettes** : sur `feature/solo-coop-core-v1`, contrôler le diff puis lancer `git revert 6c79f88addd673c4be8a8efc853c091ee94ae675`, résoudre tout conflit éventuel, relancer toute la CI. Les archives binaires et cette trace documentaire demeurent consultables. Ne pas utiliser `git reset --hard`, ni force-push, ni toucher main ou Release.
+
+Workflow de vérification du code : GitHub Actions run `39040122861`. Export direct (si réussite intégrale du run exact) : `temp/solo-inner-cruise-022/` via workflow `.github/workflows/solo-inner-cruise-022-export.yml` (run `39040168281`). Avant résultats finaux, ne pas affirmer que l'APK existe ni que la CI est verte.

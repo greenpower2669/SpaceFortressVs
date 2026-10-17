@@ -782,3 +782,9 @@ SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32
 - [ ] Exporter un APK diagnostic direct GitHub + AAB non signé uniquement après CI verte, vérifications SHA256.
 - [ ] Tester le confort de la nouvelle couronne sur Samsung.
 - [ ] Conserver main / Release intacts.
+
+- [x] SOLO-022 code source et tests regroupés `6c79f88addd673c4be8a8efc853c091ee94ae675`.
+- [x] Chemin de retour arrière isolé `git revert 6c79f88addd673c4be8a8efc853c091ee94ae675` documenté dans ordres-de-mission.md.
+- [x] Workflow de livraison conditionnelle `solo-inner-cruise-022-export.yml` créé et épinglé au bon SHA.
+- [ ] Confirmer CI complète source `39040122861` et export direct `39040168281` verts.
+- [ ] Tester sur Samsung la croisière 1D→2D à vitesses très faibles, 8 directions, sans arrêt sur la frontière 2D et sans changement du pilotage ou rebond.
