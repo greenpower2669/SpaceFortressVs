@@ -758,7 +758,17 @@ SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32
 - [x] Réduire biseaux progressifs qui atténuaient les contours ; ne toucher à aucun PNG, à la carte ou à la physique.
 - [x] Enregistrer dans `ordres-de-mission.md` la base `cf6cc6e`, le commit `f896211` et la commande de revert isolée.
 - [x] Ajouter test texture source, sampler des six murs, sampler linéaire des deux plans de fond aux régressions existantes.
-- [ ] Vérifier CI Android/C++/SDL2 run `39018857560` sur `f896211`.
-- [ ] Export APK + AAB diagnostic vers `temp/solo-wall-crisp-021/`, seulement après CI verte, avec manifest et SHA256.
+- [x] CI Android/C++/SDL2 (premier run 39018857560 a détecté un nom de variable test ; correction 04da08d ; run 39019113903 SUCCESS).
+- [x] Export APK + AAB diagnostic directs temp/solo-wall-crisp-021/, manifest et SHA256 vérifiés ; run 39019145459 SUCCESS.
 - [ ] Tester la netteté comparée et les raccords sur Samsung (zoom x1/x2, déplacement, falaises, parois masquant les acteurs) ; revenir au commit original si motifs trop répétitifs ou pixels trop durs.
 - [ ] Aucune fusion dans `main`, aucune Release sans validation explicite Fab.
+
+
+### SOLO-021 — résultat définitif (17/10/2026)
+- **Source exécutée** : `04da08db80f543a081a7a3614f85c1b2fd28e7c1`, code de rendu `f896211164481cede61d0073729f6eb3362be177`, état de référence précédant l'essai `cf6cc6e479ce854c3e64ddb00f6b9566d9cf52a9`.
+- **CI verte** : GitHub Actions `39019113903` (logiciel SOLO, SDL2, Android), toutes les tâches requises SUCCESS, publication Release SKIPPED.
+- **Export GitHub direct vert** : run `39019145459`, sous `temp/solo-wall-crisp-021/`.
+- **APK de diagnostic** : `SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d.apk`, 98 449 218 octets, SHA-256 `5a58885b9a76e52e4c88ceeffd044c5b0862ef421b0a4b4a8848b0dbf38cea43`.
+- **AAB non signé** : `SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d-unsigned.aab`, 95 742 237 octets, SHA-256 `3ae61f0554464c29cec1a0640ad7cc922ba7c047a18e6fae3a04412b4085d4fc`.
+- **Comparaison à faire sur Samsung** : SOLO-020 avant ↔ SOLO-021 après, à zoom 1 et 2 et en mouvement ; noter netteté, effet pixel, raccord et répétition du rocher. Aucun résultat de qualité visuelle vécu ne peut être attribué au téléphone sans test réel.
+- **Retour arrière sans perte de travail** : `git revert 04da08db80f543a081a7a3614f85c1b2fd28e7c1` puis `git revert f896211164481cede61d0073729f6eb3362be177` sur feature/solo-coop-core-v1, suivi de tests. Garder cette trace dans ordres-de-mission. Pas de `main` ni Release.

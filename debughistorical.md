@@ -635,3 +635,13 @@ Ancien inner radial ~0.21 fois largeur d'écran, soit ~113 px pour 540 px, quasi
 
 ## SOLO-021 — diagnostic vérifiable netteté des couloirs
 La texture minérale du 1er plan est une découpe 200×58 px, étalée sur 405×180 px sur écran de référence 540 (cellule=90), avec interpolation linéaire, et biseau progressif en 8 couches : forte perte de définition contrairement au fond. Hypothèse testée : texel density quasi native ~180×58,5 px au zoom 1, sampler nearest sur parois uniquement ; réduction du biseau. La texture PNG originale est inchangée. Risques visuels : répétition plus rapide de motifs, aliasing/pixelisation au zoom maximum ; ne pas prétendre une amélioration subjective sans tester le Samsung. Avant correction `cf6cc6e`, test isolé `f896211`; revenir par `git revert f896211164481cede61d0073729f6eb3362be177` sur la seule branche feature sans réécrire les historiques.
+
+
+### SOLO-021 — résultat définitif (17/10/2026)
+- **Source exécutée** : `04da08db80f543a081a7a3614f85c1b2fd28e7c1`, code de rendu `f896211164481cede61d0073729f6eb3362be177`, état de référence précédant l'essai `cf6cc6e479ce854c3e64ddb00f6b9566d9cf52a9`.
+- **CI verte** : GitHub Actions `39019113903` (logiciel SOLO, SDL2, Android), toutes les tâches requises SUCCESS, publication Release SKIPPED.
+- **Export GitHub direct vert** : run `39019145459`, sous `temp/solo-wall-crisp-021/`.
+- **APK de diagnostic** : `SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d.apk`, 98 449 218 octets, SHA-256 `5a58885b9a76e52e4c88ceeffd044c5b0862ef421b0a4b4a8848b0dbf38cea43`.
+- **AAB non signé** : `SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d-unsigned.aab`, 95 742 237 octets, SHA-256 `3ae61f0554464c29cec1a0640ad7cc922ba7c047a18e6fae3a04412b4085d4fc`.
+- **Comparaison à faire sur Samsung** : SOLO-020 avant ↔ SOLO-021 après, à zoom 1 et 2 et en mouvement ; noter netteté, effet pixel, raccord et répétition du rocher. Aucun résultat de qualité visuelle vécu ne peut être attribué au téléphone sans test réel.
+- **Retour arrière sans perte de travail** : `git revert 04da08db80f543a081a7a3614f85c1b2fd28e7c1` puis `git revert f896211164481cede61d0073729f6eb3362be177` sur feature/solo-coop-core-v1, suivi de tests. Garder cette trace dans ordres-de-mission. Pas de `main` ni Release.

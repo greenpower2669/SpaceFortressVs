@@ -774,3 +774,13 @@ Fab demande des barrières si mini-boss vivant et des commandes de tir joystick 
 La première compilation complète `39018857560` a découvert une **erreur de nom dans le test ajouté** : `SDL_ScaleMode mode` entrait en collision avec un `SDL_BlendMode mode` existant. Ce n'était **pas** un défaut du rendu. Petit correctif exclusivement dans le test : commit `04da08db80f543a081a7a3614f85c1b2fd28e7c1`, qui renomme la variable en `scaleMode`. Nouvelle CI ciblant ce commit : `39019113903`. L'export direct SOLO-021 doit être lié strictement à ce nouveau SHA, et **pas** à l'échec initial.
 
 **Retour arrière complet de l'essai SOLO-021** (après accord de Fab) : annuler **les deux commits** sur `feature/solo-coop-core-v1`, dans cet ordre : `git revert 04da08db80f543a081a7a3614f85c1b2fd28e7c1` puis `git revert f896211164481cede61d0073729f6eb3362be177`. Le premier restaure le test intermédiaire et le second annule à la fois renderer/test ; conserver les mémoires et cette note. Vérifier `git diff` et relancer CI. Ne jamais réinitialiser ni force-pusher la branche, ne jamais fusionner `main` sans validation.
+
+
+### SOLO-021 — résultat définitif (17/10/2026)
+- **Source exécutée** : `04da08db80f543a081a7a3614f85c1b2fd28e7c1`, code de rendu `f896211164481cede61d0073729f6eb3362be177`, état de référence précédant l'essai `cf6cc6e479ce854c3e64ddb00f6b9566d9cf52a9`.
+- **CI verte** : GitHub Actions `39019113903` (logiciel SOLO, SDL2, Android), toutes les tâches requises SUCCESS, publication Release SKIPPED.
+- **Export GitHub direct vert** : run `39019145459`, sous `temp/solo-wall-crisp-021/`.
+- **APK de diagnostic** : `SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d.apk`, 98 449 218 octets, SHA-256 `5a58885b9a76e52e4c88ceeffd044c5b0862ef421b0a4b4a8848b0dbf38cea43`.
+- **AAB non signé** : `SpaceFortressVs-1.4.2-SOLO-WALL-CRISP-021-04da08d-unsigned.aab`, 95 742 237 octets, SHA-256 `3ae61f0554464c29cec1a0640ad7cc922ba7c047a18e6fae3a04412b4085d4fc`.
+- **Comparaison à faire sur Samsung** : SOLO-020 avant ↔ SOLO-021 après, à zoom 1 et 2 et en mouvement ; noter netteté, effet pixel, raccord et répétition du rocher. Aucun résultat de qualité visuelle vécu ne peut être attribué au téléphone sans test réel.
+- **Retour arrière sans perte de travail** : `git revert 04da08db80f543a081a7a3614f85c1b2fd28e7c1` puis `git revert f896211164481cede61d0073729f6eb3362be177` sur feature/solo-coop-core-v1, suivi de tests. Garder cette trace dans ordres-de-mission. Pas de `main` ni Release.
