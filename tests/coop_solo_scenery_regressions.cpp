@@ -19,6 +19,30 @@ int main(){
     auto *r=SDL_CreateSoftwareRenderer(surface);assert(r);
     {
         CoopSoloScenery scenery(r);assert(scenery.ready());
+        assert(scenery.organic.ready());
+        // SOLO-024: continuous world-space contour, no tile-local phase.
+        CoopSoloWorldBridge outline;assert(outline.create({},{0,0,540,960},540));
+        std::fill(outline.map.tiles.begin(),outline.map.tiles.end(),Tile::Empty);
+        for(int y=4;y<=9;++y)for(int x=4;x<=7;++x)
+            outline.map.tiles[size_t(y)*outline.map.width+x]=Tile::Rock;
+        assert(SoloOrganicRims::field(outline.map,5.5f,6.5f)>.99f);
+        assert(SoloOrganicRims::field(outline.map,3.0f,5.5f)<.01f);
+        assert(!SoloOrganicRims::visibleRock(outline.map,3.0f,5.5f));
+        assert(SoloOrganicRims::visibleRock(outline.map,5.5f,6.5f));
+        // A carved corner differs from a flat wall edge, and profile is
+        // independent of which 8x8 texture chunk asks for the sample.
+        const float offCorner=SoloOrganicRims::field(outline.map,3.92f,3.92f);
+        assert(offCorner < SoloOrganicRims::field(outline.map,4.5f,4.5f));
+        const auto sig0=SoloOrganicRims::signature(outline.map,0,0);
+        auto *piece0=scenery.organic.ensure(r,outline.map,0,0,0);
+        assert(piece0);
+        int organicW=0,organicH=0;
+        assert(SDL_QueryTexture(piece0,nullptr,nullptr,&organicW,&organicH)==0);
+        assert(organicW==SoloOrganicRims::textureSide&&organicH==organicW);
+        assert(sig0==SoloOrganicRims::signature(outline.map,0,0));
+        outline.map.tiles[size_t(6)*outline.map.width+5]=Tile::Empty;
+        assert(sig0!=SoloOrganicRims::signature(outline.map,0,0));
+
         // SOLO-023: one RGBA sprite atlas gives 16 topology masks x 3
         // naturally chipped variations, for all six original wall themes.
         assert(scenery.edgeSprites.ready());

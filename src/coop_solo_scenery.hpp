@@ -3,6 +3,7 @@
 #include "coop_solo_world_bridge.hpp"
 #include "solo_scenery_assets.hpp"
 #include "solo_edge_sprites.hpp"
+#include "solo_organic_rims.hpp"
 #include <array>
 #include <cmath>
 namespace sfsolo {
@@ -18,6 +19,7 @@ struct CoopSoloScenery {
     SDL_Texture *space=nullptr,*mineral=nullptr;
     std::array<SDL_Texture*,6> material{};
     SoloEdgeSprites edgeSprites;
+    mutable SoloOrganicRims organic;
     explicit CoopSoloScenery(SDL_Renderer *r):renderer(r),art(r){load();}
     CoopSoloScenery(const CoopSoloScenery&)=delete;
     CoopSoloScenery& operator=(const CoopSoloScenery&)=delete;
@@ -26,6 +28,7 @@ struct CoopSoloScenery {
         if(!space||!mineral)return false;
         for(auto *p:material)if(!p)return false;
         if(!edgeSprites.ready())return false;
+        if(!organic.ready())return false;
         for(const auto &row:art.environmentParts)for(auto *p:row)if(!p)return false;
         return true;
     }
@@ -52,6 +55,7 @@ struct CoopSoloScenery {
                 }
             }
             edgeSprites.load(renderer,sheet);
+            organic.load(sheet);
             SDL_FreeSurface(sheet);
         }
         for(auto *p:{space,mineral})if(p)SDL_SetTextureScaleMode(p,SDL_ScaleModeLinear);
@@ -63,6 +67,7 @@ struct CoopSoloScenery {
         for(auto **p:{&space,&mineral}){if(*p)SDL_DestroyTexture(*p);*p=nullptr;}
         for(auto *&p:material){if(p)SDL_DestroyTexture(p);p=nullptr;}
         edgeSprites.release();
+        organic.release();
         art.release();
     }
     void reload(){release();art.reload();load();}
@@ -116,10 +121,12 @@ struct CoopSoloScenery {
         DrawState saved(r);
         const SDL_FRect screen{float(world.screen.x),float(world.screen.y),float(world.screen.w),float(world.screen.h)};
         colorRect(r,screen,{4,8,19,255});const float width=world.combatWidth*2.5f*world.zoom;
-        tiled(r,space,screen,world.cameraLeft*spaceDepth*world.zoom,world.cameraTop*spaceDepth*world.zoom,
+        tiled(r,space,screen,(world.cameraLeft*spaceDepth+world.backgroundDriftX*.20f)*world.zoom,
+            (world.cameraTop*spaceDepth+world.backgroundDriftY*.20f)*world.zoom,
             width,width*1795.0f/1024.0f,{155,170,205,255});
-        if(openings)tiled(r,mineral,screen,world.cameraLeft*mineralDepth*world.zoom,
-            world.cameraTop*mineralDepth*world.zoom,width,width,{66,76,94,255});
+        if(openings)tiled(r,mineral,screen,
+            (world.cameraLeft*mineralDepth+world.backgroundDriftX*.48f)*world.zoom,
+            (world.cameraTop*mineralDepth+world.backgroundDriftY*.48f)*world.zoom,width,width,{66,76,94,255});
     }
     static unsigned hash(int x,int y){
         unsigned value=unsigned(x)*0x9e3779b1u^unsigned(y)*0x85ebca6bu;
@@ -136,11 +143,17 @@ struct CoopSoloScenery {
         const int x1=std::min(map.width,int(std::ceil((world.cameraLeft+world.visibleWidth())/physicalCell)));
         const int y1=std::min(map.height,int(std::ceil((world.cameraTop+world.visibleHeight())/physicalCell)));
         const int theme=worldTheme(map.world);
+        // SOLO-024: draw CONTINUOUS world-space rock texture once for visible
+        // chunks. No 128x128 repeated silhouette on individual grid squares.
+        // Includes BOTH actor-masking passes with identical binary pixels.
+        if(organic.ready())organic.draw(r,world,theme);
         for(int y=y0;y<y1;++y)for(int x=x0;x<x1;++x){
             const auto at=world.toScreen({x*physicalCell,y*physicalCell});const SDL_FRect rect{at.x,at.y,cell,cell};
             const auto tile=map.at(x,y);
             if(opaqueOnly && tile!=Tile::Rock)continue;
             if(tile==Tile::Rock){
+                if(organic.ready())continue; // already rendered as natural connected mass
+                // Fallback SOLO-023 16-neighbour masks when organic unavailable.
                 // The same 16-neighbour profile works on EVERY generated map.
                 // No geometry changes: Rock remains the one collidable tile.
                 int neighbours=0;

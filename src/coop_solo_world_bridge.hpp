@@ -23,6 +23,8 @@ struct CoopSoloWorldBridge {
     float combatWidth=1.0f;
     float pixelsPerCell=1.0f;
     float cameraLeft=0,cameraTop=0,zoom=1;
+    // Presentation-only offset: moves parallax without shifting any world tile.
+    float backgroundDriftX=0,backgroundDriftY=0;
     bool ready=false;
     bool localGateClosed=false;
     CoopWorldPoint localGateCentre{};
@@ -39,6 +41,7 @@ struct CoopSoloWorldBridge {
         combatWidth=historicCombatWidth;
         pixelsPerCell=historicCombatWidth/(SOLO_REFERENCE_COLUMNS/SOLO_MAP_ZOOM);
         cameraLeft=cameraTop=0;zoom=1;
+        backgroundDriftX=backgroundDriftY=0;
         localGateClosed=false;localGateRadius=0;
         return ready=true;
     }
@@ -308,7 +311,20 @@ struct CoopSoloWorldBridge {
         return p.x>=screen.x && p.x<screen.x+screen.w && p.y>=screen.y && p.y<screen.y+screen.h &&
             firstWallImpact(observer,event,.1f)>=1;
     }
+    void updateBackgroundOnly(CoopWorldPoint ship,CoopWorldPoint displacement,float dt){
+        if(!ready||dt<=0||!std::isfinite(dt)||
+           !std::isfinite(displacement.x)||!std::isfinite(displacement.y))return;
+        // SOLO-024: in the 1/2-to-1 diameter inner ring, only the scenery
+        // moves; the camera, rocks, enemies and collision map do NOT.
+        // Across 1-to-2 diameters smoothly crossfade extra background drift
+        // into the existing physical-camera pan of SOLO-022.
+        const auto px=toScreen(ship);
+        const float gain=soloBackgroundOnlyGain(px.x,px.y,screen);
+        backgroundDriftX+=displacement.x*gain;
+        backgroundDriftY+=displacement.y*gain;
+    }
     void followPhysicalShip(CoopWorldPoint ship,CoopWorldPoint displacement,float dt){
+        updateBackgroundOnly(ship,displacement,dt);
         panIfShipActuallyMoved(ship,displacement,dt);
         // Safety envelope follows the physical hull, never the touch. It also
         // works after release, at max zoom, and when a long frame hits a wall.

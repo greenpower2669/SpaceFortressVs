@@ -859,3 +859,13 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [x] APK direct 98 710 354 octets sous `temp/solo-rock-rims-023/SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4.apk`, SHA256 vérifié ; AAB non signé présent.
 - [x] Retour arrière logiciel complet par les quatre commits de code/test documenté dans ordres-de-mission.md, sans enlever l'atlas.
 - [ ] Validation esthétique et comportementale sur Samsung : rebords rocheux non carrés, reconnaissance des passages, variations, zoom et collision réelle.
+## SOLO-024 — contours de longue portée et fond seul près du vaisseau
+- [x] Audit renderer : les 48 masques de SOLO-023 sont toujours des carrés isolés.
+- [x] Code source de contour organique continu par morceaux avec cache limité, original PNG intact.
+- [x] Intégration du rendu de roche et conservation fallback SOLO-023.
+- [x] Ajouter la dérive des fonds seulement en anneau 0,5→1 diamètre puis raccord vers scrolling normal 1→2 diamètres.
+- [x] Ajouter des tests indépendants de dérive, silhouette, cache, continuité.
+- [ ] Faire passer CI complète sur source et corriger uniquement défauts avérés.
+- [ ] Exporter APK diagnostic direct + AAB uniquement après CI verte.
+- [ ] Tester sur Samsung : arrière-plan qui bouge sans caméra près de la coque, rivages naturels et collision, zoom et pas de répétitions.
+- [ ] Jamais de merge main ou Release sans validation.

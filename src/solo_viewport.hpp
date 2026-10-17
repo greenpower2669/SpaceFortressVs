@@ -100,6 +100,21 @@ inline float soloExtraCruiseStart(SDL_Rect screen){
     return soloSoftCruiseStart(screen)*.5f;
 }
 inline constexpr float SOLO_EXTRA_CRUISE_HANDOFF=.025f;
+// SOLO-024: independent near-hull parallax ring; never moves terrain/camera.
+// From 1/2 to 1 diameter, smoothly reach full background-only response;
+// from 1 to 2 diameters, gently hand over to actual world scrolling.
+inline float soloBackgroundOnlyGain(float x,float y,SDL_Rect screen){
+    if(screen.w<=0||screen.h<=0||!std::isfinite(x)||!std::isfinite(y))return 0.f;
+    const float one=soloExtraCruiseStart(screen);
+    const float two=soloSoftCruiseStart(screen);
+    if(one<=0||two<=one)return 0.f;
+    const float r=std::hypot(x-(screen.x+screen.w*.5f),
+                             y-(screen.y+screen.h*.5f));
+    const float start=one*.5f;
+    if(r<=start||r>=two)return 0.f;
+    if(r<one)return soloSmoothstep((r-start)/(one-start));
+    return 1.f-soloSmoothstep((r-one)/(two-one));
+}
 inline float soloSoftCircleZoneSpeed(float x,float y,SDL_Rect screen){
     const float outer=soloCircleOuterRadius(screen);
     if(outer<=0||!std::isfinite(x)||!std::isfinite(y))return 0.f;
