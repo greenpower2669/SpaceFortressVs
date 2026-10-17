@@ -818,3 +818,20 @@ Workflow de vérification du code : GitHub Actions run `39040122861`. Export dir
 
 ### SOLO-022 — résultat final vérifié, 17/10/2026
 CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **39040168281 SUCCESS**. APK 98 449 221 octets sous `temp/solo-inner-cruise-022/SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88.apk`, SHA-256 `540fdae8cc278550622bcfa4ba11d9ae7eccb774111a529bbc4365118b84cab8`. AAB non signé disponible au même endroit, 95 742 235 octets, SHA-256 `130ab9ad27041aeb7711f86518a3b368063e1aab9c07902a220430c70b93b4ae`. Tests Samsung de comportement réel non encore faits. Main et Release intacts. Revert isolé `git revert 6c79f88addd673c4be8a8efc853c091ee94ae675` sur la branche SOLO, sans reset ni force-push.
+
+## SOLO-023 — suppression visuelle des rebords carrés (17 octobre 2026)
+
+**Ordre de Fab :** « Code pas il faut habiller des rebord je ne veux plus de carré crée des planche d'habillage pour régler le pb dans toutes les textures map déjà créé », puis autorisation explicite « Ok code ça ».
+
+**Référence avant l'essai :** `13e212927c3ef63e3b7f431e71cbee81b0b2a2f8`, branche `feature/solo-coop-core-v1`. SOLO-022, la netteté des parois SOLO-021 et tous les modes historiques restent intactes.
+
+**Implementation visuelle :**
+- Générateur déterministe versionné `scripts/generate-solo-edge-atlas.py` (uniquement bibliothèque standard Python), produisant une vraie planche PNG RGBA `assets/pict/solo/HabillageRebordsModeSolo.png` de **1536×512**, **48 pièces 128×128** : 16 combinaisons nord/est/sud/ouest de voisins Rock × 3 variations. Auto-traitement en couleurs conservant l'art des six matériaux historiques de `ParoisModeSolo.png`; alpha binaire 0 ou 255, géométrie érodée à bord dentelé et angles arrondis. Aucune texture d'origine remplacée.
+- Un workflow de génération dédié, `.github/workflows/solo-023-build-edge-atlas.yml`, a créé et sauvegardé le PNG directement sur la branche SOLO (pas besoin de décompresser un ZIP). Source de construction `923cacb1e137fd12634afda5f533bfb849c47845`, asset ensuite présent sur la branche.
+- `src/solo_edge_sprites.hpp` : charge la planche + le matériau source une seule fois, compose des textures de mur en fonction des 6 thèmes, 16 configurations de raccord, 3 variantes ; libération/recharge SDL intactes ; rendu triangulé à limites cohérentes en zoom fractionnaire.
+- `src/coop_solo_scenery.hpp` : rendu des cellules **Rock** en silhouettes habillées seulement, selon les voisins réels. Les autres types de cellules, les fonds et le moteur des collisions restent inchangés ; ancien rendu conservé en secours si atlas manquant.
+- `tests/coop_solo_scenery_regressions.cpp` : présence et taille des 288 textures thématiques, alpha réel d'un coin isolé, cœur opaque, double passage stable, plus les anciens tests de géométrie, défilement et ressources.
+
+**Aucun changement de règles :** pas de modification de map, passages, collisions, ennemis, minage, caméra, champ de force, inertie, visée, textures fond, CLASSIQUE/DUEL/COOP ou `src/main.cpp`. Visuellement la roche se rétracte sur les bords de cellule ; le contour de collision demeure celui d'avant, donc vérifier la sensation de proximité et les angles sur Samsung.
+
+**Retour arrière :** un commit de code principal sera référencé ci-après. Annuler seulement ce commit par `git revert <SHA_CODE_SOLO_023>` sur la branche feature, conserver la trace et le générateur/atlas comme historique réutilisable, et exécuter les tests. Aucun `git reset --hard`, force-push, merge main ou Release sans validation.

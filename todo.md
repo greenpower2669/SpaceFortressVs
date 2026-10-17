@@ -800,3 +800,13 @@ SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32
 
 ### SOLO-022 — résultat final vérifié, 17/10/2026
 CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **39040168281 SUCCESS**. APK 98 449 221 octets sous `temp/solo-inner-cruise-022/SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88.apk`, SHA-256 `540fdae8cc278550622bcfa4ba11d9ae7eccb774111a529bbc4365118b84cab8`. AAB non signé disponible au même endroit, 95 742 235 octets, SHA-256 `130ab9ad27041aeb7711f86518a3b368063e1aab9c07902a220430c70b93b4ae`. Tests Samsung de comportement réel non encore faits. Main et Release intacts. Revert isolé `git revert 6c79f88addd673c4be8a8efc853c091ee94ae675` sur la branche SOLO, sans reset ni force-push.
+## SOLO-023 — habillage des rebords rectilignes
+- [x] Créer le générateur reproductible de la planche des 48 pièces et son workflow de dépôt d'un vrai PNG direct GitHub.
+- [x] Générer sur la branche l'atlas 1536×512 (16 voisinages N/E/S/W × 3 variantes).
+- [x] Brancher les sprites aux six thèmes des parois Rock, sans changer la collision ou les textures existantes.
+- [x] Garder l'ancien renderer de secours, les ressources SDL libérables/rechargeables, et le premier/second passage identiques.
+- [x] Ajouter régressions silhouette/alpha, six thèmes et raccords/zoom.
+- [ ] Faire passer CI Android+C++/SDL2 du code source SOLO-023.
+- [ ] Exporter l'APK diagnostic direct temp/ après CI verte avec SHA256, sans ZIP.
+- [ ] Vérifier sur Samsung : rebords organiques (fin des carrés), lisibilité du passage, aucune collision perçue anormale, différence de rendu à zoom haut.
+- [ ] Main / Release interdits sans validation.

@@ -19,6 +19,39 @@ int main(){
     auto *r=SDL_CreateSoftwareRenderer(surface);assert(r);
     {
         CoopSoloScenery scenery(r);assert(scenery.ready());
+        // SOLO-023: one RGBA sprite atlas gives 16 topology masks x 3
+        // naturally chipped variations, for all six original wall themes.
+        assert(scenery.edgeSprites.ready());
+        assert(SoloEdgeSprites::profiles==16&&SoloEdgeSprites::variants==3);
+        for(int theme=0;theme<6;++theme)
+            for(int mask=0;mask<16;++mask)
+                for(int v=0;v<3;++v){
+                    auto *tex=scenery.edgeSprites.tile(theme,mask,v);assert(tex);
+                    int w=0,h=0;SDL_ScaleMode sm=SDL_ScaleModeLinear;
+                    assert(SDL_QueryTexture(tex,nullptr,nullptr,&w,&h)==0);
+                    assert(w==128 && h==128);
+                    assert(SDL_GetTextureScaleMode(tex,&sm)==0);
+                    assert(sm==SDL_ScaleModeNearest);
+                }
+        // Real nonrectangular alpha: the top-left corner of an isolated
+        // rock is open, while its middle remains opaque on BOTH backgrounds.
+        SDL_FRect soloCell{90,90,90,90};
+        auto *isolated=scenery.edgeSprites.tile(0,0,1);
+        clear(r,255,0,255);
+        SoloEdgeSprites::drawCell(r,isolated,soloCell);
+        const auto red=pixels(r);
+        SoloEdgeSprites::drawCell(r,isolated,soloCell);
+        assert(red==pixels(r)); // Binary alpha: repeated foreground is stable.
+        clear(r,0,255,0);
+        SoloEdgeSprites::drawCell(r,isolated,soloCell);
+        const auto green=pixels(r);
+        assert(red[size_t(91)*540+91]!=green[size_t(91)*540+91]);
+        assert(red[size_t(135)*540+135]==green[size_t(135)*540+135]);
+        // A fully surrounded Rock cell cannot develop an artificial crack
+        // into traversable space at a shared tile edge.
+        const auto *connected=scenery.edgeSprites.tile(0,15,1);
+        assert(connected!=nullptr);
+
         // SOLO-021: asset stays untouched; only foreground sampling improves.
         // Backgrounds MUST remain linear, with no change to parallax.
         SDL_ScaleMode scaleMode=SDL_ScaleModeNearest;

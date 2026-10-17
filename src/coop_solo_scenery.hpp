@@ -2,6 +2,7 @@
 // PARALLAX-016: presentation only. The bridge owns physics and the camera.
 #include "coop_solo_world_bridge.hpp"
 #include "solo_scenery_assets.hpp"
+#include "solo_edge_sprites.hpp"
 #include <array>
 #include <cmath>
 namespace sfsolo {
@@ -16,6 +17,7 @@ struct CoopSoloScenery {
     SoloSceneryAssets art;
     SDL_Texture *space=nullptr,*mineral=nullptr;
     std::array<SDL_Texture*,6> material{};
+    SoloEdgeSprites edgeSprites;
     explicit CoopSoloScenery(SDL_Renderer *r):renderer(r),art(r){load();}
     CoopSoloScenery(const CoopSoloScenery&)=delete;
     CoopSoloScenery& operator=(const CoopSoloScenery&)=delete;
@@ -23,6 +25,7 @@ struct CoopSoloScenery {
     bool ready() const {
         if(!space||!mineral)return false;
         for(auto *p:material)if(!p)return false;
+        if(!edgeSprites.ready())return false;
         for(const auto &row:art.environmentParts)for(auto *p:row)if(!p)return false;
         return true;
     }
@@ -48,6 +51,7 @@ struct CoopSoloScenery {
                     SDL_SetTextureScaleMode(material[theme],SDL_ScaleModeNearest);
                 }
             }
+            edgeSprites.load(renderer,sheet);
             SDL_FreeSurface(sheet);
         }
         for(auto *p:{space,mineral})if(p)SDL_SetTextureScaleMode(p,SDL_ScaleModeLinear);
@@ -58,6 +62,7 @@ struct CoopSoloScenery {
     void release(){
         for(auto **p:{&space,&mineral}){if(*p)SDL_DestroyTexture(*p);*p=nullptr;}
         for(auto *&p:material){if(p)SDL_DestroyTexture(p);p=nullptr;}
+        edgeSprites.release();
         art.release();
     }
     void reload(){release();art.reload();load();}
@@ -136,6 +141,18 @@ struct CoopSoloScenery {
             const auto tile=map.at(x,y);
             if(opaqueOnly && tile!=Tile::Rock)continue;
             if(tile==Tile::Rock){
+                // The same 16-neighbour profile works on EVERY generated map.
+                // No geometry changes: Rock remains the one collidable tile.
+                int neighbours=0;
+                if(map.at(x,y-1)==Tile::Rock)neighbours|=1;
+                if(map.at(x+1,y)==Tile::Rock)neighbours|=2;
+                if(map.at(x,y+1)==Tile::Rock)neighbours|=4;
+                if(map.at(x-1,y)==Tile::Rock)neighbours|=8;
+                auto *dressed=edgeSprites.tile(theme,neighbours,int(hash(x,y)%3u));
+                if(dressed){
+                    SoloEdgeSprites::drawCell(r,dressed,rect);
+                }else{
+                // Backwards-compatible rendering if the new atlas is absent.
                 colorRect(r,rect,{57,59,69,255});
                 tiled(r,material[theme],rect,x*cell,y*cell,
                       cell*wallRepeatCellsX,cell*wallRepeatCellsY,
@@ -155,6 +172,7 @@ struct CoopSoloScenery {
                         colorRect(r,{at.x+cell-inset-band,at.y,band,cell},{5,7,15,alpha});
                     if(map.at(x,y+1)!=Tile::Rock)
                         colorRect(r,{at.x,at.y+cell-inset-band,cell,band},{5,7,15,alpha});
+                }
                 }
             }else if(tile==Tile::Lava||tile==Tile::Beam||tile==Tile::IceAsteroid){
                 // Existing hazard decoration only; no new physical/minable actor.
