@@ -21,17 +21,17 @@ int main(){
         CoopSoloScenery scenery(r);assert(scenery.ready());
         // SOLO-021: asset stays untouched; only foreground sampling improves.
         // Backgrounds MUST remain linear, with no change to parallax.
-        SDL_ScaleMode mode=SDL_ScaleModeNearest;
-        assert(SDL_GetTextureScaleMode(scenery.space,&mode)==0);
-        assert(mode==SDL_ScaleModeLinear);
-        assert(SDL_GetTextureScaleMode(scenery.mineral,&mode)==0);
-        assert(mode==SDL_ScaleModeLinear);
+        SDL_ScaleMode scaleMode=SDL_ScaleModeNearest;
+        assert(SDL_GetTextureScaleMode(scenery.space,&scaleMode)==0);
+        assert(scaleMode==SDL_ScaleModeLinear);
+        assert(SDL_GetTextureScaleMode(scenery.mineral,&scaleMode)==0);
+        assert(scaleMode==SDL_ScaleModeLinear);
         int nativeW=0,nativeH=0;
         assert(SDL_QueryTexture(scenery.material[0],nullptr,nullptr,&nativeW,&nativeH)==0);
         assert(nativeW==200 && nativeH==58);
         for(auto *wall:scenery.material){
-            assert(SDL_GetTextureScaleMode(wall,&mode)==0);
-            assert(mode==SDL_ScaleModeNearest);
+            assert(SDL_GetTextureScaleMode(wall,&scaleMode)==0);
+            assert(scaleMode==SDL_ScaleModeNearest);
         }
         assert(std::abs(CoopSoloScenery::wallRepeatCellsX*90-nativeW)<nativeW*.15f);
         assert(std::abs(CoopSoloScenery::wallRepeatCellsY*90-nativeH)<nativeH*.15f);
