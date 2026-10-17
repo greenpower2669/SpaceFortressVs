@@ -696,3 +696,6 @@ SOLO-023 test d'opacité : ancien test supposait que toutes les cellules Rock op
 - AAB **non signé**, `temp/solo-rock-rims-023/SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4-unsigned.aab`, **95 998 932 octets**, SHA256 `df8a5097fe619a2316bb51cc8705bdbded916d3f92225af5dc2a1aacbdfe065b`.
 - **Retour arrière logiciel complet, après accord Fab, branche SOLO uniquement** : `git revert 48b30c4a6d7c200fc2979bb411a3a048b4a3348f` puis `git revert 57f74d8c4c7437d01cf84d7edea200a57bf4e672` puis `git revert 51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc` puis `git revert 39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`. Vérifier les diffs, résoudre tout conflit documentaire et relancer CI. Ne pas supprimer les ressources historisées, ni les mémoires. Ni reset, ni force-push, ni merge main ni Release.
 - Reste : **validation visuelle réelle Samsung** du contact parois/collisions, coins, zoom et répétition des motifs.
+
+
+SOLO-023 troisième correction de test `48b30c4` : ancienne assertion de couleur `0x393b45` invalide avec la roche recomposée ; seule opacité indépendante du fond du coeur Rock et transparence alpha des coins comptent. CI complète `39058401438` SUCCESS. Export `39058427941` SUCCESS et sommes SHA256 prouvées. Pas d'échec restant, qualité visuelle réelle sur téléphone encore non vérifiée.

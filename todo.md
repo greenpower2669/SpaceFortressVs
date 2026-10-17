@@ -853,3 +853,9 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - AAB **non signé**, `temp/solo-rock-rims-023/SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4-unsigned.aab`, **95 998 932 octets**, SHA256 `df8a5097fe619a2316bb51cc8705bdbded916d3f92225af5dc2a1aacbdfe065b`.
 - **Retour arrière logiciel complet, après accord Fab, branche SOLO uniquement** : `git revert 48b30c4a6d7c200fc2979bb411a3a048b4a3348f` puis `git revert 57f74d8c4c7437d01cf84d7edea200a57bf4e672` puis `git revert 51752da4dd74fffc9b8c0a1448b2d6eb27fd3fcc` puis `git revert 39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`. Vérifier les diffs, résoudre tout conflit documentaire et relancer CI. Ne pas supprimer les ressources historisées, ni les mémoires. Ni reset, ni force-push, ni merge main ni Release.
 - Reste : **validation visuelle réelle Samsung** du contact parois/collisions, coins, zoom et répétition des motifs.
+
+
+- [x] SOLO-023 : correction du test sentinel RGB périmé dans `48b30c4` ; CI complète `39058401438` SUCCESS, export direct `39058427941` SUCCESS.
+- [x] APK direct 98 710 354 octets sous `temp/solo-rock-rims-023/SpaceFortressVs-1.4.2-SOLO-ROCK-RIMS-023-48b30c4.apk`, SHA256 vérifié ; AAB non signé présent.
+- [x] Retour arrière logiciel complet par les quatre commits de code/test documenté dans ordres-de-mission.md, sans enlever l'atlas.
+- [ ] Validation esthétique et comportementale sur Samsung : rebords rocheux non carrés, reconnaissance des passages, variations, zoom et collision réelle.
