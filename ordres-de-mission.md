@@ -751,3 +751,21 @@ Fab demande des barrières si mini-boss vivant et des commandes de tir joystick 
 - Code source `dd6a4c75066fd51a359c00bbd952a32674eaaa25` ; Android/C++/SDL2 CI `38973185112` **SUCCESS**.
 - Export GitHub `38973239202` **SUCCESS**, fichiers réels dans `temp/solo-cruise-020/` : APK diagnostic 98 449 216 octets, SHA-256 `ad683345d31f6857cc90589557905931a4076634ea69781bc636e8887ddfffb0` ; AAB non signé 95 742 279 octets, SHA-256 `16dfdbc3948a8d2689aa43d0320ee1a1f1f09b82e3e5b388fa59749f4bfccbfa`. Sommes vérifiées par workflow. Pas de main ni de Release.
 - **Reste :** validation tactile réelle Samsung (défilement proche centre, x1.5 zones, dégâts/barrières et joystick).
+
+## SOLO-021 — mission de netteté des couloirs — 17 octobre 2026
+
+**Ordre de Fab :** « Tu sauras améliorer les textures des couloirs l'arrière plan est net mais pas l'avant plan ? » puis « Tente toi même en laissant la trace de ta modif dans ordre de mission comme ça on pourra revenir en arrière facilement ». Autorisation d'essayer une correction visuelle **réversible sur la seule branche** `feature/solo-coop-core-v1`, sans fusion `main` ni Release.
+
+**Constat dans le code :** `src/coop_solo_scenery.hpp` charge la bande opaque de `ParoisModeSolo.png` coupée à 200×58 px. Le motif était projeté sur 4,5 cellules × 2 cellules (pour une cellule de 90 px à l'écran de référence, 405×180 px), puis échantillonné en `SDL_ScaleModeLinear`. Le relief était encore atténué par huit marches de biseau sur 15 % de la cellule. Le fond `fond4hlow.png` et `FondsParallaxeModeSolo.png` utilise d'autres textures / plans, conservés.
+
+**Correction expérimentale appliquée, commit unique exact `f896211164481cede61d0073729f6eb3362be177` :**
+- `src/coop_solo_scenery.hpp` : répétition du matériau mural passée de `4.5 × 2.0` cellules à `2.0 × 0.65` cellule ; résolution affichée du motif ~180×58,5 px au zoom 1, donc proche des 200×58 px source. Ancrage au monde, symétrie répétitive et collision identiques.
+- Pour **ces six textures opaques de murs seulement** : `SDL_ScaleModeLinear` -> `SDL_ScaleModeNearest` ; les plans de parallaxe et les décors gardent leur filtrage actuel. Biseau de `8 marches/15 %` à `4 marches/10 %` de cellule pour des contours plus lisibles.
+- `tests/coop_solo_scenery_regressions.cpp` : contrôle des six échantillonnages de murs, des deux filtres linéaires de fond, de la taille de source et de la densité du motif. Tous les autres tests du fichier (carte intacte, continuité du motif, caméra, compositing, transitions) sont conservés.
+- Aucun fichier PNG modifié, aucun changement de moteur physique / inertie / parois de collision / mini-boss / tir / zoom / CLASSIQUE / COOP / DUEL ou `src/main.cpp`.
+
+**Point de retour incontestable :** `cf6cc6e479ce854c3e64ddb00f6b9566d9cf52a9`, tête du dépôt SOLO **juste avant** cette correction.
+
+**Procédure de retour arrière sûre :** si rendu trop pixellisé ou motif trop répétitif sur le Samsung, demander validation de retour arrière, puis **sur la branche SOLO uniquement** exécuter `git revert f896211164481cede61d0073729f6eb3362be177` (restaure uniquement le renderer et son test), relancer CI. **Ne pas** faire de `git reset --hard` ni force-push : cela supprimerait d'autres évolutions. La trace dans le présent ordre de mission doit rester même après revert. Si des corrections ultérieures ont modifié ces deux fichiers, vérifier le diff et résoudre localement avant d'appliquer le revert.
+
+**État :** candidat à la validation CI et Samsung ; qualité visuelle améliorée attendue, mais aucun résultat perceptif affirmé avant le test sur téléphone.
