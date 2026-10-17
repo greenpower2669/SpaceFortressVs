@@ -649,3 +649,11 @@ La texture minérale du 1er plan est une découpe 200×58 px, étalée sur 405×
 
 ## SOLO-022 — diagnostic de raccord 1D→2D
 SOLO-020 avait un seuil de défilement 0 exactement à 2 diamètres du vaisseau, donc déplacer simplement ce seuil à 1 diamètre aurait modifié brutalement la courbe sans créer la zone supplémentaire demandée. SOLO-022 conserve le repère 2D mais lui donne **une vitesse positive 0,025**, insère entre 1D et 2D une progression monotone smoothstep 0→0,025, puis redessine 2D→65 % depuis 0,025 vers 0,1. Les maxima externes 2 et 6 restent. Pas de compensation de téléportation ni changement d'inertie. Tests sur 540×960 et les huit angles et limite par la translation réelle. Ancien état `9e064b5`, patch `6c79f88`, validation en cours `39040122861`.
+
+### SOLO-022 — validation finale et téléchargement direct — 17/10/2026
+- Commit source exact `6c79f88addd673c4be8a8efc853c091ee94ae675`; CI `39040122861` **SUCCESS** pour C++/SDL2/Android, Release **SKIPPED**.
+- Export GitHub `39040168281` **SUCCESS**. Fichiers réellement présents dans `temp/solo-inner-cruise-022/`, sommes SHA256 contrôlées par workflow et manifest.
+- APK de diagnostic installable : `SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88.apk`, 98 449 221 octets, SHA256 `540fdae8cc278550622bcfa4ba11d9ae7eccb774111a529bbc4365118b84cab8`.
+- AAB non signé, pas destiné à Google Play : `SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88-unsigned.aab`, 95 742 235 octets, SHA256 `130ab9ad27041aeb7711f86518a3b368063e1aab9c07902a220430c70b93b4ae`.
+- La fonction de défilement démarre désormais à un diamètre, atteint 0,025 à deux diamètres, reste monotone jusqu'aux zones précédentes. Toujours aucune modification physique, des textures ou des modes historiques.
+- **À valider par Fab sur Samsung** : sensation de lenteur à la nouvelle bande, absence d'arrêt à deux diamètres, cohabitation avec touches de tir et pincement. Retour arrière isolé : `git revert 6c79f88addd673c4be8a8efc853c091ee94ae675` sur la branche SOLO en conservant cet ordre de mission. Ni main, ni Release.

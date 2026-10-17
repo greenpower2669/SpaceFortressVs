@@ -778,13 +778,21 @@ SOLO-018 : CI exacte 38963255438 SUCCESS, code a85ca0dbd8e94e463d11e42b5b2cefb32
 - [x] Nouvelle couronne de défilement douce d'un diamètre à deux diamètres, vitesse 0→0,025 puis 0,025→0,1 sans arrêt au raccord.
 - [x] Anciennes vitesses extérieures et physique conservées ; loi commune doigt/caméra.
 - [x] Tests seuils, continuité, monotonie, huit directions, mouvement réel de la caméra ajoutés.
-- [ ] CI C++/SDL2/Android à confirmer sur SHA code définitif.
-- [ ] Exporter un APK diagnostic direct GitHub + AAB non signé uniquement après CI verte, vérifications SHA256.
+- [x] CI C++/SDL2/Android `39040122861` SUCCESS sur `6c79f88`.
+- [x] Export direct GitHub `39040168281` SUCCESS : APK et AAB dans `temp/solo-inner-cruise-022/`, SHA256 vérifiés.
 - [ ] Tester le confort de la nouvelle couronne sur Samsung.
 - [ ] Conserver main / Release intacts.
 
 - [x] SOLO-022 code source et tests regroupés `6c79f88addd673c4be8a8efc853c091ee94ae675`.
 - [x] Chemin de retour arrière isolé `git revert 6c79f88addd673c4be8a8efc853c091ee94ae675` documenté dans ordres-de-mission.md.
 - [x] Workflow de livraison conditionnelle `solo-inner-cruise-022-export.yml` créé et épinglé au bon SHA.
-- [ ] Confirmer CI complète source `39040122861` et export direct `39040168281` verts.
+- [x] CI complète source `39040122861` et export direct `39040168281` SUCCESS.
 - [ ] Tester sur Samsung la croisière 1D→2D à vitesses très faibles, 8 directions, sans arrêt sur la frontière 2D et sans changement du pilotage ou rebond.
+
+### SOLO-022 — validation finale et téléchargement direct — 17/10/2026
+- Commit source exact `6c79f88addd673c4be8a8efc853c091ee94ae675`; CI `39040122861` **SUCCESS** pour C++/SDL2/Android, Release **SKIPPED**.
+- Export GitHub `39040168281` **SUCCESS**. Fichiers réellement présents dans `temp/solo-inner-cruise-022/`, sommes SHA256 contrôlées par workflow et manifest.
+- APK de diagnostic installable : `SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88.apk`, 98 449 221 octets, SHA256 `540fdae8cc278550622bcfa4ba11d9ae7eccb774111a529bbc4365118b84cab8`.
+- AAB non signé, pas destiné à Google Play : `SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88-unsigned.aab`, 95 742 235 octets, SHA256 `130ab9ad27041aeb7711f86518a3b368063e1aab9c07902a220430c70b93b4ae`.
+- La fonction de défilement démarre désormais à un diamètre, atteint 0,025 à deux diamètres, reste monotone jusqu'aux zones précédentes. Toujours aucune modification physique, des textures ou des modes historiques.
+- **À valider par Fab sur Samsung** : sensation de lenteur à la nouvelle bande, absence d'arrêt à deux diamètres, cohabitation avec touches de tir et pincement. Retour arrière isolé : `git revert 6c79f88addd673c4be8a8efc853c091ee94ae675` sur la branche SOLO en conservant cet ordre de mission. Ni main, ni Release.

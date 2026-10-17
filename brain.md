@@ -744,3 +744,11 @@ Fab signale un arrière-plan de labyrinthe net mais des couloirs/parois de premi
 
 ## 17 octobre 2026 — SOLO-022, bande ultra-lente centrale
 Après phase explicite « code pas » (respectée), Fab a donné « Ok, go » et autorise SOLO-022. Référence avant : `9e064b5`. Code source `6c79f88addd673c4be8a8efc853c091ee94ae675`. Sur la seule branche SOLO, la zone de défilement zéro est réduite au rayon d'un diamètre de vaisseau ; une quatrième bande 1→2 diamètres monte sans secousse de 0 à 0,025 ; à deux diamètres il n'y a plus de vitesse zéro, nouvelle bande 0,025→0,1, puis 0,1→2→6 comme SOLO-020. `soloSoftCirclePan` est déjà partagé entre visée de navigation au doigt et scrolling réel de caméra ; aucune modification au moteur ShipMotion, rebonds, collision, zoom, joystick, textures ou à l'antre. Tests seuils 1D/2D, monotonie, huit directions, continuité, caméra et vitesse hors zones. Run source `39040122861`, export en attente `39040168281`. Revert précis dans `ordres-de-mission.md`.
+
+### SOLO-022 — validation finale et téléchargement direct — 17/10/2026
+- Commit source exact `6c79f88addd673c4be8a8efc853c091ee94ae675`; CI `39040122861` **SUCCESS** pour C++/SDL2/Android, Release **SKIPPED**.
+- Export GitHub `39040168281` **SUCCESS**. Fichiers réellement présents dans `temp/solo-inner-cruise-022/`, sommes SHA256 contrôlées par workflow et manifest.
+- APK de diagnostic installable : `SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88.apk`, 98 449 221 octets, SHA256 `540fdae8cc278550622bcfa4ba11d9ae7eccb774111a529bbc4365118b84cab8`.
+- AAB non signé, pas destiné à Google Play : `SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88-unsigned.aab`, 95 742 235 octets, SHA256 `130ab9ad27041aeb7711f86518a3b368063e1aab9c07902a220430c70b93b4ae`.
+- La fonction de défilement démarre désormais à un diamètre, atteint 0,025 à deux diamètres, reste monotone jusqu'aux zones précédentes. Toujours aucune modification physique, des textures ou des modes historiques.
+- **À valider par Fab sur Samsung** : sensation de lenteur à la nouvelle bande, absence d'arrêt à deux diamètres, cohabitation avec touches de tir et pincement. Retour arrière isolé : `git revert 6c79f88addd673c4be8a8efc853c091ee94ae675` sur la branche SOLO en conservant cet ordre de mission. Ni main, ni Release.

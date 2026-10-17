@@ -806,3 +806,11 @@ La première compilation complète `39018857560` a découvert une **erreur de no
 Correction et tests regroupés dans **`6c79f88addd673c4be8a8efc853c091ee94ae675`** ; base `9e064b552a6a7bead00817fb4bed04f4dd0d5288`. Revenir au défilement SOLO-021 **sans retirer ses parois nettes** : sur `feature/solo-coop-core-v1`, contrôler le diff puis lancer `git revert 6c79f88addd673c4be8a8efc853c091ee94ae675`, résoudre tout conflit éventuel, relancer toute la CI. Les archives binaires et cette trace documentaire demeurent consultables. Ne pas utiliser `git reset --hard`, ni force-push, ni toucher main ou Release.
 
 Workflow de vérification du code : GitHub Actions run `39040122861`. Export direct (si réussite intégrale du run exact) : `temp/solo-inner-cruise-022/` via workflow `.github/workflows/solo-inner-cruise-022-export.yml` (run `39040168281`). Avant résultats finaux, ne pas affirmer que l'APK existe ni que la CI est verte.
+
+### SOLO-022 — validation finale et téléchargement direct — 17/10/2026
+- Commit source exact `6c79f88addd673c4be8a8efc853c091ee94ae675`; CI `39040122861` **SUCCESS** pour C++/SDL2/Android, Release **SKIPPED**.
+- Export GitHub `39040168281` **SUCCESS**. Fichiers réellement présents dans `temp/solo-inner-cruise-022/`, sommes SHA256 contrôlées par workflow et manifest.
+- APK de diagnostic installable : `SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88.apk`, 98 449 221 octets, SHA256 `540fdae8cc278550622bcfa4ba11d9ae7eccb774111a529bbc4365118b84cab8`.
+- AAB non signé, pas destiné à Google Play : `SpaceFortressVs-1.4.2-SOLO-INNER-CRUISE-022-6c79f88-unsigned.aab`, 95 742 235 octets, SHA256 `130ab9ad27041aeb7711f86518a3b368063e1aab9c07902a220430c70b93b4ae`.
+- La fonction de défilement démarre désormais à un diamètre, atteint 0,025 à deux diamètres, reste monotone jusqu'aux zones précédentes. Toujours aucune modification physique, des textures ou des modes historiques.
+- **À valider par Fab sur Samsung** : sensation de lenteur à la nouvelle bande, absence d'arrêt à deux diamètres, cohabitation avec touches de tir et pincement. Retour arrière isolé : `git revert 6c79f88addd673c4be8a8efc853c091ee94ae675` sur la branche SOLO en conservant cet ordre de mission. Ni main, ni Release.
