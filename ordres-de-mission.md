@@ -835,3 +835,13 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 **Aucun changement de règles :** pas de modification de map, passages, collisions, ennemis, minage, caméra, champ de force, inertie, visée, textures fond, CLASSIQUE/DUEL/COOP ou `src/main.cpp`. Visuellement la roche se rétracte sur les bords de cellule ; le contour de collision demeure celui d'avant, donc vérifier la sensation de proximité et les angles sur Samsung.
 
 **Retour arrière :** un commit de code principal sera référencé ci-après. Annuler seulement ce commit par `git revert <SHA_CODE_SOLO_023>` sur la branche feature, conserver la trace et le générateur/atlas comme historique réutilisable, et exécuter les tests. Aucun `git reset --hard`, force-push, merge main ou Release sans validation.
+
+
+
+### SOLO-023 — commit exact du rendu et rollback indépendant
+- Baseline **avant création de l'atlas** : `13e212927c3ef63e3b7f431e71cbee81b0b2a2f8`.
+- Générateur/workflow (purement nouveau, aucune ancienne texture changée) : `923cacb1e137fd12634afda5f533bfb849c47845`.
+- PNG généré et déposé par workflow **39057218668 SUCCESS** ; GitHub indique le fichier `assets/pict/solo/HabillageRebordsModeSolo.png` présent, blob `d667571e5d1c6cf816f0647029d5bff5a06ab353`, 260834 octets.
+- **Commit exact de l'habillage logiciel** : `39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`. Contient `src/solo_edge_sprites.hpp`, adaptation `src/coop_solo_scenery.hpp`, nouveaux tests et première trace documentaire. Toute la logique est localisée dans la vraie scène SOLO, les six thèmes et toutes les maps partageant ce renderer.
+- Si Fab trouve l'habillage trop artificiel/pixelisé, **annuler le code sans perdre l'atlas ni les améliorations antérieures** par `git revert 39d0a7c2b6969f546a7dc7537b3bcf993b097dcb` sur `feature/solo-coop-core-v1`, résoudre d'éventuels conflits dans les documents à la main, conserver CETTE note historique, relancer la CI. Après cet unique revert, l'ancien affichage revient automatiquement ; supprimer l'atlas et le générateur **seulement** après ordre explicite, par commits séparés. Aucun reset/force-push, merge main ni Release.
+- CI source `39057515808` et export `temp/solo-rock-rims-023/` via `solo-rock-rims-023-export.yml` ; vérification verte nécessaire avant de communiquer un lien APK direct.

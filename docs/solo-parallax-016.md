@@ -85,3 +85,7 @@ CI complète et livraison Android : voir les cinq mémoires et le futur manifest
 `temp/solo-parallax-016/`. Validation Samsung nécessaire : lisibilité du vaisseau,
 continuité perçue, mouvement indépendant des fonds, minage/combat, entrée de
 l'antre, pause/reprise et fluidité.
+
+
+## SOLO-023 — superposition des rebords (évolution du rendu)
+Le fond `fond4hlow.png` et `FondsParallaxeModeSolo.png` ne changent pas. Le rendu `Rock` utilise désormais la planche 48 silhouettes `HabillageRebordsModeSolo.png` en complément de la bande-source des six thèmes `ParoisModeSolo.png`. La carte jouable et le frustum n'ont pas changé ; le nouveau dégradé de surface est précalculé au chargement, jamais à chaque frame. Le vieux rendu rectangulaire reste un secours automatique si les textures supplémentaires manquent. Voir `ordres-de-mission.md` SOLO-023 pour la procédure de revert, à exécuter uniquement après validation. Test final perceptif Samsung requis.

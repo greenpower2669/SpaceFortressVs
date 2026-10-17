@@ -810,3 +810,10 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [ ] Exporter l'APK diagnostic direct temp/ après CI verte avec SHA256, sans ZIP.
 - [ ] Vérifier sur Samsung : rebords organiques (fin des carrés), lisibilité du passage, aucune collision perçue anormale, différence de rendu à zoom haut.
 - [ ] Main / Release interdits sans validation.
+
+
+- [x] SOLO-023 : source `39d0a7c2b6969f546a7dc7537b3bcf993b097dcb`, point de comparaison `13e212927c3ef63e3b7f431e71cbee81b0b2a2f8`.
+- [x] Planche physique PNG 1536×512 et 48 silhouettes créée par `39057218668` et vérifiée dans dépôt.
+- [x] Rollback autonome code seul `git revert 39d0a7c2b6969f546a7dc7537b3bcf993b097dcb` écrit et vérifiable.
+- [ ] Terminer CI `39057515808` et export direct temp/solo-rock-rims-023/ ; ne pas annoncer la réussite avant les résultats.
+- [ ] Essayer sur Samsung, puis itérer artistiquement seulement si rendu trop répétitif ou masque visuel gênant.
