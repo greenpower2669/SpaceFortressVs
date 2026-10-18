@@ -12,7 +12,12 @@
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|density"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <!-- The SOLO prototype stays opt-in; release never includes this menu. -->
         <activity
@@ -36,22 +41,9 @@
             android:label="SOLO avec moteur COOP (test)"
             android:process=":coopsolo" />
 
-        <!-- SOLO-026: diagnostic APK opens directly in the real SOLO, no hub splash.
-             The hub survives as an internal screen, unlocked by twenty
-             alternating taps in the upper side bands of SOLO. -->
-        <activity
-            android:name="com.greenpower2669.spacefortressvs.SpaceFortressSoloGameActivity"
-            tools:node="replace"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|density"
-            android:exported="true"
-            android:launchMode="singleTop"
-            android:screenOrientation="portrait">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
+        <!-- Debug APK now starts the genuine classic mode selector.
+             SOLO is reached through its normal button and retains isolated
+             :sologame activity. Hub remains hidden behind 20 alternating taps. -->
         <activity
             android:name="com.greenpower2669.spacefortressvs.SpaceFortressHubActivity"
             android:exported="false"
