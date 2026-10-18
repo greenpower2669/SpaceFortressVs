@@ -3,75 +3,146 @@
 #include <cmath>
 #include <algorithm>
 #include <cstdint>
+
 namespace sfsolo {
-// Eight discrete fire buttons (45 degrees) orbit a semi-transparent joystick.
-// Centre release fires; a tap repeats the LAST nonzero aimed vector.
+constexpr float stickPi=3.14159265358979323846f;
+inline void neonRing(SDL_Renderer*r,float x,float y,float radius,SDL_Color c,bool dashed){
+    SDL_SetRenderDrawColor(r,c.r,c.g,c.b,c.a);
+    constexpr int segments=72;
+    for(int j=0;j<segments;++j){
+        if(dashed && j%8>=5)continue;
+        const float a=j*(2.f*stickPi/segments),b=(j+1)*(2.f*stickPi/segments);
+        SDL_RenderDrawLine(r,int(x+std::cos(a)*radius),int(y+std::sin(a)*radius),
+                             int(x+std::cos(b)*radius),int(y+std::sin(b)*radius));
+    }
+}
+inline void neonDisk(SDL_Renderer*r,float x,float y,float radius,SDL_Color color){
+    SDL_SetRenderDrawColor(r,color.r,color.g,color.b,color.a);
+    for(int dy=-int(radius);dy<=int(radius);++dy){
+        const float half=std::sqrt(std::max(0.f,radius*radius-dy*dy));
+        SDL_RenderDrawLine(r,int(x-half),int(y+dy),int(x+half),int(y+dy));
+    }
+}
+
+// FirePad: hold at centre -> drag to aim, hold to fire in continuous bursts.
+// Re-tapping centre without dragging fires at the last retained angle.
+// The burst-rest gate exists ONLY here; historic COOP and DUEL never use it.
 struct FirePad {
-    struct Response {bool owned=false,fire=false;};
+    struct Response {bool owned=false,fire=false;}; // .fire = press edge for instant first shot
     bool right=false;
     std::int64_t finger=-1;
-    bool stick=false;
     float dx=0,dy=-1,dragX=0,dragY=0;
-    static constexpr float padPi=3.14159265358979323846f;
-    float cx(int w)const {return right?w-std::max(100.f,w*.20f):std::max(100.f,w*.20f);}
-    float cy(int h)const {return h-std::max(142.f,h*.17f);}
-    float orbit(int w)const {return std::clamp(w*.15f,64.f,86.f);}
-    void cancel(){finger=-1;stick=false;dragX=dragY=0;}
+    float burst=0,rest=0;
+    static constexpr float padPi=stickPi;
+    static constexpr float burstSeconds=1.25f;
+    static constexpr float restSeconds=1.50f;
+    float cx(int w)const {return right?w-std::max(92.f,w*.20f):std::max(92.f,w*.20f);}
+    float cy(int h)const {return h-std::max(144.f,h*.17f);}
+    float orbit(int w)const {return std::clamp(w*.135f,54.f,82.f);}
+    bool active()const {return finger>=0;}
+    void cancel(){finger=-1;dragX=dragY=0;burst=rest=0;}
     void set(float x,float y){
         const float len=std::hypot(x,y);
-        if(len>.001f){dx=x/len;dy=y/len;}
+        if(len>.0001f){dx=x/len;dy=y/len;}
     }
     Response handle(int type,std::int64_t id,float x,float y,int w,int h){
-        if(finger>=0){
+        if(active()){
             if(id!=finger)return {};
-            if(type==SDL_FINGERMOTION&&stick){dragX=x-cx(w);dragY=y-cy(h);return {true,false};}
-            if(type==SDL_FINGERUP){
-                const bool shoot=stick;
-                if(shoot&&std::hypot(dragX,dragY)>std::max(12.f,w*.025f))set(dragX,dragY);
-                cancel();return {true,shoot};
+            if(type==SDL_FINGERMOTION){
+                dragX=x-cx(w);dragY=y-cy(h);
+                if(std::hypot(dragX,dragY)>std::max(12.f,w*.025f))set(dragX,dragY);
+                return {true,false};
             }
+            if(type==SDL_FINGERUP){cancel();return {true,false};}
             return {true,false};
         }
         if(type!=SDL_FINGERDOWN)return {};
-        const float px=cx(w),py=cy(h),r=orbit(w);
-        for(int i=0;i<8;++i){
-            const float a=i*padPi*.25f;
-            if(std::hypot(x-px-r*std::cos(a),y-py-r*std::sin(a))<=std::max(19.f,w*.038f)){
-                finger=id;stick=false;set(std::cos(a),std::sin(a));return {true,true};
-            }
-        }
-        if(std::hypot(x-px,y-py)<=std::max(34.f,w*.068f)){
-            finger=id;stick=true;dragX=dragY=0;return {true,false};
-        }
-        return {};
+        // Entire circular touch target belongs to fire; never steal other stick.
+        if(std::hypot(x-cx(w),y-cy(h))>orbit(w)+13.f)return {};
+        finger=id;
+        dragX=x-cx(w);dragY=y-cy(h);
+        if(std::hypot(dragX,dragY)>std::max(12.f,w*.025f))set(dragX,dragY);
+        burst=rest=0;
+        return {true,true};
     }
-    void draw(SDL_Renderer* renderer,int w,int h)const {
-        if(!renderer)return;
-        SDL_BlendMode old;SDL_GetRenderDrawBlendMode(renderer,&old);
-        SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
-        const float x=cx(w),y=cy(h),r=orbit(w);
-        auto ring=[&](float px,float py,float radius,SDL_Color c){
-            SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,c.a);
-            for(int j=0;j<48;++j){
-                const float a=j*padPi/24,b=(j+1)*padPi/24;
-                SDL_RenderDrawLine(renderer,int(px+std::cos(a)*radius),int(py+std::sin(a)*radius),
-                       int(px+std::cos(b)*radius),int(py+std::sin(b)*radius));
-            }
-        };
-        ring(x,y,35,{120,220,255,170});
-        ring(x,y,29,{120,220,255,70});
-        for(int i=0;i<8;++i){
-            const float a=i*padPi*.25f,bx=x+std::cos(a)*r,by=y+std::sin(a)*r;
-            ring(bx,by,std::max(17.f,w*.032f),{140,220,255,170});
-            SDL_SetRenderDrawColor(renderer,180,245,255,205);
-            SDL_RenderDrawLine(renderer,int(bx-std::cos(a)*7),int(by-std::sin(a)*7),
-                               int(bx+std::cos(a)*7),int(by+std::sin(a)*7));
+    // Returns permission to attempt an actual shot. Canonical COOP fire cooldown
+    // and energy availability still decide whether a round can be emitted.
+    bool tick(float dt){
+        if(!active()||dt<=0)return false;
+        if(rest>0){
+            rest=std::max(0.f,rest-dt);
+            if(rest>0)return false;
+            burst=0;
         }
-        const float dist=std::hypot(dragX,dragY);
-        const float vx=stick&&dist>12?dragX/dist:dx,vy=stick&&dist>12?dragY/dist:dy;
-        SDL_SetRenderDrawColor(renderer,230,245,255,225);
-        SDL_RenderDrawLine(renderer,int(x),int(y),int(x+vx*28),int(y+vy*28));
-        SDL_SetRenderDrawBlendMode(renderer,old);
+        burst+=dt;
+        if(burst>=burstSeconds){
+            burst=0;rest=restSeconds;return false;
+        }
+        return true;
+    }
+    void draw(SDL_Renderer*r,int w,int h)const {
+        if(!r)return;
+        SDL_BlendMode old;SDL_GetRenderDrawBlendMode(r,&old);
+        SDL_SetRenderDrawBlendMode(r,SDL_BLENDMODE_BLEND);
+        const float x=cx(w),y=cy(h),radius=orbit(w);
+        neonDisk(r,x,y,radius,{21,126,155,24});
+        neonRing(r,x,y,radius,{82,225,241,168},true);
+        neonDisk(r,x,y,radius*.36f,{64,219,233,80});
+        neonRing(r,x,y,radius*.36f,{98,240,247,185},false);
+        const float extent=radius*.81f,ex=x+dx*extent,ey=y+dy*extent;
+        SDL_SetRenderDrawColor(r,101,244,250,230);
+        SDL_RenderDrawLine(r,int(x),int(y),int(ex),int(ey));
+        const float perpX=-dy,perpY=dx;
+        SDL_RenderDrawLine(r,int(ex),int(ey),int(ex-dx*16+perpX*8),int(ey-dy*16+perpY*8));
+        SDL_RenderDrawLine(r,int(ex),int(ey),int(ex-dx*16-perpX*8),int(ey-dy*16-perpY*8));
+        if(rest>0)neonRing(r,x,y,radius*.92f,{245,170,102,140},false);
+        SDL_SetRenderDrawBlendMode(r,old);
     }
 };
-}
+
+// Movement always uses the SAME physical ShipMotion code as touch-on-hull.
+// Joystick only supplies a unit force intention; its direction is rebuilt
+// against the actual ship coordinates on every fixed physics substep.
+struct MovePad {
+    bool right=true;
+    std::int64_t finger=-1;
+    float dx=0,dy=0,magnitude=0;
+    float cx(int w)const {return right?w-std::max(92.f,w*.20f):std::max(92.f,w*.20f);}
+    float cy(int h)const {return h-std::max(144.f,h*.17f);}
+    float orbit(int w)const {return std::clamp(w*.135f,54.f,82.f);}
+    bool active()const {return finger>=0;}
+    void cancel(){finger=-1;dx=dy=magnitude=0;}
+    bool handle(int type,std::int64_t id,float x,float y,int w,int h){
+        if(active()){
+            if(id!=finger)return false;
+            if(type==SDL_FINGERUP){cancel();return true;}
+            if(type==SDL_FINGERMOTION){update(x,y,w,h);return true;}
+            return true;
+        }
+        if(type!=SDL_FINGERDOWN ||
+           std::hypot(x-cx(w),y-cy(h))>orbit(w)+13.f)return false;
+        finger=id;update(x,y,w,h);return true;
+    }
+    void update(float x,float y,int w,int h){
+        const float ox=x-cx(w),oy=y-cy(h),len=std::hypot(ox,oy);
+        const float dead=std::max(9.f,w*.018f);
+        if(len<=dead){dx=dy=magnitude=0;return;}
+        dx=ox/len;dy=oy/len;
+        magnitude=std::clamp((len-dead)/(orbit(w)-dead),0.f,1.f);
+    }
+    void draw(SDL_Renderer*r,int w,int h)const {
+        if(!r)return;
+        SDL_BlendMode old;SDL_GetRenderDrawBlendMode(r,&old);
+        SDL_SetRenderDrawBlendMode(r,SDL_BLENDMODE_BLEND);
+        const float x=cx(w),y=cy(h),radius=orbit(w);
+        neonDisk(r,x,y,radius,{115,76,170,24});
+        neonRing(r,x,y,radius,{191,163,255,170},true);
+        const float px=x+dx*magnitude*radius*.57f,py=y+dy*magnitude*radius*.57f;
+        SDL_SetRenderDrawColor(r,203,178,255,185);
+        SDL_RenderDrawLine(r,int(x),int(y),int(px),int(py));
+        neonDisk(r,px,py,radius*.33f,{174,148,250,110});
+        neonRing(r,px,py,radius*.33f,{203,180,255,200},false);
+        SDL_SetRenderDrawBlendMode(r,old);
+    }
+};
+} // namespace sfsolo
