@@ -6,6 +6,7 @@
 #include "solo_bonus_core.hpp"
 #include "solo_miniboss.hpp"
 #include "solo_ship_motion.hpp"
+#include "solo_wall_impact.hpp"
 #include "solo_meteor_take_picker.hpp"
 #include "solo_meteor_sound_state.hpp"
 #include <map>
@@ -28,6 +29,7 @@ struct SfCoopControl {
     SDL_FingerID finger=-1; tupl target; bool down=false; tuplv velocity;
     // SOLO-only normal-pressure filter after impact; other modes never read it.
     float wallGrace=0,wallNX=0,wallNY=0;
+    float wallPenaltyCooldown=0; // SOLO-only: persistent wall contact is one impact
 };
 struct SfSoloWallBounce {
     tupl position; tuplv velocity; tupl normal; bool collided=false;
@@ -712,6 +714,7 @@ static void sfCoopMovePlayers(float dt)
         const bool soloInertia=(sfCoop.soloGame || sfCoop.soloDiagnostic || sfCoop.soloWorldMode) && owner==1;
         if(soloInertia){
             control.wallGrace=std::max(0.f,control.wallGrace-dt);
+            control.wallPenaltyCooldown=std::max(0.f,control.wallPenaltyCooldown-dt);
             tupl target=control.target;
             if(sfCoop.soloWorldMode && control.wallGrace>0 && control.down){
                 const float dx=target.x-ship->x,dy=target.y-ship->y;
@@ -732,12 +735,27 @@ static void sfCoopMovePlayers(float dt)
         } else { const float decay=std::exp(-dt*8);control.velocity.vx*=decay;control.velocity.vy*=decay; }
         const float halfWidth=std::max(radius,ship->w*.5f),halfHeight=ship->h*.5f;
         if(sfCoop.soloWorldMode && sfCoop.soloWorldBounce && owner==1){
+            const tuplv incomingVelocity=control.velocity;
             const auto resolved=sfCoop.soloWorldBounce(
                 sfCoop.soloWorldContext,previous,tupl(inertial.x,inertial.y),
                 control.velocity,std::max(halfWidth,halfHeight),dt);
             ship->x=resolved.position.x;ship->y=resolved.position.y;
             control.velocity=resolved.velocity;
             if(resolved.collided){
+                // Use only inward NORMAL speed; sliding along a wall remains
+                // harmless. One penalty per distinct impact, not every substep.
+                if(control.wallPenaltyCooldown<=0 && sfCoop.invulnerable[owner]<=0){
+                    const auto penalty=sfsolo::wallPenalty(
+                        incomingVelocity.vx,incomingVelocity.vy,
+                        resolved.normal.x,resolved.normal.y,sfArenaW);
+                    if(penalty.hull>0){
+                        sfAddShipHeat(ship,penalty.energy);
+                        ship->pv=std::max(0.0f,ship->pv-penalty.hull);
+                        control.wallPenaltyCooldown=.65f;
+                        sfCoop.soundHit=true;
+                        sfCoopEmitRedDust(owner,3);
+                    }
+                }
                 control.wallGrace=.20f;
                 control.wallNX=resolved.normal.x;
                 control.wallNY=resolved.normal.y;
@@ -762,7 +780,9 @@ static void sfCoopMovePlayers(float dt)
         }
         ship->vx=ship->vy=0; ship->startup();
         sfObserved[owner].observe(tupl(ship->x,ship->y),dt);
-        ship->nrj=sfCoopPassiveRechargeHeat(ship->nrj,dt);
+        ship->nrj=soloInertia?
+            sfSoloPassiveRechargeHeat(ship->nrj,dt,sfBossDangerIndex):
+            sfCoopPassiveRechargeHeat(ship->nrj,dt);
         const float collision=sfCoopBossRadius()*.72f+radius;
         const float distance=vlong(ship->x-sfCoop.position.x,ship->y-sfCoop.position.y);
         if (sfCoop.bossPresent && distance<collision) {
