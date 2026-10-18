@@ -21,6 +21,7 @@ struct CoopSoloWorldBridge {
     Map map;
     SDL_Rect screen{};
     float combatWidth=1.0f;
+    unsigned cameraDifficulty=1; // Map metadata does not carry difficulty.
     float pixelsPerCell=1.0f;
     float cameraLeft=0,cameraTop=0,zoom=1;
     // SOLO-029 camera-only lead; never part of pilot physics.
@@ -41,6 +42,7 @@ struct CoopSoloWorldBridge {
            !std::isfinite(historicCombatWidth)||historicCombatWidth<=0)return false;
         screen=output;
         combatWidth=historicCombatWidth;
+        cameraDifficulty=options.difficulty;
         pixelsPerCell=historicCombatWidth/(SOLO_REFERENCE_COLUMNS/SOLO_MAP_ZOOM);
         cameraLeft=cameraTop=0;zoom=1;
         lookAheadX=lookAheadY=0;
@@ -332,7 +334,7 @@ struct CoopSoloWorldBridge {
         // never the ship's pixel distance to centre nor the input finger.
         const float vx=displacement.x/dt,vy=displacement.y/dt;
         const float speed=std::hypot(vx,vy);
-        const float danger=std::clamp(float(map.difficulty),1.f,9.f);
+        const float danger=std::clamp(float(cameraDifficulty),1.f,9.f);
         const float maximum=combatWidth*(1.7f+1.4f*(danger-1.f)/8.f);
         const float throttle=maximum>0?std::clamp(speed/maximum,0.f,1.f):0.f;
         constexpr float maximumLead=.205f; // ship ~29.5% screen at full speed
