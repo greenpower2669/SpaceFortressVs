@@ -36,16 +36,27 @@
             android:label="SOLO avec moteur COOP (test)"
             android:process=":coopsolo" />
 
+        <!-- SOLO-026: diagnostic APK opens directly in the real SOLO, no hub splash.
+             The hub survives as an internal screen, unlocked by twenty
+             alternating taps in the upper side bands of SOLO. -->
         <activity
-            android:name="com.greenpower2669.spacefortressvs.SpaceFortressHubActivity"
+            android:name="com.greenpower2669.spacefortressvs.SpaceFortressSoloGameActivity"
+            tools:node="replace"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|density"
             android:exported="true"
-            android:screenOrientation="portrait"
-            android:theme="@style/AppTheme"
-            android:label="SpaceFortress DIAG">
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name="com.greenpower2669.spacefortressvs.SpaceFortressHubActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"
+            android:label="SpaceFortress DIAG" />
     </application>
 </manifest>
