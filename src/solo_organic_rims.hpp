@@ -3,6 +3,7 @@
 // Cached 8x8-cell RGBA chunks; no seam at tile boundaries, no map edits.
 // The source paint is still ParoisModeSolo.png, never replaced or resized.
 #include "solo_map_generator.hpp"
+#include "solo_rock_material_variation.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <algorithm>
@@ -115,21 +116,46 @@ struct SoloOrganicRims {
         for(int y=0;y<textureSide;++y){
             auto *row=reinterpret_cast<Uint32*>(static_cast<Uint8*>(surf->pixels)+y*surf->pitch);
             const float gy=cy*chunkCells+(y+.5f)/texelsPerCell;
-            const int py=(int(std::floor(gy*58.f/.65f))%58+58)%58;
-            const auto *paintRow=reinterpret_cast<const Uint32*>(
-                static_cast<const Uint8*>(paint->pixels)+py*paint->pitch);
             for(int x=0;x<textureSide;++x){
                 const float gx=cx*chunkCells+(x+.5f)/texelsPerCell;
                 const float strength=field(map,gx,gy);
                 if(strength<contourThreshold(gx,gy)){
                     row[x]=SDL_MapRGBA(surf->format,0,0,0,0);continue;
                 }
-                const int px=(int(std::floor(gx*200.f/2.f))%200+200)%200;
+                // SOLO-025: the source paint is warped CONTINUOUSLY in map
+                // coordinates, not reset to the original 2x.65-cell stripe.
+                const auto variation=soloRockMaterialAt(gx,gy);
+                const auto wrap=[](float n,int size){
+                    const int whole=int(std::floor(n));
+                    return (whole%size+size)%size;
+                };
+                const int px=wrap(variation.sourceX*100.f,200);
+                const int py=wrap(variation.sourceY*58.f/.65f,58);
+                const auto *primary=reinterpret_cast<const Uint32*>(
+                    static_cast<const Uint8*>(paint->pixels)+py*paint->pitch);
                 Uint8 red,green,blue,alpha;
-                SDL_GetRGBA(paintRow[px],paint->format,&red,&green,&blue,&alpha);
-                // Subtle bevel along a LONG natural continuous contour.
-                const float light=std::clamp(.76f+.32f*strength+
-                    .11f*std::sin(2.4f*gx-1.5f*gy),.68f,1.17f);
+                SDL_GetRGBA(primary[px],paint->format,&red,&green,&blue,&alpha);
+                if(variation.altWeight>0.f){
+                    const int sx=wrap(variation.altX*100.f,200);
+                    const int sy=wrap(variation.altY*58.f/.65f,58);
+                    const auto *alternate=reinterpret_cast<const Uint32*>(
+                        static_cast<const Uint8*>(paint->pixels)+sy*paint->pitch);
+                    Uint8 ar,ag,ab,aa;
+                    SDL_GetRGBA(alternate[sx],paint->format,&ar,&ag,&ab,&aa);
+                    const float q=variation.altWeight;
+                    red=Uint8(red*(1.f-q)+ar*q);
+                    green=Uint8(green*(1.f-q)+ag*q);
+                    blue=Uint8(blue*(1.f-q)+ab*q);
+                }
+                // Reduce the repeated cold-blue signatures except in sparse
+                // continuous geological pockets; no tile-grid distribution.
+                const int cold=std::max(0,int(blue)-int(std::max(red,green)));
+                if(cold>13){
+                    blue=Uint8(std::clamp(float(blue)-
+                        float(cold)*(.92f-.77f*variation.blueWeight),0.f,255.f));
+                }
+                const float light=std::clamp((.76f+.32f*strength+
+                    .055f*std::sin(2.4f*gx-1.5f*gy))*variation.shade,.60f,1.17f);
                 auto adjust=[light](Uint8 c){
                     return Uint8(std::clamp(int(c*light),0,255));
                 };
