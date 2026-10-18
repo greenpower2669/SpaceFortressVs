@@ -1000,3 +1000,14 @@ Source exacte `d861a22221abaaf08ec516a2a2b9123b0a537e41` : CI Android+C+++SDL2 `
 
 ### SOLO-029 — livraison source CI verte et APK direct vérifié (18/10/2026)
 Source testée `e7bb328a4373beb941b6002e5efcc50c8ab5c965`. CI `Android APK + AAB` run `39153071193` **SUCCESS**, trois suites core C++/SDL2/Android vertes, `publish-release` SKIPPED. Export GitHub `SOLO-029 CI-green APK direct` run `39153071248` **SUCCESS**. Fichier INSTALLABLE déjà extrait sur GitHub branche `feature/solo-coop-core-v1` : `temp/solo-029/SpaceFortressVs-1.4.2-SOLO-029-e7bb328.apk`, taille **98 727 558 octets**, SHA256 `f2e93f6fcda37091dd721287a82d7f4825007d3d532af1e18250d7b90a78a95d`. AAB **non signé** : `temp/solo-029/SpaceFortressVs-1.4.2-SOLO-029-e7bb328-unsigned.aab`, taille **96 015 350 octets**, SHA256 `1cd371a10415cee437602d7edfb44fe4b8af9e953dc46e0a135b85bae382f97a`. Meta dans `temp/solo-029/*-build.json` ; Meteor privés `0/4` dans cet APK public, sons historiques de secours, ne pas revendiquer 4/4. Aucun ZIP utilisateur, aucun merge main, aucune release publique. Essai réel de caméra tactile Samsung encore à réaliser avec Fab.
+
+### SOLO-030 — course douce et vecteur cumulatif
+- [x] Allonger la course joystick de déplacement et déplacer son centre pour que le débattement reste dans l'écran.
+- [x] Rampe cubique plus douce au centre, vitesse maximale conservée au bord.
+- [x] Bonus de commande progressif par tenue de vecteur stable près du bord, limité à +.30 de throttle / vitesse max historique.
+- [x] Réinitialiser bonus sur changement de direction significatif, relâchement, retour centre et pause / cancel.
+- [x] Appliquer la même logique au pilotage doigt sur coque, sans interaction avec caméra ni tir.
+- [x] Étendre tests C++ de courbes, maintien, inversion, stabilité infinie et difficulté.
+- [ ] Attendre CI Android+C+++SDL2 verte exacte et livrer APK direct SOLO-030 `temp/solo-030/*.apk` ; SHA256 et manifest vérifiés.
+- [ ] Valider sur Samsung la douceur des petits déplacements et le temps d'élan dans la couronne ; pas de tremblement en inversion.
+- [ ] Tenir les sons privés Meteor (0/4 ou 4/4) distincts ; pas de merge main/Release.
