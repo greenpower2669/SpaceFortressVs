@@ -43,3 +43,16 @@ static float sfCanonicalCoopPassiveRechargeHeat(float heat,float dt,int dangerIn
     const float updates=60.0f*sfCanonicalCoopPassiveRechargeMultiplier(dangerIndex)*dt;
     return sfShipHeat(heat*std::pow(.997f,updates));
 }
+ 
+// SOLO-026: tactical exploration needs an actual wait-or-mine choice.
+// 0 heat is 100% energy, 50 heat is depleted. A finite linear rate reaches
+// precisely zero after patient waiting; collecting mining dust remains faster.
+// All historical COOP and DUEL recharge equations stay untouched.
+static float sfSoloPassiveRechargeHeat(float heat,float dt,int dangerIndex){
+    heat=sfShipHeat(heat);
+    if(!(dt>0.0f)||!std::isfinite(dt))return heat;
+    const float danger=std::clamp(dangerIndex,0,SF_BOSS_DANGER_COUNT-1)/
+                       float(SF_BOSS_DANGER_COUNT-1);
+    const float rate=(.30f+.90f*(heat/SF_MAX_SHIP_HEAT))*(1.0f-.35f*danger);
+    return sfShipHeat(std::max(0.0f,heat-rate*dt));
+}
