@@ -33,8 +33,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          source_run=39084636747
-          source_sha=8d1cb323a342247ccbe9d9d2704efc2d9e662d02
+          source_run=39085021465
+          source_sha=b6e0a38cb98f0ec769cc3c4c1d409200c3da5b43
           gh run watch "$source_run" --repo "$GITHUB_REPOSITORY" --exit-status
           status="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json conclusion --jq .conclusion)"
           sha="$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json headSha --jq .headSha)"
@@ -78,7 +78,7 @@ jobs:
           audio_status=('four private Djipie samples packaged and verified'
                         if len(real_sounds)==4 else 'legacy sound fallback; NO Djipie files packaged')
           build={'mission':'SOLO VARIETY-025','commit':commit,
-                 'ciRun':39084636747,'branch':'feature/solo-coop-core-v1',
+                 'ciRun':39085021465,'branch':'feature/solo-coop-core-v1',
                  'packageName':meta['packageName'],'files':files,
                  'meteorSoundsPackaged':len(real_sounds),'audioStatus':audio_status,
                  'note':'APK debug installable; AAB unsigned; never a public Release'}
@@ -89,7 +89,7 @@ jobs:
           sums='\n'.join(f"{v['sha256']}  {k}" for k,v in files.items())+'\n'
           (destination/'SHA256SUMS').write_text(sums)
           readme=('# 🚀 SOLO-025 — matiere rocheuse anti-repetition et variations de chocs meteores\n\n'
-                  f'APK et AAB de diagnostic, code {commit}, CI 39084636747 SUCCESS.\n'
+                  f'APK et AAB de diagnostic, code {commit}, CI 39085021465 SUCCESS.\n'
                   'App Android : com.greenpower2669.spacefortressvs.diagnostic.\n'
                   'Ne pas désinstaller le jeu historique ; ne pas publier cet AAB non signé.\n'
                   +f'Djipie Meteor explosions : {len(real_sounds)}/4. {audio_status}.\n\n'
