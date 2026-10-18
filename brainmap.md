@@ -707,3 +707,10 @@ Point de reprise : `src/legacy_field_runtime.hpp` (parité vraie portée cône v
 
 ### SOLO-026 — livraison vérifiée CI et APK (18/10/2026)
 SOL0-026 : source `788c03c`, CI `39132530943 SUCCESS`, export `39132531008 SUCCESS`, binaires directs `temp/solo-026/SpaceFortressVs-1.4.2-SOLO-026-788c03c.apk` et `-unsigned.aab`. Metadata et checksums dans `temp/solo-026/`. APK 0/4 sons privés Meteor ; ne pas confondre avec SOLO-025 privé contenant 4/4. Essais Samsung en attente.
+
+### SOLO-027 — cartes de reprise du double stick et du démarrage
+- `src/solo_fire_pad.hpp` : `FirePad` tir continu 360° à mémoire de direction / 1,25s ON puis 1,50s OFF, `MovePad` contrôle violet indépendant; rendu SDL pointillés translucides TURQUOISE/VIOLET.
+- `src/coop_solo_session_runtime.hpp` : `stickSteering` vs déplacement tactile vaisseau ; `movePad.right=!firePad.right` systématique ; `solo-fire-hand-v1.cfg` rétrocompatible (R/L puis S/F), reconnexion de `ShipMotion` par `sfCoop.controls[1].target` chaque substep, deux lignes Options et petite sentinelle `Tourelle.png`. `fireAlongPad` appelle vraie `sfCoopFire`.
+- `android/app/src/debug/AndroidManifest.xml` : launcher historique `SpaceFortressActivity` au lieu de jeu SOLO direct ou HUB; SOLO interne :sologame inchangé. `SpaceFortressActivity.java` : 20 taps G-D tout en haut pour hub en debug seulement.
+- Tests `tests/solo_fire_pad_regressions.cpp` et `scripts/check-solo-launcher.py`.
+- Export APK vérifié direct `.github/workflows/solo-027-direct-export.yml` vers `temp/solo-027/` après source CI vert exact. Aucun ZIP utilisateur, WAV privés Djipie à distinguer du fallback public.

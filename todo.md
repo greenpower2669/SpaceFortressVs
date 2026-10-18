@@ -951,3 +951,16 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [x] AAB `SpaceFortressVs-1.4.2-SOLO-026-788c03c-unsigned.aab` 96 011 406 octets, SHA256 `2ebc55ec5edcd07fbf58642fdd5eea5f9dd4c1b4fd70ee7d1cf8b38f836cc9de`.
 - [ ] Réintégrer les 4 WAV privés de Djipie dans un nouveau build SONORE distinct uniquement avec validation du processus d'accès privé : **actuel 0/4**, fallback historique.
 - [ ] Retour Samsung (ressenti cône Danger1→9, vraie première parallaxe, collisions dangereuses mais glissantes, recharge et 20 taps debug).
+
+### SOLO-027 — double-stick, entrée modes et nouveau panneau OPTIONS
+- [x] Remettre en launcher diagnostic le véritable menu SOLO / COOP / DUEL; conserver le HUB caché par geste debug 20 taps alternés.
+- [x] Tir turquoise continu orientable au doigt (vecteur mémorisé), rafales 1,25s et repos 1,50s, cadence et chaleur historiques respectées.
+- [x] Stick violet déplacement : même ShipMotion/difficulté et inertie ; contrôle par cible virtuelle physique au lieu de repositionnement du vaisseau.
+- [x] Option pilotage au doigt sur vaisseau OU mini-stick et inversion G/D des deux commandes simultanément ; choix persistants, rétrocompatibles.
+- [x] Deux joysticks néon quasi transparents aux codes couleurs turquoise/violet, sentinelle titres `Tourelle.png` au-dessus du bouton Options technologique.
+- [x] Tests commandes SDL et préflight launcher mis à jour.
+- [ ] Attendre CI exact SHA `android-build.yml` Android/C++/SDL2 et corriger les échecs, sans faux GREEN.
+- [ ] Export exact SHA validé direct vers `temp/solo-027/*.apk` (et `-unsigned.aab`) via `.github/workflows/solo-027-direct-export.yml`, SHA256 et manifeste ; jamais ZIP sur appareil Fab.
+- [ ] Faire les essais Samsung de 20 taps/hub, retour menu après jeu, tir continu pause et re-tap, switch synchrone G/D, inertie Danger1→9, modal et sécurité de la navigation Android.
+- [ ] Revalider présence des 4 WAV privés (si 0/4, le dire : fallback ancien), ne pas divulger sons Djipie.
+- [ ] Validation Fab avant merge main/Release.
