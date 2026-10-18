@@ -6,6 +6,7 @@
 #include "solo_bonus_core.hpp"
 #include "solo_miniboss.hpp"
 #include "solo_ship_motion.hpp"
+#include "solo_meteor_take_picker.hpp"
 #include <map>
 
 enum class SfSoloEncounterRole { None, MiniBoss, FinalBoss };
@@ -105,6 +106,7 @@ struct SfCoopState {
     std::string composition,error;
     std::array<bool,2> soundShot{};
     bool soundBoss=false,soundHit=false;
+    bool soundRockPair=false; // real rock-rock only; wall/boss remain old
 };
 inline SfCoopState sfCoop;
 inline int sfFamePage=0,sfCampaignPage=0;
@@ -1519,9 +1521,12 @@ static Mix_Chunk *sfCreateRateShiftedChunk(Mix_Chunk *source,float rate,std::vec
 }
 static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,Mix_Chunk *hit,
                              Mix_Chunk *collision,Mix_Chunk *asteroidAlt=nullptr,
-                             const SfAsteroidExplosionBank *asteroidBank=nullptr)
+                             const SfAsteroidExplosionBank *asteroidBank=nullptr,
+                             const SfAsteroidExplosionBank *meteorTakeBank=nullptr)
 {
     static Uint64 last=0;static unsigned asteroidFxSequence=0;
+    static sfsolo::MeteorTakePicker meteorPicker(
+        std::uint32_t(SDL_GetPerformanceCounter())|1u);
     const Uint64 now=SDL_GetTicks64();
     if (now-last<120) return;last=now;
     for (int owner=0;owner<2;++owner) if (sfCoop.soundShot[owner]) {
@@ -1533,7 +1538,10 @@ static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,M
     if (sfFieldMiningSound) {
         const auto variant=sfAsteroidExplosionFxVariant(++asteroidFxSequence);
         Mix_Chunk *sample=nullptr;
-        if(asteroidBank)sample=asteroidBank->variants[std::clamp(variant.sample,0,3)];
+        if(meteorTakeBank){
+            sample=meteorTakeBank->variants[size_t(meteorPicker.next())];
+        }else if(asteroidBank)
+            sample=asteroidBank->variants[std::clamp(variant.sample,0,3)];
         if(!sample){
             Mix_Chunk *alternate=asteroidAlt?asteroidAlt:boss;
             sample=((variant.sample&1) && alternate) ? alternate : hit;
@@ -1542,11 +1550,24 @@ static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,M
             // Channel 8 is reserved for asteroid destruction: pitch/tempo and
             // volume changes cannot leak into shots, boss or contact FX.
             if(Mix_AllocateChannels(-1)<9)Mix_AllocateChannels(9);
-            Mix_Volume(8,variant.volume);
+            Mix_Volume(8,meteorTakeBank?meteorPicker.volume():variant.volume);
             Mix_PlayChannel(8,sample,0);
         }
     }
-    if (sfFieldCollisionSound && collision) Mix_PlayChannel(3,collision,0);
+    // Only REAL rock-rock contacts get the four new meteor takes. Wall,
+    // boss-field and hull impacts keep their original signatures.
+    bool specializedRock=false;
+    if(sfCoop.soundRockPair && meteorTakeBank && !sfFieldMiningSound){
+        Mix_Chunk *take=meteorTakeBank->variants[size_t(meteorPicker.next())];
+        if(take){
+            Mix_Volume(9,meteorPicker.volume());
+            Mix_PlayChannel(9,take,0);
+            specializedRock=true;
+        }
+    }
+    if (sfFieldCollisionSound && collision && !specializedRock)
+        Mix_PlayChannel(3,collision,0);
+    sfCoop.soundRockPair=false;
     sfFieldCollisionSound=sfFieldMiningSound=false;
     sfCoop.soundBoss=sfCoop.soundHit=false;
 }

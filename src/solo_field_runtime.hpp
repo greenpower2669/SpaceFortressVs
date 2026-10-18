@@ -81,7 +81,10 @@ static void sfSoloRockPair(sprite *a,sprite *b){
     const float energy=sfsolo::rockContact(aa,bb);
     if(energy<=0)return;
     a->vx=aa.vx/60;a->vy=aa.vy/60;b->vx=bb.vx/60;b->vy=bb.vy/60;
-    if(sfFieldAudible((a->x+b->x)*.5f,(a->y+b->y)*.5f))sfFieldCollisionSound=true;
+    if(sfFieldAudible((a->x+b->x)*.5f,(a->y+b->y)*.5f)){
+        sfFieldCollisionSound=true;
+        sfCoop.soundRockPair=true; // SOLO-025 dedicated rock-rock bank
+    }
     sfFieldImpact(a,b,true);
     auto *small=aa.radius<bb.radius?a:b;
     const float mass=sfSoloRockRadius(small)*sfSoloRockRadius(small);

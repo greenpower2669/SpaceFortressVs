@@ -93,6 +93,16 @@ static int runCoopSoloSession(bool diagnostics){
     Mix_Chunk *slowExplosionCue=nullptr,*fastExplosionCue=nullptr;
     std::vector<Uint8> slowExplosionStorage,fastExplosionStorage;
     SfAsteroidExplosionBank asteroidExplosionBank{};
+    SfAsteroidExplosionBank realMeteorBank{};
+    // These private sounds are injected ONLY in authenticated CI workspace.
+    // Never commit raw WAVs into public SpaceFortress Git history.
+    const std::array<const char*,4> meteorNames={{
+        "Meteor_explosion_rock_contre_rock1_001.wav",
+        "Meteor_explosion_rock_contre_rock2_002.wav",
+        "Meteor_explosion_rock_contre_rock3_003.wav",
+        "Meteor_explosion_rock_contre_rock4_004.wav"
+    }};
+    bool meteorReady=false;
     SfCoopSoloChargeCueGate chargeCueGate;
     if(SDL_InitSubSystem(SDL_INIT_AUDIO)==0){
         audioInit=true;Mix_Init(MIX_INIT_OGG);
@@ -109,6 +119,20 @@ static int runCoopSoloSession(bool diagnostics){
                 hitCue,
                 altExplosionCue?altExplosionCue:hitCue,
                 fastExplosionCue?fastExplosionCue:(altExplosionCue?altExplosionCue:hitCue)};
+            for(size_t i=0;i<meteorNames.size();++i){
+                const std::string path=std::string("resources/assets/sounds/")+meteorNames[i];
+                realMeteorBank.variants[i]=Mix_LoadWAV(path.c_str());
+                if(!realMeteorBank.variants[i])break;
+            }
+            meteorReady=std::all_of(realMeteorBank.variants.begin(),
+                                   realMeteorBank.variants.end(),
+                                   [](Mix_Chunk *p){return p!=nullptr;});
+            if(!meteorReady){
+                for(auto *&p:realMeteorBank.variants){
+                    if(p)Mix_FreeChunk(p);p=nullptr;
+                }
+            }
+            SDL_Log("SOLO_025_METEOR_TAKES_READY=%d",int(meteorReady));
             // The SAME kinetic audio implementation as historical COOP:
             // charge at .20 s, READY at 2 s, quiet hold, then release/cancel.
             sfKineticAudioEnsure();
@@ -762,7 +786,9 @@ static int runCoopSoloSession(bool diagnostics){
         // apply sfFixRequestedScreen=HOME and repaint the Classic mode selector.
         SDL_RenderPresent(renderer);
         if(mixerOpen){
-            sfCoopPlaySounds(nullptr,shotCue,nullptr,hitCue,hitCue,altExplosionCue,&asteroidExplosionBank);
+            sfCoopPlaySounds(nullptr,shotCue,nullptr,hitCue,hitCue,
+                             altExplosionCue,&asteroidExplosionBank,
+                             meteorReady?&realMeteorBank:nullptr);
         }
         const double frameWorkMs=(SDL_GetPerformanceCounter()-counter)*1000.0/frequency;
         bonusFrameTotalMs+=frameWorkMs;bonusFrameMaxMs=std::max(bonusFrameMaxMs,frameWorkMs);++bonusFrameCount;
@@ -797,6 +823,7 @@ static int runCoopSoloSession(bool diagnostics){
     sfCoop.soloWorldWidth=sfCoop.soloWorldHeight=0;
     sfFixResetAsteroidField();sfCoop.shots.clear();sfCoop.beams.clear();sfCoop.waves.clear();
     if(mixerOpen)Mix_HaltChannel(-1);
+    for(auto *p:realMeteorBank.variants)if(p)Mix_FreeChunk(p);
     for(Mix_Chunk *p:{slowExplosionCue,fastExplosionCue,shotCue,hitCue,altExplosionCue})if(p)Mix_FreeChunk(p);
     if(mixerOpen){
         // This Android :coopsolo process owns the historical kinetic chunks.
