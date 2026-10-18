@@ -1,0 +1,99 @@
+name: SOLO-026 CI-green APK direct
+
+on:
+  push:
+    branches: [feature/solo-coop-core-v1]
+    paths: [.github/workflows/solo-026-direct-export.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: solo-026-export
+  cancel-in-progress: false
+
+jobs:
+  verified-apk-to-temp:
+    if: github.repository == 'greenpower2669/SpaceFortressVs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout SOLO branch only
+        uses: actions/checkout@v4
+        with:
+          ref: feature/solo-coop-core-v1
+          persist-credentials: true
+      - name: Find exact same-SHA green Android, C++ and SDL2 CI
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          source_run=""
+          for attempt in $(seq 1 90); do
+            source_run="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow android-build.yml --branch feature/solo-coop-core-v1 --limit 45 --json databaseId,headSha --jq '.[] | select(.headSha == env.SOURCE_SHA) | .databaseId' | head -n 1)"
+            if [[ -n "$source_run" ]]; then break; fi
+            sleep 10
+          done
+          [[ -n "$source_run" ]] || { echo "::error::No source CI for exact SOURCE_SHA";exit 1; }
+          gh run watch "$source_run" --repo "$GITHUB_REPOSITORY" --exit-status
+          [[ "$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json conclusion --jq .conclusion)" = success ]]
+          [[ "$(gh run view "$source_run" --repo "$GITHUB_REPOSITORY" --json headSha --jq .headSha)" = "$SOURCE_SHA" ]]
+          source_dir="$RUNNER_TEMP/solo-026-artifacts"
+          mkdir -p "$source_dir"
+          gh run download "$source_run" --repo "$GITHUB_REPOSITORY" --name SpaceFortressVs-1.4.2-release-files --dir "$source_dir"
+          (cd "$source_dir" && sha256sum --check SHA256SUMS)
+          python3 - "$source_dir" "$SOURCE_SHA" "$source_run" <<'PY'
+          import hashlib,json,shutil,sys,zipfile
+          from pathlib import Path
+          base=Path(sys.argv[1]);sha=sys.argv[2];run=int(sys.argv[3])
+          info=json.loads((base/'SpaceFortressVs-1.4.2-build.json').read_text())
+          assert info['commit']==sha, 'Wrong APK source!'
+          assert info['packageName']=='com.greenpower2669.spacefortressvs.diagnostic'
+          dest=Path('temp/solo-026');dest.mkdir(parents=True,exist_ok=True)
+          prefix='SpaceFortressVs-1.4.2-SOLO-026-'+sha[:7]
+          files={}
+          def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+          for orig,new in [('SpaceFortressVs-1.4.2.apk',prefix+'.apk'),
+                           ('SpaceFortressVs-1.4.2-unsigned.aab',prefix+'-unsigned.aab')]:
+              src=base/orig;assert src.stat().st_size>0
+              checksum=digest(src)
+              assert checksum==info['files'][orig]['sha256']
+              dst=dest/new
+              if dst.exists():assert digest(dst)==checksum
+              else:shutil.copyfile(src,dst)
+              files[new]={'sha256':checksum,'size':dst.stat().st_size}
+          apk=dest/(prefix+'.apk')
+          with zipfile.ZipFile(apk) as z:
+              meteor=[name for name in z.namelist()
+                  if 'resources/assets/sounds/Meteor_explosion_rock_contre_rock' in name]
+          assert len(meteor) in (0,4),'Partial private sound bundle'
+          evidence={'mission':'SOLO-026','source':sha,'ciRun':run,
+              'packageName':info['packageName'],'files':files,
+              'meteorSoundsPackaged':len(meteor),
+              'note':'APK directly installable; AAB unsigned. 0/4 means legacy audio fallback, not 4 new private WAVs.'}
+          metadata=dest/(prefix+'-build.json')
+          metadata.write_text(json.dumps(evidence,indent=2,ensure_ascii=False)+'\n')
+          files[metadata.name]={'sha256':digest(metadata),'size':metadata.stat().st_size}
+          (dest/'SHA256SUMS').write_text(''.join(v['sha256']+'  '+k+'\n' for k,v in files.items()))
+          (dest/'README.md').write_text('# SOLO-026 diagnostic\n\nCI source '+sha+
+              ' SUCCESS (run '+str(run)+').\nDirect .apk; unsigned .aab.\n'+
+              'Sons Meteor prives presents : '+str(len(meteor))+'/4.\n'+
+              'Moteur historique preserve. Aucun merge main ni Release.\n')
+          PY
+          (cd temp/solo-026 && sha256sum --check SHA256SUMS)
+      - name: Commit downloadable binary, never update gameplay from runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- temp/solo-026/
+          if git diff --cached --quiet;then echo "Already exported";exit 0;fi
+          git commit -m "chore(solo): verified direct APK and AAB SOLO-026 [skip ci]"
+          git fetch origin feature/solo-coop-core-v1
+          git rebase origin/feature/solo-coop-core-v1
+          git push origin HEAD:refs/heads/feature/solo-coop-core-v1

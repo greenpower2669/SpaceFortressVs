@@ -930,3 +930,16 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [ ] Après GO, réduire fortement recharge énergétique passive SOLO et sa fin de courbe vers 100 % ; rendre 100 % atteignable soit après vraie patience, soit plus vite par minage/poussières. Ne pas modifier PV par inadvertance, ni règles originales CLASSIQUE/COOP.
 - [ ] Créer/étendre tests de géométrie cône rendu/minage, caméra toutes bandes et réversibilité, paroi choc-vitesse-cooldown, courbe récupération passive/minage, danger 1→9, boss/bonus, hors-champ et tests tactiles Samsung.
 - [ ] Au stade autorisé seulement : CI C++/Android/SDL2, essai Samsung, APK direct `.apk` sous `temp/` de branche de travail + AAB non signé identifié, SHA256, jamais de merge main/Release sans accord.
+
+### SOLO-026 — code engagé suite au GO Fab (18/10/26)
+- [x] Aligner la géométrie de minage SOLO avec la surface du cône visible, tout en conservant le facteur niveau Danger 1→9 ; historiques intacts.
+- [x] Faire bouger les couches parallaxes uniquement avec le mouvement de caméra physique, y compris la première petite zone 0,5D→1D ; labyrinthe suit la même caméra.
+- [x] Donner au contact de paroi SOLO des pertes coque+énergie par vitesse normale avec seuil et anti-recontact répétitif.
+- [x] Remplacer la recharge passive SOLO trop rapide par une récupération lente 100% atteignable, poussières/minage avantageux ; COOP/DUEL non modifiés.
+- [x] Désactiver l'accueil hub de diagnostic Android : debug APK ouvre directement SOLO ; l'écran debug se réveille après 20 touches haut alternées G/D, debug uniquement.
+- [x] Ajouter tests purs survie, modifier régressions caméra et contrôler manifeste launcher.
+- [ ] Vérifier CI exacte Android/C++/SDL2 + tests complets ; corriger toute panne avant livraison.
+- [ ] Vérifier l'export automatique direct APK et AAB NON SIGNÉ sous `temp/solo-026/` après CI green ; relever SHA256 sans invention.
+- [ ] Vérifier sur Samsung : portées et difficultés, pilotage doigt, camera + fond dès première zone, rebonds/dégâts normal/cooldown, recharge, bonus, prise main en jeu sans accueil, 20 taps, relance depuis hub.
+- [ ] Confirmer disponibilité sons Meteor 4/4 : le build public peut être fallback et ne doit jamais être décrit comme bundle Djipie si 0/4.
+- [ ] Pas de merge main, pas de Release, pas de signature release sans validation Fab.

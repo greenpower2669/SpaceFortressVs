@@ -130,9 +130,15 @@ inline float soloSoftCircleZoneSpeed(float x,float y,SDL_Rect screen){
     if(r>=outer)return 6.f;
     // BOTH ends use smoothstep: no discontinuity, visible jolt or stop at
     // the previous two-diameter threshold (speed now strictly nonzero).
+    // Feel the background parallax from the very first moving-camera ring.
+    // 0.5D -> 1D -> 2D, with no background-only motion.
+    const float firstD=soloExtraCruiseStart(screen);
+    constexpr float firstRingSpeed=.018f;
+    if(r<=firstD)
+        return firstRingSpeed*soloSmoothstep((r-innerStart)/(firstD-innerStart));
     if(r<=oldStart)
-        return SOLO_EXTRA_CRUISE_HANDOFF*
-               soloSmoothstep((r-innerStart)/(oldStart-innerStart));
+        return firstRingSpeed+(SOLO_EXTRA_CRUISE_HANDOFF-firstRingSpeed)*
+               soloSmoothstep((r-firstD)/(oldStart-firstD));
     if(r<=first)
         return SOLO_EXTRA_CRUISE_HANDOFF+
                (.1f-SOLO_EXTRA_CRUISE_HANDOFF)*
