@@ -100,7 +100,9 @@ inline float soloExtraCruiseStart(SDL_Rect screen){
     return soloSoftCruiseStart(screen)*.5f;
 }
 inline constexpr float SOLO_EXTRA_CRUISE_HANDOFF=.025f;
-// SOLO-024: independent near-hull parallax ring; never moves terrain/camera.
+// SOLO-026: near-hull ring remains a speed landmark only; foreground walls,
+ // actors and every background depth now respond to one real moving camera.
+ // No background-only drift is permitted.
 // From 1/2 to 1 diameter, smoothly reach full background-only response;
 // from 1 to 2 diameters, gently hand over to actual world scrolling.
 inline float soloBackgroundOnlyGain(float x,float y,SDL_Rect screen){
@@ -119,7 +121,9 @@ inline float soloSoftCircleZoneSpeed(float x,float y,SDL_Rect screen){
     const float outer=soloCircleOuterRadius(screen);
     if(outer<=0||!std::isfinite(x)||!std::isfinite(y))return 0.f;
     const float oldStart=std::min(soloSoftCruiseStart(screen),outer*.52f);
-    const float innerStart=std::min(soloExtraCruiseStart(screen),oldStart*.5f);
+    // Begin true WORLD panning half a hull diameter from centre, with an
+    // extremely slow continuous ramp through 1D and 2D.
+    const float innerStart=std::min(soloExtraCruiseStart(screen)*.5f,oldStart*.5f);
     const float r=std::hypot(x-(screen.x+screen.w*.5f),y-(screen.y+screen.h*.5f));
     const float first=outer*.65f,middle=outer*.80f;
     if(r<=innerStart)return 0.f;
