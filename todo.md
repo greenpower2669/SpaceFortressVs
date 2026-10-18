@@ -1014,3 +1014,16 @@ Source testée `e7bb328a4373beb941b6002e5efcc50c8ab5c965`. CI `Android APK + AAB
 
 ### SOLO-030 — livraison CI verte et APK direct (18/10/2026)
 Source exacte `626a24cb021bba6b665f6015567555a8cd9f345f`. Run CI `39156942027` **SUCCESS**, trois suites core C++/SDL2/Android et régressions vertes ; `publish-release` SKIPPED. Export officiel GitHub Actions de branche `39156941944` **SUCCESS**, extrait côté serveur dans `temp/solo-030/` sans ZIP utilisateur. APK de diagnostic installable `temp/solo-030/SpaceFortressVs-1.4.2-SOLO-030-626a24c.apk` **98 727 544 octets**, SHA256 `6e3ad65efe01c759988dd8076bf0c667805a4c0b3d6decb7457d269d10e9a3ec`. AAB non signé `temp/solo-030/SpaceFortressVs-1.4.2-SOLO-030-626a24c-unsigned.aab` **96 017 166 octets**, SHA256 `274b7269b13727a457e22bb59c60bed77ac3f8bde9590f2486bf05aab147ed0c`. `*-build.json` et `SHA256SUMS` vérifiés. Meteor Djipie privé absent `0/4` WAV, sons historiques de secours; ne pas annoncer les sons nouveaux. Tests physiques sur Samsung toujours à réaliser par Fab : réglage de douceur et bonus de maintien, marche arrière et inertie, affichage, main G/D. Aucune fusion main ni Release.
+
+### SOLO-031 — essai rayon court et survitesse
+- [x] Réduire rayon geste pilote sur coque, garder grande course mini-stick.
+- [x] Conserver rampe douce et petit régime stable au centre, sans bonus.
+- [x] Stabiliser petits tremblements joystick, rétrograder le bonus sur virage, réinitialiser à changement de cap fort.
+- [x] Permettre accélération cumulative de direction stable près du bord jusqu'à +30 % de vitesse demandée/physique max.
+- [x] Limiter survitesse au SOLO jeu labyrinthe, laisser COOP/DUEL/ancienne physique à 100 %.
+- [x] Adapter caméra au doigt sur coque avec contrainte d'écart visuel, conserver horizon grand-angle en stick.
+- [x] Ajouter tests de hold, courbes, borne physique, recul et collision haute vitesse.
+- [ ] Valider CI C++, SDL2 et Android exact commit.
+- [ ] Exporter .apk sans ZIP depuis GitHub Actions dans `temp/solo-031/` avec SHA-256 vérifié.
+- [ ] Tests réels Samsung : rayon perçu, maintien 4s, virage, recul, vitesse en couloir/impact, gap caméra.
+- [ ] Ne pas toucher à main/release, sons privés non accessibles : signaler fallback.
