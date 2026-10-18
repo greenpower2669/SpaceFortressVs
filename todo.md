@@ -986,3 +986,14 @@ Source exacte `d861a22221abaaf08ec516a2a2b9123b0a537e41` : CI Android+C+++SDL2 `
 - [ ] Essais Samsung : douceur stick 10/25/50/75/100%, premier anneau, décor non assombri, Game Over et vrai menu parent après tap, gestes zoom et swap. 
 - [ ] Sons Meteor Djipie privés non disponibles dans cet APK public (0/4) ; ne pas déclarer 4/4.
 - [ ] Accord Fab avant fusion main/Release.
+
+### SOLO-029 — caméra anticipation contrôlée
+- [x] Remplacer suivi par zones écran de la caméra MONDE SOLO par suivi du vrai vaisseau et anticipation de vitesse 360° plafonnée.
+- [x] Vitesse nulle = anticipation revient à zéro et recentrage visuel, sans freiner ou déplacer physiquement le vaisseau.
+- [x] Inversion/recul suivent vitesse réelle et amortissement, pas la direction brute du joystick.
+- [x] Doigt sur coque = zéro fixé au contact initial, course de même courbe/reach que stick violet et indépendante du cadrage.
+- [x] Préserver monde/parois/fond/parallax avec une seule vraie caméra ; zoom conserve ancre, marquages caméra historique intacts pour anciens tests.
+- [x] Ajouter tests caméra freinage/inversion/recentrage et test commande doigt vs stick.
+- [ ] Valider CI finale Android, SDL2 et C++ sur SHA EXACT et livrer apk `temp/solo-029/` déjà extrait côté serveur + SHA-256, sans ZIP.
+- [ ] Essais Samsung : visibilité devant dès centre, plus d'anticipation en accélérant, recadrage à l'arrêt, marche arrière, zoom et stick/doigt, absence de tremblement/accélération parasite.
+- [ ] Ne pas déclarer les 4 sons privés Djipie s'ils manquent ; aucun merge main/release sans accord Fab.
