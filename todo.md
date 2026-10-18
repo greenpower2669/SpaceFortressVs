@@ -920,3 +920,13 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [x] APK privé direct sans ZIP, 99 919 413 octets, SHA256 `f08b1f9c9df78e0562b063ffd20a9fdba672147762e25063ee0b4cf4d0df7c6e`.
 - [ ] Fab : tester sur Samsung le relief moins répétitif et les explosions variées (roche contre roche, destruction, autres collisions inchangées).
 - [ ] Aucun merge main / Release sans validation explicite.
+
+## SOLO-026 — audit 18/10/2026, aucun code autorisé
+- [x] Prendre le retour Fab : bonne base SOLO, mais minage irrégulier, near-scroll incohérent, murs insuffisamment pénalisants, réserve trop généreuse.
+- [x] Identifier les points source : minage 2,025 diamètres vs visuel/aspiration 3,30 ; fond seul SOLO-024 ; collisions sans PV/nrj ; recharge passive multiplier 4→2.
+- [ ] Après **nouveau GO de Fab**, réconcilier indication visuelle du cône et vraie zone minière (vérifier danger 1→9, orientation, bords, vitesse d'érosion). Ne pas changer DUEL/COOP sans accord.
+- [ ] Après GO, remplacer near-band « arrière-plan seul » par scroll **cohérent du labyrinthe**, parallaxe relative de fonds, zone ultra-lente de transition 1D→2D réellement perceptible ; préserver centre précis, vitesse intermédiaire, inertie, rebond, zoom, geste continu.
+- [ ] Après GO, pénaliser impacts de paroi SOLO en coque + énergie selon vitesse normale, avec seuil bas et protection anti-multiplication par frame, tout en maintenant le glissement et les rebonds.
+- [ ] Après GO, réduire fortement recharge énergétique passive SOLO et sa fin de courbe vers 100 % ; rendre 100 % atteignable soit après vraie patience, soit plus vite par minage/poussières. Ne pas modifier PV par inadvertance, ni règles originales CLASSIQUE/COOP.
+- [ ] Créer/étendre tests de géométrie cône rendu/minage, caméra toutes bandes et réversibilité, paroi choc-vitesse-cooldown, courbe récupération passive/minage, danger 1→9, boss/bonus, hors-champ et tests tactiles Samsung.
+- [ ] Au stade autorisé seulement : CI C++/Android/SDL2, essai Samsung, APK direct `.apk` sous `temp/` de branche de travail + AAB non signé identifié, SHA256, jamais de merge main/Release sans accord.
