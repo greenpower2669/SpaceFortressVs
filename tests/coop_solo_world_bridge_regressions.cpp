@@ -233,6 +233,58 @@ int main(){
     const float blocked=bridge.cameraLeft;
     bridge.panIfShipActuallyMoved(next,{0,0},.05f,finger);
     assert(same(bridge.cameraLeft,blocked)); // rock never drags camera
+    // SOLO-029: new production predictive camera depends on REAL motion only.
+    // The retained SOLO-022 camera-zone helper above is diagnostic history.
+    const CoopWorldPoint pilot0{bridge.worldWidth()*.5f,bridge.worldHeight()*.5f};
+    bridge.centerOn(pilot0);
+    assert(same(bridge.toScreen(pilot0).x,270.f));
+    assert(same(bridge.toScreen(pilot0).y,480.f));
+    const float dt=.012f;
+    CoopWorldPoint pilot=pilot0;
+    const float maxSpeed=bridge.combatWidth*1.7f; // difficulty 1
+    for(int t=0;t<85;++t){
+        const float distance=maxSpeed*dt;
+        pilot.x+=distance;
+        bridge.followPhysicalShip(pilot,{distance,0},dt);
+    }
+    const auto forward=bridge.toScreen(pilot);
+    assert(forward.x>540*.285f && forward.x<540*.34f);
+    assert(std::abs(forward.y-480.f)<.002f);
+    assert(bridge.lookAheadX>0);
+    assert(same(bridge.backgroundDriftX,0)); // never a fake backdrop drift
+    const float oldLead=bridge.lookAheadX;
+    // Braking: physical movement continues right at low speed while the
+    // forward camera anticipates LESS; no stick/rightward-command feedback.
+    for(int t=0;t<45;++t){
+        const float distance=maxSpeed*.13f*dt;
+        pilot.x+=distance;
+        bridge.followPhysicalShip(pilot,{distance,0},dt);
+    }
+    assert(bridge.lookAheadX<oldLead*.5f);
+    // Once physical velocity reaches zero, camera automatically returns
+    // to the theoretical ZERO, without modifying pilot world coordinates.
+    const auto restingPilot=pilot;
+    const float leadBeforeRest=bridge.lookAheadX;
+    bridge.followPhysicalShip(pilot,{0,0},dt);
+    assert(bridge.lookAheadX<leadBeforeRest);
+    for(int t=0;t<120;++t)bridge.followPhysicalShip(pilot,{0,0},dt);
+    assert(std::abs(bridge.toScreen(pilot).x-270.f)<.1f);
+    assert(same(pilot.x,restingPilot.x));
+    assert(same(pilot.y,restingPilot.y));
+    // A real reverse velocity redirects the camera smoothly; the camera
+    // NEVER infers reversal merely from an offset ship screen position.
+    for(int t=0;t<120;++t){
+        const float distance=-maxSpeed*.70f*dt;
+        pilot.x+=distance;
+        bridge.followPhysicalShip(pilot,{distance,0},dt);
+    }
+    assert(bridge.lookAheadX<0);
+    assert(bridge.toScreen(pilot).x>270.f);
+    assert(bridge.toScreen(pilot).x<540*.72f);
+    // Moving the camera never changes the coordinate inverse.
+    auto round=bridge.toWorld(bridge.toScreen(pilot));
+    assert(same(round.x,pilot.x)&&same(round.y,pilot.y));
+
     // World-to-screen projection must remain invertible even in the last
     // region of the very long map, without a gigantic Android viewport.
     bridge.cameraTop=bridge.worldHeight()-960;

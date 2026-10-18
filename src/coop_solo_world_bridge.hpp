@@ -23,6 +23,8 @@ struct CoopSoloWorldBridge {
     float combatWidth=1.0f;
     float pixelsPerCell=1.0f;
     float cameraLeft=0,cameraTop=0,zoom=1;
+    // SOLO-029 camera-only lead; never part of pilot physics.
+    float lookAheadX=0,lookAheadY=0;
     // Presentation-only offset: moves parallax without shifting any world tile.
     float backgroundDriftX=0,backgroundDriftY=0;
     bool ready=false;
@@ -41,6 +43,7 @@ struct CoopSoloWorldBridge {
         combatWidth=historicCombatWidth;
         pixelsPerCell=historicCombatWidth/(SOLO_REFERENCE_COLUMNS/SOLO_MAP_ZOOM);
         cameraLeft=cameraTop=0;zoom=1;
+        lookAheadX=lookAheadY=0;
         backgroundDriftX=backgroundDriftY=0;
         localGateClosed=false;localGateRadius=0;
         return ready=true;
@@ -56,6 +59,7 @@ struct CoopSoloWorldBridge {
         return {};
     }
     void centerOn(CoopWorldPoint ship){
+        lookAheadX=lookAheadY=0;
         cameraLeft=soloClampCamera(ship.x-visibleWidth()*.5f,worldWidth(),visibleWidth());
         cameraTop=soloClampCamera(ship.y-visibleHeight()*.5f,worldHeight(),visibleHeight());
     }
@@ -305,6 +309,12 @@ struct CoopSoloWorldBridge {
         const auto pixel=toScreen(anchor);zoom=std::clamp(value,1.f,2.f);
         cameraLeft=soloClampCamera(anchor.x-(pixel.x-screen.x)/zoom,worldWidth(),visibleWidth());
         cameraTop=soloClampCamera(anchor.y-(pixel.y-screen.y)/zoom,worldHeight(),visibleHeight());
+        // A pinch preserves the visual ship anchor; recompute display lead
+        // at the new zoom instead of altering the pilot's throttle.
+        lookAheadX=std::clamp(cameraLeft-(anchor.x-visibleWidth()*.5f),
+                             -visibleWidth()*.205f,visibleWidth()*.205f);
+        lookAheadY=std::clamp(cameraTop-(anchor.y-visibleHeight()*.5f),
+                             -visibleHeight()*.205f,visibleHeight()*.205f);
     }
     bool directView(CoopWorldPoint observer,CoopWorldPoint event)const{
         const auto p=toScreen(event);
@@ -315,14 +325,37 @@ struct CoopSoloWorldBridge {
     // A background MUST NOT slide when the physical camera is still.
     void updateBackgroundOnly(CoopWorldPoint,CoopWorldPoint,float){}
     void followPhysicalShip(CoopWorldPoint ship,CoopWorldPoint displacement,float dt){
-        // All layers share this one camera. Parallax is derived from its
-        // real displacement in drawBackground, including the new first band.
-        panIfShipActuallyMoved(ship,displacement,dt);
-        // Safety envelope follows the physical hull, never the touch. It also
-        // works after release, at max zoom, and when a long frame hits a wall.
-        const float mx=visibleWidth()*.14f,my=visibleHeight()*.16f;
-        cameraLeft=soloClampCamera(std::clamp(cameraLeft,ship.x-visibleWidth()+mx,ship.x-mx),worldWidth(),visibleWidth());
-        cameraTop=soloClampCamera(std::clamp(cameraTop,ship.y-visibleHeight()+my,ship.y-my),worldHeight(),visibleHeight());
+        if(!ready || !(dt>0) || !std::isfinite(dt) ||
+           !std::isfinite(ship.x)||!std::isfinite(ship.y)||
+           !std::isfinite(displacement.x)||!std::isfinite(displacement.y))return;
+        // SOLO-029: camera follows ACTUAL world displacement + lookahead,
+        // never the ship's pixel distance to centre nor the input finger.
+        const float vx=displacement.x/dt,vy=displacement.y/dt;
+        const float speed=std::hypot(vx,vy);
+        const float danger=std::clamp(float(map.difficulty),1.f,9.f);
+        const float maximum=combatWidth*(1.7f+1.4f*(danger-1.f)/8.f);
+        const float throttle=maximum>0?std::clamp(speed/maximum,0.f,1.f):0.f;
+        constexpr float maximumLead=.205f; // ship ~29.5% screen at full speed
+        const float targetX=speed>combatWidth*.015f?
+            vx/speed*visibleWidth()*maximumLead*throttle:0.f;
+        const float targetY=speed>combatWidth*.015f?
+            vy/speed*visibleHeight()*maximumLead*throttle:0.f;
+        const float response=-std::expm1(-9.f*std::min(dt,.05f));
+        lookAheadX+=(targetX-lookAheadX)*response;
+        lookAheadY+=(targetY-lookAheadY)*response;
+        if(targetX==0 && std::abs(lookAheadX)<.015f)lookAheadX=0;
+        if(targetY==0 && std::abs(lookAheadY)<.015f)lookAheadY=0;
+        // Even when stopped, easing the remaining visual lead back to zero
+        // is allowed: all walls/background/actors use this REAL camera.
+        cameraLeft=soloClampCamera(ship.x-visibleWidth()*.5f+lookAheadX,
+                                   worldWidth(),visibleWidth());
+        cameraTop=soloClampCamera(ship.y-visibleHeight()*.5f+lookAheadY,
+                                  worldHeight(),visibleHeight());
+        const float mx=visibleWidth()*.12f,my=visibleHeight()*.12f;
+        cameraLeft=soloClampCamera(std::clamp(cameraLeft,
+            ship.x-visibleWidth()+mx,ship.x-mx),worldWidth(),visibleWidth());
+        cameraTop=soloClampCamera(std::clamp(cameraTop,
+            ship.y-visibleHeight()+my,ship.y-my),worldHeight(),visibleHeight());
     }
     // Draw only the visible part of the immutable real SOLO map, in SCREEN
     // coordinates, with connected wall masses and subtle inner cracks.
@@ -369,6 +402,7 @@ struct CoopSoloWorldBridge {
             }
         }
     }
+    // Legacy zone comparison for regression history; NOT used by live SOLO.
     void panIfShipActuallyMoved(
         CoopWorldPoint ship,CoopWorldPoint displacement,float dt,
         std::optional<CoopWorldPoint> fingerScreen=std::nullopt){

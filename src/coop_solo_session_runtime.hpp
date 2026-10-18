@@ -150,6 +150,7 @@ static int runCoopSoloSession(bool diagnostics){
     sfsolo::EncounterGates encounterGates;
     sfsolo::FirePad firePad;
     sfsolo::MovePad movePad;
+    sfsolo::HullTouchPilot hullTouch;
     bool stickSteering=false; // independent from swapping the two stick sides
     bool soloOptionsOpen=false;
     // Reuse exactly the robotic sentinel already displayed in the home title.
@@ -243,7 +244,7 @@ static int runCoopSoloSession(bool diagnostics){
         sfCoop.controls[1].wallPenaltyCooldown=0;
         sfKineticSurgeCancel(1);sfKineticAudioCancel(1);
         chargeCueGate.reset();aimFinger=moveFinger=-1;mouseAimHeld=false;
-        firePad.cancel();movePad.cancel();
+        firePad.cancel();movePad.cancel();hullTouch.cancel();
         sfCoop.phase=SfCoopPhase::Combat;
         sfCoop.bossPresent=false;sfCoop.health=sfCoopProfile().health;
         sfCoop.soloWorldMode=enabled;
@@ -353,7 +354,7 @@ static int runCoopSoloSession(bool diagnostics){
     auto cancelControls=[&](){
         zoomGesture.reset();zoomGesture.zoom=world.zoom;
         moveFinger=aimFinger=-1;mouseAimHeld=false;chargeCueGate.reset();
-        firePad.cancel();movePad.cancel();soloOptionsOpen=false;
+        firePad.cancel();movePad.cancel();hullTouch.cancel();soloOptionsOpen=false;
         sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
         sfCoop.controls[1].velocity.set(0,0);sfCoop.fireFingers.clear();
         sfCoop.controls[1].wallGrace=sfCoop.controls[1].wallNX=sfCoop.controls[1].wallNY=0;
@@ -533,7 +534,7 @@ static int runCoopSoloSession(bool diagnostics){
                 if(!diagnostics && event.type==SDL_FINGERDOWN &&
                    tx>=options.x && tx<options.x+options.w &&
                    ty>=options.y && ty<options.y+options.h){
-                    soloOptionsOpen=!soloOptionsOpen;firePad.cancel();movePad.cancel();
+                    soloOptionsOpen=!soloOptionsOpen;firePad.cancel();movePad.cancel();hullTouch.cancel();
                     moveFinger=aimFinger=-1;sfCoop.controls[1].down=false;
                     sfCoop.controls[1].finger=-1;zoomGesture.reset();
                     sfKineticSurgeCancel(1);sfKineticAudioCancel(1);chargeCueGate.reset();
@@ -545,14 +546,14 @@ static int runCoopSoloSession(bool diagnostics){
                         // ship touch versus the violet movement joystick.
                         if(ty>height*.395f && ty<height*.505f){
                             firePad.right=!firePad.right;movePad.right=!firePad.right;
-                            firePad.cancel();movePad.cancel();
+                            firePad.cancel();movePad.cancel();hullTouch.cancel();
                             sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
-                            moveFinger=-1;saveSoloControls();
+                            moveFinger=-1;hullTouch.cancel();saveSoloControls();
                         }else if(ty>height*.525f && ty<height*.635f){
                             stickSteering=!stickSteering;
-                            firePad.cancel();movePad.cancel();
+                            firePad.cancel();movePad.cancel();hullTouch.cancel();
                             sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
-                            moveFinger=-1;saveSoloControls();
+                            moveFinger=-1;hullTouch.cancel();saveSoloControls();
                         }
                     }
                     continue;
@@ -623,8 +624,9 @@ static int runCoopSoloSession(bool diagnostics){
                     if(!stickSteering && onHull && moveFinger<0){
                         moveFinger=id;
                         moveScreenX=tx;moveScreenY=ty;
+                        if(worldActive)hullTouch.begin(tx,ty);
                         auto &c=sfCoop.controls[1];
-                        c.finger=id;c.down=true;c.target=fromFinger(tx,ty);
+                        c.finger=id;c.down=!worldActive;c.target=fromFinger(tx,ty);
                     }else if(!onHull && aimFinger<0&&id!=moveFinger){
                         aimFinger=id;aimAt(tx,ty);sfKineticSurgePress(1);
                         chargeCueGate.reset(); // no sound during the first 0.20 s
@@ -632,12 +634,13 @@ static int runCoopSoloSession(bool diagnostics){
                 }else if(event.type==SDL_FINGERMOTION){
                     if(id==moveFinger){
                         moveScreenX=tx;moveScreenY=ty;
-                        sfCoop.controls[1].target=fromFinger(tx,ty);
+                        if(worldActive)hullTouch.update(tx,ty,width);
+                        else sfCoop.controls[1].target=fromFinger(tx,ty);
                     }
                     if(id==aimFinger)aimAt(tx,ty);
                 }else{
                     if(id==moveFinger){
-                        moveFinger=-1;sfCoop.controls[1].down=false;
+                        moveFinger=-1;hullTouch.cancel();sfCoop.controls[1].down=false;
                         sfCoop.controls[1].finger=-1;
                         // Physical momentum survives release; only scene/lifecycle
                         // cancellation neutralizes velocity.
@@ -669,13 +672,18 @@ static int runCoopSoloSession(bool diagnostics){
             for(int i=0;i<substeps;++i){
                 const float subDt=simulationDt/substeps;
                 const float oldX=Spritej2->x,oldY=Spritej2->y;
-                if(worldActive&&moveFinger>=0){
-                    // One still fingertip = continuing exploration if it is
-                    // outside the INNER circle. Exact target at finger caused
-                    // the freeze regression once the ship arrived underneath.
-                    const auto aim=world.heldFingerPilotTarget(
-                        {moveScreenX,moveScreenY});
-                    sfCoop.controls[1].target=tupl(aim.x,aim.y);
+                if(worldActive && moveFinger>=0 && !stickSteering){
+                    // An on-hull gesture is a stable virtual stick with its
+                    // theoretical zero at DOWN. World/camera translations
+                    // cannot push its target or create runaway acceleration.
+                    auto &pilot=sfCoop.controls[1];
+                    pilot.down=hullTouch.down && hullTouch.magnitude>0;
+                    pilot.finger=moveFinger;
+                    if(pilot.down){
+                        const float reach=hullTouch.virtualReach(sfArenaW,sfBossDangerIndex);
+                        pilot.target=tupl(Spritej2->x+hullTouch.dx*reach,
+                                          Spritej2->y+hullTouch.dy*reach);
+                    }
                 }
                 if(worldActive&&aimFinger>=0)aimAt(aimScreenX,aimScreenY);
                 if(stickSteering&&!diagnostics){

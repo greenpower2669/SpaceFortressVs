@@ -61,6 +61,25 @@ int main(){
     assert(std::abs(hard*12.f-w*3.1f)<.001f);
     move.handle(SDL_FINGERUP,70,mx+move.orbit(w),my,w,h);
     assert(move.magnitude==0 && move.travel==0);
+    // SOLO-029: touch-on-hull equals the violet stick, starting at the
+    // touched hull centre regardless of any visual camera displacement.
+    sfsolo::HullTouchPilot hull;
+    hull.begin(210.f,510.f);
+    assert(hull.down && hull.magnitude==0.f);
+    hull.update(210.f,510.f,w);
+    assert(hull.magnitude==0.f);
+    const float d=std::max(13.f,w*.022f);
+    const float r=move.orbit(w);
+    hull.update(210.f+d+(r-d)*.5f,510.f,w);
+    assert(std::abs(hull.magnitude-sfsolo::MovePad::steeringCurve(.5f))<.001f);
+    const float requested=hull.virtualReach(float(w),3);
+    assert(requested>0 && requested<sfsolo::MovePad::reachFromMagnitude(1.f,float(w),3));
+    // Camera transforms changing elsewhere do not affect the held command.
+    const float retained=hull.magnitude;
+    assert(hull.magnitude==retained);
+    hull.cancel();
+    assert(!hull.down && hull.magnitude==0.f && hull.virtualReach(w,3)==0.f);
+
     // Changing one handedness option flips BOTH stick positions, not roles.
     fire.right=!fire.right;move.right=!fire.right;
     assert(fire.cx(w)>w*.5f&&move.cx(w)<w*.5f);

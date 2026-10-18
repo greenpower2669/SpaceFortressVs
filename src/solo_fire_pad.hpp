@@ -116,11 +116,18 @@ struct MovePad {
     // ShipMotion uses desiredSpeed=min(maxSpeed, distance*12). Match that
     // canonical law at the rim so full throw still reaches max speed while
     // early travel remains slow; difficulty/inertia stays owned by ShipMotion.
-    float virtualReach(float arenaWidth,int dangerIndex)const {
+    static float steeringCurve(float t){
+        t=std::clamp(t,0.f,1.f);
+        return t*t*(.75f+.25f*t);
+    }
+    static float reachFromMagnitude(float amount,float arenaWidth,int dangerIndex){
         if(!(arenaWidth>0))return 0.f;
         const float difficulty=std::clamp(dangerIndex,0,8)/8.f;
         const float maxSpeed=arenaWidth*(1.7f+1.4f*difficulty);
-        return (maxSpeed/12.f)*magnitude;
+        return (maxSpeed/12.f)*std::clamp(amount,0.f,1.f);
+    }
+    float virtualReach(float arenaWidth,int dangerIndex)const {
+        return reachFromMagnitude(magnitude,arenaWidth,dangerIndex);
     }
     bool handle(int type,std::int64_t id,float x,float y,int w,int h){
         if(active()){
@@ -141,7 +148,7 @@ struct MovePad {
         travel=std::clamp(len/orbit(w),0.f,1.f);
         const float linear=std::clamp((len-dead)/std::max(1.f,orbit(w)-dead),0.f,1.f);
         // Ease-in: quarter throw ~5%, half throw ~22%, full throw 100%.
-        magnitude=linear*linear*(.75f+.25f*linear);
+        magnitude=steeringCurve(linear);
     }
     void draw(SDL_Renderer*r,int w,int h)const {
         if(!r)return;
@@ -157,6 +164,27 @@ struct MovePad {
         neonDisk(r,px,py,radius*.29f,{174,148,250,53});
         neonRing(r,px,py,radius*.29f,{203,180,255,146},false);
         SDL_SetRenderDrawBlendMode(r,old);
+    }
+};
+// Finger-on-hull uses the same zero, progressive curve and physical intent
+// as the violet stick, but with its origin at the INITIAL hull touch.
+// The camera can shift indefinitely without changing an untouched command.
+struct HullTouchPilot {
+    bool down=false;
+    float anchorX=0,anchorY=0,dx=0,dy=0,magnitude=0;
+    void cancel(){down=false;dx=dy=magnitude=0;}
+    void begin(float x,float y){down=true;anchorX=x;anchorY=y;dx=dy=magnitude=0;}
+    void update(float x,float y,int screenWidth){
+        if(!down)return;
+        const float ox=x-anchorX,oy=y-anchorY,len=std::hypot(ox,oy);
+        const float dead=std::max(13.f,screenWidth*.022f);
+        if(len<=dead){dx=dy=magnitude=0;return;}
+        dx=ox/len;dy=oy/len;
+        const float radius=std::clamp(screenWidth*.178f,70.f,114.f);
+        magnitude=MovePad::steeringCurve((len-dead)/std::max(1.f,radius-dead));
+    }
+    float virtualReach(float width,int danger)const {
+        return MovePad::reachFromMagnitude(magnitude,width,danger);
     }
 };
 } // namespace sfsolo
