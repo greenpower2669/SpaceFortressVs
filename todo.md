@@ -1030,3 +1030,15 @@ Source exacte `626a24cb021bba6b665f6015567555a8cd9f345f`. Run CI `39156942027` *
 
 ### SOLO-031 — CI et livraison APK direct vérifiés (18/10/2026)
 Source CI exacte : `c6ea6866e03cdcf0dd287efbc63d1aa08af0c3a0`, workflow Android `39164322357` **SUCCESS** (trois jobs : core, SDL2, build Android) ; publication Release SKIPPED, aucun merge main. Export GitHub `39164322107` **SUCCESS**, vrai APK décompressé par GitHub sur branche `feature/solo-coop-core-v1`, fichier `temp/solo-031/SpaceFortressVs-1.4.2-SOLO-031-c6ea686.apk`, taille **98 727 558 octets**, SHA256 `4f34d92467c370f9b03ba28ac8aee938527847bdf84cc8b29989e4004ad5f878`. AAB non signé `temp/solo-031/SpaceFortressVs-1.4.2-SOLO-031-c6ea686-unsigned.aab` **96 018 861 octets**, SHA256 `5077b545a892d21ca87ae736af99cb8144fc280081910683712eb5e6a4d81936`. Manifest et `SHA256SUMS` concordent. Sons Meteor Djipie privés dans cet APK : **0/4**, sons historiques de secours. Fab doit encore vérifier sur Samsung rayon doigt, maintien de cap, survitesse et impression de proximité. Ne jamais réattribuer cette APK à un commit ultérieur : source reste c6ea6866.
+
+### SOLO-032 — transitions lissées du vecteur cumulatif
+- [x] Supprimer chute instantanée charge/bonus sur cap changé.
+- [x] Mettre réserve directionnelle 2D qui pivote à vitesse angulaire contrôlée en 360° et demi-tour exact.
+- [x] Allonger rampe de charge en ligne droite et borner output à x1,30 au maximum.
+- [x] Ajouter hystérésis temporelle de récupération pendant virage avant de recharger.
+- [x] Préserver inertie, rayons tactiles, caméra anticipative, mini-stick, sons et physiques SOLO-031.
+- [x] Couvrir boost/déboost graduel, petit régime, reprise, jitter, rotation 180°, FPS et difficulté avec tests.
+- [ ] Valider CI C++ / SDL2 / Android sur le même SHA.
+- [ ] Exporter APK décompressé par GitHub dans `temp/solo-032/`, SHA256 vérifié, lien direct.
+- [ ] Retour tactile Fab sur Samsung : vitesse ressentie 2s / 4s / 8s et virages rapides / demi-tours.
+- [ ] Ne pas publier ni merger main/release.
