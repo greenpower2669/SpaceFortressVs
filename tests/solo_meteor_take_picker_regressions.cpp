@@ -1,7 +1,12 @@
 #include "../src/solo_meteor_take_picker.hpp"
+#include "../src/solo_meteor_sound_state.hpp"
 #include <cassert>
 #include <array>
 int main(){
+    assert(!sfsolo::meteorRockPairPending);
+    sfsolo::meteorRockPairPending=true;
+    assert(sfsolo::meteorRockPairPending);
+    sfsolo::meteorRockPairPending=false;
     for(unsigned seed=1;seed<40;++seed){
         sfsolo::MeteorTakePicker picker(seed);
         int previous=-1;

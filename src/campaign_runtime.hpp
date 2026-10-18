@@ -7,6 +7,7 @@
 #include "solo_miniboss.hpp"
 #include "solo_ship_motion.hpp"
 #include "solo_meteor_take_picker.hpp"
+#include "solo_meteor_sound_state.hpp"
 #include <map>
 
 enum class SfSoloEncounterRole { None, MiniBoss, FinalBoss };
@@ -106,7 +107,6 @@ struct SfCoopState {
     std::string composition,error;
     std::array<bool,2> soundShot{};
     bool soundBoss=false,soundHit=false;
-    bool soundRockPair=false; // real rock-rock only; wall/boss remain old
 };
 inline SfCoopState sfCoop;
 inline int sfFamePage=0,sfCampaignPage=0;
@@ -1557,7 +1557,7 @@ static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,M
     // Only REAL rock-rock contacts get the four new meteor takes. Wall,
     // boss-field and hull impacts keep their original signatures.
     bool specializedRock=false;
-    if(sfCoop.soundRockPair && meteorTakeBank && !sfFieldMiningSound){
+    if(sfsolo::meteorRockPairPending && meteorTakeBank && !sfFieldMiningSound){
         Mix_Chunk *take=meteorTakeBank->variants[size_t(meteorPicker.next())];
         if(take){
             Mix_Volume(9,meteorPicker.volume());
@@ -1567,7 +1567,7 @@ static void sfCoopPlaySounds(Mix_Chunk *orange,Mix_Chunk *blue,Mix_Chunk *boss,M
     }
     if (sfFieldCollisionSound && collision && !specializedRock)
         Mix_PlayChannel(3,collision,0);
-    sfCoop.soundRockPair=false;
+    sfsolo::meteorRockPairPending=false;
     sfFieldCollisionSound=sfFieldMiningSound=false;
     sfCoop.soundBoss=sfCoop.soundHit=false;
 }

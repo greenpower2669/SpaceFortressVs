@@ -1,5 +1,6 @@
 #pragma once
 #include "solo_rock_physics.hpp"
+#include "solo_meteor_sound_state.hpp"
 // Real legacy sprites, velocities converted at the fixed 60 Hz boundary.
 static float sfSoloRockRadius(const sprite *rock){return std::max(rock->w,rock->h)*.5f;}
 static bool sfSoloRockFits(tupl p,float radius){
@@ -83,7 +84,7 @@ static void sfSoloRockPair(sprite *a,sprite *b){
     a->vx=aa.vx/60;a->vy=aa.vy/60;b->vx=bb.vx/60;b->vy=bb.vy/60;
     if(sfFieldAudible((a->x+b->x)*.5f,(a->y+b->y)*.5f)){
         sfFieldCollisionSound=true;
-        sfCoop.soundRockPair=true; // SOLO-025 dedicated rock-rock bank
+        sfsolo::meteorRockPairPending=true; // SOLO-025 dedicated rock-rock bank
     }
     sfFieldImpact(a,b,true);
     auto *small=aa.radius<bb.radius?a:b;
