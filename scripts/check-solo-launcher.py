@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preflight: the unified debug hub is opt-in, never a release change.
+"""Preflight: diagnostic APK starts real SOLO, hidden hub is accessible by 20 taps.
 
 The real manifest merge/build is additionally verified by Android Gradle.
 """
@@ -43,10 +43,12 @@ assert debug[SOLO].get(A+"process") == ":solo", (
 assert SOLO not in main and HUB not in main and COOP_SOLO not in main, (
     "diagnostic activity leaked into release")
 assert debug[COOP_SOLO].get(A+"process")==":coopsolo"
-assert set(debug) == {LEGACY, SOLO, COOP_SOLO, HUB}, "unexpected debug activities"
+assert set(debug) == {LEGACY, SOLO, SOLO_GAME, COOP_SOLO, HUB}, "unexpected debug activities"
 assert debug[LEGACY].get(T+"node") == "replace", "original launcher not replaced"
 assert not launcher(debug[LEGACY]) and not launcher(debug[SOLO]) and not launcher(debug[COOP_SOLO])
-assert launcher(debug[HUB]), "single debug launcher missing"
+assert not launcher(debug[HUB]) and debug[HUB].get(A+"exported")=="false", "hub must be hidden"
+assert launcher(debug[SOLO_GAME]), "debug APK must open real SOLO directly"
+assert debug[SOLO_GAME].get(T+"node") == "replace", "main launcher override missing"
 java = (APP / "debug/java/com/greenpower2669/spacefortressvs/SpaceFortressHubActivity.java").read_text()
 assert "SpaceFortressActivity.class" in java and "SpaceFortressSoloActivity.class" in java
 assert "SpaceFortressCoopSoloActivity.class" in java
@@ -59,8 +61,11 @@ assert "spacefortress-native-" in native
 gradle = (ROOT / "android/app/build.gradle").read_text()
 assert "applicationIdSuffix '.diagnostic'" in gradle, (
     "debug crash diagnosis must not overwrite the signed original package")
+gesture = (APP / "main/java/com/greenpower2669/spacefortressvs/SpaceFortressSoloGameActivity.java").read_text()
+assert "debugTapCount>=20" in gesture and "BuildConfig.DEBUG" in gesture
+assert "SpaceFortressHubActivity" in gesture
 assert debug[HUB].get(A+"label") == "SpaceFortress DIAG", (
-    "debug app launcher must be visibly identifiable")
+    "hidden debug hub label must remain identifiable")
 
 
 print("SOLO debug hub static checks OK; release launcher preserved")
