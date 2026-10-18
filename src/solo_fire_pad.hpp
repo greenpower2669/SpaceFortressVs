@@ -101,35 +101,66 @@ struct FirePad {
 };
 
 // Accumulate INTENTION only, never physical speed or camera displacement.
+// SOLO-032: directional-intent reserve. Inertia belongs to ShipMotion;
+// this bounded reserve ONLY adjusts the target speed request in SOLO maze.
+// The vector (anchorDx, anchorDy) reorients continuously. stableSeconds is
+// its stored charge; bonus is a second, slower output low-pass. Neither can
+// jump to zero on an ordinary turn, including a 180-degree reversal.
 struct SteeringHoldBoost {
     float stableSeconds=0,anchorDx=0,anchorDy=0,bonus=0;
     bool latched=false;
-    // ONLY SOLO maze can engage +30% maximum overdrive on held vectors.
     static constexpr float edgeStart=.68f,edgeFull=.94f,maximumBonus=.36f;
     static constexpr float maximumRequested=1.30f;
+    static constexpr float chargeSeconds=5.f;
     static float smooth(float t){t=std::clamp(t,0.f,1.f);return t*t*(3.f-2.f*t);}
     void reset(){stableSeconds=anchorDx=anchorDy=bonus=0;latched=false;}
     void tick(float dt,float dx,float dy,float radial){
         if(!std::isfinite(dt)||dt<=0)return;
-        if(!std::isfinite(dx)||!std::isfinite(dy)||!std::isfinite(radial)||
-           radial<edgeStart || std::hypot(dx,dy)<.9f){reset();return;}
-        const float cosine=anchorDx*dx+anchorDy*dy;
-        if(!latched){anchorDx=dx;anchorDy=dy;stableSeconds=0;bonus=0;latched=true;return;}
-        // Finger tremor is tolerated. A real turn drops the extra requested
-        // speed immediately, without changing the existing ship inertia.
-        if(cosine<.925f){anchorDx=dx;anchorDy=dy;stableSeconds=0;bonus=0;return;}
-        dt=std::min(dt,.05f);
-        if(cosine<.985f){
-            stableSeconds=std::max(0.f,stableSeconds-dt*2.5f);
-            bonus*=std::exp(-12.f*dt);
-            return;
+        if(!std::isfinite(dx)||!std::isfinite(dy)||!std::isfinite(radial)){
+            reset();return;
         }
-        stableSeconds=std::min(6.f,stableSeconds+dt);
+        dt=std::min(dt,.05f);
+        const float norm=std::hypot(dx,dy);
+        const bool headingValid=norm>.9f;
+        const float x=headingValid?dx/norm:0.f;
+        const float y=headingValid?dy/norm:0.f;
+        // A new touch starts uncharged; reorientation while held retains
+        // charge and tapers it rather than throwing it away.
+        if(headingValid && !latched){
+            anchorDx=x;anchorDy=y;latched=true;
+        }
+        const float alignment=(latched&&headingValid)?
+            std::clamp(anchorDx*x+anchorDy*y,-1.f,1.f):0.f;
         const float edge=smooth((radial-edgeStart)/(edgeFull-edgeStart));
-        const float hold=1.f-std::exp(-std::max(0.f,stableSeconds-.22f)/1.25f);
-        const float desired=maximumBonus*edge*hold;
-        bonus+=(desired-bonus)*(-std::expm1(-5.f*dt));
+        // Only sufficiently aligned vectors in the OUTER arc replenish
+        // charge. During a turn, recharge pauses while the reserve drains.
+        const bool charging=headingValid && radial>=edgeStart && alignment>=.987f;
+        if(charging){
+            stableSeconds=std::min(chargeSeconds,stableSeconds+dt*1.05f);
+        }else{
+            const float turnPenalty=alignment<.55f?2.8f:alignment<.93f?1.9f:1.15f;
+            const float outerPenalty=edge>.001f?turnPenalty:2.3f;
+            stableSeconds=std::max(0.f,stableSeconds-dt*outerPenalty);
+        }
+        // Charging takes several seconds even after reaching the rim.
+        // A separate slower output makes both acceleration AND braking
+        // continuous, with finite dt-independent derivatives.
+        const float wanted=maximumBonus*edge*smooth(stableSeconds/chargeSeconds);
+        const float rate=wanted>bonus?1.00f:1.75f;
+        bonus+=(wanted-bonus)*(-std::expm1(-rate*dt));
         bonus=std::clamp(bonus,0.f,maximumBonus);
+        if(latched && headingValid){
+            // The directional reference turns towards the current finger,
+            // taking ~1 second for a large reversal; when vectors oppose,
+            // use a deterministic perpendicular path to avoid a zero norm.
+            float toX=x,toY=y;
+            if(alignment<-.999f){toX=-anchorDy;toY=anchorDx;}
+            const float response=-std::expm1(-2.50f*dt);
+            const float nextX=anchorDx+(toX-anchorDx)*response;
+            const float nextY=anchorDy+(toY-anchorDy)*response;
+            const float nextNorm=std::hypot(nextX,nextY);
+            if(nextNorm>1e-6f){anchorDx=nextX/nextNorm;anchorDy=nextY/nextNorm;}
+        }
     }
 };
 // Movement always uses the SAME physical ShipMotion code as touch-on-hull.
