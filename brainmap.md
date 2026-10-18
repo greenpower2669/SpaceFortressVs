@@ -704,3 +704,6 @@ Retour Fab Samsung : (1) cône visible plus étendu que minage (3,30 D poussièr
 
 ### SOLO-026 — code de gameplay après GO Fab
 Point de reprise : `src/legacy_field_runtime.hpp` (parité vraie portée cône visuel et minage, danger préservé), `src/solo_viewport.hpp` + `src/coop_solo_world_bridge.hpp` + `src/coop_solo_scenery.hpp` (première bande caméra et fond uniquement asservi à la caméra), `src/solo_wall_impact.hpp` + `src/campaign_runtime.hpp` (chocs murs coque+énergie/cooldown), `src/ship_energy_rules.hpp` (recharge SOLO ralentie ; COOP/DUEL préservés), `android/app/src/debug/AndroidManifest.xml` + `SpaceFortressSoloGameActivity.java` (entrée directe SOLO et secret 20 taps alternés en haut). Tests et livraison dans `todo.md`. Workflow sans livrer avant GREEN : `.github/workflows/solo-026-direct-export.yml`. Ne pas confondre nouvelle implémentation et audit précédent, ni affirmer que tests / APK / audio privé sont validés avant contrôle.
+
+### SOLO-026 — livraison vérifiée CI et APK (18/10/2026)
+SOL0-026 : source `788c03c`, CI `39132530943 SUCCESS`, export `39132531008 SUCCESS`, binaires directs `temp/solo-026/SpaceFortressVs-1.4.2-SOLO-026-788c03c.apk` et `-unsigned.aab`. Metadata et checksums dans `temp/solo-026/`. APK 0/4 sons privés Meteor ; ne pas confondre avec SOLO-025 privé contenant 4/4. Essais Samsung en attente.

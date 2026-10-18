@@ -943,3 +943,11 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [ ] Vérifier sur Samsung : portées et difficultés, pilotage doigt, camera + fond dès première zone, rebonds/dégâts normal/cooldown, recharge, bonus, prise main en jeu sans accueil, 20 taps, relance depuis hub.
 - [ ] Confirmer disponibilité sons Meteor 4/4 : le build public peut être fallback et ne doit jamais être décrit comme bundle Djipie si 0/4.
 - [ ] Pas de merge main, pas de Release, pas de signature release sans validation Fab.
+
+### SOLO-026 — livraison vérifiée CI et APK (18/10/2026)
+- [x] CI finale C++/SDL2/Android sur `788c03c` : run `39132530943` SUCCESS.
+- [x] Export direct exact SHA vert sous `temp/solo-026/` : run `39132531008` SUCCESS.
+- [x] APK `SpaceFortressVs-1.4.2-SOLO-026-788c03c.apk` direct, 98 711 306 octets, SHA256 `c6e4412ca0c867f2d37f18060a74cb4f99ec6bda26fe6577affe0c1b28950a96`.
+- [x] AAB `SpaceFortressVs-1.4.2-SOLO-026-788c03c-unsigned.aab` 96 011 406 octets, SHA256 `2ebc55ec5edcd07fbf58642fdd5eea5f9dd4c1b4fd70ee7d1cf8b38f836cc9de`.
+- [ ] Réintégrer les 4 WAV privés de Djipie dans un nouveau build SONORE distinct uniquement avec validation du processus d'accès privé : **actuel 0/4**, fallback historique.
+- [ ] Retour Samsung (ressenti cône Danger1→9, vraie première parallaxe, collisions dangereuses mais glissantes, recharge et 20 taps debug).
