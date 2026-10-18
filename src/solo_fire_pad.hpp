@@ -150,16 +150,16 @@ struct SteeringHoldBoost {
         bonus+=(wanted-bonus)*(-std::expm1(-rate*dt));
         bonus=std::clamp(bonus,0.f,maximumBonus);
         if(latched && headingValid){
-            // The directional reference turns towards the current finger,
-            // taking ~1 second for a large reversal; when vectors oppose,
-            // use a deterministic perpendicular path to avoid a zero norm.
-            float toX=x,toY=y;
-            if(alignment<-.999f){toX=-anchorDy;toY=anchorDx;}
-            const float response=-std::expm1(-2.50f*dt);
-            const float nextX=anchorDx+(toX-anchorDx)*response;
-            const float nextY=anchorDy+(toY-anchorDy)*response;
-            const float nextNorm=std::hypot(nextX,nextY);
-            if(nextNorm>1e-6f){anchorDx=nextX/nextNorm;anchorDy=nextY/nextNorm;}
+            // Rotate the reserve heading by a bounded angle per second.
+            // Unlike linear interpolation this safely crosses 180 degrees:
+            // opposite vectors cannot collapse into a zero vector.
+            const float delta=std::atan2(anchorDx*y-anchorDy*x,
+                                         anchorDx*x+anchorDy*y);
+            const float yaw=std::clamp(delta,-2.65f*dt,2.65f*dt);
+            const float c=std::cos(yaw),sn=std::sin(yaw);
+            const float priorX=anchorDx,priorY=anchorDy;
+            anchorDx=priorX*c-priorY*sn;
+            anchorDy=priorX*sn+priorY*c;
         }
     }
 };
