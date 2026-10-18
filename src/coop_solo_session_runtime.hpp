@@ -148,13 +148,27 @@ static int runCoopSoloSession(bool diagnostics){
     sfsolo::LairTransition transition;
     sfsolo::EncounterGates encounterGates;
     sfsolo::FirePad firePad;
+    sfsolo::MovePad movePad;
+    bool stickSteering=false; // independent from swapping the two stick sides
     bool soloOptionsOpen=false;
+    // Reuse exactly the robotic sentinel already displayed in the home title.
+    SDL_Texture *optionsSentinel=IMG_LoadTexture(renderer,"resources/assets/pict/Tourelle.png");
+    if(optionsSentinel)SDL_SetTextureBlendMode(optionsSentinel,SDL_BLENDMODE_BLEND);
+    auto optionsRect=[&](){return SDL_Rect{int(width*.75f),int(height*.113f),
+                                           int(width*.23f),std::max(42,int(height*.054f))};};
     std::string handPreferencePath;
+    auto saveSoloControls=[&](){
+        if(handPreferencePath.empty())return;
+        std::ofstream saved(handPreferencePath,std::ios::trunc);
+        if(saved)saved<<(firePad.right?'R':'L')<<" "<<(stickSteering?'S':'F')<<"\n";
+    };
     if(char *root=SDL_GetPrefPath("greenpower2669","SpaceFortressVs")){
         handPreferencePath=std::string(root)+"solo-fire-hand-v1.cfg";SDL_free(root);
         std::ifstream input(handPreferencePath);
-        char h='L';if(input>>h)firePad.right=(h=='R');
+        char h='L',mode='F';
+        if(input>>h){firePad.right=(h=='R');if(input>>mode)stickSteering=(mode=='S');}
     }
+    movePad.right=!firePad.right; // inseparable left/right pairing
     sfsolo::CampaignController campaign;
     std::string soloSavePath,saveError;
     bool saveBlocked=false;
@@ -228,6 +242,7 @@ static int runCoopSoloSession(bool diagnostics){
         sfCoop.controls[1].wallPenaltyCooldown=0;
         sfKineticSurgeCancel(1);sfKineticAudioCancel(1);
         chargeCueGate.reset();aimFinger=moveFinger=-1;mouseAimHeld=false;
+        firePad.cancel();movePad.cancel();
         sfCoop.phase=SfCoopPhase::Combat;
         sfCoop.bossPresent=false;sfCoop.health=sfCoopProfile().health;
         sfCoop.soloWorldMode=enabled;
@@ -337,7 +352,7 @@ static int runCoopSoloSession(bool diagnostics){
     auto cancelControls=[&](){
         zoomGesture.reset();zoomGesture.zoom=world.zoom;
         moveFinger=aimFinger=-1;mouseAimHeld=false;chargeCueGate.reset();
-        firePad.cancel();soloOptionsOpen=false;
+        firePad.cancel();movePad.cancel();soloOptionsOpen=false;
         sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
         sfCoop.controls[1].velocity.set(0,0);sfCoop.fireFingers.clear();
         sfCoop.controls[1].wallGrace=sfCoop.controls[1].wallNX=sfCoop.controls[1].wallNY=0;
@@ -498,30 +513,45 @@ static int runCoopSoloSession(bool diagnostics){
                 const float tx=event.tfinger.x*sfArenaW;
                 const float ty=event.tfinger.y*sfArenaH;
                 const SDL_FingerID id=event.tfinger.fingerId;
-                const SDL_Rect options{int(width*.76f),4,int(width*.22f),std::max(36,int(height*.05f))};
+                const SDL_Rect options=optionsRect();
                 if(!diagnostics && event.type==SDL_FINGERDOWN &&
                    tx>=options.x && tx<options.x+options.w &&
                    ty>=options.y && ty<options.y+options.h){
-                    soloOptionsOpen=!soloOptionsOpen;firePad.cancel();
+                    soloOptionsOpen=!soloOptionsOpen;firePad.cancel();movePad.cancel();
                     moveFinger=aimFinger=-1;sfCoop.controls[1].down=false;
                     sfCoop.controls[1].finger=-1;zoomGesture.reset();
                     sfKineticSurgeCancel(1);sfKineticAudioCancel(1);chargeCueGate.reset();
                     continue;
                 }
                 if(soloOptionsOpen){
-                    if(event.type==SDL_FINGERDOWN &&
-                       ty>height*.39f && ty<height*.56f){
-                        firePad.right=!firePad.right;
-                        if(!handPreferencePath.empty()){
-                            std::ofstream saved(handPreferencePath,std::ios::trunc);
-                            if(saved)saved<<(firePad.right?'R':'L')<<"\n";
+                    if(event.type==SDL_FINGERDOWN){
+                        // Row 1 swaps BOTH sides atomically. Row 2 chooses
+                        // ship touch versus the violet movement joystick.
+                        if(ty>height*.395f && ty<height*.505f){
+                            firePad.right=!firePad.right;movePad.right=!firePad.right;
+                            firePad.cancel();movePad.cancel();
+                            sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
+                            moveFinger=-1;saveSoloControls();
+                        }else if(ty>height*.525f && ty<height*.635f){
+                            stickSteering=!stickSteering;
+                            firePad.cancel();movePad.cancel();
+                            sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
+                            moveFinger=-1;saveSoloControls();
                         }
                     }
                     continue;
                 }
                 if(!diagnostics){
+                    // Each stick consumes only its OWN finger; never transfer
+                    // either to the kinetic cone, hull drag or pinch recognizer.
                     const auto pad=firePad.handle(event.type,id,tx,ty,width,height);
                     if(pad.owned){if(pad.fire)fireAlongPad();continue;}
+                    if(stickSteering && movePad.handle(event.type,id,tx,ty,width,height)){
+                        auto &c=sfCoop.controls[1];
+                        c.down=movePad.active()&&movePad.magnitude>0;
+                        c.finger=movePad.active()?id:-1;
+                        continue;
+                    }
                 }
                 // Steering is awarded ONLY to a finger whose DOWN began
                 // on the real ship hull. An independent off-hull pair directly
@@ -574,7 +604,7 @@ static int runCoopSoloSession(bool diagnostics){
                         continue;
                     }
                     } // no hidden developer clickboxes in production
-                    if(onHull && moveFinger<0){
+                    if(!stickSteering && onHull && moveFinger<0){
                         moveFinger=id;
                         moveScreenX=tx;moveScreenY=ty;
                         auto &c=sfCoop.controls[1];
@@ -632,6 +662,20 @@ static int runCoopSoloSession(bool diagnostics){
                     sfCoop.controls[1].target=tupl(aim.x,aim.y);
                 }
                 if(worldActive&&aimFinger>=0)aimAt(aimScreenX,aimScreenY);
+                if(stickSteering&&!diagnostics){
+                    auto &pilot=sfCoop.controls[1];
+                    pilot.down=movePad.active()&&movePad.magnitude>0;
+                    pilot.finger=movePad.active()?movePad.finger:-1;
+                    if(pilot.down){
+                        // Identical ShipMotion acceleration, drag, inertia,
+                        // walls and zoom. Stick sets a virtual world target
+                        // each substep, never teleports the ship.
+                        const float reach=sfArenaW*.72f*movePad.magnitude;
+                        pilot.target=tupl(Spritej2->x+movePad.dx*reach,
+                                          Spritej2->y+movePad.dy*reach);
+                    }
+                }
+                if(!diagnostics && firePad.tick(subDt))fireAlongPad();
                 const float beforeHealth=Spritej2->pv;
                 sfCoopTick(subDt); // ORIGINAL physics in world coords, not a copy
                 if(!diagnostics){
@@ -769,16 +813,41 @@ static int runCoopSoloSession(bool diagnostics){
         }
         if(!diagnostics && level.phase!=sfsolo::LevelPhase::Transition){
             firePad.draw(renderer,width,height);
-            sfCoopButton(renderer,{int(width*.76f),4,int(width*.22f),std::max(36,int(height*.05f))},"OPTIONS");
+            if(stickSteering)movePad.draw(renderer,width,height);
+            // Small labelled neon commands, independent of colour swap.
+            sfCoopText(renderer,int(firePad.cx(width)-45),int(firePad.cy(height)-firePad.orbit(width)-27),
+                       "TIR",90,2);
+            if(stickSteering)
+                sfCoopText(renderer,int(movePad.cx(width)-45),int(movePad.cy(height)-movePad.orbit(width)-27),
+                           "VOL",90,2);
+            const auto optionButton=optionsRect();
+            const Uint8 pulse=Uint8(155+35*std::sin(sfCoop.time*3.f));
+            SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer,48,212,238,pulse);
+            const SDL_Rect glow{optionButton.x-3,optionButton.y-3,optionButton.w+6,optionButton.h+6};
+            SDL_RenderDrawRect(renderer,&glow);
+            sfCoopButton(renderer,optionButton,"OPTIONS");
+            if(optionsSentinel){
+                const int size=std::max(32,int(width*.095f));
+                const int cx=optionButton.x+optionButton.w/2;
+                const int cy=optionButton.y-size/2-4+int(std::sin(sfCoop.time*2.3f)*2.f);
+                SDL_SetTextureAlphaMod(optionsSentinel,230);
+                SDL_Rect image{cx-size/2,cy-size/2,size,size};
+                SDL_RenderCopy(renderer,optionsSentinel,nullptr,&image);
+            }
             if(soloOptionsOpen){
                 SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
-                SDL_SetRenderDrawColor(renderer,12,17,36,225);
-                const SDL_Rect pane{int(width*.10f),int(height*.28f),int(width*.80f),int(height*.42f)};
+                SDL_SetRenderDrawColor(renderer,10,15,34,236);
+                const SDL_Rect pane{int(width*.07f),int(height*.265f),int(width*.86f),int(height*.48f)};
                 SDL_RenderFillRect(renderer,&pane);
-                sfCoopCentered(renderer,width,int(height*.33f),"OPTIONS SOLO",2);
-                sfCoopButton(renderer,{int(width*.14f),int(height*.40f),int(width*.72f),int(height*.16f)},
-                             firePad.right?"TIR A DROITE":"TIR A GAUCHE");
-                sfCoopCentered(renderer,width,int(height*.61f),"OPTIONS POUR FERMER",1);
+                SDL_SetRenderDrawColor(renderer,89,210,231,210);
+                SDL_RenderDrawRect(renderer,&pane);
+                sfCoopCentered(renderer,width,int(height*.305f),"COMMANDES SOLO",2);
+                sfCoopButton(renderer,{int(width*.11f),int(height*.395f),int(width*.78f),int(height*.11f)},
+                             firePad.right?"VOL GAUCHE  /  TIR DROITE":"TIR GAUCHE  /  VOL DROITE");
+                sfCoopButton(renderer,{int(width*.11f),int(height*.525f),int(width*.78f),int(height*.11f)},
+                             stickSteering?"PILOTAGE : MINI-STICK":"PILOTAGE : VAISSEAU");
+                sfCoopCentered(renderer,width,int(height*.682f),"OPTIONS POUR FERMER",1);
             }
         }
         if(diagnostics)diagnosticUi.draw(renderer,width,height,worldActive,bonusTestOpen);
@@ -837,6 +906,7 @@ static int runCoopSoloSession(bool diagnostics){
         Mix_CloseAudio();
     }
     if(audioInit){Mix_Quit();SDL_QuitSubSystem(SDL_INIT_AUDIO);}
+    if(optionsSentinel)SDL_DestroyTexture(optionsSentinel);
     transition.release();bonusRenderer.release();scenery.release();
     sfCampaignForgetRenderer(renderer);
     SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);
