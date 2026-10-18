@@ -104,22 +104,32 @@ struct FirePad {
 struct SteeringHoldBoost {
     float stableSeconds=0,anchorDx=0,anchorDy=0,bonus=0;
     bool latched=false;
-    static constexpr float edgeStart=.68f,edgeFull=.94f,maximumBonus=.30f;
+    // ONLY SOLO maze can engage +30% maximum overdrive on held vectors.
+    static constexpr float edgeStart=.68f,edgeFull=.94f,maximumBonus=.36f;
+    static constexpr float maximumRequested=1.30f;
     static float smooth(float t){t=std::clamp(t,0.f,1.f);return t*t*(3.f-2.f*t);}
     void reset(){stableSeconds=anchorDx=anchorDy=bonus=0;latched=false;}
     void tick(float dt,float dx,float dy,float radial){
         if(!std::isfinite(dt)||dt<=0)return;
         if(!std::isfinite(dx)||!std::isfinite(dy)||!std::isfinite(radial)||
            radial<edgeStart || std::hypot(dx,dy)<.9f){reset();return;}
-        // Compare to a fixed reference direction: a slowly turning finger
-        // cannot pass as straight-line flight forever.
-        if(!latched || anchorDx*dx+anchorDy*dy<.925f){
-            anchorDx=dx;anchorDy=dy;stableSeconds=0;bonus=0;latched=true;
+        const float cosine=anchorDx*dx+anchorDy*dy;
+        if(!latched){anchorDx=dx;anchorDy=dy;stableSeconds=0;bonus=0;latched=true;return;}
+        // Finger tremor is tolerated. A real turn drops the extra requested
+        // speed immediately, without changing the existing ship inertia.
+        if(cosine<.925f){anchorDx=dx;anchorDy=dy;stableSeconds=0;bonus=0;return;}
+        dt=std::min(dt,.05f);
+        if(cosine<.985f){
+            stableSeconds=std::max(0.f,stableSeconds-dt*2.5f);
+            bonus*=std::exp(-12.f*dt);
+            return;
         }
-        stableSeconds=std::min(4.f,stableSeconds+dt);
+        stableSeconds=std::min(6.f,stableSeconds+dt);
         const float edge=smooth((radial-edgeStart)/(edgeFull-edgeStart));
-        const float hold=1.f-std::exp(-std::max(0.f,stableSeconds-.22f)/1.1f);
-        bonus=std::clamp(maximumBonus*edge*hold,0.f,maximumBonus);
+        const float hold=1.f-std::exp(-std::max(0.f,stableSeconds-.22f)/1.25f);
+        const float desired=maximumBonus*edge*hold;
+        bonus+=(desired-bonus)*(-std::expm1(-5.f*dt));
+        bonus=std::clamp(bonus,0.f,maximumBonus);
     }
 };
 // Movement always uses the SAME physical ShipMotion code as touch-on-hull.
@@ -138,7 +148,8 @@ struct MovePad {
     bool active()const {return finger>=0;}
     void cancel(){finger=-1;dx=dy=magnitude=travel=0;holdBoost.reset();}
     void tick(float dt){if(active())holdBoost.tick(dt,dx,dy,travel);else holdBoost.reset();}
-    float effectiveMagnitude()const {return std::clamp(magnitude+holdBoost.bonus,0.f,1.f);}
+    float effectiveMagnitude()const {return std::clamp(magnitude+holdBoost.bonus,0.f,SteeringHoldBoost::maximumRequested);}
+    float speedMultiplier()const {return std::clamp(effectiveMagnitude(),1.f,SteeringHoldBoost::maximumRequested);}
     // ShipMotion uses desiredSpeed=min(maxSpeed, distance*12). Match that
     // canonical law at the rim so full throw still reaches max speed while
     // early travel remains slow; difficulty/inertia stays owned by ShipMotion.
@@ -150,7 +161,7 @@ struct MovePad {
         if(!(arenaWidth>0))return 0.f;
         const float difficulty=std::clamp(dangerIndex,0,8)/8.f;
         const float maxSpeed=arenaWidth*(1.7f+1.4f*difficulty);
-        return (maxSpeed/12.f)*std::clamp(amount,0.f,1.f);
+        return (maxSpeed/12.f)*std::clamp(amount,0.f,SteeringHoldBoost::maximumRequested);
     }
     float virtualReach(float arenaWidth,int dangerIndex)const {
         return reachFromMagnitude(effectiveMagnitude(),arenaWidth,dangerIndex);
@@ -170,7 +181,14 @@ struct MovePad {
         const float ox=x-cx(w),oy=y-cy(h),len=std::hypot(ox,oy);
         const float dead=std::max(13.f,w*.022f);
         if(len<=dead){dx=dy=magnitude=travel=0;holdBoost.reset();return;}
-        dx=ox/len;dy=oy/len;
+        const float dirX=ox/len,dirY=oy/len;
+        // Mild direction filtering in the violet joystick; real turns keep
+        // immediate control and trigger the stable-vector reset in tick().
+        if(dx*dirX+dy*dirY>.970f){
+            const float ax=.68f*dx+.32f*dirX,ay=.68f*dy+.32f*dirY;
+            const float n=std::hypot(ax,ay);
+            dx=ax/n;dy=ay/n;
+        }else{dx=dirX;dy=dirY;}
         travel=std::clamp(len/orbit(w),0.f,1.f);
         const float linear=std::clamp((len-dead)/std::max(1.f,orbit(w)-dead),0.f,1.f);
         // Ease-in: quarter throw ~5%, half throw ~22%, full throw 100%.
@@ -202,14 +220,17 @@ struct HullTouchPilot {
     void cancel(){down=false;dx=dy=magnitude=travel=0;holdBoost.reset();}
     void begin(float x,float y){cancel();down=true;anchorX=x;anchorY=y;}
     void tick(float dt){if(down)holdBoost.tick(dt,dx,dy,travel);else holdBoost.reset();}
-    float effectiveMagnitude()const {return std::clamp(magnitude+holdBoost.bonus,0.f,1.f);}
+    float effectiveMagnitude()const {return std::clamp(magnitude+holdBoost.bonus,0.f,SteeringHoldBoost::maximumRequested);}
+    float speedMultiplier()const {return std::clamp(effectiveMagnitude(),1.f,SteeringHoldBoost::maximumRequested);}
+    // Smaller on-hull arc than the violet stick: finger stays nearer ship.
+    float orbit(int screenWidth)const {return std::clamp(screenWidth*.125f,52.f,82.f);}
     void update(float x,float y,int screenWidth){
         if(!down)return;
         const float ox=x-anchorX,oy=y-anchorY,len=std::hypot(ox,oy);
         const float dead=std::max(13.f,screenWidth*.022f);
         if(len<=dead){dx=dy=magnitude=travel=0;holdBoost.reset();return;}
         dx=ox/len;dy=oy/len;
-        const float radius=std::clamp(screenWidth*.2314f,91.f,148.f);
+        const float radius=orbit(screenWidth);
         travel=std::clamp((len-dead)/std::max(1.f,radius-dead),0.f,1.f);
         magnitude=MovePad::steeringCurve(travel);
     }

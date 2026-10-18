@@ -326,7 +326,8 @@ struct CoopSoloWorldBridge {
     // SOLO-026: retained as a no-op compatibility point for old callers.
     // A background MUST NOT slide when the physical camera is still.
     void updateBackgroundOnly(CoopWorldPoint,CoopWorldPoint,float){}
-    void followPhysicalShip(CoopWorldPoint ship,CoopWorldPoint displacement,float dt){
+    void followPhysicalShip(CoopWorldPoint ship,CoopWorldPoint displacement,float dt,
+                            std::optional<CoopWorldPoint> hullFinger=std::nullopt){
         if(!ready || !(dt>0) || !std::isfinite(dt) ||
            !std::isfinite(ship.x)||!std::isfinite(ship.y)||
            !std::isfinite(displacement.x)||!std::isfinite(displacement.y))return;
@@ -338,10 +339,26 @@ struct CoopSoloWorldBridge {
         const float maximum=combatWidth*(1.7f+1.4f*(danger-1.f)/8.f);
         const float throttle=maximum>0?std::clamp(speed/maximum,0.f,1.f):0.f;
         constexpr float maximumLead=.205f; // ship ~29.5% screen at full speed
-        const float targetX=speed>combatWidth*.015f?
+        float targetX=speed>combatWidth*.015f?
             vx/speed*visibleWidth()*maximumLead*throttle:0.f;
-        const float targetY=speed>combatWidth*.015f?
+        float targetY=speed>combatWidth*.015f?
             vy/speed*visibleHeight()*maximumLead*throttle:0.f;
+        if(hullFinger && std::isfinite(hullFinger->x) && std::isfinite(hullFinger->y)){
+            // Camera-only constraint: do not widen the direct-touch visual gap
+            // beyond ~17% of the short screen side. Pilot/world never move
+            // to 'catch' the finger; no camera-to-input feedback is possible.
+            const float fx=hullFinger->x-(screen.x+screen.w*.5f);
+            const float fy=hullFinger->y-(screen.y+screen.h*.5f);
+            const float lx=targetX*zoom,ly=targetY*zoom;
+            const float bound=std::clamp(float(std::min(screen.w,screen.h))*.17f,65.f,110.f);
+            if(std::hypot(fx+lx,fy+ly)>bound && lx*lx+ly*ly>1e-4f){
+                const float aa=lx*lx+ly*ly,bb=fx*lx+fy*ly;
+                const float cc=fx*fx+fy*fy-bound*bound;
+                const float discriminant=std::max(0.f,bb*bb-aa*cc);
+                const float alpha=std::clamp((-bb+std::sqrt(discriminant))/aa,0.f,1.f);
+                targetX*=alpha;targetY*=alpha;
+            }
+        }
         const float response=-std::expm1(-9.f*std::min(dt,.05f));
         lookAheadX+=(targetX-lookAheadX)*response;
         lookAheadY+=(targetY-lookAheadY)*response;

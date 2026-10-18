@@ -248,6 +248,7 @@ static int runCoopSoloSession(bool diagnostics){
         sfCoop.phase=SfCoopPhase::Combat;
         sfCoop.bossPresent=false;sfCoop.health=sfCoopProfile().health;
         sfCoop.soloWorldMode=enabled;
+        sfCoop.soloWorldCruiseFactor=1.f;
         sfCoop.soloBonus.reset();sfCoop.soloBonusPending.clear();sfCoop.soloBonusImpacts.clear();
         sfCoop.soloBonusEjections.clear();
         sfCoop.soloLootRetry=sfCoop.soloCollectUntil=0;
@@ -355,6 +356,7 @@ static int runCoopSoloSession(bool diagnostics){
         zoomGesture.reset();zoomGesture.zoom=world.zoom;
         moveFinger=aimFinger=-1;mouseAimHeld=false;chargeCueGate.reset();
         firePad.cancel();movePad.cancel();hullTouch.cancel();soloOptionsOpen=false;
+        sfCoop.soloWorldCruiseFactor=1.f;
         sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
         sfCoop.controls[1].velocity.set(0,0);sfCoop.fireFingers.clear();
         sfCoop.controls[1].wallGrace=sfCoop.controls[1].wallNX=sfCoop.controls[1].wallNY=0;
@@ -672,6 +674,7 @@ static int runCoopSoloSession(bool diagnostics){
             for(int i=0;i<substeps;++i){
                 const float subDt=simulationDt/substeps;
                 const float oldX=Spritej2->x,oldY=Spritej2->y;
+                sfCoop.soloWorldCruiseFactor=1.f;
                 if(worldActive && moveFinger>=0 && !stickSteering){
                     hullTouch.tick(subDt);
                     // An on-hull gesture is a stable virtual stick with its
@@ -681,6 +684,7 @@ static int runCoopSoloSession(bool diagnostics){
                     pilot.down=hullTouch.down && hullTouch.magnitude>0;
                     pilot.finger=moveFinger;
                     if(pilot.down){
+                        sfCoop.soloWorldCruiseFactor=hullTouch.speedMultiplier();
                         const float reach=hullTouch.virtualReach(sfArenaW,sfBossDangerIndex);
                         pilot.target=tupl(Spritej2->x+hullTouch.dx*reach,
                                           Spritej2->y+hullTouch.dy*reach);
@@ -693,6 +697,7 @@ static int runCoopSoloSession(bool diagnostics){
                     pilot.down=movePad.active()&&movePad.magnitude>0;
                     pilot.finger=movePad.active()?movePad.finger:-1;
                     if(pilot.down){
+                        if(worldActive)sfCoop.soloWorldCruiseFactor=movePad.speedMultiplier();
                         // Identical ShipMotion acceleration, drag, inertia,
                         // walls and zoom. Stick sets a virtual world target
                         // each substep, never teleports the ship.
@@ -726,7 +731,11 @@ static int runCoopSoloSession(bool diagnostics){
                 }
                 if(worldActive)
                     world.followPhysicalShip({Spritej2->x,Spritej2->y},
-                        {Spritej2->x-oldX,Spritej2->y-oldY},subDt);
+                        {Spritej2->x-oldX,Spritej2->y-oldY},subDt,
+                        (!stickSteering && moveFinger>=0 && hullTouch.down)?
+                            std::optional<sfsolo::CoopWorldPoint>{
+                                sfsolo::CoopWorldPoint{moveScreenX,moveScreenY}}:
+                            std::nullopt);
                 // Start the true kinetic charge sound only when the actual
                 // COOP field becomes visible and vulnerable (0.20 s).
                 if(chargeCueGate.startWhenVisible(sfKineticSurges[1])){

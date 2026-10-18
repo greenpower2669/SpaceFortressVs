@@ -50,6 +50,7 @@ struct SfCoopState {
     bool soloFreeAim=false;    // one blue human uses 360-degree direct aim
     bool soloFirePadExact=false; // SOLO joystick only; never retunes historical COOP fire
     bool soloWorldMode=false;  // opt-in, canonical COOP remains default
+    float soloWorldCruiseFactor=1.f; // 1..1.30, SOLO maze owner 1 only
     void *soloWorldContext=nullptr;
     bool (*soloEventVisible)(void*,tupl)=nullptr;
     void (*soloRoute)(void*,tupl,tupl,float,int,std::vector<tupl>&)=nullptr;
@@ -726,7 +727,9 @@ static void sfCoopMovePlayers(float dt)
                     target.y-=pressure*control.wallNY;
                 }
             }
-            inertial.step(target.x,target.y,control.down,sfArenaW,sfBossDangerIndex,dt);
+            const float soloFactor=(sfCoop.soloGame&&sfCoop.soloWorldMode&&owner==1)?
+                sfCoop.soloWorldCruiseFactor:1.f;
+            inertial.step(target.x,target.y,control.down,sfArenaW,sfBossDangerIndex,dt,soloFactor);
             control.velocity=tuplv(inertial.vx,inertial.vy);
         }else if (owner==0 && sfActiveMode==SF_COOP_AI) control.velocity=sfCoopAiVelocity(dt);
         else if (control.down) {
