@@ -101,7 +101,8 @@ struct FirePad {
 };
 
 // Accumulate INTENTION only, never physical speed or camera displacement.
-// SOLO-032: directional-intent reserve. Inertia belongs to ShipMotion;
+// SOLO-033: only 30% direct speed at full throw; the near-rim tensor
+// gradually contributes the remaining 100 points. Inertia belongs to ShipMotion;
 // this bounded reserve ONLY adjusts the target speed request in SOLO maze.
 // The vector (anchorDx, anchorDy) reorients continuously. stableSeconds is
 // its stored charge; bonus is a second, slower output low-pass. Neither can
@@ -109,9 +110,10 @@ struct FirePad {
 struct SteeringHoldBoost {
     float stableSeconds=0,anchorDx=0,anchorDy=0,bonus=0,recoverySeconds=0;
     bool latched=false;
-    static constexpr float edgeStart=.68f,edgeFull=.94f,maximumBonus=.36f;
+    static constexpr float edgeStart=.90f,edgeFull=.98f,maximumBonus=1.f;
     static constexpr float maximumRequested=1.30f;
-    static constexpr float chargeSeconds=5.f;
+    static constexpr float directCruise=.30f;
+    static constexpr float chargeSeconds=6.f;
     static float smooth(float t){t=std::clamp(t,0.f,1.f);return t*t*(3.f-2.f*t);}
     void reset(){stableSeconds=anchorDx=anchorDy=bonus=recoverySeconds=0;latched=false;}
     void tick(float dt,float dx,float dy,float radial){
@@ -139,10 +141,11 @@ struct SteeringHoldBoost {
         if(headingValid && radial>=edgeStart && alignment<.94f)
             recoverySeconds=std::max(recoverySeconds,.45f+.30f*(1.f-alignment));
         recoverySeconds=std::max(0.f,recoverySeconds-dt);
-        const bool charging=headingValid && radial>=edgeStart &&
+        const bool charging=headingValid && edge>.001f &&
                             alignment>=.987f && recoverySeconds<=0.f;
         if(charging){
-            stableSeconds=std::min(chargeSeconds,stableSeconds+dt*1.05f);
+            // No hidden precharging when barely touching the outer ring.
+            stableSeconds=std::min(chargeSeconds,stableSeconds+dt*1.05f*edge);
         }else{
             const float turnPenalty=alignment<.55f?3.8f:alignment<.93f?2.8f:1.15f;
             const float outerPenalty=edge>.001f?turnPenalty:2.3f;
@@ -185,11 +188,21 @@ struct MovePad {
     bool active()const {return finger>=0;}
     void cancel(){finger=-1;dx=dy=magnitude=travel=0;holdBoost.reset();}
     void tick(float dt){if(active())holdBoost.tick(dt,dx,dy,travel);else holdBoost.reset();}
-    float effectiveMagnitude()const {return std::clamp(magnitude+holdBoost.bonus,0.f,SteeringHoldBoost::maximumRequested);}
-    float speedMultiplier()const {return std::clamp(effectiveMagnitude(),1.f,SteeringHoldBoost::maximumRequested);}
-    // ShipMotion uses desiredSpeed=min(maxSpeed, distance*12). Match that
-    // canonical law at the rim so full throw still reaches max speed while
-    // early travel remains slow; difficulty/inertia stays owned by ShipMotion.
+    float effectiveMagnitude()const {
+        // Inward steering must always recover fine control, despite stored
+        // tensor charge: the ship itself still decelerates via ShipMotion.
+        const float envelope=SteeringHoldBoost::smooth((travel-.30f)/.60f);
+        return std::clamp(SteeringHoldBoost::directCruise*magnitude+
+                          holdBoost.bonus*envelope,0.f,
+                          SteeringHoldBoost::maximumRequested);
+    }
+    float speedMultiplier()const {
+        return std::clamp(effectiveMagnitude(),1.f,
+                          SteeringHoldBoost::maximumRequested);
+    }
+    // The virtual target distance requests only 30% direct top-speed.
+    // Full 130% needs a stable cap in the OUTER ring for several seconds.
+    // Actual acceleration/inertia stay inside the historical ShipMotion.
     static float steeringCurve(float t){
         t=std::clamp(t,0.f,1.f);
         return t*t*t*(.70f+.30f*t); // half-throw ~11%, soft low-speed flight
@@ -228,7 +241,7 @@ struct MovePad {
         }else{dx=dirX;dy=dirY;}
         travel=std::clamp(len/orbit(w),0.f,1.f);
         const float linear=std::clamp((len-dead)/std::max(1.f,orbit(w)-dead),0.f,1.f);
-        // Ease-in: quarter throw ~5%, half throw ~22%, full throw 100%.
+        // Cubic low-speed curve: at full throw DIRECT request is only 30%.
         magnitude=steeringCurve(linear);
     }
     void draw(SDL_Renderer*r,int w,int h)const {
@@ -257,8 +270,18 @@ struct HullTouchPilot {
     void cancel(){down=false;dx=dy=magnitude=travel=0;holdBoost.reset();}
     void begin(float x,float y){cancel();down=true;anchorX=x;anchorY=y;}
     void tick(float dt){if(down)holdBoost.tick(dt,dx,dy,travel);else holdBoost.reset();}
-    float effectiveMagnitude()const {return std::clamp(magnitude+holdBoost.bonus,0.f,SteeringHoldBoost::maximumRequested);}
-    float speedMultiplier()const {return std::clamp(effectiveMagnitude(),1.f,SteeringHoldBoost::maximumRequested);}
+    float effectiveMagnitude()const {
+        // Inward steering must always recover fine control, despite stored
+        // tensor charge: the ship itself still decelerates via ShipMotion.
+        const float envelope=SteeringHoldBoost::smooth((travel-.30f)/.60f);
+        return std::clamp(SteeringHoldBoost::directCruise*magnitude+
+                          holdBoost.bonus*envelope,0.f,
+                          SteeringHoldBoost::maximumRequested);
+    }
+    float speedMultiplier()const {
+        return std::clamp(effectiveMagnitude(),1.f,
+                          SteeringHoldBoost::maximumRequested);
+    }
     // Smaller on-hull arc than the violet stick: finger stays nearer ship.
     float orbit(int screenWidth)const {return std::clamp(screenWidth*.125f,52.f,82.f);}
     void update(float x,float y,int screenWidth){

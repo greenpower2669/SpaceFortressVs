@@ -1,4 +1,5 @@
 #include "solo_fire_pad.hpp"
+#include "solo_ship_motion.hpp"
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -57,8 +58,8 @@ int main(){
     assert(move.travel>move.magnitude*.99f);
     const float easy=move.virtualReach(float(w),0);
     const float hard=move.virtualReach(float(w),8);
-    assert(std::abs(easy*12.f-w*1.7f)<.001f);
-    assert(std::abs(hard*12.f-w*3.1f)<.001f);
+    assert(std::abs(easy*12.f-w*1.7f*.30f)<.001f);
+    assert(std::abs(hard*12.f-w*3.1f*.30f)<.001f);
     move.handle(SDL_FINGERUP,70,mx+move.orbit(w),my,w,h);
     assert(move.magnitude==0 && move.travel==0);
     // SOLO-029: touch-on-hull equals the violet stick, starting at the
@@ -81,112 +82,131 @@ int main(){
     hull.cancel();
     assert(!hull.down && hull.magnitude==0.f && hull.virtualReach(w,3)==0.f);
 
-    // SOLO-032: accumulate over several seconds, rather than a sudden
-    // 130% surge simply because the finger reaches the extreme rim.
-    move.cancel();
-    assert(move.orbit(w)>115.f && move.orbit(w)<150.f);
-    assert(move.cx(w)-move.orbit(w)>0.f);
-    assert(move.handle(SDL_FINGERDOWN,80,move.cx(w),move.cy(h),w,h));
-    const float nearRim=move.orbit(w),cx=move.cx(w),cy=move.cy(h);
-    assert(move.handle(SDL_FINGERMOTION,80,cx+nearRim,cy,w,h));
-    const float base=move.magnitude;
-    float past=move.effectiveMagnitude();
-    assert(std::abs(base-1.f)<.001f);
+    // SOLO-033: at maximum distance, the INITIAL command is 30%.
+    // Only a stable near-rim vector adds the other 100 percentage points.
+    move.cancel();assert(move.handle(SDL_FINGERDOWN,80,move.cx(w),move.cy(h),w,h));
+    const float cx=move.cx(w),cy=move.cy(h),rim=move.orbit(w);
+    auto moveTo=[&](float fraction){
+        return move.handle(SDL_FINGERMOTION,80,cx+rim*fraction,cy,w,h);
+    };
+    assert(moveTo(1.f));
+    assert(std::abs(move.magnitude-1.f)<.001f);
+    assert(std::abs(move.effectiveMagnitude()-.30f)<.001f);
+    const float nominal=w*1.7f;
+    assert(std::abs(move.virtualReach(w,0)*12.f/nominal-.30f)<.001f);
+    float prev=move.effectiveMagnitude();
     for(int i=0;i<200;++i){
         move.tick(.01f);
-        const float now=move.effectiveMagnitude();
-        assert(now>=past-.0001f);
-        assert(now-past<.01f);
-        past=now;
+        const float current=move.effectiveMagnitude();
+        assert(current>=prev-.001f && current-prev<.01f);
+        prev=current;
     }
-    // At 2 seconds still well below the old fast +30% overdrive.
-    const float twoSeconds=move.effectiveMagnitude();
-    assert(twoSeconds>1.f && twoSeconds<1.13f);
-    for(int i=0;i<650;++i)move.tick(.01f);
-    assert(move.effectiveMagnitude()>1.28f);
-    assert(move.effectiveMagnitude()<=1.30f);
-    const float beforeTurn=move.holdBoost.bonus;
-    // Important: 90 degree direction change does NOT zero charge or bonus.
-    assert(move.handle(SDL_FINGERMOTION,80,cx,cy-nearRim,w,h));
+    const float at2=move.effectiveMagnitude();
+    assert(at2>.37f && at2<.50f);
+    for(int i=0;i<200;++i)move.tick(.01f);
+    const float at4=move.effectiveMagnitude();
+    assert(at4>.75f && at4<1.00f);
+    for(int i=0;i<400;++i)move.tick(.01f);
+    const float at8=move.effectiveMagnitude();
+    assert(at8>1.25f && at8<=1.30f);
+    // 85% radius: no charging even during prolonged holding.
+    move.cancel();move.handle(SDL_FINGERDOWN,80,cx,cy,w,h);
+    assert(moveTo(.85f));
+    const float at85=move.effectiveMagnitude();
+    for(int i=0;i<1600;++i)move.tick(.01f);
+    assert(move.holdBoost.stableSeconds==0.f);
+    assert(std::abs(move.effectiveMagnitude()-at85)<.001f);
+    // 92% radius: near the edge but still only trickle-charge.
+    move.cancel();move.handle(SDL_FINGERDOWN,80,cx,cy,w,h);
+    assert(moveTo(.92f));
+    for(int i=0;i<500;++i)move.tick(.01f);
+    assert(move.holdBoost.stableSeconds<1.6f);
+    assert(move.effectiveMagnitude()<.36f);
+    assert(moveTo(1.f));
+    for(int i=0;i<1000;++i)move.tick(.01f);
+    assert(move.effectiveMagnitude()>1.25f && move.effectiveMagnitude()<=1.30f);
+    // Change cap gradually discharges the tensor, no hard reset.
+    const float priorTurn=move.holdBoost.bonus;
+    assert(move.handle(SDL_FINGERMOTION,80,cx,cy-rim,w,h));
     move.tick(.01f);
-    assert(move.holdBoost.bonus>0.f);
-    assert(beforeTurn-move.holdBoost.bonus<.015f);
-    const float afterFirstStep=move.holdBoost.bonus;
+    assert(move.holdBoost.bonus>0 && priorTurn-move.holdBoost.bonus<.015f);
     for(int i=0;i<150;++i)move.tick(.01f);
     const float afterTurn=move.holdBoost.bonus;
-    assert(afterTurn<afterFirstStep-.025f);
-    assert(afterTurn>.07f); // discharge with finite duration
-    const float bottom=move.holdBoost.bonus;
-    // Holding the NEW vector realigns and resumes overdrive gradually.
+    assert(afterTurn<priorTurn-.025f && afterTurn>.07f);
     for(int i=0;i<1000;++i)move.tick(.01f);
-    assert(move.holdBoost.bonus>bottom+.025f);
-    assert(move.effectiveMagnitude()<=1.30f);
-    // Exact 180-degree reversals must also slew, rather than flip/reset.
-    const float beforeReverse=move.holdBoost.bonus;
-    assert(move.handle(SDL_FINGERMOTION,80,cx,cy+nearRim,w,h));
+    assert(move.holdBoost.bonus>afterTurn+.025f);
+    // True 180 degree reversal does not immediately erase charge.
+    const float preReverse=move.holdBoost.bonus;
+    assert(move.handle(SDL_FINGERMOTION,80,cx,cy+rim,w,h));
     move.tick(.01f);
-    assert(beforeReverse-move.holdBoost.bonus<.015f);
-    assert(move.holdBoost.bonus>0.f);
+    assert(preReverse-move.holdBoost.bonus<.015f);
     for(int i=0;i<160;++i)move.tick(.01f);
-    assert(move.holdBoost.bonus<beforeReverse-.025f);
-    for(int i=0;i<1000;++i)move.tick(.01f);
-    assert(move.effectiveMagnitude()>1.20f);
-    // Low-radial movement requests a small speed without new stored charge.
-    move.handle(SDL_FINGERMOTION,80,cx+move.orbit(w)*.30f,cy,w,h);
-    const float lowerBase=move.magnitude;
-    assert(lowerBase<.06f);
-    const float oldCharge=move.holdBoost.stableSeconds;
+    assert(move.holdBoost.bonus<preReverse-.025f);
+    // Near centre: no lingering high POWER command despite residual energy.
+    assert(moveTo(.30f));
+    assert(move.effectiveMagnitude()<.06f);
     for(int i=0;i<200;++i)move.tick(.01f);
-    assert(move.holdBoost.stableSeconds<oldCharge);
-    assert(move.holdBoost.bonus<.02f);
-    // Safety: on release we neutralize the INTENTION, never ship inertia.
+    assert(move.effectiveMagnitude()<.06f);
     assert(move.handle(SDL_FINGERUP,80,cx,cy,w,h));
-    assert(!move.active() && move.holdBoost.bonus==0.f);
-    assert(move.virtualReach(w,3)==0.f);
-
-    // The hull uses the identical reserve, although its tactile radius is
-    // much shorter so the finger stays closer to the visible spacecraft.
+    assert(move.effectiveMagnitude()==0.f);
+    // Same tensor and 30% initial speed with a SHORT hull-on-finger radius.
     sfsolo::HullTouchPilot hullCharge;
     hullCharge.begin(250.f,450.f);
     const float hullR=hullCharge.orbit(w);
-    assert(hullR<move.orbit(w)*.65f);
+    assert(hullR<rim*.65f);
     hullCharge.update(250.f+hullR,450.f,w);
+    assert(std::abs(hullCharge.effectiveMagnitude()-.30f)<.001f);
     for(int i=0;i<200;++i)hullCharge.tick(.01f);
-    assert(std::abs(hullCharge.effectiveMagnitude()-twoSeconds)<.012f);
-    for(int i=0;i<650;++i)hullCharge.tick(.01f);
-    assert(hullCharge.effectiveMagnitude()>1.28f);
+    assert(std::abs(hullCharge.effectiveMagnitude()-at2)<.01f);
+    for(int i=0;i<600;++i)hullCharge.tick(.01f);
+    assert(hullCharge.effectiveMagnitude()>1.25f);
     hullCharge.update(250.f,450.f-hullR,w);
     hullCharge.tick(.01f);
     assert(hullCharge.holdBoost.bonus>0.f);
-    hullCharge.cancel();
-    assert(hullCharge.effectiveMagnitude()==0.f);
+    hullCharge.cancel();assert(hullCharge.virtualReach(w,3)==0.f);
 
-    // Same cap at all 9 difficulty levels, even after infinite hold.
-    move.handle(SDL_FINGERDOWN,81,cx,cy,w,h);
-    move.handle(SDL_FINGERMOTION,81,cx+nearRim,cy,w,h);
-    for(int i=0;i<1600;++i)move.tick(.01f);
-    for(int difficulty=0;difficulty<9;++difficulty){
-        const float speed=w*(1.7f+1.4f*float(difficulty)/8.f);
-        assert(move.virtualReach(w,difficulty)*12.f<=speed*1.30f+.001f);
+    // Critically test REAL ShipMotion physics, not just the tensor output.
+    // All nine dangers must start below half historic max, then accelerate
+    // in stages and never exceed the historic 130% physical cap.
+    for(int danger=0;danger<9;++danger){
+        sfsolo::MovePad intention;
+        const float x=intention.cx(w),y=intention.cy(h);
+        intention.handle(SDL_FINGERDOWN,95,x,y,w,h);
+        intention.handle(SDL_FINGERMOTION,95,x+intention.orbit(w),y,w,h);
+        sfsolo::ShipMotion ship;
+        float at1=0,at4physical=0,at9physical=0;
+        const float baseSpeed=w*(1.7f+1.4f*float(danger)/8.f);
+        for(int i=0;i<900;++i){
+            intention.tick(.01f);
+            ship.step(ship.x+intention.virtualReach(w,danger),ship.y,
+                      true,w,danger,.01f,intention.speedMultiplier());
+            if(i==99)at1=ship.vx/baseSpeed;
+            if(i==399)at4physical=ship.vx/baseSpeed;
+            if(i==899)at9physical=ship.vx/baseSpeed;
+        }
+        assert(at1>.10f && at1<.45f);
+        assert(at4physical>at1+.20f && at4physical<1.f);
+        assert(at9physical>at4physical+.15f && at9physical<=1.301f);
+        const float before=ship.vx,position=ship.x;
+        ship.step(ship.x-intention.virtualReach(w,danger),ship.y,
+                  true,w,danger,.01f,1.f);
+        assert(ship.vx<before && ship.x>position);
     }
-    move.cancel();
-    // Frame-rate independence: charge, alignment and output depend on dt.
-    sfsolo::SteeringHoldBoost at30,at60,at120;
-    for(int i=0;i<120;++i)at30.tick(1.f/30.f,1.f,0.f,1.f);
-    for(int i=0;i<240;++i)at60.tick(1.f/60.f,1.f,0.f,1.f);
-    for(int i=0;i<480;++i)at120.tick(1.f/120.f,1.f,0.f,1.f);
-    assert(std::abs(at30.bonus-at60.bonus)<.005f);
-    assert(std::abs(at60.bonus-at120.bonus)<.005f);
-    // Tiny direction changes don't induce oscillation.
-    const float beforeJitter=at60.bonus;
-    for(int i=0;i<30;++i)
-        at60.tick(1.f/60.f,1.f,(i%2?-.008f:.008f),1.f);
-    assert(at60.bonus>=beforeJitter-.005f);
+    // Consistent charge at 30, 60 and 120 simulation FPS.
+    sfsolo::SteeringHoldBoost t30,t60,t120;
+    for(int i=0;i<120;++i)t30.tick(1.f/30.f,1.f,0.f,1.f);
+    for(int i=0;i<240;++i)t60.tick(1.f/60.f,1.f,0.f,1.f);
+    for(int i=0;i<480;++i)t120.tick(1.f/120.f,1.f,0.f,1.f);
+    assert(std::abs(t30.bonus-t60.bonus)<.006f);
+    assert(std::abs(t60.bonus-t120.bonus)<.006f);
+    const float beforeJitter=t60.bonus;
+    for(int i=0;i<60;++i)t60.tick(1.f/60.f,1.f,(i%2?-.009f:.009f),1.f);
+    assert(t60.bonus>=beforeJitter-.006f);
     // Changing one handedness option flips BOTH stick positions, not roles.
     fire.right=!fire.right;move.right=!fire.right;
     assert(fire.cx(w)>w*.5f&&move.cx(w)<w*.5f);
     assert(fire.handle(SDL_FINGERDOWN,40,fire.cx(w),fire.cy(h),w,h).fire);
     assert(fire.dx>.99f);
     fire.cancel();move.cancel();
-    puts("PASS: SOLO-032 gradual directional reserve, smooth turn and reacquisition, 130% cap");
+    puts("PASS: SOLO-033 30% initial cruise +100-point late-rim tensor and nine-danger physical speed");
 }
