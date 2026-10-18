@@ -2,6 +2,7 @@
 
 ## IMMUTABLE / À PRÉSERVER
 
+- **LIVRAISON APK OBLIGATOIRE :** après CI verte, faire **extraire l’APK de l’archive GitHub Actions par GitHub sur ses serveurs**, puis déposer le véritable fichier `.apk` directement téléchargeable dans `temp/<mission>/` **sur la branche de travail**, avec lien direct et SHA-256. **Jamais de ZIP à télécharger/décompresser sur l’appareil ou le disque de Fab.**
 - Identité release/store historique : `com.greenpower2669.spacefortressvs` ; ne pas renommer pour une mise à jour.
 - Diagnostic existant : suffixe `.diagnostic`, soit `com.greenpower2669.spacefortressvs.diagnostic`.
 - APK diagnostic debug ; AAB release livré NON SIGNÉ. Configuration de signature inchangée ; aucune clé d’upload ajoutée au dépôt. Ne jamais copier de clé privée dans le dépôt ou les logs.
