@@ -69,7 +69,8 @@ int main(){
     hull.update(210.f,510.f,w);
     assert(hull.magnitude==0.f);
     const float d=std::max(13.f,w*.022f);
-    const float r=move.orbit(w);
+    const float r=hull.orbit(w);
+    assert(r<move.orbit(w)*.65f);
     hull.update(210.f+d+(r-d)*.5f,510.f,w);
     assert(std::abs(hull.magnitude-sfsolo::MovePad::steeringCurve(.5f))<.001f);
     const float requested=hull.virtualReach(float(w),3);
@@ -108,12 +109,13 @@ int main(){
     assert(!move.active() && move.holdBoost.bonus==0.f);
     // Same curve and momentum intent for steering directly on the ship.
     hull.begin(250.f,450.f);
-    hull.update(250.f+nearRim,450.f,w);
+    const float hullNearRim=safeDead+(hull.orbit(w)-safeDead)*.88f;
+    hull.update(250.f+hullNearRim,450.f,w);
     const float hullBase=hull.magnitude;
     for(int i=0;i<220;++i)hull.tick(.01f);
     assert(hull.effectiveMagnitude()>hullBase+.15f);
     assert(std::abs(hull.effectiveMagnitude()-boosted)<.025f);
-    hull.update(250.f-nearRim,450.f,w);
+    hull.update(250.f-hullNearRim,450.f,w);
     hull.tick(.01f);assert(hull.holdBoost.bonus==0.f);
     hull.cancel();assert(hull.effectiveMagnitude()==0.f);
     // Even after a long hold the historical physical top-speed is capped.
@@ -121,9 +123,34 @@ int main(){
     move.handle(SDL_FINGERDOWN,81,move.cx(w),move.cy(h),w,h);
     move.handle(SDL_FINGERMOTION,81,move.cx(w)+move.orbit(w),move.cy(h),w,h);
     for(int i=0;i<10000;++i)move.tick(.01f);
-    assert(move.effectiveMagnitude()==1.f);
-    assert(std::abs(move.virtualReach(w,0)*12.f-w*1.7f)<.001f);
-    assert(std::abs(move.virtualReach(w,8)*12.f-w*3.1f)<.001f);
+    assert(move.effectiveMagnitude()>1.20f);
+    assert(move.effectiveMagnitude()<=1.30f);
+    assert(std::abs(move.virtualReach(w,0)*12.f-w*1.7f*move.effectiveMagnitude())<.001f);
+    assert(std::abs(move.virtualReach(w,8)*12.f-w*3.1f*move.effectiveMagnitude())<.001f);
+    move.cancel();
+    // Stationary near-centre vectors retain LOW speed; holding them does
+    // not secretly add any afterburner.
+    move.handle(SDL_FINGERDOWN,85,move.cx(w),move.cy(h),w,h);
+    move.handle(SDL_FINGERMOTION,85,move.cx(w)+move.orbit(w)*.40f,move.cy(h),w,h);
+    const float delicate=move.magnitude;
+    for(int i=0;i<1200;++i)move.tick(.01f);
+    assert(move.holdBoost.bonus==0.f);
+    assert(std::abs(move.effectiveMagnitude()-delicate)<.001f);
+    move.cancel();
+    // Repeat a full-rim hold then make tiny joystick corrections:
+    // natural finger jitter MUST NOT zero the accumulated high speed.
+    move.handle(SDL_FINGERDOWN,86,move.cx(w),move.cy(h),w,h);
+    move.handle(SDL_FINGERMOTION,86,move.cx(w)+move.orbit(w),move.cy(h),w,h);
+    for(int i=0;i<440;++i)move.tick(.01f);
+    assert(move.effectiveMagnitude()>1.2f);
+    const float beforeMicroTurn=move.holdBoost.bonus;
+    move.handle(SDL_FINGERMOTION,86,move.cx(w)+move.orbit(w),move.cy(h)+2.f,w,h);
+    move.tick(.01f);
+    assert(move.holdBoost.bonus>=beforeMicroTurn-.02f);
+    // A deliberate ~90-degree turn should remove the extra requested speed.
+    move.handle(SDL_FINGERMOTION,86,move.cx(w),move.cy(h)-move.orbit(w),w,h);
+    move.tick(.01f);
+    assert(move.holdBoost.bonus==0.f);
     move.cancel();
     // Changing one handedness option flips BOTH stick positions, not roles.
     fire.right=!fire.right;move.right=!fire.right;
@@ -131,5 +158,5 @@ int main(){
     assert(fire.handle(SDL_FINGERDOWN,40,fire.cx(w),fire.cy(h),w,h).fire);
     assert(fire.dx>.99f);
     fire.cancel();move.cancel();
-    puts("PASS: SOLO-030 cumulative directional hold, soft controls, capped top speed, paired hand swap");
+    puts("PASS: SOLO-031 soft hull radius, jitter-resistant vectors, finite 130% overdrive and reversal");
 }

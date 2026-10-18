@@ -285,6 +285,50 @@ int main(){
     auto round=bridge.toWorld(bridge.toScreen(pilot));
     assert(same(round.x,pilot.x)&&same(round.y,pilot.y));
 
+    // SOLO-031: a finger on the hull keeps its own small gesture arc while
+    // the camera prioritizes a bounded visual touch/ship separation.
+    const CoopWorldPoint hullStart{bridge.worldWidth()*.5f,bridge.worldHeight()*.5f};
+    const float centreX=bridge.screen.x+bridge.screen.w*.5f;
+    const float centreY=bridge.screen.y+bridge.screen.h*.5f;
+    bridge.centerOn(hullStart);
+    CoopWorldPoint hullFlight=hullStart;
+    const float dtTouch=.01f;
+    const float speedTouch=bridge.combatWidth*1.7f*1.28f;
+    const CoopWorldPoint finger{centreX+bridge.screen.w*.12f,centreY};
+    for(int t=0;t<150;++t){
+        hullFlight.x+=speedTouch*dtTouch;
+        bridge.followPhysicalShip(hullFlight,{speedTouch*dtTouch,0},dtTouch,finger);
+    }
+    const float gap=std::hypot(finger.x-bridge.toScreen(hullFlight).x,
+                                finger.y-bridge.toScreen(hullFlight).y);
+    assert(gap<bridge.screen.w*.175f);
+    assert(gap>bridge.screen.w*.12f);
+    assert(bridge.lookAheadX>0.f);
+    const float constrained=bridge.lookAheadX;
+    // Switching to a violet stick restores the full forward prediction
+    // without touching ship physics, camera-to-world inverse or collisions.
+    for(int t=0;t<100;++t){
+        hullFlight.x+=speedTouch*dtTouch;
+        bridge.followPhysicalShip(hullFlight,{speedTouch*dtTouch,0},dtTouch);
+    }
+    assert(bridge.lookAheadX>constrained+bridge.visibleWidth()*.06f);
+    const auto screenRound=bridge.toScreen(hullFlight);
+    const auto worldRound=bridge.toWorld(screenRound);
+    assert(same(worldRound.x,hullFlight.x) && same(worldRound.y,hullFlight.y));
+    // A high-speed move across several cells must still be stopped or
+    // bounced by the continuous swept-wall collision implementation.
+    CoopSoloWorldBridge speedWall;
+    assert(speedWall.create(opts,{0,0,540,960},540));
+    std::fill(speedWall.map.tiles.begin(),speedWall.map.tiles.end(),Tile::Empty);
+    const float cellFast=speedWall.pixelsPerCell;
+    for(int y=0;y<speedWall.map.height;++y)
+        speedWall.map.tiles[size_t(y)*speedWall.map.width+8]=Tile::Rock;
+    const CoopWorldPoint fastFrom{6.5f*cellFast,10.5f*cellFast};
+    const auto fastBounce=speedWall.moveWithBounce(fastFrom,
+        {fastFrom.x+cellFast*4.f,fastFrom.y},{7200,0},12.f,.05f);
+    assert(fastBounce.collided);
+    assert(fastBounce.position.x<8.f*cellFast-12.f);
+    assert(fastBounce.velocity.x<0.f);
     // World-to-screen projection must remain invertible even in the last
     // region of the very long map, without a gigantic Android viewport.
     bridge.cameraTop=bridge.worldHeight()-960;

@@ -32,5 +32,24 @@ int main(){
     assert(s.x>before); // genuine reversal lag
     for(int i=0;i<400;++i)s.step(before-5000,0,true,780,8,.01f);
     assert(s.vx<0 && s.x<before);
-    puts("PASS: physical inertia, all nine dangers, overshoot/reversal/release and 30/60/120 FPS");
+    // SOLO-031: the optional overdrive is not a teleport and never exceeds
+    // the 130% physical limiter. Legacy six-parameter calls remain identical.
+    for(int danger=0;danger<9;++danger){
+        ShipMotion ordinary,overdrive;
+        for(int i=0;i<450;++i){
+            ordinary.step(100000.f,0,true,780,danger,.01f);
+            overdrive.step(100000.f,0,true,780,danger,.01f,1.30f);
+        }
+        const float nominal=780.f*(1.7f+1.4f*float(danger)/8.f);
+        assert(ordinary.vx<nominal+1.f);
+        assert(overdrive.vx>ordinary.vx+nominal*.07f);
+        assert(overdrive.vx<=nominal*1.30f+1.f);
+        const float before=overdrive.x,priorSpeed=overdrive.vx;
+        overdrive.step(-100000.f,0,true,780,danger,.025f,1.f);
+        assert(overdrive.x>before && overdrive.vx<priorSpeed); // inertia
+        for(int i=0;i<450;++i)
+            overdrive.step(0,0,false,780,danger,.01f,1.f);
+        assert(std::abs(overdrive.vx)<nominal*.03f);
+    }
+    puts("PASS: nine danger inertias, finite SOLO-031 overdrive, smooth brake/reverse, legacy behavior");
 }
