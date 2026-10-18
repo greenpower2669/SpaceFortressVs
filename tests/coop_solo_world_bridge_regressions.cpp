@@ -294,13 +294,13 @@ int main(){
     CoopWorldPoint hullFlight=hullStart;
     const float dtTouch=.01f;
     const float speedTouch=bridge.combatWidth*1.7f*1.28f;
-    const CoopWorldPoint finger{centreX+bridge.screen.w*.12f,centreY};
+    const CoopWorldPoint touchFinger{centreX+bridge.screen.w*.12f,centreY};
     for(int t=0;t<150;++t){
         hullFlight.x+=speedTouch*dtTouch;
-        bridge.followPhysicalShip(hullFlight,{speedTouch*dtTouch,0},dtTouch,finger);
+        bridge.followPhysicalShip(hullFlight,{speedTouch*dtTouch,0},dtTouch,touchFinger);
     }
-    const float gap=std::hypot(finger.x-bridge.toScreen(hullFlight).x,
-                                finger.y-bridge.toScreen(hullFlight).y);
+    const float gap=std::hypot(touchFinger.x-bridge.toScreen(hullFlight).x,
+                                touchFinger.y-bridge.toScreen(hullFlight).y);
     assert(gap<bridge.screen.w*.175f);
     assert(gap>bridge.screen.w*.12f);
     assert(bridge.lookAheadX>0.f);
