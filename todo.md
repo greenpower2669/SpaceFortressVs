@@ -892,3 +892,13 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - AAB non signé `SpaceFortressVs-1.4.2-SOLO-ORGANIC-024-2946e9a-unsigned.aab`, **96 006 869 octets**, SHA-256 `4aec7e7ea8028551c2c1cf2362301c785c12996aac3496f45efe81927f315454`. Hash et ZIP/artefact source vérifiés dans workflow.
 - À vérifier perceptivement sur Samsung : contours longs à l'intérieur/extérieur des roches, répétitions visuelles, absence d'artéfact d'occlusion, effets de défilement du fond dans zone de rayon 0,5→1 diamètre, raccord à 1→2 diamètres, collision logique inchangée. CI n'est pas preuve de confort visuel.
 - Revert source si demandé par Fab : `git revert 2946e9a30cfc9923ccd6371c16a2121c66abc1a3`, puis `git revert 599f6a82347f10f25ed9354b35c6f8d895f72ea4`, puis `git revert 210afab295dd2277986fe44b7377a4e9c2bfd5dd`, branche `feature/solo-coop-core-v1` uniquement, résoudre les conflits de documentation sans supprimer cette trace, relancer CI. Ne pas réinitialiser, force-push, fusionner main ou faire Release.
+
+## SOLO-025 — anti-répétition et FX météores Djipie
+- [x] Découverte vérifiée des 4 vrais assets nommés `Meteor_explosion_rock_contre_rock1..4` dans Release privée Djipie, tailles et SHA-256 exacts.
+- [x] Texture roche : sampling déformé/nuancé en coordonnées monde, lueurs bleues moins répétitives (`91e024457...`).
+- [x] Son : shuffle-bag de quatre prises, protection anti-repeat, séparé pour roche-roche/destruction ; sons murs/champs préservés (`b74b062...`).
+- [x] Ajouter contrôle d'assets privés par secret (jamais de WAV public) et inspection SHA-256 de l'APK.
+- [ ] Valider CI et tests C++/Android complète.
+- [ ] Vérifier si `DJIPIE_READ_TOKEN` existe et a le droit de lire Djipie (sinon configuration explicite requise).
+- [ ] Livrer APK diagnostic direct **avec** 4 nouveaux sons uniquement si le test `DJIPIE_METEOR_TAKES=4` a réussi.
+- [ ] Tester le ressenti sonore et les roches moins répétitives sur Samsung ; rollback séparé.

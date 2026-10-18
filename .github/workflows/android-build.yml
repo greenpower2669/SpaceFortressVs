@@ -101,6 +101,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Stage four Djipie meteor WAVs only with authorized private access
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.DJIPIE_READ_TOKEN }}
+        run: |
+          if [[ -n "${GH_TOKEN}" ]]; then
+            bash scripts/fetch-djipie-meteors.sh
+            echo "DJIPIE_METEOR_TAKES=4" >> "$GITHUB_ENV"
+            echo "::notice::Four private meteor samples verified for APK build"
+          else
+            echo "DJIPIE_METEOR_TAKES=0" >> "$GITHUB_ENV"
+            echo "::notice::DJIPIE_READ_TOKEN not configured: preserve original asteroid sounds"
+          fi
+
       - name: Read game version
         id: version
         run: python3 scripts/package-release.py --metadata >> "$GITHUB_OUTPUT"
@@ -226,6 +240,11 @@ jobs:
 
       - name: Verify and name release files
         run: python3 scripts/package-release.py
+
+      - name: Verify Djipie audio inclusion in APK (no standalone WAV artifact)
+        shell: bash
+        run: |
+          python3 scripts/verify-solo-meteors-apk.py             --apk android/app/build/outputs/apk/debug/app-debug.apk             --expect "$DJIPIE_METEOR_TAKES"
 
       - name: Versioned APK and AAB
         uses: actions/upload-artifact@v4
