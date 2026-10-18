@@ -49,9 +49,9 @@ int main(){
         return move.magnitude;
     };
     const float quarter=at(.25f),half=at(.50f),threeQuarter=at(.75f),full=at(1.f);
-    assert(quarter>.03f && quarter<.08f);
-    assert(half>.18f && half<.26f);
-    assert(threeQuarter>.48f && threeQuarter<.57f);
+    assert(quarter>.010f && quarter<.018f);
+    assert(half>.100f && half<.115f);
+    assert(threeQuarter>.38f && threeQuarter<.405f);
     assert(std::abs(full-1.f)<.001f);
     assert(quarter<half && half<threeQuarter && threeQuarter<full);
     assert(move.travel>move.magnitude*.99f);
@@ -80,11 +80,56 @@ int main(){
     hull.cancel();
     assert(!hull.down && hull.magnitude==0.f && hull.virtualReach(w,3)==0.f);
 
+    // SOLO-030: prolonged near-rim direction builds a BOUNDED throttle,
+    // without ever accumulating physical speed or moving the camera.
+    move.cancel();
+    assert(move.orbit(w)>115.f && move.orbit(w)<150.f);
+    assert(move.cx(w)-move.orbit(w)>0.f);
+    assert(move.handle(SDL_FINGERDOWN,80,move.cx(w),move.cy(h),w,h));
+    const float safeDead=std::max(13.f,w*.022f);
+    const float nearRim=safeDead+(move.orbit(w)-safeDead)*.88f;
+    assert(move.handle(SDL_FINGERMOTION,80,move.cx(w)+nearRim,move.cy(h),w,h));
+    const float base=move.magnitude;
+    assert(base>.60f && base<.70f);
+    for(int i=0;i<220;++i)move.tick(.01f);
+    const float boosted=move.effectiveMagnitude();
+    assert(boosted>base+.15f && boosted<1.f);
+    const float firstBonus=move.holdBoost.bonus;
+    for(int i=0;i<3000;++i)move.tick(.01f);
+    assert(move.holdBoost.bonus<=sfsolo::SteeringHoldBoost::maximumBonus);
+    assert(move.effectiveMagnitude()<=1.f && move.holdBoost.bonus>=firstBonus);
+    assert(move.handle(SDL_FINGERMOTION,80,move.cx(w)-nearRim,move.cy(h),w,h));
+    move.tick(.01f);
+    assert(move.holdBoost.bonus==0.f);
+    assert(move.handle(SDL_FINGERMOTION,80,move.cx(w),move.cy(h),w,h));
+    for(int i=0;i<200;++i)move.tick(.01f);
+    assert(move.effectiveMagnitude()==0.f);
+    assert(move.handle(SDL_FINGERUP,80,move.cx(w),move.cy(h),w,h));
+    assert(!move.active() && move.holdBoost.bonus==0.f);
+    // Same curve and momentum intent for steering directly on the ship.
+    hull.begin(250.f,450.f);
+    hull.update(250.f+nearRim,450.f,w);
+    const float hullBase=hull.magnitude;
+    for(int i=0;i<220;++i)hull.tick(.01f);
+    assert(hull.effectiveMagnitude()>hullBase+.15f);
+    assert(std::abs(hull.effectiveMagnitude()-boosted)<.025f);
+    hull.update(250.f-nearRim,450.f,w);
+    hull.tick(.01f);assert(hull.holdBoost.bonus==0.f);
+    hull.cancel();assert(hull.effectiveMagnitude()==0.f);
+    // Even after a long hold the historical physical top-speed is capped.
+    move.cancel();
+    move.handle(SDL_FINGERDOWN,81,move.cx(w),move.cy(h),w,h);
+    move.handle(SDL_FINGERMOTION,81,move.cx(w)+move.orbit(w),move.cy(h),w,h);
+    for(int i=0;i<10000;++i)move.tick(.01f);
+    assert(move.effectiveMagnitude()==1.f);
+    assert(std::abs(move.virtualReach(w,0)*12.f-w*1.7f)<.001f);
+    assert(std::abs(move.virtualReach(w,8)*12.f-w*3.1f)<.001f);
+    move.cancel();
     // Changing one handedness option flips BOTH stick positions, not roles.
     fire.right=!fire.right;move.right=!fire.right;
     assert(fire.cx(w)>w*.5f&&move.cx(w)<w*.5f);
     assert(fire.handle(SDL_FINGERDOWN,40,fire.cx(w),fire.cy(h),w,h).fire);
     assert(fire.dx>.99f);
     fire.cancel();move.cancel();
-    puts("PASS: SOLO-028 transparent sticks, graded steering reach, firing, ownership, mirrored layout");
+    puts("PASS: SOLO-030 cumulative directional hold, soft controls, capped top speed, paired hand swap");
 }

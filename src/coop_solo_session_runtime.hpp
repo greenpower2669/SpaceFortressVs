@@ -673,6 +673,7 @@ static int runCoopSoloSession(bool diagnostics){
                 const float subDt=simulationDt/substeps;
                 const float oldX=Spritej2->x,oldY=Spritej2->y;
                 if(worldActive && moveFinger>=0 && !stickSteering){
+                    hullTouch.tick(subDt);
                     // An on-hull gesture is a stable virtual stick with its
                     // theoretical zero at DOWN. World/camera translations
                     // cannot push its target or create runaway acceleration.
@@ -687,6 +688,7 @@ static int runCoopSoloSession(bool diagnostics){
                 }
                 if(worldActive&&aimFinger>=0)aimAt(aimScreenX,aimScreenY);
                 if(stickSteering&&!diagnostics){
+                    movePad.tick(subDt);
                     auto &pilot=sfCoop.controls[1];
                     pilot.down=movePad.active()&&movePad.magnitude>0;
                     pilot.finger=movePad.active()?movePad.finger:-1;

@@ -100,6 +100,28 @@ struct FirePad {
     }
 };
 
+// Accumulate INTENTION only, never physical speed or camera displacement.
+struct SteeringHoldBoost {
+    float stableSeconds=0,anchorDx=0,anchorDy=0,bonus=0;
+    bool latched=false;
+    static constexpr float edgeStart=.68f,edgeFull=.94f,maximumBonus=.30f;
+    static float smooth(float t){t=std::clamp(t,0.f,1.f);return t*t*(3.f-2.f*t);}
+    void reset(){stableSeconds=anchorDx=anchorDy=bonus=0;latched=false;}
+    void tick(float dt,float dx,float dy,float radial){
+        if(!std::isfinite(dt)||dt<=0)return;
+        if(!std::isfinite(dx)||!std::isfinite(dy)||!std::isfinite(radial)||
+           radial<edgeStart || std::hypot(dx,dy)<.9f){reset();return;}
+        // Compare to a fixed reference direction: a slowly turning finger
+        // cannot pass as straight-line flight forever.
+        if(!latched || anchorDx*dx+anchorDy*dy<.925f){
+            anchorDx=dx;anchorDy=dy;stableSeconds=0;bonus=0;latched=true;
+        }
+        stableSeconds=std::min(4.f,stableSeconds+dt);
+        const float edge=smooth((radial-edgeStart)/(edgeFull-edgeStart));
+        const float hold=1.f-std::exp(-std::max(0.f,stableSeconds-.22f)/1.1f);
+        bonus=std::clamp(maximumBonus*edge*hold,0.f,maximumBonus);
+    }
+};
 // Movement always uses the SAME physical ShipMotion code as touch-on-hull.
 // Joystick only supplies a unit force intention; its direction is rebuilt
 // against the actual ship coordinates on every fixed physics substep.
@@ -107,18 +129,22 @@ struct MovePad {
     bool right=true;
     std::int64_t finger=-1;
     float dx=0,dy=0,magnitude=0,travel=0;
-    float cx(int w)const {return right?w-std::max(92.f,w*.20f):std::max(92.f,w*.20f);}
+    SteeringHoldBoost holdBoost;
+    // 30% more finger travel, centred further inward to avoid screen clipping.
+    float cx(int w)const {return right?w-std::max(105.f,w*.26f):std::max(105.f,w*.26f);}
     float cy(int h)const {return h-std::max(144.f,h*.17f);}
     // More physical finger travel means finer control, not a sudden full-speed jump.
-    float orbit(int w)const {return std::clamp(w*.178f,70.f,114.f);}
+    float orbit(int w)const {return std::clamp(w*.2314f,91.f,148.f);}
     bool active()const {return finger>=0;}
-    void cancel(){finger=-1;dx=dy=magnitude=travel=0;}
+    void cancel(){finger=-1;dx=dy=magnitude=travel=0;holdBoost.reset();}
+    void tick(float dt){if(active())holdBoost.tick(dt,dx,dy,travel);else holdBoost.reset();}
+    float effectiveMagnitude()const {return std::clamp(magnitude+holdBoost.bonus,0.f,1.f);}
     // ShipMotion uses desiredSpeed=min(maxSpeed, distance*12). Match that
     // canonical law at the rim so full throw still reaches max speed while
     // early travel remains slow; difficulty/inertia stays owned by ShipMotion.
     static float steeringCurve(float t){
         t=std::clamp(t,0.f,1.f);
-        return t*t*(.75f+.25f*t);
+        return t*t*t*(.70f+.30f*t); // half-throw ~11%, soft low-speed flight
     }
     static float reachFromMagnitude(float amount,float arenaWidth,int dangerIndex){
         if(!(arenaWidth>0))return 0.f;
@@ -127,7 +153,7 @@ struct MovePad {
         return (maxSpeed/12.f)*std::clamp(amount,0.f,1.f);
     }
     float virtualReach(float arenaWidth,int dangerIndex)const {
-        return reachFromMagnitude(magnitude,arenaWidth,dangerIndex);
+        return reachFromMagnitude(effectiveMagnitude(),arenaWidth,dangerIndex);
     }
     bool handle(int type,std::int64_t id,float x,float y,int w,int h){
         if(active()){
@@ -143,7 +169,7 @@ struct MovePad {
     void update(float x,float y,int w,int h){
         const float ox=x-cx(w),oy=y-cy(h),len=std::hypot(ox,oy);
         const float dead=std::max(13.f,w*.022f);
-        if(len<=dead){dx=dy=magnitude=travel=0;return;}
+        if(len<=dead){dx=dy=magnitude=travel=0;holdBoost.reset();return;}
         dx=ox/len;dy=oy/len;
         travel=std::clamp(len/orbit(w),0.f,1.f);
         const float linear=std::clamp((len-dead)/std::max(1.f,orbit(w)-dead),0.f,1.f);
@@ -171,20 +197,24 @@ struct MovePad {
 // The camera can shift indefinitely without changing an untouched command.
 struct HullTouchPilot {
     bool down=false;
-    float anchorX=0,anchorY=0,dx=0,dy=0,magnitude=0;
-    void cancel(){down=false;dx=dy=magnitude=0;}
-    void begin(float x,float y){down=true;anchorX=x;anchorY=y;dx=dy=magnitude=0;}
+    float anchorX=0,anchorY=0,dx=0,dy=0,magnitude=0,travel=0;
+    SteeringHoldBoost holdBoost;
+    void cancel(){down=false;dx=dy=magnitude=travel=0;holdBoost.reset();}
+    void begin(float x,float y){cancel();down=true;anchorX=x;anchorY=y;}
+    void tick(float dt){if(down)holdBoost.tick(dt,dx,dy,travel);else holdBoost.reset();}
+    float effectiveMagnitude()const {return std::clamp(magnitude+holdBoost.bonus,0.f,1.f);}
     void update(float x,float y,int screenWidth){
         if(!down)return;
         const float ox=x-anchorX,oy=y-anchorY,len=std::hypot(ox,oy);
         const float dead=std::max(13.f,screenWidth*.022f);
-        if(len<=dead){dx=dy=magnitude=0;return;}
+        if(len<=dead){dx=dy=magnitude=travel=0;holdBoost.reset();return;}
         dx=ox/len;dy=oy/len;
-        const float radius=std::clamp(screenWidth*.178f,70.f,114.f);
-        magnitude=MovePad::steeringCurve((len-dead)/std::max(1.f,radius-dead));
+        const float radius=std::clamp(screenWidth*.2314f,91.f,148.f);
+        travel=std::clamp((len-dead)/std::max(1.f,radius-dead),0.f,1.f);
+        magnitude=MovePad::steeringCurve(travel);
     }
     float virtualReach(float width,int danger)const {
-        return MovePad::reachFromMagnitude(magnitude,width,danger);
+        return MovePad::reachFromMagnitude(effectiveMagnitude(),width,danger);
     }
 };
 } // namespace sfsolo
