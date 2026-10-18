@@ -910,3 +910,13 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [ ] APK public de variété avec état audio explicite via export `solo-variety-025-export.yml`.
 - [ ] APK **privé Djipie** 4/4 authentiques : vérifier workflow `39085282683`, taille < GitHub limite et fichier direct.
 - [ ] Tester sur Samsung le rythme de 4 prises, collision roche-roche vs mur, absence de répétition, matière anti-papier-peint.
+
+
+
+### SOLO-025 — clôture CI, essai terrain restant
+- [x] Corriger portée du signal C++ `b6e0a38c`, CI Android/C++/SDL2 `39085021465` SUCCESS.
+- [x] Constater l'absence de `DJIPIE_READ_TOKEN` public et ne pas annoncer à tort 4/4 dans l'APK public (0/4).
+- [x] Construire dans Djipie privé, workflow `39085282683` SUCCESS, les 4 vrais Meteor WAV incorporés et vérifiés dans l'APK.
+- [x] APK privé direct sans ZIP, 99 919 413 octets, SHA256 `f08b1f9c9df78e0562b063ffd20a9fdba672147762e25063ee0b4cf4d0df7c6e`.
+- [ ] Fab : tester sur Samsung le relief moins répétitif et les explosions variées (roche contre roche, destruction, autres collisions inchangées).
+- [ ] Aucun merge main / Release sans validation explicite.

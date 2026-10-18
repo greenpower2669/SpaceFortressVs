@@ -715,3 +715,8 @@ SOLO-023 composait une forme « organique » seulement sur un atlas de 128×128p
 
 ## SOLO-025 — visibilité des sons + erreur compilation corrigée
 Source Djipie contient quatre actifs Meteor WAV ronds 300-321k octets (SHA et noms dans docs), hors catalogue indexé de 447 entrées. Djipie est privé, SpaceFortressVs public et sa CI ne possède pas `DJIPIE_READ_TOKEN` (preuve log du run `39084636747`). Ne pas copier des sons en fichiers publics ni prétendre que l'APK public les contient. Correctif compilation `b6e0a38` : avant, la physique roche utilisait `sfCoop.soundRockPair` mais `sfCoop` n'était pas déclaré dans certains include orders (Android échec). Nouveau signal `sfsolo::meteorRockPairPending` en header indépendant. Alternative opérationnelle privée : workflow Djipie build à partir du code public SHA vérifié, téléchargement WAV via son propre GITHUB_TOKEN, contrôle de présence et des digests dans l'APK avant commit binaire privé ; pas de Release. À confirmer par run `39085282683`.
+
+
+
+### SOLO-025 — incident C++ puis accès privé résolu
+CI `39084636747` : C++ Android échoue, `sfCoop` non déclaré quand `solo_field_runtime.hpp` est compilé avant le campaign runtime ; corrigé par signal header indépendant `src/solo_meteor_sound_state.hpp`, commit `b6e0a38c`. CI `39085021465 SUCCESS`. Jeton `DJIPIE_READ_TOKEN` absent dans dépôt SpaceFortressVs, donc son APK ne contient aucun nouveau WAV (0/4) malgré code actif. Nouveau workflow situé **dans Djipie privé**, qui a le droit de lire ses propres Releases via `github.token`. Le run `39085282683 SUCCESS` vérifie les SHA256 des quatre WAV et l'APK final ; un seul APK dans la branche privée, pas de publication de sons autonomes. Comparaison audio sur Samsung encore nécessaire.
