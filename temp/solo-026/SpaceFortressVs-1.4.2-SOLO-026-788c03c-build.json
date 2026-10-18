@@ -1,0 +1,18 @@
+{
+  "mission": "SOLO-026",
+  "source": "788c03cd90f16cb5c43844535889b786bcb4def0",
+  "ciRun": 39132530943,
+  "packageName": "com.greenpower2669.spacefortressvs.diagnostic",
+  "files": {
+    "SpaceFortressVs-1.4.2-SOLO-026-788c03c.apk": {
+      "sha256": "c6e4412ca0c867f2d37f18060a74cb4f99ec6bda26fe6577affe0c1b28950a96",
+      "size": 98711306
+    },
+    "SpaceFortressVs-1.4.2-SOLO-026-788c03c-unsigned.aab": {
+      "sha256": "2ebc55ec5edcd07fbf58642fdd5eea5f9dd4c1b4fd70ee7d1cf8b38f836cc9de",
+      "size": 96011406
+    }
+  },
+  "meteorSoundsPackaged": 0,
+  "note": "APK directly installable; AAB unsigned. 0/4 means legacy audio fallback, not 4 new private WAVs."
+}
