@@ -1042,3 +1042,6 @@ Source CI exacte : `c6ea6866e03cdcf0dd287efbc63d1aa08af0c3a0`, workflow Android 
 - [ ] Exporter APK décompressé par GitHub dans `temp/solo-032/`, SHA256 vérifié, lien direct.
 - [ ] Retour tactile Fab sur Samsung : vitesse ressentie 2s / 4s / 8s et virages rapides / demi-tours.
 - [ ] Ne pas publier ni merger main/release.
+
+### SOLO-032 — preuves CI vertes et livraison directe (18/10/2026)
+Source exacte `503fac23d4ba09d70e9567ca3374ab59cd6355c5`. GitHub CI `Android APK + AAB` run `39169561372` **SUCCESS** sur `build-android`, `solo-sdl2-ui`, `solo-core-regressions` ; `publish-release` SKIPPED. Export `SOLO-032 CI-green APK direct — smooth vector reserve` run `39169561443` **SUCCESS**. Fichier vraiment décompressé côté GitHub dans `temp/solo-032/SpaceFortressVs-1.4.2-SOLO-032-503fac2.apk`, **98 727 553 octets**, SHA256 `075f286d058cd9dfefa5b340bfa3bef8ee5d07756551e443462791103dc9b087`. AAB non signé 96 019 380 octets, SHA256 `b4f78014b072f0cd760f64d2ee5c7016cd91daa5dbfaae0f831612658c6b70f4`. Source/SHA dans `temp/solo-032/*-build.json`, `SHA256SUMS` GitHub vérifiés. Sons Meteor privés toujours absents **0/4** — repli sons historiques, ne pas annoncer intégration. Pas de ZIP sur appareil Fab, pas de merge main/release. Tests tactiles réels encore à faire sur Samsung : démarrage +2/+4/+8s, demi-tour et virages, passage faible vitesse, rebonds.
