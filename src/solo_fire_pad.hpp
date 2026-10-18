@@ -107,13 +107,13 @@ struct FirePad {
 // its stored charge; bonus is a second, slower output low-pass. Neither can
 // jump to zero on an ordinary turn, including a 180-degree reversal.
 struct SteeringHoldBoost {
-    float stableSeconds=0,anchorDx=0,anchorDy=0,bonus=0;
+    float stableSeconds=0,anchorDx=0,anchorDy=0,bonus=0,recoverySeconds=0;
     bool latched=false;
     static constexpr float edgeStart=.68f,edgeFull=.94f,maximumBonus=.36f;
     static constexpr float maximumRequested=1.30f;
     static constexpr float chargeSeconds=5.f;
     static float smooth(float t){t=std::clamp(t,0.f,1.f);return t*t*(3.f-2.f*t);}
-    void reset(){stableSeconds=anchorDx=anchorDy=bonus=0;latched=false;}
+    void reset(){stableSeconds=anchorDx=anchorDy=bonus=recoverySeconds=0;latched=false;}
     void tick(float dt,float dx,float dy,float radial){
         if(!std::isfinite(dt)||dt<=0)return;
         if(!std::isfinite(dx)||!std::isfinite(dy)||!std::isfinite(radial)){
@@ -132,13 +132,19 @@ struct SteeringHoldBoost {
         const float alignment=(latched&&headingValid)?
             std::clamp(anchorDx*x+anchorDy*y,-1.f,1.f):0.f;
         const float edge=smooth((radial-edgeStart)/(edgeFull-edgeStart));
-        // Only sufficiently aligned vectors in the OUTER arc replenish
-        // charge. During a turn, recharge pauses while the reserve drains.
-        const bool charging=headingValid && radial>=edgeStart && alignment>=.987f;
+        // Preserve an anti-rebound recovery window during a real turn.
+        // While the vector re-aligns the reserve DISCHARGES continuously;
+        // it cannot instantly begin charging again the moment alignment
+        // crosses a threshold. A broad 180-degree turn waits longer.
+        if(headingValid && radial>=edgeStart && alignment<.94f)
+            recoverySeconds=std::max(recoverySeconds,.45f+.30f*(1.f-alignment));
+        recoverySeconds=std::max(0.f,recoverySeconds-dt);
+        const bool charging=headingValid && radial>=edgeStart &&
+                            alignment>=.987f && recoverySeconds<=0.f;
         if(charging){
             stableSeconds=std::min(chargeSeconds,stableSeconds+dt*1.05f);
         }else{
-            const float turnPenalty=alignment<.55f?2.8f:alignment<.93f?1.9f:1.15f;
+            const float turnPenalty=alignment<.55f?3.8f:alignment<.93f?2.8f:1.15f;
             const float outerPenalty=edge>.001f?turnPenalty:2.3f;
             stableSeconds=std::max(0.f,stableSeconds-dt*outerPenalty);
         }
