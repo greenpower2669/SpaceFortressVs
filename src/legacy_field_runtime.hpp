@@ -90,7 +90,12 @@ static void sfKineticSurgeMineAsteroids(float dt,
         auto *ship=owner==0 ? Spritej1 : Spritej2;
         if(!ship || ship->pv<=0) continue;
         const float diameter=sfKineticShipDiameter(ship);
-        const float range=diameter*sfKineticSurgeMiningRangeDiameters();
+        // SOLO-026: the on-screen suction wedge and the minable footprint must
+        // agree. The historical COOP/DUEL range is deliberately unchanged.
+        // Both ranges still include the exact canonical danger scaling.
+        const float range=diameter*(sfSoloField.enabled?
+            sfKineticSurgeDustRangeDiameters():
+            sfKineticSurgeMiningRangeDiameters());
         const SfKineticVector axis=aims&&aims->active(owner)?
             aims->direction(owner):SfKineticVector{0,owner==0?1.0f:-1.0f};
         const float noseX=ship->x+axis.x*diameter*.42f;
