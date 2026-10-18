@@ -105,23 +105,32 @@ int main(){
     for(int i=0;i<650;++i)move.tick(.01f);
     assert(move.effectiveMagnitude()>1.28f);
     assert(move.effectiveMagnitude()<=1.30f);
-    const float beforeTurn=move.effectiveMagnitude();
+    const float beforeTurn=move.holdBoost.bonus;
     // Important: 90 degree direction change does NOT zero charge or bonus.
     assert(move.handle(SDL_FINGERMOTION,80,cx,cy-nearRim,w,h));
     move.tick(.01f);
-    assert(move.effectiveMagnitude()>.99f);
     assert(move.holdBoost.bonus>0.f);
-    assert(beforeTurn-move.effectiveMagnitude()<.02f);
-    const float afterFirstStep=move.effectiveMagnitude();
-    for(int i=0;i<100;++i)move.tick(.01f);
-    const float afterTurn=move.effectiveMagnitude();
-    assert(afterTurn<afterFirstStep);
-    assert(afterTurn>1.005f); // progressive discharge, never instantaneous
-    const float bottom=move.effectiveMagnitude();
-    // Holding the NEW vector re-aligns and eventually resumes acceleration.
+    assert(beforeTurn-move.holdBoost.bonus<.015f);
+    const float afterFirstStep=move.holdBoost.bonus;
+    for(int i=0;i<150;++i)move.tick(.01f);
+    const float afterTurn=move.holdBoost.bonus;
+    assert(afterTurn<afterFirstStep-.025f);
+    assert(afterTurn>.07f); // discharge with finite duration
+    const float bottom=move.holdBoost.bonus;
+    // Holding the NEW vector realigns and resumes overdrive gradually.
     for(int i=0;i<1000;++i)move.tick(.01f);
-    assert(move.effectiveMagnitude()>bottom+.10f);
+    assert(move.holdBoost.bonus>bottom+.025f);
     assert(move.effectiveMagnitude()<=1.30f);
+    // Exact 180-degree reversals must also slew, rather than flip/reset.
+    const float beforeReverse=move.holdBoost.bonus;
+    assert(move.handle(SDL_FINGERMOTION,80,cx,cy+nearRim,w,h));
+    move.tick(.01f);
+    assert(beforeReverse-move.holdBoost.bonus<.015f);
+    assert(move.holdBoost.bonus>0.f);
+    for(int i=0;i<160;++i)move.tick(.01f);
+    assert(move.holdBoost.bonus<beforeReverse-.025f);
+    for(int i=0;i<1000;++i)move.tick(.01f);
+    assert(move.effectiveMagnitude()>1.20f);
     // Low-radial movement requests a small speed without new stored charge.
     move.handle(SDL_FINGERMOTION,80,cx+move.orbit(w)*.30f,cy,w,h);
     const float lowerBase=move.magnitude;
