@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preflight: diagnostic APK starts real SOLO, hidden hub is accessible by 20 taps.
+"""Preflight: diagnostic APK starts historical selector, hidden hub uses 20 taps.
 
 The real manifest merge/build is additionally verified by Android Gradle.
 """
@@ -45,10 +45,10 @@ assert SOLO not in main and HUB not in main and COOP_SOLO not in main, (
 assert debug[COOP_SOLO].get(A+"process")==":coopsolo"
 assert set(debug) == {LEGACY, SOLO, SOLO_GAME, COOP_SOLO, HUB}, "unexpected debug activities"
 assert debug[LEGACY].get(T+"node") == "replace", "original launcher not replaced"
-assert not launcher(debug[LEGACY]) and not launcher(debug[SOLO]) and not launcher(debug[COOP_SOLO])
+assert launcher(debug[LEGACY]), "debug must launch genuine SOLO/COOP/DUEL mode selector"
+assert not launcher(debug[SOLO]) and not launcher(debug[COOP_SOLO])
 assert not launcher(debug[HUB]) and debug[HUB].get(A+"exported")=="false", "hub must be hidden"
-assert launcher(debug[SOLO_GAME]), "debug APK must open real SOLO directly"
-assert debug[SOLO_GAME].get(T+"node") == "replace", "main launcher override missing"
+assert not launcher(debug[HUB]) and SOLO_GAME not in debug, "SOLO launcher cannot replace selector"
 java = (APP / "debug/java/com/greenpower2669/spacefortressvs/SpaceFortressHubActivity.java").read_text()
 assert "SpaceFortressActivity.class" in java and "SpaceFortressSoloActivity.class" in java
 assert "SpaceFortressCoopSoloActivity.class" in java
@@ -61,7 +61,7 @@ assert "spacefortress-native-" in native
 gradle = (ROOT / "android/app/build.gradle").read_text()
 assert "applicationIdSuffix '.diagnostic'" in gradle, (
     "debug crash diagnosis must not overwrite the signed original package")
-gesture = (APP / "main/java/com/greenpower2669/spacefortressvs/SpaceFortressSoloGameActivity.java").read_text()
+gesture = (APP / "main/java/com/greenpower2669/spacefortressvs/SpaceFortressActivity.java").read_text()
 assert "debugTapCount>=20" in gesture and "BuildConfig.DEBUG" in gesture
 assert "SpaceFortressHubActivity" in gesture
 assert debug[HUB].get(A+"label") == "SpaceFortress DIAG", (
