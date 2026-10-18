@@ -978,3 +978,11 @@ Source exacte `d861a22221abaaf08ec516a2a2b9123b0a537e41` : CI Android+C+++SDL2 `
 - [ ] Essais Samsung : 5/20/50/75/100 % stick gauche/droit, sensibilité près du centre, inertie au relâchement, aucun masquage décor, Game Over après destruction, retour au vrai menu, hub debug caché.
 - [ ] Vérifier sons privés Meteor inclus 0/4 ou 4/4 sans exposer fichiers Djipie ; AAB non signé.
 - [ ] Pas de merge main ni Release sans accord explicite Fab.
+
+### SOLO-028 — preuves de compilation et livraison 18/10/2026
+- [x] SOLO-028 CI exacte `39143165760` : moteur C++, UI SDL2, Android et régressions **verts**.
+- [x] Extraction sur GitHub `39143165717` : direct APK `temp/solo-028/SpaceFortressVs-1.4.2-SOLO-028-f50dbbe.apk`, 98 727 554 octets, SHA256 `4f9fc3a2ecd4be84e05af57cac1a7e2dbd4ae86f7693b1edc97f4bf9b0114c25`.
+- [x] AAB `-unsigned.aab` présent, 96 016 719 octets, SHA256 `fe4513dc64382b1f0a033444eed68ded2a49b96e676868a39e750892a09a31c9`.
+- [ ] Essais Samsung : douceur stick 10/25/50/75/100%, premier anneau, décor non assombri, Game Over et vrai menu parent après tap, gestes zoom et swap. 
+- [ ] Sons Meteor Djipie privés non disponibles dans cet APK public (0/4) ; ne pas déclarer 4/4.
+- [ ] Accord Fab avant fusion main/Release.

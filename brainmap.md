@@ -720,3 +720,6 @@ Source exacte `d861a22221abaaf08ec516a2a2b9123b0a537e41` : CI Android+C+++SDL2 `
 
 ### SOLO-028 — reprise du contrôle progressif / Game Over
 `src/solo_fire_pad.hpp::MovePad`: rayon tactile accru, double graduation du doigt (`travel`) vs commande moteur (`magnitude` ease-in), `virtualReach(width,danger)` indexé sur `sfsolo::ShipMotion`; suppression disques pleine taille sous **les deux** joysticks (`FirePad::draw` / `MovePad::draw`). `src/coop_solo_session_runtime.hpp` : `movePad.virtualReach(sfArenaW,sfBossDangerIndex)` remplace cible `*.72*magnitude`, event GameOver attrapé avant sticks/zoom/options, affichage final Game Over et bouton menu via `src/solo_game_over_ui.hpp`. Tests exacts `tests/solo_fire_pad_regressions.cpp`, `tests/solo_game_over_ui_regressions.cpp`, orchestration dans `scripts/test-regressions.sh`. Livraison GitHub CI exact SHA : `.github/workflows/solo-028-direct-export.yml`, `temp/solo-028/*.apk` direct.
+
+### SOLO-028 — preuves de compilation et livraison 18/10/2026
+SOLO-028 source `f50dbbe` ; Android/C++/SDL2 CI `39143165760 SUCCESS` ; export décompressé serveur `39143165717 SUCCESS`. Fichier direct `temp/solo-028/SpaceFortressVs-1.4.2-SOLO-028-f50dbbe.apk` SHA256 `4f9fc3a2ecd4be84e05af57cac1a7e2dbd4ae86f7693b1edc97f4bf9b0114c25` ; AAB unsigned dans même temp. 0/4 WAV privés, fallback audio historique. Essai Samsung indispensable.
