@@ -121,12 +121,12 @@ struct CoopSoloScenery {
         DrawState saved(r);
         const SDL_FRect screen{float(world.screen.x),float(world.screen.y),float(world.screen.w),float(world.screen.h)};
         colorRect(r,screen,{4,8,19,255});const float width=world.combatWidth*2.5f*world.zoom;
-        tiled(r,space,screen,(world.cameraLeft*spaceDepth+world.backgroundDriftX*.20f)*world.zoom,
-            (world.cameraTop*spaceDepth+world.backgroundDriftY*.20f)*world.zoom,
+        tiled(r,space,screen,world.cameraLeft*spaceDepth*world.zoom,
+            world.cameraTop*spaceDepth*world.zoom,
             width,width*1795.0f/1024.0f,{155,170,205,255});
         if(openings)tiled(r,mineral,screen,
-            (world.cameraLeft*mineralDepth+world.backgroundDriftX*.48f)*world.zoom,
-            (world.cameraTop*mineralDepth+world.backgroundDriftY*.48f)*world.zoom,width,width,{66,76,94,255});
+            world.cameraLeft*mineralDepth*world.zoom,
+            world.cameraTop*mineralDepth*world.zoom,width,width,{66,76,94,255});
     }
     static unsigned hash(int x,int y){
         unsigned value=unsigned(x)*0x9e3779b1u^unsigned(y)*0x85ebca6bu;
