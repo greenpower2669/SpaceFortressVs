@@ -902,3 +902,11 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 - [ ] Vérifier si `DJIPIE_READ_TOKEN` existe et a le droit de lire Djipie (sinon configuration explicite requise).
 - [ ] Livrer APK diagnostic direct **avec** 4 nouveaux sons uniquement si le test `DJIPIE_METEOR_TAKES=4` a réussi.
 - [ ] Tester le ressenti sonore et les roches moins répétitives sur Samsung ; rollback séparé.
+
+- [x] Corriger l'ordre d'inclusion de sfCoop dans la physique des roches (signal autonome `b6e0a38`).
+- [x] Conserver les quatre WAV privés hors Git public.
+- [x] Créer le workflow privé Djipie `feature/solo-025-private-meteor-apk`, `d57710a`, accès autonome aux quatre sons via GITHUB_TOKEN Djipie, sans merge main ni Release.
+- [ ] Source corrigée CI Android/C++/SDL2 `39085021465` SUCCESS.
+- [ ] APK public de variété avec état audio explicite via export `solo-variety-025-export.yml`.
+- [ ] APK **privé Djipie** 4/4 authentiques : vérifier workflow `39085282683`, taille < GitHub limite et fichier direct.
+- [ ] Tester sur Samsung le rythme de 4 prises, collision roche-roche vs mur, absence de répétition, matière anti-papier-peint.
