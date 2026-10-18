@@ -311,20 +311,12 @@ struct CoopSoloWorldBridge {
         return p.x>=screen.x && p.x<screen.x+screen.w && p.y>=screen.y && p.y<screen.y+screen.h &&
             firstWallImpact(observer,event,.1f)>=1;
     }
-    void updateBackgroundOnly(CoopWorldPoint ship,CoopWorldPoint displacement,float dt){
-        if(!ready||dt<=0||!std::isfinite(dt)||
-           !std::isfinite(displacement.x)||!std::isfinite(displacement.y))return;
-        // SOLO-024: in the 1/2-to-1 diameter inner ring, only the scenery
-        // moves; the camera, rocks, enemies and collision map do NOT.
-        // Across 1-to-2 diameters smoothly crossfade extra background drift
-        // into the existing physical-camera pan of SOLO-022.
-        const auto px=toScreen(ship);
-        const float gain=soloBackgroundOnlyGain(px.x,px.y,screen);
-        backgroundDriftX+=displacement.x*gain;
-        backgroundDriftY+=displacement.y*gain;
-    }
+    // SOLO-026: retained as a no-op compatibility point for old callers.
+    // A background MUST NOT slide when the physical camera is still.
+    void updateBackgroundOnly(CoopWorldPoint,CoopWorldPoint,float){}
     void followPhysicalShip(CoopWorldPoint ship,CoopWorldPoint displacement,float dt){
-        updateBackgroundOnly(ship,displacement,dt);
+        // All layers share this one camera. Parallax is derived from its
+        // real displacement in drawBackground, including the new first band.
         panIfShipActuallyMoved(ship,displacement,dt);
         // Safety envelope follows the physical hull, never the touch. It also
         // works after release, at max zoom, and when a long frame hits a wall.
