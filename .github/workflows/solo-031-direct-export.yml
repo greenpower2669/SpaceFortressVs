@@ -1,4 +1,4 @@
-name: SOLO-031 CI-green APK direct
+name: SOLO-031 CI-green APK direct — stable-vector overdrive
 
 on:
   push:
