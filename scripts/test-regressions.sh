@@ -4,6 +4,11 @@ sf_repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 sf_test_dir="$(mktemp -d)"
 trap 'rm -rf "$sf_test_dir"' EXIT
 
+# SOLO-026: new isolated survival physics, no Android environment needed.
+g++ -std=c++17 -O2 -Wall -Wextra -I "$sf_repo/src" \
+    "$sf_repo/tests/solo_026_survival_regressions.cpp" -o "$sf_test_dir/solo-026"
+"$sf_test_dir/solo-026"
+
 # Pure deterministic SOLO-025 audio-picker and world-space visual variation.
 g++ -std=c++17 -O2 -Wall -Wextra "$sf_repo/tests/solo_meteor_take_picker_regressions.cpp" -o "$sf_test_dir/solo-meteor-picker"
 "$sf_test_dir/solo-meteor-picker"
