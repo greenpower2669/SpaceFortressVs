@@ -37,11 +37,35 @@ int main(){
     assert(move.handle(SDL_FINGERUP,30,mx-90,my-90,w,h));
     assert(!move.active() && move.magnitude==0);
 
+    // SOLO-028: enlarged violet thumbstick has a true graded movement curve.
+    // The visual thumb tracks finger travel; the physical target is eased-in.
+    move.cancel();
+    assert(move.orbit(w)>fire.orbit(w)*1.25f);
+    assert(move.handle(SDL_FINGERDOWN,70,mx,my,w,h));
+    const float dead=std::max(13.f,w*.022f);
+    const auto at=[&](float normalized){
+        const float radius=dead+(move.orbit(w)-dead)*normalized;
+        assert(move.handle(SDL_FINGERMOTION,70,mx+radius,my,w,h));
+        return move.magnitude;
+    };
+    const float quarter=at(.25f),half=at(.50f),threeQuarter=at(.75f),full=at(1.f);
+    assert(quarter>.03f && quarter<.08f);
+    assert(half>.18f && half<.26f);
+    assert(threeQuarter>.48f && threeQuarter<.57f);
+    assert(std::abs(full-1.f)<.001f);
+    assert(quarter<half && half<threeQuarter && threeQuarter<full);
+    assert(move.travel>move.magnitude*.99f);
+    const float easy=move.virtualReach(float(w),0);
+    const float hard=move.virtualReach(float(w),8);
+    assert(std::abs(easy*12.f-w*1.7f)<.001f);
+    assert(std::abs(hard*12.f-w*3.1f)<.001f);
+    move.handle(SDL_FINGERUP,70,mx+move.orbit(w),my,w,h);
+    assert(move.magnitude==0 && move.travel==0);
     // Changing one handedness option flips BOTH stick positions, not roles.
     fire.right=!fire.right;move.right=!fire.right;
     assert(fire.cx(w)>w*.5f&&move.cx(w)<w*.5f);
     assert(fire.handle(SDL_FINGERDOWN,40,fire.cx(w),fire.cy(h),w,h).fire);
     assert(fire.dx>.99f);
     fire.cancel();move.cancel();
-    puts("PASS: SOLO-027 neon sticks, fire burst/rest, remembered aim, two-finger ownership and mirrored layout");
+    puts("PASS: SOLO-028 transparent sticks, graded steering reach, firing, ownership, mirrored layout");
 }

@@ -21,6 +21,7 @@
 #include "solo_lair_transition.hpp"
 #include "solo_encounter_gates.hpp"
 #include "solo_fire_pad.hpp"
+#include "solo_game_over_ui.hpp"
 #include "solo_campaign_persistence.hpp"
 
 // Keep a build-time guarantee that Android's historical HOME/HELP overlay
@@ -492,6 +493,21 @@ static int runCoopSoloSession(bool diagnostics){
                (event.key.keysym.sym==SDLK_ESCAPE||event.key.keysym.sym==SDLK_AC_BACK)){
                 running=false;continue;
             }
+            // SOLO-028: death freezes player controls and shows an actual
+            // GAME OVER scene. One intentional press returns to the parent
+            // Android Activity (the true SOLO / COOP / DUEL main menu).
+            if(!diagnostics && sfCoop.phase==SfCoopPhase::Defeat){
+                if(event.type==SDL_FINGERDOWN &&
+                   sfsolo::GameOverUi::hitMenu(event.tfinger.x*width,
+                                              event.tfinger.y*height,width,height)){
+                    cancelControls();running=false;
+                }else if(event.type==SDL_MOUSEBUTTONDOWN &&
+                         sfsolo::GameOverUi::hitMenu(float(event.button.x),
+                                                   float(event.button.y),width,height)){
+                    cancelControls();running=false;
+                }
+                continue; // no shot, steering, options or zoom after death
+            }
             if(!appActive || (!diagnostics && (!levelReady || level.phase==sfsolo::LevelPhase::Transition)))continue;
             if(event.type==SDL_KEYDOWN && event.key.keysym.sym==SDLK_RETURN && !diagnostics){completeLevel();continue;}
             if(event.type==SDL_KEYDOWN){
@@ -670,7 +686,7 @@ static int runCoopSoloSession(bool diagnostics){
                         // Identical ShipMotion acceleration, drag, inertia,
                         // walls and zoom. Stick sets a virtual world target
                         // each substep, never teleports the ship.
-                        const float reach=sfArenaW*.72f*movePad.magnitude;
+                        const float reach=movePad.virtualReach(sfArenaW,sfBossDangerIndex);
                         pilot.target=tupl(Spritej2->x+movePad.dx*reach,
                                           Spritej2->y+movePad.dy*reach);
                     }
@@ -811,7 +827,7 @@ static int runCoopSoloSession(bool diagnostics){
                     std::to_string(relayCount)+"/"+std::to_string(level.relays.size()),width-2*margin,2);
             }
         }
-        if(!diagnostics && level.phase!=sfsolo::LevelPhase::Transition){
+        if(!diagnostics && sfCoop.phase!=SfCoopPhase::Defeat && level.phase!=sfsolo::LevelPhase::Transition){
             firePad.draw(renderer,width,height);
             if(stickSteering)movePad.draw(renderer,width,height);
             // Small labelled neon commands, independent of colour swap.
@@ -851,8 +867,22 @@ static int runCoopSoloSession(bool diagnostics){
             }
         }
         if(diagnostics)diagnosticUi.draw(renderer,width,height,worldActive,bonusTestOpen);
-        if(sfCoop.phase==SfCoopPhase::Defeat)
-            sfCoopCentered(renderer,width,int(height*.50f),diagnostics?"TEST TERMINE - RETOUR":"VAISSEAU PERDU - RETOUR",3);
+        if(sfCoop.phase==SfCoopPhase::Defeat){
+            if(diagnostics)sfCoopCentered(renderer,width,int(height*.50f),"TEST TERMINE - RETOUR",3);
+            else{
+                // A deliberate central overlay is fine for GAME OVER; in
+                // active play no joystick-sized shaded areas are rendered.
+                SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+                const auto panel=sfsolo::GameOverUi::panel(width,height);
+                SDL_SetRenderDrawColor(renderer,8,14,32,232);
+                SDL_RenderFillRect(renderer,&panel);
+                SDL_SetRenderDrawColor(renderer,126,167,244,208);
+                SDL_RenderDrawRect(renderer,&panel);
+                sfCoopCentered(renderer,width,int(height*.382f),"GAME OVER",3);
+                sfCoopCentered(renderer,width,int(height*.466f),"VAISSEAU DETRUIT",2);
+                sfCoopButton(renderer,sfsolo::GameOverUi::menuButton(width,height),"MENU PRINCIPAL");
+            }
+        }
         // Raw SDL call: show ONLY this arena's frame. The legacy macro would
         // apply sfFixRequestedScreen=HOME and repaint the Classic mode selector.
         SDL_RenderPresent(renderer);

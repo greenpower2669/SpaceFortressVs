@@ -967,3 +967,14 @@ CI source **39040122861 SUCCESS** (Android + C++ + SDL2), export direct **390401
 
 ### SOLO-027 — livraison directe vérifiée le 18/10/2026
 Source exacte `d861a22221abaaf08ec516a2a2b9123b0a537e41` : CI Android+C+++SDL2 `39136940735 SUCCESS` ; export GitHub Actions `39136940825 SUCCESS`, livraison binaire sur la branche de travail `temp/solo-027/`. APK direct installable `SpaceFortressVs-1.4.2-SOLO-027-d861a22.apk`, taille 98 727 555 octets, SHA256 `615143149e07af1481bbb490e5d5749fbda30aa20ba6e0935096435186460366`. AAB non signé `SpaceFortressVs-1.4.2-SOLO-027-d861a22-unsigned.aab` taille 96 014 785 octets, SHA256 `4b9895c0768b1c36e3b97c1b9a9843e8476d7c316b5049842876cde8e3687f5b`. Son Meteor Djipie privé non disponible dans cet APK public : `0/4` WAV, fallback audio classique. Pas de test sur Samsung effectué par l'assistant : valider prise en main réelle du menu/hub 20 taps, stick optionnel, swap synchronisé G/D, tir avec pauses et fluidité. Aucun merge `main`, aucune Release. **Règle immuable : extrait `.apk` directement par GitHub Actions sur serveur et disponible par lien direct sans ZIP utilisateur.**
+
+### SOLO-028 — mini-stick modulé, jeu non assombri, écran Game Over
+- [x] Diagnostiquer saturation vitesse cible joystick avant bord ; conserver formule ShipMotion et difficulté.
+- [x] Agrandir anneau et surface de pilotage, course centrale lente et progression douce jusqu'au bord ; conversion amplitude cible monde dimensionnée par maxSpeed/12.
+- [x] Supprimer fond disque plein turquoise/violet, éclaircir et affiner cercle/curseur ; le décor reste visible.
+- [x] Ajouter panneau « GAME OVER » + bouton tactile « MENU PRINCIPAL » dans SOLO production, intercepter l'input pendant défaite et quitter proprement vers menu historique.
+- [x] Ajouter tests graduations, course, lent/rapide par difficulté, zones tactiles GameOver et régressions de build.
+- [ ] Attendre Android/C++/SDL2 CI **du commit exact** verte et export direct `temp/solo-028/*.apk` via GitHub Actions ; enregistrer SHA256 confirmé, ne pas inventer de fichier.
+- [ ] Essais Samsung : 5/20/50/75/100 % stick gauche/droit, sensibilité près du centre, inertie au relâchement, aucun masquage décor, Game Over après destruction, retour au vrai menu, hub debug caché.
+- [ ] Vérifier sons privés Meteor inclus 0/4 ou 4/4 sans exposer fichiers Djipie ; AAB non signé.
+- [ ] Pas de merge main ni Release sans accord explicite Fab.

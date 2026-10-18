@@ -85,12 +85,12 @@ struct FirePad {
         SDL_BlendMode old;SDL_GetRenderDrawBlendMode(r,&old);
         SDL_SetRenderDrawBlendMode(r,SDL_BLENDMODE_BLEND);
         const float x=cx(w),y=cy(h),radius=orbit(w);
-        neonDisk(r,x,y,radius,{21,126,155,24});
-        neonRing(r,x,y,radius,{82,225,241,168},true);
-        neonDisk(r,x,y,radius*.36f,{64,219,233,80});
-        neonRing(r,x,y,radius*.36f,{98,240,247,185},false);
+        // SOLO-028: no full-size tinted disk: the world behind is untouched.
+        neonRing(r,x,y,radius,{82,225,241,112},true);
+        neonDisk(r,x,y,radius*.36f,{64,219,233,34});
+        neonRing(r,x,y,radius*.36f,{98,240,247,125},false);
         const float extent=radius*.81f,ex=x+dx*extent,ey=y+dy*extent;
-        SDL_SetRenderDrawColor(r,101,244,250,230);
+        SDL_SetRenderDrawColor(r,101,244,250,170);
         SDL_RenderDrawLine(r,int(x),int(y),int(ex),int(ey));
         const float perpX=-dy,perpY=dx;
         SDL_RenderDrawLine(r,int(ex),int(ey),int(ex-dx*16+perpX*8),int(ey-dy*16+perpY*8));
@@ -106,12 +106,22 @@ struct FirePad {
 struct MovePad {
     bool right=true;
     std::int64_t finger=-1;
-    float dx=0,dy=0,magnitude=0;
+    float dx=0,dy=0,magnitude=0,travel=0;
     float cx(int w)const {return right?w-std::max(92.f,w*.20f):std::max(92.f,w*.20f);}
     float cy(int h)const {return h-std::max(144.f,h*.17f);}
-    float orbit(int w)const {return std::clamp(w*.135f,54.f,82.f);}
+    // More physical finger travel means finer control, not a sudden full-speed jump.
+    float orbit(int w)const {return std::clamp(w*.178f,70.f,114.f);}
     bool active()const {return finger>=0;}
-    void cancel(){finger=-1;dx=dy=magnitude=0;}
+    void cancel(){finger=-1;dx=dy=magnitude=travel=0;}
+    // ShipMotion uses desiredSpeed=min(maxSpeed, distance*12). Match that
+    // canonical law at the rim so full throw still reaches max speed while
+    // early travel remains slow; difficulty/inertia stays owned by ShipMotion.
+    float virtualReach(float arenaWidth,int dangerIndex)const {
+        if(!(arenaWidth>0))return 0.f;
+        const float difficulty=std::clamp(dangerIndex,0,8)/8.f;
+        const float maxSpeed=arenaWidth*(1.7f+1.4f*difficulty);
+        return (maxSpeed/12.f)*magnitude;
+    }
     bool handle(int type,std::int64_t id,float x,float y,int w,int h){
         if(active()){
             if(id!=finger)return false;
@@ -125,23 +135,27 @@ struct MovePad {
     }
     void update(float x,float y,int w,int h){
         const float ox=x-cx(w),oy=y-cy(h),len=std::hypot(ox,oy);
-        const float dead=std::max(9.f,w*.018f);
-        if(len<=dead){dx=dy=magnitude=0;return;}
+        const float dead=std::max(13.f,w*.022f);
+        if(len<=dead){dx=dy=magnitude=travel=0;return;}
         dx=ox/len;dy=oy/len;
-        magnitude=std::clamp((len-dead)/(orbit(w)-dead),0.f,1.f);
+        travel=std::clamp(len/orbit(w),0.f,1.f);
+        const float linear=std::clamp((len-dead)/std::max(1.f,orbit(w)-dead),0.f,1.f);
+        // Ease-in: quarter throw ~5%, half throw ~22%, full throw 100%.
+        magnitude=linear*linear*(.75f+.25f*linear);
     }
     void draw(SDL_Renderer*r,int w,int h)const {
         if(!r)return;
         SDL_BlendMode old;SDL_GetRenderDrawBlendMode(r,&old);
         SDL_SetRenderDrawBlendMode(r,SDL_BLENDMODE_BLEND);
         const float x=cx(w),y=cy(h),radius=orbit(w);
-        neonDisk(r,x,y,radius,{115,76,170,24});
-        neonRing(r,x,y,radius,{191,163,255,170},true);
-        const float px=x+dx*magnitude*radius*.57f,py=y+dy*magnitude*radius*.57f;
-        SDL_SetRenderDrawColor(r,203,178,255,185);
+        // Only the minimal control outline/knob is drawn. No grey or dark
+        // gameplay exclusion circle; the actual maze remains fully visible.
+        neonRing(r,x,y,radius,{191,163,255,112},true);
+        const float px=x+dx*travel*radius*.66f,py=y+dy*travel*radius*.66f;
+        SDL_SetRenderDrawColor(r,203,178,255,125);
         SDL_RenderDrawLine(r,int(x),int(y),int(px),int(py));
-        neonDisk(r,px,py,radius*.33f,{174,148,250,110});
-        neonRing(r,px,py,radius*.33f,{203,180,255,200},false);
+        neonDisk(r,px,py,radius*.29f,{174,148,250,53});
+        neonRing(r,px,py,radius*.29f,{203,180,255,146},false);
         SDL_SetRenderDrawBlendMode(r,old);
     }
 };

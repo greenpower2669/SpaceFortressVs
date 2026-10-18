@@ -4,6 +4,12 @@ sf_repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 sf_test_dir="$(mktemp -d)"
 trap 'rm -rf "$sf_test_dir"' EXIT
 
+# SOLO-028: deterministic Game Over action routing before native integration.
+g++ -std=c++17 -O2 -Wall -Wextra -I "$sf_repo/src" \
+    "$sf_repo/tests/solo_game_over_ui_regressions.cpp" -o "$sf_test_dir/solo-gameover" \
+    $(pkg-config --cflags --libs sdl2)
+"$sf_test_dir/solo-gameover"
+
 # SOLO-026: new isolated survival physics, no Android environment needed.
 g++ -std=c++17 -O2 -Wall -Wextra -I "$sf_repo/src" \
     "$sf_repo/tests/solo_026_survival_regressions.cpp" -o "$sf_test_dir/solo-026"
