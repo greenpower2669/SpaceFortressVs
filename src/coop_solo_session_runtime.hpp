@@ -225,6 +225,7 @@ static int runCoopSoloSession(bool diagnostics){
         sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
         sfCoop.controls[1].velocity.set(0,0);
         sfCoop.controls[1].wallGrace=sfCoop.controls[1].wallNX=sfCoop.controls[1].wallNY=0;
+        sfCoop.controls[1].wallPenaltyCooldown=0;
         sfKineticSurgeCancel(1);sfKineticAudioCancel(1);
         chargeCueGate.reset();aimFinger=moveFinger=-1;mouseAimHeld=false;
         sfCoop.phase=SfCoopPhase::Combat;
@@ -340,6 +341,7 @@ static int runCoopSoloSession(bool diagnostics){
         sfCoop.controls[1].down=false;sfCoop.controls[1].finger=-1;
         sfCoop.controls[1].velocity.set(0,0);sfCoop.fireFingers.clear();
         sfCoop.controls[1].wallGrace=sfCoop.controls[1].wallNX=sfCoop.controls[1].wallNY=0;
+        sfCoop.controls[1].wallPenaltyCooldown=0;
         sfKineticSurgeCancel(1);sfKineticAudioCancel(1);
     };
     auto completeLevel=[&](){
