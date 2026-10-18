@@ -43,7 +43,7 @@ assert debug[SOLO].get(A+"process") == ":solo", (
 assert SOLO not in main and HUB not in main and COOP_SOLO not in main, (
     "diagnostic activity leaked into release")
 assert debug[COOP_SOLO].get(A+"process")==":coopsolo"
-assert set(debug) == {LEGACY, SOLO, SOLO_GAME, COOP_SOLO, HUB}, "unexpected debug activities"
+assert set(debug) == {LEGACY, SOLO, COOP_SOLO, HUB}, "unexpected debug activities"
 assert debug[LEGACY].get(T+"node") == "replace", "original launcher not replaced"
 assert launcher(debug[LEGACY]), "debug must launch genuine SOLO/COOP/DUEL mode selector"
 assert not launcher(debug[SOLO]) and not launcher(debug[COOP_SOLO])
