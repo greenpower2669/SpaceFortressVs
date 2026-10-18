@@ -97,34 +97,28 @@ int main(){
     assert(bridge.cameraLeft>oldX);  // actual radial pan followed live movement
     assert(bridge.cameraLeft<=oldX+20.001f);
     assert(same(bridge.combatWidth,540));
-    // SOLO-024 background-only band: no camera movement before one diameter.
+    // SOLO-026: camera is the ONLY source of near parallax.
+    // The old background-only update must never shift any backdrop.
     const auto viewportBg=bridge.screen;
     const float oneD=soloExtraCruiseStart(viewportBg);
     const float twoD=soloSoftCruiseStart(viewportBg);
     const float sx=viewportBg.x+viewportBg.w*.5f;
     const float sy=viewportBg.y+viewportBg.h*.5f;
-    auto bgGain=[&](float r){return soloBackgroundOnlyGain(sx+r,sy,viewportBg);};
-    assert(bgGain(0)==0 && bgGain(oneD*.5f)==0);
-    assert(bgGain(oneD*.75f)>0 && bgGain(oneD*.75f)<1);
-    assert(std::abs(bgGain(oneD)-1.f)<.0001f);
-    assert(bgGain(twoD)==0 && bgGain(twoD+1)==0);
-    for(float cut:{oneD*.5f,oneD,twoD})
-        assert(std::abs(bgGain(cut-.01f)-bgGain(cut+.01f))<.001f);
     bridge.cameraLeft=start.x-sx-oneD*.75f;
     bridge.cameraTop=start.y-sy;
     const float stillCamera=bridge.cameraLeft;
     const float bgBefore=bridge.backgroundDriftX;
     bridge.updateBackgroundOnly(start,{15,0},.025f);
-    assert(bridge.backgroundDriftX>bgBefore);
+    assert(same(bridge.backgroundDriftX,bgBefore));
     assert(same(bridge.cameraLeft,stillCamera));
-    const float movedBg=bridge.backgroundDriftX;
-    bridge.updateBackgroundOnly(start,{0,0},.025f);
-    assert(same(bridge.backgroundDriftX,movedBg));
-    bridge.updateBackgroundOnly(start,{5,0},0.f);
-    assert(same(bridge.backgroundDriftX,movedBg));
-    bridge.cameraLeft=start.x-sx-twoD-10.f;
-    bridge.updateBackgroundOnly(start,{15,0},.025f);
-    assert(same(bridge.backgroundDriftX,movedBg));
+    // New first-band motion pans the REAL world (including the walls).
+    bridge.panIfShipActuallyMoved(start,{15,0},.025f);
+    assert(bridge.cameraLeft>stillCamera && bridge.cameraLeft<=stillCamera+15.f);
+    assert(same(bridge.backgroundDriftX,bgBefore));
+    const float actualCamera=bridge.cameraLeft;
+    bridge.panIfShipActuallyMoved(start,{0,0},.025f);
+    assert(same(bridge.cameraLeft,actualCamera));
+
     // SOLO-022: add the very slow 1->2 hull-diameter band without
     // resetting the speed to zero at the two-diameter handoff.
     const SDL_Rect viewport=bridge.screen;
@@ -136,8 +130,10 @@ int main(){
     const float cx=viewport.x+viewport.w*.5f,cy=viewport.y+viewport.h*.5f;
     auto speed=[&](float r){return soloSoftCircleZoneSpeed(cx+r,cy,viewport);};
     assert(same(speed(0),0.f));
-    assert(same(speed(extraR*.99f),0.f));
-    assert(same(speed(extraR),0.f));
+    assert(same(speed(extraR*.49f),0.f));
+    assert(speed(extraR*.75f)>0.f); // near-centre band already pans the maze
+    assert(speed(extraR)>speed(extraR*.75f));
+    assert(speed(extraR)<SOLO_EXTRA_CRUISE_HANDOFF);
     const float verySlow1=speed(extraR+(nearR-extraR)*.25f);
     const float verySlow2=speed(extraR+(nearR-extraR)*.5f);
     const float verySlow3=speed(extraR+(nearR-extraR)*.75f);
