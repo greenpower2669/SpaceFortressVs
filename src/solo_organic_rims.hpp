@@ -54,6 +54,25 @@ struct SoloOrganicRims {
     static bool visibleRock(const Map &map,float gx,float gy){
         return field(map,gx,gy)>=contourThreshold(gx,gy);
     }
+    // SOLO-034: make exposed OUTER cliffs read as thicker, not merely as a
+    // thin bright stroke. Relief stays WITHIN the existing opaque rock
+    // silhouette; this never expands Rock into traversable empty cells.
+    // All phases are in MAP coordinates: no repeated tile seam or camera
+    // shimmer. The rim is a broad shadow shelf capped by a chipped lip.
+    struct RimRelief {float lip=0,cliff=0,depth=0;};
+    static RimRelief exteriorRelief(float gx,float gy,float rockField,float threshold){
+        const float depth=std::max(0.f,rockField-threshold);
+        // Asymmetric, low-frequency geology gives each long cliff wall a
+        // different apparent width, about 30–45% more relief than a thin rim.
+        const float breadth=std::clamp(.41f+
+            .072f*std::sin(1.17f*gx+.66f*std::sin(.83f*gy))+
+            .037f*std::sin(.59f*gx-1.37f*gy),.29f,.53f);
+        const float lipWidth=.20f*breadth;
+        const float lip=1.f-smooth(depth/lipWidth);
+        const float cliff=smooth(depth/(lipWidth*.72f))*
+                          (1.f-smooth(depth/breadth));
+        return {lip,cliff,depth};
+    }
     void release(){
         for(auto &entry:cache){
             if(entry.texture)SDL_DestroyTexture(entry.texture);
@@ -119,7 +138,8 @@ struct SoloOrganicRims {
             for(int x=0;x<textureSide;++x){
                 const float gx=cx*chunkCells+(x+.5f)/texelsPerCell;
                 const float strength=field(map,gx,gy);
-                if(strength<contourThreshold(gx,gy)){
+                const float threshold=contourThreshold(gx,gy);
+                if(strength<threshold){
                     row[x]=SDL_MapRGBA(surf->format,0,0,0,0);continue;
                 }
                 // SOLO-025: the source paint is warped CONTINUOUSLY in map
@@ -154,12 +174,21 @@ struct SoloOrganicRims {
                     blue=Uint8(std::clamp(float(blue)-
                         float(cold)*(.92f-.77f*variation.blueWeight),0.f,255.f));
                 }
+                const auto rim=exteriorRelief(gx,gy,strength,threshold);
+                // Pale broken crest + substantial shaded escarpment behind
+                // it. Both are baked into the ONE binary-alpha wall texture,
+                // so front/actor masking cannot double-darken the border.
+                const float relief=1.f+.23f*rim.lip-.46f*rim.cliff;
                 const float light=std::clamp((.76f+.32f*strength+
-                    .055f*std::sin(2.4f*gx-1.5f*gy))*variation.shade,.60f,1.17f);
-                auto adjust=[light](Uint8 c){
-                    return Uint8(std::clamp(int(c*light),0,255));
+                    .055f*std::sin(2.4f*gx-1.5f*gy))*variation.shade*relief,
+                    .42f,1.35f);
+                auto adjust=[light](Uint8 c,float additive=0.f){
+                    return Uint8(std::clamp(int(c*light+additive),0,255));
                 };
-                row[x]=SDL_MapRGBA(surf->format,adjust(red),adjust(green),adjust(blue),255);
+                row[x]=SDL_MapRGBA(surf->format,
+                    adjust(red,7.f*rim.lip),
+                    adjust(green,8.f*rim.lip),
+                    adjust(blue,10.f*rim.lip),255);
             }
         }
         SDL_Texture *texture=SDL_CreateTextureFromSurface(r,surf);

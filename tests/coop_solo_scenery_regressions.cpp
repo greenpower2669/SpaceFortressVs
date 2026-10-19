@@ -29,6 +29,25 @@ int main(){
         assert(SoloOrganicRims::field(outline.map,3.0f,5.5f)<.01f);
         assert(!SoloOrganicRims::visibleRock(outline.map,3.0f,5.5f));
         assert(SoloOrganicRims::visibleRock(outline.map,5.5f,6.5f));
+        // SOLO-034: wider visible OUTER escarpment, but the same binary
+        // silhouette / collision Rock tiles and continuous map-space phase.
+        const float gx=4.25f,gy=7.15f;
+        const auto testRelief=[&](float depth){
+            return SoloOrganicRims::exteriorRelief(gx,gy,.51f+depth,.51f);
+        };
+        const auto crest=testRelief(0.f),ledge=testRelief(.13f),
+                   inner=testRelief(.24f),core=testRelief(.60f);
+        assert(crest.lip>.99f && crest.cliff<.01f);
+        assert(ledge.cliff>.20f && ledge.lip<.05f);
+        assert(inner.cliff>.05f);
+        assert(core.lip==0.f && core.cliff==0.f);
+        const auto sameRelief=SoloOrganicRims::exteriorRelief(
+            gx,gy,.51f+.13f,.51f);
+        assert(sameRelief.cliff==ledge.cliff);
+        // Pixel height is unchanged: the physical map still owns the
+        // traversable corridor clearance and swept-wall collisions.
+        assert(outline.map.at(3,7)==Tile::Empty);
+        assert(outline.map.at(4,7)==Tile::Rock);
         // A carved corner differs from a flat wall edge, and profile is
         // independent of which 8x8 texture chunk asks for the sample.
         const float offCorner=SoloOrganicRims::field(outline.map,3.92f,3.92f);
