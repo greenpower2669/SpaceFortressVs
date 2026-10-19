@@ -15,6 +15,13 @@
 - [ ] Pendant l'implémentation autorisée : conserver la collision/tuiles `Rock/Empty`, largeur jouable, matériau interne, zoom/parallaxe, caméra, contrôle SOLO-033, sons et autres modes. Ajouter tests continuité visuelle et non-régression du masque Rock.
 - [ ] Source et tests SOLO-035 autorisés ; aucun merge vers main/Release. Ne déclarer APK disponible qu'après CI et extraction GitHub vérifiées.
 
+## Correctif SOLO-036 — bord bas et déplacement solidaire
+- [x] Prolongement décoratif de la roche sous la dernière rangée de la carte ; physique Rock/Empty préservée.
+- [x] Même calage `world.toScreen`, caméra et zoom que les parois, aucune parallaxe autonome.
+- [x] Tests SDL de remplissage opaque, continuité et translation de pixels ajoutés.
+- [ ] Attendre CI C++/SDL2/Android sur le commit exact et extraction APK directe `temp/solo-036/`.
+- [ ] Tester sur Samsung la zone hachurée rouge, les cratères et le mouvement solidaire.
+
 ## Validation terrain / réserves
 - [ ] Vérifier si nécessaire sur Samsung, sans présumer validés : mesure physique vitesse à 1/2/4/8 s, manche/pad, virage/demi-tour, collisions/murs, difficulté APOCALYPSE et inversion G/D. **Retour positif global actuel**, pas certification exhaustive.
 - [ ] Vérifier rendu SOLO-034 sur différents couloirs et zooms : épaississement perceptible, transitions, luminosité et lisibilité de tous les parcours (capture reçue, davantage de roche souhaitée).
@@ -24,3 +31,6 @@
 
 ### SOLO-035 — GO Fab, incrustation cratères (19/10/2026)
 Fab autorise désormais le **codage** du remplissage rocheux cratérisé après audit et compaction des mémoires. Ne pas créer un second matériau : utiliser exactement la source `ParoisModeSolo.png`, le warping de `soloRockMaterialAt` et la lumière existante de `SoloOrganicRims`. Le nouvel `src/solo_crater_relief.hpp` module uniquement les RGB des texels Rock : grandes et petites dépressions déterministes en coordonnées mondiales, centres/ellipses irréguliers, lèvres éclairées et creux plus sombres, atténuation douce dans la matière autour des ouvertures. Le bas plat, les bords latéraux et les masses internes doivent se confondre sans raccord. `Rock/Empty`, silhouette alpha, collisions, largeur des passages, `ShipMotion`, commande 30%+100 points, caméra, sons et modes historiques intouchés. Tests SDL de continuité sur les frontières de chunk et de contraste, puis CI C++/SDL2/Android du même commit, et export APK direct sous `temp/solo-035/` avec SHA256. Aucune fusion main/release.
+
+### SOLO-036 — correction du remplissage extérieur synchronisé (19/10/2026)
+Après capture annotée en rouge, le constat est que SOLO-035 a incrusté des cratères dans la roche existante mais **n'a pas rempli le vide sous le bord inférieur de la carte**. Fab confirme que ce volume décoratif doit **bouger exactement avec les murs**, sans parallaxe autonome. Correctif autorisé dans `src/solo_organic_rims.hpp` : `rock()` reste la seule vérité physique, `visualRock()` ajoute un prolongement décoratif pour `y>=map.height` et `0<=x<map.width`, `visualField()` le raccorde par interpolation au dernier rang Rock. Même atlas source, même `soloRockMaterialAt`, mêmes cratères et même shader que les murs existants ; **un seul `organic.draw` avec `world.toScreen` + `w.zoom`** et un culling vertical étendu sous `map.height`. Les tests SDL vérifient opacité sur deux fonds, continuité au bas, translation exacte d'un `pixelsPerCell`, tuiles de collision invariantes. Préparer CI Android/C++/SDL2 et export APK direct `temp/solo-036/` ; pas de publication/merge main.
