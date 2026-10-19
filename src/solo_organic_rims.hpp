@@ -33,17 +33,35 @@ struct SoloOrganicRims {
     static float smooth(float x){
         x=std::clamp(x,0.f,1.f);return x*x*(3.f-2.f*x);
     }
+    // SOLO-036: the visible solid rock continues *below the world map*
+    // (the black starfield strip in the Samsung screenshot). This is DISPLAY
+    // ONLY: rock(map,...) remains the sole physical occupancy authority.
+    // It is deliberately sampled in the same map-space atlas as all walls,
+    // not from a separate parallax layer or a second texture.
+    static bool visualRock(const Map &map,int x,int y){
+        if(rock(map,x,y))return true;
+        return x>=0 && x<map.width && y>=map.height && map.height>0;
+    }
     // Bilinear ROCK samples at cell centres smooth external corners over
     // multiple cells, unlike a 16-mask piece repeated at each tile border.
-    static float field(const Map &map,float gx,float gy){
+    static float sampleField(const Map &map,float gx,float gy,bool extended){
         const float ax=gx-.5f,ay=gy-.5f;
         const int ix=int(std::floor(ax)),iy=int(std::floor(ay));
         const float u=smooth(ax-ix),v=smooth(ay-iy);
-        const float a=rock(map,ix,iy)?1.f:0.f;
-        const float b=rock(map,ix+1,iy)?1.f:0.f;
-        const float c=rock(map,ix,iy+1)?1.f:0.f;
-        const float d=rock(map,ix+1,iy+1)?1.f:0.f;
+        const auto sample=[&](int x,int y){
+            return (extended?visualRock(map,x,y):rock(map,x,y))?1.f:0.f;
+        };
+        const float a=sample(ix,iy);
+        const float b=sample(ix+1,iy);
+        const float c=sample(ix,iy+1);
+        const float d=sample(ix+1,iy+1);
         return (a+(b-a)*u)*(1-v)+(c+(d-c)*u)*v;
+    }
+    static float field(const Map &map,float gx,float gy){
+        return sampleField(map,gx,gy,false);
+    }
+    static float visualField(const Map &map,float gx,float gy){
+        return sampleField(map,gx,gy,true);
     }
     static float contourThreshold(float gx,float gy){
         // Low spatial frequencies in MAP coordinates ensure every adjoining
@@ -106,7 +124,7 @@ struct SoloOrganicRims {
         // 2 cell halo catches any neighbour whose smoothed field contributes.
         for(int y=cy*chunkCells-2;y<(cy+1)*chunkCells+2;++y)
             for(int x=cx*chunkCells-2;x<(cx+1)*chunkCells+2;++x){
-                code^=rock(map,x,y)?1u:0u;
+                code^=visualRock(map,x,y)?1u:0u;
                 code*=1099511628211ULL;
             }
         return code;
@@ -138,7 +156,7 @@ struct SoloOrganicRims {
             const float gy=cy*chunkCells+(y+.5f)/texelsPerCell;
             for(int x=0;x<textureSide;++x){
                 const float gx=cx*chunkCells+(x+.5f)/texelsPerCell;
-                const float strength=field(map,gx,gy);
+                const float strength=visualField(map,gx,gy);
                 const float threshold=contourThreshold(gx,gy);
                 if(strength<threshold){
                     row[x]=SDL_MapRGBA(surf->format,0,0,0,0);continue;
@@ -217,7 +235,10 @@ struct SoloOrganicRims {
         const int y0=std::max(0,int(std::floor(w.cameraTop/c))/chunkCells);
         const int x1=std::min((w.map.width+chunkCells-1)/chunkCells,
             (int(std::ceil((w.cameraLeft+w.visibleWidth())/c))+chunkCells-1)/chunkCells);
-        const int y1=std::min((w.map.height+chunkCells-1)/chunkCells,
+        // Do not clip to map.height: the same map-space mineral atlas
+        // continues under the last physical Rock row, filling the viewport
+        // below the map at the SAME camera position and zoom as the walls.
+        const int y1=std::max(0,
             (int(std::ceil((w.cameraTop+w.visibleHeight())/c))+chunkCells-1)/chunkCells);
         for(int cy=y0;cy<y1;++cy)for(int cx=x0;cx<x1;++cx){
             auto *tex=ensure(r,w.map,theme,cx,cy);
