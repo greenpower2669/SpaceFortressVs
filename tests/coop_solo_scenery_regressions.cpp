@@ -163,6 +163,44 @@ int main(){
         world.cameraLeft+=300;world.cameraTop+=200;scenery.draw(r,world,0);assert(first!=pixels(r));
         world.cameraLeft=cx;world.cameraTop=cy;scenery.draw(r,world,0);assert(first==pixels(r));
         assert(map==world.map.tiles);
+        // SOLO-036: the rock mass below the lower map edge is VISUAL ONLY.
+        // It must use precisely the same texture phase, camera and zoom as
+        // the labyrinth; background parallax must never drive this layer.
+        const float bottom=float(world.map.height);
+        const float center=float(world.map.width)*.5f;
+        assert(SoloOrganicRims::rock(world.map,int(center),world.map.height-1));
+        assert(!SoloOrganicRims::rock(world.map,int(center),world.map.height));
+        assert(SoloOrganicRims::visualRock(world.map,int(center),world.map.height));
+        assert(SoloOrganicRims::field(world.map,center,bottom+.75f)<.01f);
+        assert(SoloOrganicRims::visualField(world.map,center,bottom+.75f)>.99f);
+        assert(SoloOrganicRims::visualField(world.map,center,bottom-.25f)>.99f);
+        assert(!SoloOrganicRims::visualRock(world.map,-1,world.map.height+1));
+        assert(!SoloOrganicRims::visualRock(world.map,world.map.width,world.map.height+1));
+        // At world bottom, the region that used to reveal stars must now be
+        // opaque rock on two different background colors.
+        const auto normalTop=world.cameraTop,normalLeft=world.cameraLeft;
+        world.cameraLeft=center*world.pixelsPerCell-world.visibleWidth()*.5f;
+        world.cameraTop=bottom*world.pixelsPerCell-2.f*world.pixelsPerCell;
+        clear(r,255,0,255);
+        scenery.organic.draw(r,world,CoopSoloScenery::worldTheme(world.map.world));
+        const auto lowerPink=pixels(r);
+        clear(r,0,255,0);
+        scenery.organic.draw(r,world,CoopSoloScenery::worldTheme(world.map.world));
+        const auto lowerGreen=pixels(r);
+        for(int y=410;y<850;y+=55)for(int x=100;x<470;x+=70)
+            assert(lowerPink[size_t(y)*540+x]==lowerGreen[size_t(y)*540+x]);
+        // With a physically identical camera delta, the rock pixels must
+        // translate one-to-one, NOT scroll at the sky/mineral parallax rate.
+        world.cameraTop+=world.pixelsPerCell;
+        clear(r,255,0,255);
+        scenery.organic.draw(r,world,CoopSoloScenery::worldTheme(world.map.world));
+        const auto moved=pixels(r);
+        const int movePixels=int(std::lround(world.pixelsPerCell*world.zoom));
+        for(int y=420;y<800;y+=51)for(int x=130;x<440;x+=63)
+            assert(lowerPink[size_t(y+movePixels)*540+x]==
+                   moved[size_t(y)*540+x]);
+        world.cameraLeft=normalLeft;world.cameraTop=normalTop;
+        assert(map==world.map.tiles);
         if(const char *path=std::getenv("SF_SOLO_SCENERY_CAPTURE"))assert(IMG_SavePNG(surface,path)==0);
         scenery.drawBackground(r,world,false);const auto sky=pixels(r);
         scenery.drawBackground(r,world,true);const auto cave=pixels(r);
