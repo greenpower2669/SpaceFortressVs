@@ -4,6 +4,7 @@
 // The source paint is still ParoisModeSolo.png, never replaced or resized.
 #include "solo_map_generator.hpp"
 #include "solo_rock_material_variation.hpp"
+#include "solo_crater_relief.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <algorithm>
@@ -175,10 +176,15 @@ struct SoloOrganicRims {
                         float(cold)*(.92f-.77f*variation.blueWeight),0.f,255.f));
                 }
                 const auto rim=exteriorRelief(gx,gy,strength,threshold);
+                // SOLO-035: crater shadows and rims share the SAME source
+                // painted mineral and original cliff lighting. Their influence
+                // fades into the border without changing binary alpha.
+                const auto crater=SoloCraterRelief::at(gx,gy,rim.depth);
                 // Pale broken crest + substantial shaded escarpment behind
                 // it. Both are baked into the ONE binary-alpha wall texture,
                 // so front/actor masking cannot double-darken the border.
-                const float relief=1.f+.23f*rim.lip-.46f*rim.cliff;
+                const float relief=(1.f+.23f*rim.lip-.46f*rim.cliff)*
+                                   crater.shade;
                 const float light=std::clamp((.76f+.32f*strength+
                     .055f*std::sin(2.4f*gx-1.5f*gy))*variation.shade*relief,
                     .42f,1.35f);
