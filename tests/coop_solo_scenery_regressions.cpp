@@ -44,6 +44,39 @@ int main(){
         const auto sameRelief=SoloOrganicRims::exteriorRelief(
             gx,gy,.51f+.13f,.51f);
         assert(sameRelief.cliff==ledge.cliff);
+        // SOLO-035: crater layers share the existing mineral RGB, have no
+        // separate alpha mask, fade into cliffs and have stable world phases.
+        const auto bare=sfsolo::SoloCraterRelief::at(12.35f,19.65f,0.f);
+        assert(bare.shade==1.f&&bare.rim==0.f&&bare.hollow==0.f);
+        const auto coreCrater=sfsolo::SoloCraterRelief::at(12.35f,19.65f,.60f);
+        const auto sameCrater=sfsolo::SoloCraterRelief::at(12.35f,19.65f,.60f);
+        assert(coreCrater.shade==sameCrater.shade);
+        assert(coreCrater.shade>=.62f&&coreCrater.shade<=1.23f);
+        const auto transitionCrater=sfsolo::SoloCraterRelief::at(12.35f,19.65f,.13f);
+        assert(std::abs(transitionCrater.shade-1.f) <=
+               std::abs(coreCrater.shade-1.f)+.001f);
+        // Sample on both sides of 8x8 chunk boundaries and across multiple
+        // sizes: no phase reset, repeated cell-square motif or pixel jump.
+        for(int cy=1;cy<4;++cy)for(int cx=1;cx<4;++cx) {
+            const float xx=float(cx*8),yy=float(cy*8);
+            const auto left=sfsolo::SoloCraterRelief::at(xx-.0001f,yy+.73f,.55f);
+            const auto right=sfsolo::SoloCraterRelief::at(xx+.0001f,yy+.73f,.55f);
+            const auto top=sfsolo::SoloCraterRelief::at(xx+.59f,yy-.0001f,.55f);
+            const auto bottom=sfsolo::SoloCraterRelief::at(xx+.59f,yy+.0001f,.55f);
+            assert(std::abs(left.shade-right.shade)<.005f);
+            assert(std::abs(top.shade-bottom.shade)<.005f);
+        }
+        unsigned darkCount=0,rimCount=0;
+        for(int iy=0;iy<180;++iy)for(int ix=0;ix<180;++ix) {
+            const auto v=sfsolo::SoloCraterRelief::at(ix*.26f,iy*.26f,.57f);
+            darkCount+=v.shade<.90f;
+            rimCount+=v.rim>.16f;
+            assert(std::isfinite(v.shade));
+        }
+        assert(darkCount>30 && rimCount>50); // Distinct varied impacts.
+        // The actual Rock/Empty map remains the single collision authority.
+        assert(outline.map.at(3,7)==Tile::Empty);
+        assert(outline.map.at(4,7)==Tile::Rock);
         // Pixel height is unchanged: the physical map still owns the
         // traversable corridor clearance and swept-wall collisions.
         assert(outline.map.at(3,7)==Tile::Empty);
