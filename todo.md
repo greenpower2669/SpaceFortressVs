@@ -1059,3 +1059,13 @@ Source exacte `503fac23d4ba09d70e9567ca3374ab59cd6355c5`. GitHub CI `Android APK
 
 ### SOLO-033 — validations vertes et .apk GitHub directement vérifié (19/10/2026)
 Source EXACTE `e6886f9608876d491a719f47b972ddbba80ea79f`, GitHub Actions CI `39174099334` **SUCCESS** pour `build-android`, `solo-core-regressions`, `solo-sdl2-ui` ; `publish-release` SKIPPED. Workflow export direct `39174099423` **SUCCESS**, vérifie le même SHA puis extrait côté serveur `temp/solo-033/SpaceFortressVs-1.4.2-SOLO-033-e6886f9.apk` (98 727 564 octets, SHA256 `30d62d40d70d4b66bf350ed15d543f04100936915215b46d9cb12af98893f0ca`) ; manifeste `temp/solo-033/SpaceFortressVs-1.4.2-SOLO-033-e6886f9-build.json` et `SHA256SUMS` concordants. AAB non signé 96 019 614 octets. Aucun ZIP utilisateur, aucun merge main, aucune Release publique. Sons Meteor privés **0/4** (fallback audio historique). Essai réel Samsung en attente : comparer vitesse au départ 30 % / +2s ~43 % / +4s ~85 % / +8s ~129 % au bord, puis cap changé (virage et inversion). Les valeurs sont commandes théoriques, pas mesures physiques Samsung et l'inertie peut en retarder l'effet.
+
+### SOLO-034 — falaises extérieures plus visibles
+- [x] Auditer source des contours rocailleux sur capture Android et séparer visuel/collisions.
+- [x] Renforcer crête lumineuse et ombre intérieure épaisse/irrégulière via une couche de relief en coordonnées mondiales.
+- [x] Préserver l'opacité binaire, le matériau source et l'absence de coutures entre chunks/tuiles.
+- [x] Ajouter tests de profil de falaise et carte Rock/Empty immuable.
+- [ ] Attendre CI core C++, SDL2 et Android vertes pour le même commit exact.
+- [ ] Exporter APK direct par GitHub Actions dans `temp/solo-034/` avec SHA-256 vérifié et lien RAW sans ZIP.
+- [ ] Fab valide sur Samsung l'épaisseur visuelle des flancs latéraux et bandes transversales, sans assombrissement excessif.
+- [ ] Ne pas modifier le tenseur SOLO-033, les contrôles, collisions, boss, ni publier vers main/release.
